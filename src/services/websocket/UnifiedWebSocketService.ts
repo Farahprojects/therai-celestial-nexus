@@ -23,7 +23,26 @@ class UnifiedWebSocketService {
   private onReportCompleted?: (reportData: any) => void;
 
   constructor() {
-    // No content area watching - only message fetching
+    // Attach lightweight browser lifecycle listeners to heal after sleep/network changes
+    if (typeof window !== 'undefined') {
+      window.addEventListener('online', () => {
+        if (this.currentChatId) {
+          this.setupRealtimeSubscription(this.currentChatId);
+        }
+      });
+
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible' && this.currentChatId) {
+          this.setupRealtimeSubscription(this.currentChatId);
+        }
+      });
+
+      window.addEventListener('focus', () => {
+        if (this.currentChatId) {
+          this.setupRealtimeSubscription(this.currentChatId);
+        }
+      });
+    }
   }
 
   /**
@@ -165,6 +184,12 @@ class UnifiedWebSocketService {
       const onErrorCallback = this.onError;
       const onReportCompletedCallback = this.onReportCompleted;
 
+      // Ensure any stale channel is removed before creating a new one
+      if (this.realtimeChannel) {
+        try { supabase.removeChannel(this.realtimeChannel); } catch (_) { /* noop */ }
+        this.realtimeChannel = null;
+      }
+
       this.realtimeChannel = supabase
         .channel(`unified-messages:${chat_id}`)
         .on(
@@ -218,12 +243,17 @@ class UnifiedWebSocketService {
           
           if (status === 'SUBSCRIBED') {
             this.subscriptionRetryCount = 0;
-          } else if (status === 'TIMED_OUT' || status === 'CHANNEL_ERROR') {
+          } else if (status === 'TIMED_OUT' || status === 'CHANNEL_ERROR' || status === 'CLOSED') {
             const retry = Math.min(++this.subscriptionRetryCount, 5);
             const delay = Math.min(1000 * Math.pow(2, retry), 8000);
             console.warn(`[UnifiedWebSocket] Realtime ${status}. Retrying in ${delay}ms (attempt ${retry})`);
             setTimeout(() => {
               if (this.currentChatId === chat_id) {
+                // Remove stale channel before re-subscribing to avoid dupes
+                if (this.realtimeChannel) {
+                  try { supabase.removeChannel(this.realtimeChannel); } catch (_) { /* noop */ }
+                  this.realtimeChannel = null;
+                }
                 this.setupRealtimeSubscription(chat_id);
               }
             }, delay);
