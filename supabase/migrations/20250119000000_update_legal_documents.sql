@@ -1,13 +1,8 @@
 -- Update legal documents with comprehensive Terms of Service and Privacy Policy
 -- Tailored specifically for Therai's AI astrology platform
 
--- Clear existing documents (only if table exists)
-DO $$
-BEGIN
-    IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'legal_documents' AND table_schema = 'public') THEN
-        DELETE FROM legal_documents WHERE document_type IN ('terms_of_service', 'privacy_policy');
-    END IF;
-END $$;
+-- Clear existing documents
+DELETE FROM legal_documents WHERE document_type IN ('terms_of_service', 'privacy_policy');
 
 -- Insert comprehensive Terms of Service
 INSERT INTO legal_documents (document_type, title, content, version, published_date, is_current)
