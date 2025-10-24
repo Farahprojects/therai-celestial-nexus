@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 interface SwissDataModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onViewData?: () => void;
   swissData: any | null;
   isLoading: boolean;
   error: string | null;
@@ -15,6 +16,7 @@ interface SwissDataModalProps {
 export const SwissDataModal: React.FC<SwissDataModalProps> = ({
   isOpen,
   onClose,
+  onViewData,
   swissData,
   isLoading,
   error,
@@ -82,40 +84,53 @@ export const SwissDataModal: React.FC<SwissDataModalProps> = ({
           )}
 
           {swissData && !isLoading && !error && (
-            <div className="space-y-4">
-              <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                <p className="text-sm text-gray-600 mb-2 font-light">
-                  Your Swiss ephemeris data is ready! Copy it and paste into your favorite AI tool.
+            <div className="space-y-6">
+              <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl p-6 border border-green-200">
+                <div className="flex items-center justify-center mb-4">
+                  <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center">
+                    <Check className="w-8 h-8 text-green-600" />
+                  </div>
+                </div>
+                <p className="text-center text-gray-700 font-medium mb-2">
+                  Your Swiss Data is Ready!
+                </p>
+                <p className="text-center text-sm text-gray-600 font-light">
+                  Choose an option below to continue
                 </p>
               </div>
 
-              {/* Data Preview */}
-              <div className="bg-gray-900 rounded-lg p-4 max-h-96 overflow-auto">
-                <pre className="text-xs text-green-400 font-mono whitespace-pre-wrap break-words">
-                  {JSON.stringify(swissData, null, 2)}
-                </pre>
+              {/* Action Buttons */}
+              <div className="space-y-3">
+                {/* Copy Button */}
+                <Button
+                  onClick={handleCopy}
+                  className="w-full h-14 rounded-full bg-gray-900 hover:bg-gray-800 text-white font-light text-base shadow-lg hover:shadow-xl transition-all"
+                >
+                  {copied ? (
+                    <>
+                      <Check className="w-5 h-5 mr-2" />
+                      Copied! Now paste into your AI
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-5 h-5 mr-2" />
+                      Copy Astro Data
+                    </>
+                  )}
+                </Button>
+
+                {/* View Button */}
+                <Button
+                  onClick={onViewData || onClose}
+                  variant="outline"
+                  className="w-full h-14 rounded-full border-2 border-gray-300 hover:border-gray-400 hover:bg-gray-50 font-light text-base transition-all"
+                >
+                  View Astro Data
+                </Button>
               </div>
 
-              {/* Copy Button */}
-              <Button
-                onClick={handleCopy}
-                className="w-full h-12 rounded-full bg-gray-900 hover:bg-gray-800 text-white font-light"
-              >
-                {copied ? (
-                  <>
-                    <Check className="w-5 h-5 mr-2" />
-                    Copied!
-                  </>
-                ) : (
-                  <>
-                    <Copy className="w-5 h-5 mr-2" />
-                    Copy Swiss Data
-                  </>
-                )}
-              </Button>
-
               <p className="text-xs text-gray-500 text-center font-light">
-                This data is saved to your profile and can be accessed anytime
+                Your data is saved and can be accessed anytime from your conversation history
               </p>
             </div>
           )}

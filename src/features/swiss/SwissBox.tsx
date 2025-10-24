@@ -12,6 +12,7 @@ import { AstroDataForm } from '@/components/chat/AstroDataForm';
 import { useMessageStore } from '@/stores/messageStore';
 import { SwissDataModal } from '@/components/swiss/SwissDataModal';
 import { useSwissDataPolling } from '@/hooks/useSwissDataPolling';
+import { useReportModal } from '@/contexts/ReportModalContext';
 
 // Lazy load components for better performance
 const ConversationOverlay = lazy(() => import('@/features/chat/ConversationOverlay/ConversationOverlay').then(module => ({ default: module.ConversationOverlay })));
@@ -34,6 +35,7 @@ export const SwissBox: React.FC<SwissBoxProps> = ({ onDelete }) => {
   const [showAstroForm, setShowAstroForm] = useState(false);
   const [showDataModal, setShowDataModal] = useState(false);
   const [activeChatIdForPolling, setActiveChatIdForPolling] = useState<string | null>(null);
+  const { open: openReportModal } = useReportModal();
 
   // Poll for Swiss data when we have a chat_id
   const { isLoading, swissData, error: pollingError } = useSwissDataPolling(
@@ -85,6 +87,16 @@ export const SwissBox: React.FC<SwissBoxProps> = ({ onDelete }) => {
 
   const handleCloseDataModal = () => {
     setShowDataModal(false);
+    setActiveChatIdForPolling(null);
+  };
+
+  const handleViewAstroData = () => {
+    // Close the Swiss data modal
+    setShowDataModal(false);
+    // Open the report modal with the current chat_id
+    if (activeChatIdForPolling) {
+      openReportModal(activeChatIdForPolling);
+    }
     setActiveChatIdForPolling(null);
   };
 
@@ -190,6 +202,7 @@ export const SwissBox: React.FC<SwissBoxProps> = ({ onDelete }) => {
               <SwissDataModal
                 isOpen={showDataModal}
                 onClose={handleCloseDataModal}
+                onViewData={handleViewAstroData}
                 swissData={swissData}
                 isLoading={isLoading}
                 error={pollingError}
