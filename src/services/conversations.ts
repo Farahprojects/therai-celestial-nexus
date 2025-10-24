@@ -6,7 +6,7 @@ import { Conversation } from '@/core/types';
  */
 export const createConversation = async (
   userId: string, 
-  mode: 'chat' | 'astro' | 'insight', 
+  mode: 'chat' | 'astro' | 'insight' | 'swiss', 
   title?: string,
   reportData?: {
     reportType?: string;

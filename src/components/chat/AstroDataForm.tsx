@@ -29,7 +29,7 @@ interface AstroDataFormProps {
   contextId?: string;
   isProfileFlow?: boolean;
   variant?: 'standalone' | 'insights';
-  mode?: 'chat' | 'astro' | 'insight';
+  mode?: 'chat' | 'astro' | 'insight' | 'swiss';
 }
 
 const DEFAULT_FORM_VALUES: ReportFormData = {
@@ -148,7 +148,7 @@ export const AstroDataForm: React.FC<AstroDataFormProps> = ({
 
   const handleFormSubmission = async (data: ReportFormData) => {
     if (!user) return;
-    if (!mode || (mode !== 'astro' && mode !== 'insight')) {
+    if (!mode || (mode !== 'astro' && mode !== 'insight' && mode !== 'swiss')) {
       toast.error('Please select a mode from the dropdown menu before submitting.');
       return;
     }
@@ -156,10 +156,21 @@ export const AstroDataForm: React.FC<AstroDataFormProps> = ({
     setIsProcessing(true);
 
     try {
-      // Always create new conversation for astro and insight modes
+      // Always create new conversation for astro, insight, and swiss modes
       const payload = buildReportPayload(data, selectedAstroType);
-      const title = mode === 'insight' ? `${data.name} - Insight` : data.name;
-      const currentChatId = await createConversation(mode as 'astro' | 'insight', 
+      // Determine the conversation mode and title using explicitMode to include 'swiss'
+      let conversationMode: 'astro' | 'insight' | 'swiss' = 'astro';
+      let title = data.name;
+      
+      if (explicitMode === 'insight' || mode === 'insight') {
+        conversationMode = 'insight';
+        title = `${data.name} - Insight`;
+      } else if (explicitMode === 'swiss') {
+        conversationMode = 'swiss';
+        title = `${data.name} - Swiss Data`;
+      }
+      
+      const currentChatId = await createConversation(conversationMode, 
         title,
         { reportType, ...payload }
       );

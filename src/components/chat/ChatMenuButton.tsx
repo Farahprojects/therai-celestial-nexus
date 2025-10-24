@@ -9,7 +9,7 @@ import { useChatStore } from '@/core/store';
 import { updateConversationTitle } from '@/services/conversations';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { getUserFolders, getFolderConversations, moveConversationToFolder, createFolder } from '@/services/folders';
 import { FolderModal } from '@/components/folders/FolderModal';
 
@@ -17,16 +17,19 @@ interface ChatMenuButtonProps {
   className?: string;
   onEditStart?: () => void;
   onDeleteStart?: () => void;
+  mode?: 'chat' | 'swiss';
 }
 
 export const ChatMenuButton: React.FC<ChatMenuButtonProps> = ({ 
   className = "",
   onEditStart,
-  onDeleteStart 
+  onDeleteStart,
+  mode 
 }) => {
   const { chat_id, threads, removeThread, clearChat } = useChatStore();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [editTitle, setEditTitle] = useState('');
@@ -38,6 +41,9 @@ export const ChatMenuButton: React.FC<ChatMenuButtonProps> = ({
   const currentConversation = threads.find(t => t.id === chat_id);
   const currentTitle = currentConversation?.title || '';
   const currentFolderId = currentConversation?.folder_id || null;
+  
+  // Detect mode from URL if not explicitly provided
+  const detectedMode = mode || (location.pathname.startsWith('/swiss') ? 'swiss' : 'chat');
 
   // Load folders on mount
   useEffect(() => {
@@ -183,6 +189,7 @@ export const ChatMenuButton: React.FC<ChatMenuButtonProps> = ({
           onCreateFolder={handleCreateFolderAndMove}
           folders={folders}
           currentFolderId={currentFolderId}
+          mode={detectedMode}
         />
       </DropdownMenu>
 

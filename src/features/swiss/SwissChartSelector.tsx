@@ -1,0 +1,123 @@
+import React, { useState } from 'react';
+import { Sparkles, Calendar, TrendingUp, Users, Heart, Globe, ChevronRight } from 'lucide-react';
+
+interface ChartType {
+  id: string;
+  name: string;
+  icon: React.ReactNode;
+}
+
+const chartTypes: ChartType[] = [
+  {
+    id: 'natal', // Maps to /natal endpoint
+    name: 'Natal Chart',
+    icon: <Sparkles className="w-5 h-5" />,
+  },
+  {
+    id: 'transits', // Maps to /transits endpoint
+    name: 'Transit Chart',
+    icon: <Globe className="w-5 h-5" />,
+  },
+  {
+    id: 'return', // Maps to /return endpoint (Solar/Lunar Return)
+    name: 'Solar Return',
+    icon: <Calendar className="w-5 h-5" />,
+  },
+  {
+    id: 'progressions', // Maps to /progressions endpoint
+    name: 'Progressed Chart',
+    icon: <TrendingUp className="w-5 h-5" />,
+  },
+  {
+    id: 'synastry', // Maps to /synastry endpoint
+    name: 'Synastry',
+    icon: <Users className="w-5 h-5" />,
+  },
+  {
+    id: 'sync', // Maps to /sync endpoint (Composite/Sync chart)
+    name: 'Composite',
+    icon: <Heart className="w-5 h-5" />,
+  },
+];
+
+interface SwissChartSelectorProps {
+  onSelectChart: (chartId: string) => void;
+}
+
+export const SwissChartSelector: React.FC<SwissChartSelectorProps> = ({ onSelectChart }) => {
+  const [selectedChart, setSelectedChart] = useState<string | null>(null);
+
+  const handleChartClick = (chartId: string) => {
+    setSelectedChart(chartId);
+    onSelectChart(chartId);
+  };
+
+  return (
+    <div className="w-full max-w-2xl mx-auto px-4 py-6 space-y-6">
+      {/* Header */}
+      <div className="text-center space-y-2 pb-4">
+        <h2 className="text-2xl md:text-3xl font-light text-gray-900 italic">
+          Select Chart Type
+        </h2>
+        <p className="text-sm text-gray-600 font-light">
+          Choose the chart you want to generate
+        </p>
+      </div>
+
+      {/* Chart List */}
+      <div className="space-y-2">
+        {chartTypes.map((chart) => {
+          const isSelected = selectedChart === chart.id;
+          
+          return (
+            <button
+              key={chart.id}
+              onClick={() => handleChartClick(chart.id)}
+              className={`
+                w-full flex items-center justify-between p-4 rounded-xl border-2 transition-all duration-200
+                ${
+                  isSelected
+                    ? 'border-gray-900 bg-gray-50'
+                    : 'border-gray-200 bg-white hover:border-gray-400 hover:bg-gray-50'
+                }
+              `}
+            >
+              {/* Icon + Name */}
+              <div className="flex items-center gap-3">
+                <div
+                  className={`
+                    flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center transition-colors duration-200
+                    ${
+                      isSelected
+                        ? 'bg-gray-900 text-white'
+                        : 'bg-gray-100 text-gray-700'
+                    }
+                  `}
+                >
+                  {chart.icon}
+                </div>
+                <span className="text-base font-light text-gray-900">
+                  {chart.name}
+                </span>
+              </div>
+
+              {/* Arrow Indicator */}
+              <ChevronRight
+                className={`
+                  w-5 h-5 transition-colors duration-200
+                  ${isSelected ? 'text-gray-900' : 'text-gray-400'}
+                `}
+              />
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Helper Text */}
+      <div className="text-center text-xs text-gray-500 font-light pt-2">
+        Select a chart type to generate Swiss ephemeris data
+      </div>
+    </div>
+  );
+};
+

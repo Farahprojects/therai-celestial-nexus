@@ -27,6 +27,7 @@ interface ConversationActionsMenuProps {
   currentFolderId?: string | null;
   align?: 'start' | 'end' | 'center';
   currentTitle?: string;
+  mode?: 'chat' | 'swiss'; // Mode to determine menu labels
 }
 
 export const ConversationActionsMenuContent: React.FC<ConversationActionsMenuProps> = ({
@@ -39,6 +40,7 @@ export const ConversationActionsMenuContent: React.FC<ConversationActionsMenuPro
   currentFolderId,
   align = 'end',
   currentTitle = '',
+  mode = 'chat',
 }) => {
   const { chat_id } = useChatStore();
   const { open: openReportModal } = useReportModal();
@@ -46,6 +48,9 @@ export const ConversationActionsMenuContent: React.FC<ConversationActionsMenuPro
   
   // Use provided conversationId or fall back to current chat_id
   const targetConversationId = conversationId || chat_id;
+  
+  // Determine menu label based on mode
+  const astroLabel = mode === 'swiss' ? 'Generate Swiss Data' : 'Astro';
 
   const handleShareClick = () => {
     setShowShareModal(true);
@@ -100,7 +105,7 @@ export const ConversationActionsMenuContent: React.FC<ConversationActionsMenuPro
         >
           <div className="flex items-center gap-2">
             <Sparkles className="w-4 h-4" />
-            <span>Astro</span>
+            <span>{astroLabel}</span>
           </div>
         </DropdownMenuItem>
         

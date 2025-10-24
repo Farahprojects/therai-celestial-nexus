@@ -59,7 +59,7 @@ export const ThreadsProvider: React.FC<ThreadsProviderProps> = ({ children }) =>
     }
   };
 
-  const addThread = async (userId: string, mode: 'chat' | 'astro' | 'insight', title?: string) => {
+  const addThread = async (userId: string, mode: 'chat' | 'astro' | 'insight' | 'swiss', title?: string) => {
     if (!user) throw new Error('User not authenticated');
     
     setLoading(true);

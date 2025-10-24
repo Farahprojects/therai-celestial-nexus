@@ -42,9 +42,15 @@ interface ChatThreadsSidebarProps {
   className?: string;
   onDelete?: () => void;
   onCloseMobileSidebar?: () => void;
+  conversationType?: 'chat' | 'swiss'; // Filter conversations by type
 }
 
-export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({ className, onDelete, onCloseMobileSidebar }) => {
+export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({ 
+  className, 
+  onDelete, 
+  onCloseMobileSidebar,
+  conversationType = 'chat' // Default to chat
+}) => {
   // Use single source of truth for auth state
   const { isAuthenticated } = useAuth();
   const { isSubscriptionActive } = useSubscription();
@@ -507,10 +513,20 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({ classNam
     return firstWords.substring(0, 27) + '...';
   }, [messages]);
 
-  // Lazy loading: Only show visible threads
+  // Filter threads by conversation type and apply lazy loading
   const visibleThreadsList = useMemo(() => {
-    return threads.slice(0, visibleThreads);
-  }, [threads, visibleThreads]);
+    const filtered = threads.filter(thread => {
+      // Filter by conversation type
+      // Swiss conversations have mode='swiss', regular chat has mode='chat' or null
+      if (conversationType === 'swiss') {
+        return thread.mode === 'swiss';
+      } else {
+        // Chat page shows all non-swiss conversations (chat, astro, insight, or null)
+        return thread.mode !== 'swiss';
+      }
+    });
+    return filtered.slice(0, visibleThreads);
+  }, [threads, visibleThreads, conversationType]);
 
   const isSharedThread = (thread: any) => {
     try {

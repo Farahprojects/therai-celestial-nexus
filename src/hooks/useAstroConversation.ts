@@ -11,7 +11,7 @@ export const useAstroConversation = () => {
 
   const createConversation = useCallback(
     async (
-      mode: 'astro' | 'insight',
+      mode: 'astro' | 'insight' | 'swiss',
       title: string,
       reportData: {
         reportType?: string;

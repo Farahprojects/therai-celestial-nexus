@@ -106,7 +106,10 @@ const { data, error } = await admin
   .select()
   .single();
 
-if (error) return errorJson('Failed to create conversation', 500);
+if (error) {
+  console.error('[conversation-manager] Insert error:', error);
+  return errorJson(`Failed to create conversation: ${error.message || JSON.stringify(error)}`, 500);
+}
 
 // Fire-and-forget report generation if report_data provided
 let is_generating_report = false;

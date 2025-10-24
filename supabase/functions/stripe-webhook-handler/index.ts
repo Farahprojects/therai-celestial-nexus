@@ -1,4 +1,5 @@
 
+// Swiss Data Generator - Stripe Webhook Handler
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import Stripe from 'https://esm.sh/stripe@12.18.0'
 
