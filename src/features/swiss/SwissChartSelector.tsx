@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Sparkles, Calendar, TrendingUp, Users, Heart, Globe, ChevronRight } from 'lucide-react';
+import { Sparkles, Calendar, TrendingUp, Heart, ChevronRight } from 'lucide-react';
 
 interface ChartType {
   id: string;
@@ -9,14 +9,9 @@ interface ChartType {
 
 const chartTypes: ChartType[] = [
   {
-    id: 'natal', // Maps to /natal endpoint
-    name: 'Natal Chart',
+    id: 'essence', // Maps to /essence endpoint (Natal + Transit combined)
+    name: 'The Self (Natal + Transit)',
     icon: <Sparkles className="w-5 h-5" />,
-  },
-  {
-    id: 'transits', // Maps to /transits endpoint
-    name: 'Transit Chart',
-    icon: <Globe className="w-5 h-5" />,
   },
   {
     id: 'return', // Maps to /return endpoint (Solar/Lunar Return)
@@ -29,13 +24,8 @@ const chartTypes: ChartType[] = [
     icon: <TrendingUp className="w-5 h-5" />,
   },
   {
-    id: 'synastry', // Maps to /synastry endpoint
-    name: 'Synastry',
-    icon: <Users className="w-5 h-5" />,
-  },
-  {
-    id: 'sync', // Maps to /sync endpoint (Composite/Sync chart)
-    name: 'Composite',
+    id: 'sync', // Maps to /sync endpoint (Compatibility)
+    name: 'Compatibility',
     icon: <Heart className="w-5 h-5" />,
   },
 ];
