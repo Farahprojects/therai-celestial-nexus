@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Download, Copy } from 'lucide-react';
+import { X, Download, Copy, Paperclip } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
@@ -218,12 +218,13 @@ export const ReportSlideOver: React.FC<ReportSlideOverProps> = ({
               {reportData?.swiss_data && (activeView === 'astro' || !hasReport) && (
                 <button
                   onClick={handleCopyAstroData}
-                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                  className="p-2 hover:bg-gray-100 rounded-full transition-colors"
                   title="Copy astro data"
                 >
-                  <Copy className="w-5 h-5 text-gray-600" />
+                  <Paperclip className="w-5 h-5 text-gray-600" />
                 </button>
               )}
+              {/* Close button is handled by Sheet component */}
             </div>
           </SheetHeader>
 
