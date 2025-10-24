@@ -166,15 +166,9 @@ export const SwissBox: React.FC<SwissBoxProps> = ({ onDelete }) => {
               </div>
 
               {/* Desktop Header */}
-              <div className="hidden md:flex items-center justify-between p-4 border-b border-gray-100">
-                <div>
-                  <h1 className="text-xl font-light text-gray-900">Swiss Data Generator</h1>
-                  <p className="text-sm text-gray-500 mt-1">Generate and export Swiss data for your AI tools</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <SwissNewChartButton />
-                  <ChatMenuButton />
-                </div>
+              <div className="hidden md:flex items-center justify-end p-4 border-b border-gray-100 gap-2">
+                <SwissNewChartButton />
+                <ChatMenuButton />
               </div>
 
               {/* Main Content - Chart Selector */}
