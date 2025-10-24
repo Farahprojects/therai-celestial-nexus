@@ -212,8 +212,8 @@ export const ReportSlideOver: React.FC<ReportSlideOverProps> = ({
       >
         <div className="flex flex-col h-full">
           <SheetHeader className="flex flex-row items-center justify-between px-6 py-4 border-b bg-white">
-            <SheetTitle className="text-lg font-medium text-gray-900">Astro data</SheetTitle>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3 flex-1">
+              <SheetTitle className="text-lg font-medium text-gray-900">Astro data</SheetTitle>
               {/* Copy Astro Data Button - Only show when Swiss data is available */}
               {reportData?.swiss_data && (activeView === 'astro' || !hasReport) && (
                 <button
@@ -224,8 +224,8 @@ export const ReportSlideOver: React.FC<ReportSlideOverProps> = ({
                   <Paperclip className="w-5 h-5 text-gray-600" />
                 </button>
               )}
-              {/* Close button is handled by Sheet component */}
             </div>
+            {/* Close button is handled by Sheet component on the right */}
           </SheetHeader>
 
           {/* View Toggle - Only show when both report and Swiss data are available */}
