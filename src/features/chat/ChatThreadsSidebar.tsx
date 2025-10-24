@@ -214,7 +214,7 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
   };
 
   const handleFolderChatClick = (folderId: string, chatId: string) => {
-    // Navigate to the chat
+    // Navigate to the chat (handleSwitchToChat already handles swiss vs chat routing)
     handleSwitchToChat(chatId);
   };
 
@@ -340,6 +340,17 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
 
   // Handle switching to a different conversation
   const handleSwitchToChat = async (conversationId: string) => {
+    // Find the conversation to check its mode
+    const conversation = threads.find(t => t.id === conversationId);
+    
+    // For Swiss conversations, navigate to Swiss page (no WebSocket needed)
+    if (conversation?.mode === 'swiss') {
+      navigate(`/swiss?chat_id=${conversationId}`, { replace: true });
+      onCloseMobileSidebar?.();
+      return;
+    }
+    
+    // For regular chat conversations, proceed with full chat flow
     // DIRECT FLOW: Immediately set chat_id and fetch messages
     const { setChatId } = useMessageStore.getState();
     setChatId(conversationId);
@@ -1004,8 +1015,8 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
         isOpen={showSearchModal}
         onClose={() => setShowSearchModal(false)}
         onSelectMessage={(chatId, messageId) => {
-          // Navigate to the selected conversation and scroll to the message
-          navigate(`/c/${chatId}`);
+          // Use handleSwitchToChat to ensure proper routing (swiss vs chat)
+          handleSwitchToChat(chatId);
           // TODO: Implement scroll to specific message
         }}
       />
