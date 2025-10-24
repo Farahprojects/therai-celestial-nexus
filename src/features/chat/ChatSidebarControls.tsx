@@ -17,7 +17,7 @@ export const ChatSidebarControls: React.FC<ChatSidebarControlsProps> = ({
   return (
     <div className="w-full h-full flex flex-col">
       {/* Logo at the top */}
-      <div className="px-4 py-4 border-b border-gray-200">
+      <div className="px-4 py-4">
         <Logo className="h-8" />
       </div>
       

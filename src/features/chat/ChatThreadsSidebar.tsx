@@ -652,9 +652,6 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
             </button>
           )}
 
-          {/* Dark gray line separator */}
-          <div className="border-t border-gray-400 my-2"></div>
-
           {/* Folders Section */}
           <AddFolderButton 
             onClick={() => {
