@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { ReportContent } from './ReportContent';
 import { supabase } from '@/integrations/supabase/client';
@@ -182,6 +183,23 @@ export const ReportSlideOver: React.FC<ReportSlideOverProps> = ({
 
   const personName = getPersonName(reportData);
 
+  const handleCopyAstroData = async () => {
+    try {
+      // Only copy if Swiss data is available and we're viewing astro data
+      if (!reportData?.swiss_data) {
+        toast.error('No astro data available to copy');
+        return;
+      }
+
+      const dataString = JSON.stringify(reportData.swiss_data, null, 2);
+      await navigator.clipboard.writeText(dataString);
+      toast.success('Astro data copied to clipboard!');
+    } catch (err) {
+      console.error('[ReportSlideOver] Failed to copy:', err);
+      toast.error('Failed to copy data');
+    }
+  };
+
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>
       <SheetContent 
@@ -195,9 +213,18 @@ export const ReportSlideOver: React.FC<ReportSlideOverProps> = ({
         <div className="flex flex-col h-full">
           <SheetHeader className="flex flex-row items-center justify-between px-6 py-4 border-b bg-white">
             <SheetTitle className="text-lg font-medium text-gray-900">Astro data</SheetTitle>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              {/* Copy Astro Data Button - Only show when Swiss data is available */}
+              {reportData?.swiss_data && (activeView === 'astro' || !hasReport) && (
+                <button
+                  onClick={handleCopyAstroData}
+                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                  title="Copy astro data"
+                >
+                  <Copy className="w-5 h-5 text-gray-600" />
+                </button>
+              )}
             </div>
-            <div></div>
           </SheetHeader>
 
           {/* View Toggle - Only show when both report and Swiss data are available */}
