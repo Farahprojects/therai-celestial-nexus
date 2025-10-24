@@ -152,24 +152,23 @@ export const SwissBox: React.FC<SwissBoxProps> = ({ onDelete }) => {
                   </SheetContent>
                 </Sheet>
                 
-                <div className="flex items-center gap-2">
-                  {/* New Chart Button */}
+                {/* Mobile header elements hidden for Swiss route */}
+                {/* <div className="flex items-center gap-2">
                   <Suspense fallback={<div className="h-8 w-20 bg-gray-200 rounded-lg animate-pulse" />}>
                     <SwissNewChartButton />
                   </Suspense>
                   
-                  {/* 3 Dots Menu */}
                   <Suspense fallback={<div className="h-8 w-8 bg-gray-200 rounded-lg animate-pulse" />}>
                     <ChatMenuButton />
                   </Suspense>
-                </div>
+                </div> */}
               </div>
 
-              {/* Desktop Header */}
-              <div className="hidden md:flex items-center justify-end p-4 gap-2">
+              {/* Desktop Header - Hidden for Swiss route */}
+              {/* <div className="hidden md:flex items-center justify-end p-4 gap-2">
                 <SwissNewChartButton />
                 <ChatMenuButton />
-              </div>
+              </div> */}
 
               {/* Main Content - Chart Selector */}
               <div className="flex-1 min-h-0 overflow-y-auto" style={{ overflowAnchor: 'none' as any }}>

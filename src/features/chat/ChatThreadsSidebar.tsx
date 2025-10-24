@@ -638,11 +638,12 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
       {/* Thread history for authenticated users */}
       {isAuthenticated && uiConfig.showThreadHistory && (
         <div className="space-y-1">
-          {uiConfig.newChatLabel && (
+          {/* Hide New Chat and Search for Swiss route */}
+          {conversationType !== 'swiss' && uiConfig.newChatLabel && (
             <NewChatDropdown className="w-full font-light" />
           )}
           
-          {uiConfig.showSearchChat && (
+          {conversationType !== 'swiss' && uiConfig.showSearchChat && (
             <button
               onClick={() => setShowSearchModal(true)}
               className="w-full flex items-center gap-2 px-3 py-1.5 text-sm text-black hover:bg-gray-100 rounded-lg transition-colors font-light"
