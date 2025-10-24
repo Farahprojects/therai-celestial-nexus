@@ -14,6 +14,11 @@ const chartTypes: ChartType[] = [
     icon: <User className="w-5 h-5" />,
   },
   {
+    id: 'sync', // Maps to /sync endpoint (Compatibility)
+    name: 'Compatibility',
+    icon: <Users className="w-5 h-5" />,
+  },
+  {
     id: 'return', // Maps to /return endpoint (Solar/Lunar Return)
     name: 'Solar Return',
     icon: <Calendar className="w-5 h-5" />,
@@ -22,11 +27,6 @@ const chartTypes: ChartType[] = [
     id: 'progressions', // Maps to /progressions endpoint
     name: 'Progressed Chart',
     icon: <TrendingUp className="w-5 h-5" />,
-  },
-  {
-    id: 'sync', // Maps to /sync endpoint (Compatibility)
-    name: 'Compatibility',
-    icon: <Users className="w-5 h-5" />,
   },
 ];
 
