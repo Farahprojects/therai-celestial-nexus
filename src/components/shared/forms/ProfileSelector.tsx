@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Check, ChevronsUpDown } from 'lucide-react';
+import { Check, ChevronsUpDown, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 import {
   Command,
   CommandEmpty,
@@ -77,6 +78,32 @@ export const ProfileSelector: React.FC<ProfileSelectorProps> = ({
     setOpen(false);
   };
 
+  const handleDelete = async (profileId: string, profileName: string, e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent triggering the select action
+    
+    if (!user) return;
+
+    try {
+      const { error } = await supabase
+        .from('user_profile_list')
+        .delete()
+        .eq('id', profileId)
+        .eq('user_id', user.id); // Extra safety check
+
+      if (error) {
+        console.error('[ProfileSelector] Failed to delete profile:', error);
+        toast.error('Failed to delete profile');
+      } else {
+        toast.success(`"${profileName}" deleted`);
+        // Reload profiles to update the list
+        loadProfiles();
+      }
+    } catch (err) {
+      console.error('[ProfileSelector] Error deleting profile:', err);
+      toast.error('Error deleting profile');
+    }
+  };
+
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
@@ -115,6 +142,13 @@ export const ProfileSelector: React.FC<ProfileSelectorProps> = ({
                     {profile.birth_date} • {profile.birth_location}
                   </div>
                 </div>
+                <button
+                  onClick={(e) => handleDelete(profile.id, profile.profile_name, e)}
+                  className="ml-2 p-1.5 rounded-md hover:bg-red-50 text-gray-400 hover:text-red-600 transition-colors"
+                  title="Delete profile"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
               </CommandItem>
             ))}
           </CommandGroup>
