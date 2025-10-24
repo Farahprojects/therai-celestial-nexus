@@ -166,7 +166,7 @@ export const SwissBox: React.FC<SwissBoxProps> = ({ onDelete }) => {
               </div>
 
               {/* Desktop Header */}
-              <div className="hidden md:flex items-center justify-end p-4 border-b border-gray-100 gap-2">
+              <div className="hidden md:flex items-center justify-end p-4 gap-2">
                 <SwissNewChartButton />
                 <ChatMenuButton />
               </div>
