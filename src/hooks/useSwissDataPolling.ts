@@ -26,6 +26,7 @@ export const useSwissDataPolling = (chatId: string | null, enabled: boolean = tr
     const pollForData = async () => {
       try {
         attempts++;
+        console.log(`[useSwissDataPolling] 🔍 Polling attempt ${attempts} for chat_id:`, chatId);
         
         const { data, error: fetchError } = await supabase
           .from('translator_logs')
@@ -44,7 +45,12 @@ export const useSwissDataPolling = (chatId: string | null, enabled: boolean = tr
         }
 
         if (data) {
-          console.log('[useSwissDataPolling] ✅ Data found:', { chat_id: chatId, attempts });
+          console.log('[useSwissDataPolling] ✅ Data found on attempt', attempts, ':', { 
+            chat_id: chatId, 
+            has_swiss_data: !!data.swiss_data,
+            swiss_error: data.swiss_error,
+            created_at: data.created_at
+          });
           
           // Check if there was an error
           if (data.swiss_error) {
@@ -58,11 +64,15 @@ export const useSwissDataPolling = (chatId: string | null, enabled: boolean = tr
           setSwissData(data.swiss_data);
           setIsLoading(false);
           if (pollInterval) clearInterval(pollInterval);
-        } else if (attempts >= maxAttempts) {
-          console.warn('[useSwissDataPolling] ⚠️ Max attempts reached');
-          setError('Data generation timed out');
-          setIsLoading(false);
-          if (pollInterval) clearInterval(pollInterval);
+        } else {
+          console.log(`[useSwissDataPolling] ⏳ No data yet (attempt ${attempts}/${maxAttempts})`);
+          
+          if (attempts >= maxAttempts) {
+            console.warn('[useSwissDataPolling] ⚠️ Max attempts reached');
+            setError('Data generation timed out');
+            setIsLoading(false);
+            if (pollInterval) clearInterval(pollInterval);
+          }
         }
       } catch (err) {
         console.error('[useSwissDataPolling] Poll error:', err);
