@@ -469,8 +469,12 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
           currentState.clearChat();
         }
         
-        // Navigate back to /therai after deletion (clean React navigation)
-        navigate('/therai', { replace: true });
+        // Navigate based on current route - stay on same page type
+        if (conversationType === 'swiss') {
+          navigate('/swiss', { replace: true });
+        } else {
+          navigate('/therai', { replace: true });
+        }
       } catch (error) {
         console.error('[ChatThreadsSidebar] Error deleting chat thread:', error);
       }
