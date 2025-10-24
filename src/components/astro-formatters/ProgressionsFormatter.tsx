@@ -38,10 +38,15 @@ export const ProgressionsFormatter: React.FC<ProgressionsFormatterProps> = ({
     });
   }
 
+  // Get the correct name from reportData
+  const name = reportData?.guest_report?.report_data?.name || 
+               reportData?.name || 
+               'Your Progressed Chart';
+
   return (
     <div className={`font-inter max-w-4xl mx-auto py-4 md:py-8 px-4 md:px-0 ${className}`}>
       <ChartHeader
-        name={reportData.name || 'Unknown'}
+        name={name}
         birthDate={reportData.guest_report?.report_data?.birthDate}
         birthLocation={reportData.guest_report?.report_data?.birthLocation}
       />
