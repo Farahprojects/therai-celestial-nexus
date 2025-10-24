@@ -1,7 +1,7 @@
 import React, { useEffect, Suspense, lazy, useState } from 'react';
 import { useChatStore } from '@/core/store';
 import { useAuth } from '@/contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Menu } from 'lucide-react';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { MotionConfig } from 'framer-motion';
@@ -10,6 +10,8 @@ import { SwissNewChartButton } from './SwissNewChartButton';
 import { SwissChartSelector } from './SwissChartSelector';
 import { AstroDataForm } from '@/components/chat/AstroDataForm';
 import { useMessageStore } from '@/stores/messageStore';
+import { SwissDataModal } from '@/components/swiss/SwissDataModal';
+import { useSwissDataPolling } from '@/hooks/useSwissDataPolling';
 
 // Lazy load components for better performance
 const ConversationOverlay = lazy(() => import('@/features/chat/ConversationOverlay/ConversationOverlay').then(module => ({ default: module.ConversationOverlay })));
@@ -25,10 +27,19 @@ export const SwissBox: React.FC<SwissBoxProps> = ({ onDelete }) => {
   const { error, chat_id } = useChatStore();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const isConversationOpen = useConversationUIStore((s) => s.isConversationOpen);
   const [selectedChartType, setSelectedChartType] = useState<string | null>(null);
   const [showAstroForm, setShowAstroForm] = useState(false);
+  const [showDataModal, setShowDataModal] = useState(false);
+  const [activeChatIdForPolling, setActiveChatIdForPolling] = useState<string | null>(null);
+
+  // Poll for Swiss data when we have a chat_id
+  const { isLoading, swissData, error: pollingError } = useSwissDataPolling(
+    activeChatIdForPolling,
+    !!activeChatIdForPolling
+  );
 
   const handleSelectChart = (chartId: string) => {
     console.log('[SwissBox] Selected chart type:', chartId);
@@ -59,17 +70,22 @@ export const SwissBox: React.FC<SwissBoxProps> = ({ onDelete }) => {
       const { startConversation } = useChatStore.getState();
       startConversation(newChatId);
       
-      // Switch WebSocket subscription
-      const { chatController } = await import('@/features/chat/ChatController');
-      await chatController.switchToChat(newChatId);
+      // Swiss mode doesn't need WebSocket - we'll poll for data instead
+      // Start polling for the Swiss data
+      setActiveChatIdForPolling(newChatId);
+      setShowDataModal(true);
       
-      // Close form and navigate
+      // Close form
       setShowAstroForm(false);
       setSelectedChartType(null);
-      navigate(`/swiss`, { replace: true });
     } catch (error) {
       console.error('[SwissBox] Failed to create Swiss data conversation:', error);
     }
+  };
+
+  const handleCloseDataModal = () => {
+    setShowDataModal(false);
+    setActiveChatIdForPolling(null);
   };
 
   return (
@@ -169,6 +185,16 @@ export const SwissBox: React.FC<SwissBoxProps> = ({ onDelete }) => {
                   </div>
                 </div>
               )}
+
+              {/* Swiss Data Modal - Shows loading/data/copy */}
+              <SwissDataModal
+                isOpen={showDataModal}
+                onClose={handleCloseDataModal}
+                swissData={swissData}
+                isLoading={isLoading}
+                error={pollingError}
+                chartType={selectedChartType || 'Swiss Data'}
+              />
 
               {/* Error Display */}
               {error && (

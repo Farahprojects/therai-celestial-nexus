@@ -55,8 +55,7 @@ export const SwissNewChartButton: React.FC<SwissNewChartButtonProps> = ({ classN
       startConversation(newChatId);
       
       // Switch WebSocket subscription
-      const { chatController } = await import('@/features/chat/ChatController');
-      await chatController.switchToChat(newChatId);
+      // Swiss mode doesn't need WebSocket - we'll poll for data instead
       
       // Close modal and navigate to Swiss page with chat_id
       setShowAstroModal(false);
