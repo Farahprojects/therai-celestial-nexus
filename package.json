@@ -43,6 +43,7 @@
     "react-icons": "^5.5.0",
     "react-markdown": "^10.1.0",
     "react-router-dom": "^6.21.0",
+    "react-textarea-autosize": "^8.5.9",
     "remark-gfm": "^4.0.1",
     "sonner": "^2.0.7",
     "tailwind-merge": "^2.2.0",
