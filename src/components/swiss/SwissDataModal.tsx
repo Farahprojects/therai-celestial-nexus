@@ -28,6 +28,15 @@ export const SwissDataModal: React.FC<SwissDataModalProps> = ({
   const [selectedPrompt, setSelectedPrompt] = useState<{ name: string; text: string } | null>(null);
   
   const { prompts } = useSystemPrompts();
+  
+  // Debug: Log prompts when they change
+  useEffect(() => {
+    console.log('[SwissDataModal] Prompts loaded:', Object.keys(prompts).map(key => ({
+      category: key,
+      count: prompts[key]?.length || 0,
+      subcategories: prompts[key]?.map(p => p.subcategory) || []
+    })));
+  }, [prompts]);
 
   // Auto-inject system prompt for weekly and focus chart types
   useEffect(() => {
@@ -64,6 +73,15 @@ export const SwissDataModal: React.FC<SwissDataModalProps> = ({
   const chartTypeNormalized = chartType?.toLowerCase();
   const shouldAutoInject = chartTypeNormalized === 'weekly' || chartTypeNormalized === 'focus';
   const shouldShowPromptSelector = !shouldAutoInject;
+  
+  // Debug logging
+  console.log('[SwissDataModal] Debug:', {
+    chartType,
+    chartTypeNormalized,
+    shouldAutoInject,
+    shouldShowPromptSelector,
+    chartTypePrompts: prompts['chart_type']?.length || 0
+  });
 
   const handleCopy = async () => {
     try {
