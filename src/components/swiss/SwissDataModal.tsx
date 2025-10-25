@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { X, Copy, Check, Loader2 } from 'lucide-react';
+import { X, Copy, Check, Loader2, ChevronDown, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import { useSystemPrompts, SystemPrompt } from '@/hooks/useSystemPrompts';
 
 interface SwissDataModalProps {
   isOpen: boolean;
@@ -23,13 +24,21 @@ export const SwissDataModal: React.FC<SwissDataModalProps> = ({
   chartType = 'Swiss Data',
 }) => {
   const [copied, setCopied] = useState(false);
+  const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
+  const [selectedPrompt, setSelectedPrompt] = useState<{ name: string; text: string } | null>(null);
+  
+  const { prompts } = useSystemPrompts();
 
   if (!isOpen) return null;
 
   const handleCopy = async () => {
     try {
       const dataString = JSON.stringify(swissData, null, 2);
-      await navigator.clipboard.writeText(dataString);
+      const finalText = selectedPrompt 
+        ? `${dataString}\n\n---\n\nSystem Prompt:\n${selectedPrompt.text}`
+        : dataString;
+      
+      await navigator.clipboard.writeText(finalText);
       setCopied(true);
       toast.success('Swiss data copied to clipboard!');
       
@@ -40,6 +49,17 @@ export const SwissDataModal: React.FC<SwissDataModalProps> = ({
       toast.error('Failed to copy data');
     }
   };
+
+  const handleCategoryClick = (category: string) => {
+    setExpandedCategory(expandedCategory === category ? null : category);
+  };
+
+  const handleSubcategoryClick = (subcategory: string, promptText: string) => {
+    setSelectedPrompt({ name: subcategory, text: promptText });
+    setExpandedCategory(null); // Collapse accordion
+  };
+
+  const categories = ['mindset', 'health', 'wealth', 'soul', 'career', 'compatibility'];
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -85,49 +105,58 @@ export const SwissDataModal: React.FC<SwissDataModalProps> = ({
 
           {swissData && !isLoading && !error && (
             <div className="space-y-6">
-              <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl p-6 border border-green-200">
-                <div className="flex items-center justify-center mb-4">
-                  <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center">
-                    <Check className="w-8 h-8 text-green-600" />
-                  </div>
-                </div>
-                <p className="text-center text-gray-700 font-medium mb-2">
+              <div className="flex items-center justify-center mb-6">
+                <Check className="w-5 h-5 text-green-600 mr-2" />
+                <p className="text-gray-700 font-medium">
                   Your Swiss Data is Ready!
                 </p>
-                <p className="text-center text-sm text-gray-600 font-light">
-                  Choose an option below to continue
+              </div>
+
+              {/* Starter Conversation Selector */}
+              <div className="space-y-2">
+                <p className="text-base text-gray-600 font-medium mb-3">
+                  Add a starter conversation prompt
                 </p>
+                
+                {categories.map((category) => (
+                  <div key={category}>
+                    {/* Category Button */}
+                    <button
+                      onClick={() => handleCategoryClick(category)}
+                      className="w-full text-left py-3 text-gray-700 font-light text-base hover:text-gray-900 transition-colors flex items-center justify-between"
+                    >
+                      <span className="capitalize">{category}</span>
+                      {expandedCategory === category ? (
+                        <ChevronDown className="w-4 h-4" />
+                      ) : (
+                        <ChevronRight className="w-4 h-4" />
+                      )}
+                    </button>
+                    
+                    {/* Subcategories */}
+                    {expandedCategory === category && prompts[category] && (
+                      <div className="space-y-1 mb-2">
+                        {prompts[category].map((prompt: SystemPrompt) => (
+                          <button
+                            key={prompt.id}
+                            onClick={() => handleSubcategoryClick(prompt.subcategory, prompt.prompt_text)}
+                            className="w-full text-left pl-4 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-lg transition-colors"
+                          >
+                            {prompt.subcategory}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
               </div>
 
-              {/* Action Buttons */}
-              <div className="space-y-3">
-                {/* Copy Button */}
-                <Button
-                  onClick={handleCopy}
-                  className="w-full h-14 rounded-full bg-gray-900 hover:bg-gray-800 text-white font-light text-base shadow-lg hover:shadow-xl transition-all"
-                >
-                  {copied ? (
-                    <>
-                      <Check className="w-5 h-5 mr-2" />
-                      Copied! Now paste into your AI
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="w-5 h-5 mr-2" />
-                      Copy Astro Data
-                    </>
-                  )}
-                </Button>
-
-                {/* View Button */}
-                <Button
-                  onClick={onViewData || onClose}
-                  variant="outline"
-                  className="w-full h-14 rounded-full border-2 border-gray-300 hover:border-gray-400 hover:bg-gray-50 font-light text-base transition-all"
-                >
-                  View Astro Data
-                </Button>
-              </div>
+              {/* Selected Prompt Indicator */}
+              {selectedPrompt && (
+                <p className="text-xs text-gray-600 text-center font-light">
+                  Starter: {selectedPrompt.name} has been added
+                </p>
+              )}
 
               <p className="text-xs text-gray-500 text-center font-light">
                 Your data is saved and can be accessed anytime from your conversation history
@@ -139,13 +168,34 @@ export const SwissDataModal: React.FC<SwissDataModalProps> = ({
         {/* Footer */}
         {!isLoading && (
           <div className="p-6 border-t border-gray-200">
-            <Button
-              onClick={onClose}
-              variant="outline"
-              className="w-full h-12 rounded-full font-light"
-            >
-              Close
-            </Button>
+            <div className="flex gap-3">
+              {/* View Button */}
+              <Button
+                onClick={onViewData || onClose}
+                variant="outline"
+                className="flex-1 h-14 rounded-full border-2 border-gray-300 hover:border-gray-400 hover:bg-gray-50 font-light text-base transition-all"
+              >
+                View Astro Data
+              </Button>
+
+              {/* Copy Button */}
+              <Button
+                onClick={handleCopy}
+                className="flex-1 h-14 rounded-full bg-gray-900 hover:bg-gray-800 text-white font-light text-base shadow-lg hover:shadow-xl transition-all"
+              >
+                {copied ? (
+                  <>
+                    <Check className="w-5 h-5 mr-2" />
+                    Copied!
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-5 h-5 mr-2" />
+                    Copy Data
+                  </>
+                )}
+              </Button>
+            </div>
           </div>
         )}
       </div>

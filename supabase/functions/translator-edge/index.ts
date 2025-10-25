@@ -334,6 +334,14 @@ Deno.serve(async (req)=>{
     const swiss = await fetch(url,{ method:["moonphases","positions"].includes(canon)?"GET":"POST", headers:{"Content-Type":"application/json"}, body:["moonphases","positions"].includes(canon)?undefined:JSON.stringify(payload) });
     const txt = await swiss.text();
     const swissData = (()=>{ try{return JSON.parse(txt);}catch{return { raw:txt }; }})();
+    
+    // Clean up unnecessary metadata fields from Swiss API response
+    if (swissData && typeof swissData === 'object' && !swissData.raw) {
+      const fieldsToRemove = ['intent', 'calc_ms', 'endpoint', 'time_basis', 'schema_version', 'engine'];
+      fieldsToRemove.forEach(field => {
+        delete swissData[field];
+      });
+    }
 
 
     await logTranslator({ request_type:canon, request_payload:body, swiss_data:swissData, swiss_status:swiss.status, processing_ms:Date.now()-t0, error: swiss.ok?undefined:`Swiss ${swiss.status}`, google_geo:googleGeo, translator_payload:payload, chat_id:body.chat_id, mode:body.mode });
@@ -385,7 +393,12 @@ Deno.serve(async (req)=>{
       }
     }
     
-    return new Response(txt,{status:swiss.status,headers:corsHeaders});
+    // Return cleaned data instead of raw text
+    const cleanedResponse = swissData && typeof swissData === 'object' && !swissData.raw 
+      ? JSON.stringify(swissData) 
+      : txt;
+    
+    return new Response(cleanedResponse,{status:swiss.status,headers:corsHeaders});
   }catch(err){
     const msg = (err as Error).message;
     console.error(`[translator-edge-${reqId}]`, msg);
