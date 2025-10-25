@@ -141,13 +141,13 @@ export const SwissDataModal: React.FC<SwissDataModalProps> = ({
                   Swiss Data Ready
                   {selectedPrompt && (
                     <span className="text-gray-500 font-light ml-2">
-                      • {shouldAutoInject ? 'Chart-specific prompt' : `Starter ${selectedPrompt.name}`} added
+                      • {shouldAutoInject ? `${chartType} prompt included` : `Starter ${selectedPrompt.name}`} added
                     </span>
                   )}
                 </p>
               </div>
 
-              {/* Starter Conversation Selector - Only show if not auto-injecting */}
+              {/* Starter Conversation Selector - Hidden for weekly/focus (auto-injected) */}
               {shouldShowPromptSelector && (
                 <div className="space-y-2">
                   <p className="text-base text-gray-600 font-medium mb-3">
