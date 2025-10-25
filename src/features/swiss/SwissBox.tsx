@@ -198,7 +198,35 @@ export const SwissBox: React.FC<SwissBoxProps> = ({ onDelete }) => {
                 isLoading={isLoading}
                 error={pollingError}
                 chartType={(() => {
-                  const type = selectedChartType || 'Swiss Data';
+                  // Detect chart type from Swiss data structure (same logic as ReportSlideOver)
+                  const detectChartType = (swissData: any): string | null => {
+                    if (!swissData) return null;
+                    
+                    // Check for block_type at top level (weekly, focus)
+                    if (swissData.block_type) {
+                      return swissData.block_type;
+                    }
+                    
+                    // Check for blocks structure
+                    if (swissData.blocks) {
+                      // Sync/compatibility charts have natal_set
+                      if (swissData.blocks.natal_set) return 'sync';
+                      if (swissData.blocks.synastry) return 'sync';
+                      
+                      // Essence charts have both natal and transits
+                      if (swissData.blocks.natal && swissData.blocks.transits) return 'essence';
+                      
+                      // Single block types
+                      if (swissData.blocks.natal) return 'natal';
+                      if (swissData.blocks.progressions) return 'progressions';
+                      if (swissData.blocks.return) return 'return';
+                    }
+                    
+                    return null;
+                  };
+
+                  const detectedType = detectChartType(swissData);
+                  const type = detectedType || selectedChartType || 'Swiss Data';
                   console.log('[SwissBox] Passing chartType to modal:', type);
                   return type;
                 })()}
