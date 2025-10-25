@@ -39,17 +39,22 @@ export const SwissDataModal: React.FC<SwissDataModalProps> = ({
     if (chartTypeNormalized === 'weekly' || chartTypeNormalized === 'focus') {
       // Find the chart_type prompts
       const chartTypePrompts = prompts['chart_type'];
-      if (chartTypePrompts && chartTypePrompts.length > 0) {
-        const autoPrompt = chartTypePrompts.find(
-          (p: SystemPrompt) => p.subcategory.toLowerCase() === chartTypeNormalized
-        );
-        
-        if (autoPrompt && !selectedPrompt) {
-          setSelectedPrompt({ 
-            name: autoPrompt.subcategory, 
-            text: autoPrompt.prompt_text 
-          });
-        }
+      
+      if (!chartTypePrompts || chartTypePrompts.length === 0) {
+        console.warn(`[SwissDataModal] chart_type prompts not found. Run the database migration: supabase/migrations/20251025000001_add_chart_type_prompts.sql`);
+        return;
+      }
+      
+      const autoPrompt = chartTypePrompts.find(
+        (p: SystemPrompt) => p.subcategory.toLowerCase() === chartTypeNormalized
+      );
+      
+      if (autoPrompt && !selectedPrompt) {
+        console.log(`[SwissDataModal] Auto-injecting ${chartTypeNormalized} prompt`);
+        setSelectedPrompt({ 
+          name: autoPrompt.subcategory, 
+          text: autoPrompt.prompt_text 
+        });
       }
     }
   }, [swissData, isLoading, error, chartType, prompts, selectedPrompt]);
