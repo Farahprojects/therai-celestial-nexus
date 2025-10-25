@@ -145,7 +145,8 @@ const SubscriptionPaywall: React.FC = () => {
                         </h3>
                         <p className="text-2xl font-light text-gray-600">
                           ${plan.unit_price_usd}
-                          {plan.id === 'subscription_onetime' ? '' : '/month'}
+                          {plan.id === 'subscription_onetime' ? '' : 
+                           plan.id.includes('yearly') || plan.id.includes('astro') ? '/year' : '/month'}
                         </p>
                       </div>
 

@@ -112,6 +112,7 @@ export const BillingPanel: React.FC = () => {
     if (planName === 'Growth' || planName.includes('15')) return 'Growth';
     if (planName === 'Premium' || planName.includes('25')) return 'Premium';
     if (planName === 'Test Plan' || planName.includes('Test')) return 'Test';
+    if (planName === 'Therai Astro data' || planName.includes('Astro')) return 'Therai Astro data';
     return planName;
   };
 
@@ -239,7 +240,10 @@ export const BillingPanel: React.FC = () => {
                 >
                   <div className="flex items-center gap-3">
                     <span className="text-sm text-gray-900">{plan.name}</span>
-                    <span className="text-sm text-gray-600">${plan.unit_price_usd.toFixed(0)}/month</span>
+                    <span className="text-sm text-gray-600">
+                      ${plan.unit_price_usd.toFixed(0)}
+                      {plan.id.includes('yearly') || plan.id.includes('astro') ? '/year' : '/month'}
+                    </span>
                   </div>
                   
                   {isCurrentPlan && !isCanceled ? (
@@ -271,9 +275,8 @@ export const BillingPanel: React.FC = () => {
       {/* Cancel Subscription */}
       {isSubscriptionActive && (
         <div>
-          <h3 className="text-sm font-normal text-gray-900 mb-4">Cancel Subscription</h3>
           <div className="flex items-center justify-between py-3">
-            <span className="text-sm text-gray-800">Stop your subscription</span>
+            <h3 className="text-sm font-normal text-gray-900">Cancel Subscription</h3>
             <Button
               onClick={() => setShowCancelModal(true)}
               size="sm"
