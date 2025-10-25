@@ -48,6 +48,23 @@ export const ReportSlideOver: React.FC<ReportSlideOverProps> = ({
   const isMobile = useIsMobile();
   const { prompts } = useSystemPrompts();
 
+  // Reset state when modal closes
+  useEffect(() => {
+    if (!isOpen) {
+      setSelectedPrompt(null);
+      setExpandedCategory(null);
+      setCopied(false);
+      setShowPromptSelector(false);
+    }
+  }, [isOpen]);
+
+  // Reset prompt-related state when report ID changes
+  useEffect(() => {
+    setSelectedPrompt(null);
+    setExpandedCategory(null);
+    setShowPromptSelector(false);
+  }, [reportId]);
+
   // Determine what views to show based on metadata
   const hasReport = reportData?.metadata?.has_ai_report || false;
   const hasSwissData = reportData?.metadata?.has_swiss_data || false;

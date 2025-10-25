@@ -3,6 +3,7 @@ import React from 'react';
 import { IndividualAstroFormatter } from '@/components/astro-formatters/IndividualAstroFormatter';
 import { SynastryAstroFormatter } from '@/components/astro-formatters/SynastryAstroFormatter';
 import { MonthlyAstroFormatter } from '@/components/astro-formatters/MonthlyAstroFormatter';
+import { WeeklyAstroFormatter } from '@/components/astro-formatters/WeeklyAstroFormatter';
 import { SolarReturnFormatter } from '@/components/astro-formatters/SolarReturnFormatter';
 import { ProgressionsFormatter } from '@/components/astro-formatters/ProgressionsFormatter';
 import { FocusAstroFormatter } from '@/components/astro-formatters/FocusAstroFormatter';
@@ -16,8 +17,13 @@ interface AstroDataRendererProps {
 }
 
 // New helper to detect the specific type of astro report
-  const getAstroReportType = (swissData: any): 'monthly' | 'synastry' | 'solar_return' | 'progressions' | 'focus' | 'individual' => {
+  const getAstroReportType = (swissData: any): 'weekly' | 'monthly' | 'synastry' | 'solar_return' | 'progressions' | 'focus' | 'individual' => {
     if (!swissData) return 'individual'; // Fallback
+    
+    // Check for weekly data structure (block_type: "weekly")
+    if (swissData.block_type === 'weekly') {
+      return 'weekly';
+    }
     
     // Check for focus data structure (block_type: "focus")
     if (swissData.block_type === 'focus') {
@@ -58,6 +64,8 @@ export const AstroDataRenderer = ({ swissData, reportData }: AstroDataRendererPr
 
   const renderContent = () => {
     switch(reportType) {
+      case 'weekly':
+        return <WeeklyAstroFormatter swissData={swissData} reportData={reportData} />;
       case 'monthly':
         return <MonthlyAstroFormatter swissData={swissData} reportData={reportData} />;
       case 'synastry':
