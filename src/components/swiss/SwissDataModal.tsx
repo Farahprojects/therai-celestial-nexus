@@ -36,6 +36,15 @@ export const SwissDataModal: React.FC<SwissDataModalProps> = ({
       count: prompts[key]?.length || 0,
       subcategories: prompts[key]?.map(p => p.subcategory) || []
     })));
+    
+    // Specifically log chart_type prompts
+    if (prompts['chart_type']) {
+      console.log('[SwissDataModal] Chart type prompts:', prompts['chart_type'].map(p => ({
+        id: p.id,
+        subcategory: p.subcategory,
+        display_order: p.display_order
+      })));
+    }
   }, [prompts]);
 
   // Auto-inject system prompt for weekly and focus chart types
