@@ -5,6 +5,7 @@ import { SynastryAstroFormatter } from '@/components/astro-formatters/SynastryAs
 import { MonthlyAstroFormatter } from '@/components/astro-formatters/MonthlyAstroFormatter';
 import { SolarReturnFormatter } from '@/components/astro-formatters/SolarReturnFormatter';
 import { ProgressionsFormatter } from '@/components/astro-formatters/ProgressionsFormatter';
+import { FocusAstroFormatter } from '@/components/astro-formatters/FocusAstroFormatter';
 import { ReportData } from '@/utils/reportContentExtraction';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { parseAstroData } from '@/lib/astroFormatter';
@@ -15,8 +16,13 @@ interface AstroDataRendererProps {
 }
 
 // New helper to detect the specific type of astro report
-  const getAstroReportType = (swissData: any): 'monthly' | 'synastry' | 'solar_return' | 'progressions' | 'individual' => {
+  const getAstroReportType = (swissData: any): 'monthly' | 'synastry' | 'solar_return' | 'progressions' | 'focus' | 'individual' => {
     if (!swissData) return 'individual'; // Fallback
+    
+    // Check for focus data structure (block_type: "focus")
+    if (swissData.block_type === 'focus') {
+      return 'focus';
+    }
     
     // Check for Progressions data structure (aspects_to_natal + progressed_planets)
     if (swissData.aspects_to_natal && swissData.progressed_planets) {
@@ -60,6 +66,8 @@ export const AstroDataRenderer = ({ swissData, reportData }: AstroDataRendererPr
         return <SolarReturnFormatter swissData={swissData} reportData={reportData} />;
       case 'progressions':
         return <ProgressionsFormatter swissData={swissData} reportData={reportData} />;
+      case 'focus':
+        return <FocusAstroFormatter swissData={swissData} reportData={reportData} />;
       case 'individual':
       default:
         return <IndividualAstroFormatter swissData={swissData} reportData={reportData} />;
