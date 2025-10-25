@@ -24,7 +24,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     <div className={`fixed inset-0 z-50 ${
       isMobile 
         ? 'bg-white' 
-        : 'bg-black/20 flex items-center justify-center p-4'
+        : 'flex items-center justify-center p-4'
     }`}>
       <div className={`bg-white shadow-xl w-full overflow-hidden ${
         isMobile 

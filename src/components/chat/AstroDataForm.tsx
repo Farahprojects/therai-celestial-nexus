@@ -217,18 +217,6 @@ export const AstroDataForm: React.FC<AstroDataFormProps> = ({
 
   return (
     <>
-      {/* Mobile backdrop */}
-      {isMobile && (
-        <motion.div
-          initial={shouldDisableAnimations ? undefined : { opacity: 0 }}
-          animate={shouldDisableAnimations ? undefined : { opacity: 1 }}
-          exit={shouldDisableAnimations ? undefined : { opacity: 0 }}
-          transition={shouldDisableAnimations ? { duration: 0 } : undefined}
-          className="fixed inset-0 bg-black/50 z-40"
-          onClick={handleClose}
-        />
-      )}
-
       <motion.div
         initial={shouldDisableAnimations ? undefined : { opacity: 0, y: 20 }}
         animate={shouldDisableAnimations ? undefined : { opacity: 1, y: 0 }}

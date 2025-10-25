@@ -911,7 +911,7 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
 
       {/* Delete Confirmation Dialog */}
       {showDeleteConfirm && uiConfig.chatMenuActions.delete && (
-        <div className="fixed inset-0 bg-white/20 flex items-center justify-center z-50">
+        <div className="fixed inset-0 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg shadow-xl p-6 max-w-sm mx-4">
             <div className="flex items-center gap-3 mb-4">
               <div>
@@ -950,7 +950,7 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
 
       {/* Edit Title Popup */}
       {showEditTitle && (
-        <div className="fixed inset-0 bg-white/20 flex items-center justify-center z-50">
+        <div className="fixed inset-0 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl shadow-xl p-6 max-w-sm mx-4 border border-gray-200">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-medium text-gray-900">Edit Chat Title</h3>

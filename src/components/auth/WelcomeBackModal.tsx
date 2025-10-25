@@ -18,7 +18,6 @@ export const WelcomeBackModal: React.FC<WelcomeBackModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={() => {}}>
-      <DialogOverlay className="bg-white/20" />
       <DialogContent className="sm:max-w-md rounded-2xl p-6">
         <div className="text-center space-y-4">
           <h3 className="text-2xl font-light text-gray-900">Welcome Back</h3>

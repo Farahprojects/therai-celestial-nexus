@@ -22,7 +22,7 @@ export const SignInPrompt: React.FC<SignInPromptProps> = ({ feature, onClose }) 
   };
 
   return (
-    <div className="fixed inset-0 bg-black/20 flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-xl p-6 max-w-md w-full shadow-xl">
         <div className="text-center space-y-4">
           <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto">

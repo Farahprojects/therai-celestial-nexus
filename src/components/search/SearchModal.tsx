@@ -262,7 +262,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/20 flex items-start justify-center pt-16 z-50">
+    <div className="fixed inset-0 flex items-start justify-center pt-16 z-50">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl mx-4 h-[600px] overflow-hidden flex flex-col">
         {/* Header */}
         <div className="flex items-center gap-3 p-4 border-b border-gray-100">
