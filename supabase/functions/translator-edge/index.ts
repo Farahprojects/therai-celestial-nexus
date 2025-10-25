@@ -293,7 +293,7 @@ Deno.serve(async (req)=>{
     }else{
       const {data:withLatLon,googleGeoUsed} = await ensureLatLon(parsed);
       googleGeo = googleGeoUsed;
-      if(["natal","essence","sync","flow","mindset","monthly","focus","progressions","return","transits"].includes(canon)){
+      if(["natal","essence","sync","flow","mindset","weekly","focus","progressions","return","transits"].includes(canon)){
         try{
           const tzGuess = await inferTimezone(withLatLon);
 
