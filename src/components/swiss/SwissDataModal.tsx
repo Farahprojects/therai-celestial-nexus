@@ -149,48 +149,50 @@ export const SwissDataModal: React.FC<SwissDataModalProps> = ({
 
               {/* Starter Conversation Selector - Hidden for weekly/focus (auto-injected) */}
               {shouldShowPromptSelector && (
-                <div className="space-y-2">
-                  <p className="text-base text-gray-600 font-medium mb-3">
-                    Add a starter conversation prompt
-                  </p>
-                  
-                  {categories.map((category) => (
-                    <div key={category}>
-                      {/* Category Button */}
-                      <button
-                        onClick={() => handleCategoryClick(category)}
-                        className="w-full text-left py-3 text-gray-700 font-light text-base hover:text-gray-900 transition-colors flex items-center justify-between"
-                      >
-                        <span className="capitalize">{category}</span>
-                        {expandedCategory === category ? (
-                          <ChevronDown className="w-4 h-4" />
-                        ) : (
-                          <ChevronRight className="w-4 h-4" />
+                <>
+                  <div className="space-y-2">
+                    <p className="text-base text-gray-600 font-medium mb-3">
+                      Add a starter conversation prompt
+                    </p>
+                    
+                    {categories.map((category) => (
+                      <div key={category}>
+                        {/* Category Button */}
+                        <button
+                          onClick={() => handleCategoryClick(category)}
+                          className="w-full text-left py-3 text-gray-700 font-light text-base hover:text-gray-900 transition-colors flex items-center justify-between"
+                        >
+                          <span className="capitalize">{category}</span>
+                          {expandedCategory === category ? (
+                            <ChevronDown className="w-4 h-4" />
+                          ) : (
+                            <ChevronRight className="w-4 h-4" />
+                          )}
+                        </button>
+                        
+                        {/* Subcategories */}
+                        {expandedCategory === category && prompts[category] && (
+                          <div className="space-y-1 mb-2">
+                            {prompts[category].map((prompt: SystemPrompt) => (
+                              <button
+                                key={prompt.id}
+                                onClick={() => handleSubcategoryClick(prompt.subcategory, prompt.prompt_text)}
+                                className="w-full text-left pl-4 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-lg transition-colors"
+                              >
+                                {prompt.subcategory}
+                              </button>
+                            ))}
+                          </div>
                         )}
-                      </button>
-                      
-                      {/* Subcategories */}
-                      {expandedCategory === category && prompts[category] && (
-                        <div className="space-y-1 mb-2">
-                          {prompts[category].map((prompt: SystemPrompt) => (
-                            <button
-                              key={prompt.id}
-                              onClick={() => handleSubcategoryClick(prompt.subcategory, prompt.prompt_text)}
-                              className="w-full text-left pl-4 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-lg transition-colors"
-                            >
-                              {prompt.subcategory}
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
+                      </div>
+                    ))}
+                  </div>
 
-              <p className="text-xs text-gray-500 text-center font-light">
-                Your data is saved and can be accessed anytime from your conversation history
-              </p>
+                  <p className="text-xs text-gray-500 text-center font-light">
+                    Your data is saved and can be accessed anytime from your conversation history
+                  </p>
+                </>
+              )}
             </div>
           )}
         </div>
