@@ -63,7 +63,9 @@ export const SwissDataModal: React.FC<SwissDataModalProps> = ({
 
   // Check if we should show the prompt selector
   const chartTypeNormalized = chartType?.toLowerCase();
+  console.log('[SwissDataModal] chartType:', chartType, 'normalized:', chartTypeNormalized);
   const shouldAutoInject = chartTypeNormalized === 'weekly' || chartTypeNormalized === 'focus';
+  console.log('[SwissDataModal] shouldAutoInject:', shouldAutoInject, 'shouldShowPromptSelector:', !shouldAutoInject);
   const shouldShowPromptSelector = !shouldAutoInject;
 
   const handleCopy = async () => {
