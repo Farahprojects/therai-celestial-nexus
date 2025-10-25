@@ -29,23 +29,6 @@ export const SwissDataModal: React.FC<SwissDataModalProps> = ({
   
   const { prompts } = useSystemPrompts();
   
-  // Debug: Log prompts when they change
-  useEffect(() => {
-    console.log('[SwissDataModal] Prompts loaded:', Object.keys(prompts).map(key => ({
-      category: key,
-      count: prompts[key]?.length || 0,
-      subcategories: prompts[key]?.map(p => p.subcategory) || []
-    })));
-    
-    // Specifically log chart_type prompts
-    if (prompts['chart_type']) {
-      console.log('[SwissDataModal] Chart type prompts:', prompts['chart_type'].map(p => ({
-        id: p.id,
-        subcategory: p.subcategory,
-        display_order: p.display_order
-      })));
-    }
-  }, [prompts]);
 
   // Auto-inject system prompt for weekly and focus chart types
   useEffect(() => {
@@ -83,14 +66,6 @@ export const SwissDataModal: React.FC<SwissDataModalProps> = ({
   const shouldAutoInject = chartTypeNormalized === 'weekly' || chartTypeNormalized === 'focus';
   const shouldShowPromptSelector = !shouldAutoInject;
   
-  // Debug logging
-  console.log('[SwissDataModal] Debug:', {
-    chartType,
-    chartTypeNormalized,
-    shouldAutoInject,
-    shouldShowPromptSelector,
-    chartTypePrompts: prompts['chart_type']?.length || 0
-  });
 
   const handleCopy = async () => {
     try {
@@ -119,7 +94,30 @@ export const SwissDataModal: React.FC<SwissDataModalProps> = ({
     setExpandedCategory(null); // Collapse accordion
   };
 
-  const categories = ['mindset', 'health', 'wealth', 'soul', 'career', 'compatibility'];
+  // Filter categories based on chart type (same logic as ReportSlideOver)
+  const getRelevantCategories = (): string[] => {
+    switch (chartTypeNormalized) {
+      case 'weekly':
+      case 'focus':
+        // Show only chart_type for these special charts
+        return ['chart_type'];
+      
+      case 'sync':
+      case 'synastry':
+        // Show only compatibility for relationship charts
+        return ['compatibility'];
+      
+      case 'essence':
+      case 'natal':
+      case 'progressions':
+      case 'return':
+      default:
+        // Show general life areas for personal charts
+        return ['mindset', 'health', 'wealth', 'soul', 'career'];
+    }
+  };
+
+  const categories = getRelevantCategories();
 
   return (
     <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
