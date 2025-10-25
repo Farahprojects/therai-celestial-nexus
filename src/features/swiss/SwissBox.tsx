@@ -227,7 +227,6 @@ export const SwissBox: React.FC<SwissBoxProps> = ({ onDelete }) => {
 
                   const detectedType = detectChartType(swissData);
                   const type = detectedType || selectedChartType || 'Swiss Data';
-                  console.log('[SwissBox] Passing chartType to modal:', type);
                   return type;
                 })()}
               />

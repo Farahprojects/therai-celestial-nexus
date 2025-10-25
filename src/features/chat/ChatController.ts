@@ -72,24 +72,18 @@ class ChatController {
     try {
       this.isInitializing = true;
       
-      console.log('[ChatController] initializeForConversation START:', { chat_id });
-      
       // Set chat_id in store (single source of truth) - this will persist to sessionStorage
       useChatStore.getState().startConversation(chat_id);
       
       // Subscribe WebSocket to this chat (just listens, emits events)
-      console.log('[ChatController] Subscribing WebSocket to:', chat_id);
       await unifiedWebSocketService.subscribe(chat_id);
       
       // Check if conversation exists before fetching messages
-      console.log('[ChatController] Checking if conversation exists');
       const conversationExists = await this.verifyConversationExists(chat_id);
       
       if (conversationExists) {
-        console.log('[ChatController] Conversation exists, loading messages');
         await this.loadExistingMessages(chat_id);
       } else {
-        console.log(`[ChatController] Conversation ${chat_id} does not exist yet, skipping message fetch (new conversation)`);
         // Clear messages for new conversation
         const { setChatId } = useMessageStore.getState();
         setChatId(chat_id);
