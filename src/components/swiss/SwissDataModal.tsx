@@ -50,7 +50,6 @@ export const SwissDataModal: React.FC<SwissDataModalProps> = ({
       );
       
       if (autoPrompt && !selectedPrompt) {
-        console.log(`[SwissDataModal] Auto-injecting ${chartTypeNormalized} prompt`);
         setSelectedPrompt({ 
           name: autoPrompt.subcategory, 
           text: autoPrompt.prompt_text 
@@ -63,9 +62,7 @@ export const SwissDataModal: React.FC<SwissDataModalProps> = ({
 
   // Check if we should show the prompt selector
   const chartTypeNormalized = chartType?.toLowerCase();
-  console.log('[SwissDataModal] chartType:', chartType, 'normalized:', chartTypeNormalized);
   const shouldAutoInject = chartTypeNormalized === 'weekly' || chartTypeNormalized === 'focus';
-  console.log('[SwissDataModal] shouldAutoInject:', shouldAutoInject, 'shouldShowPromptSelector:', !shouldAutoInject);
   const shouldShowPromptSelector = !shouldAutoInject;
 
   const handleCopy = async () => {
@@ -82,7 +79,6 @@ export const SwissDataModal: React.FC<SwissDataModalProps> = ({
       // Reset copied state after 2 seconds
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
-      console.error('[SwissDataModal] Failed to copy:', err);
       toast.error('Failed to copy data');
     }
   };

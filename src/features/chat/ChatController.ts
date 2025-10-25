@@ -35,7 +35,6 @@ class ChatController {
     // Use provided chat_id or fallback to store
     const targetChatId = chat_id || useChatStore.getState().chat_id;
     if (!targetChatId) {
-      console.log('[ChatController] loadExistingMessages: No chat_id provided');
       return;
     }
     
@@ -47,23 +46,11 @@ class ChatController {
     }
 
     try {
-      console.log('[ChatController] loadExistingMessages START:', { 
-        chat_id: targetChatId,
-        currentMessageCount: currentMessages.length 
-      });
-      
       // Set chat_id first (triggers fetchMessages automatically via setChatId)
-      console.log('[ChatController] Calling setChatId:', targetChatId);
       setChatId(targetChatId);
       
       // Explicitly fetch to ensure we have latest data
-      console.log('[ChatController] Calling fetchMessages');
       await fetchMessages();
-      
-      const { messages: finalMessages } = useMessageStore.getState();
-      console.log('[ChatController] loadExistingMessages COMPLETE:', { 
-        finalMessageCount: finalMessages.length 
-      });
     } catch (error) {
       console.error('[ChatController] Error loading existing messages:', error);
       setMessageLoadError(error instanceof Error ? error.message : 'Failed to load messages');
@@ -108,7 +95,6 @@ class ChatController {
         setChatId(chat_id);
       }
       
-      console.log('[ChatController] initializeForConversation COMPLETE');
     } finally {
       this.isInitializing = false;
     }

@@ -44,7 +44,6 @@ export const SwissBox: React.FC<SwissBoxProps> = ({ onDelete }) => {
   );
 
   const handleSelectChart = (chartId: string) => {
-    console.log('[SwissBox] Selected chart type:', chartId);
     setSelectedChartType(chartId);
     setShowAstroForm(true);
   };
@@ -61,7 +60,6 @@ export const SwissBox: React.FC<SwissBoxProps> = ({ onDelete }) => {
       const newChatId = data.chat_id;
       
       if (!newChatId) {
-        console.error('[SwissBox] No chat_id returned from form submission');
         return;
       }
       
@@ -81,7 +79,7 @@ export const SwissBox: React.FC<SwissBoxProps> = ({ onDelete }) => {
       setShowAstroForm(false);
       setSelectedChartType(null);
     } catch (error) {
-      console.error('[SwissBox] Failed to create Swiss data conversation:', error);
+      // Handle error silently or show user-friendly message
     }
   };
 
