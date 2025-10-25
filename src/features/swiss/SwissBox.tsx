@@ -199,7 +199,11 @@ export const SwissBox: React.FC<SwissBoxProps> = ({ onDelete }) => {
                 swissData={swissData}
                 isLoading={isLoading}
                 error={pollingError}
-                chartType={selectedChartType || 'Swiss Data'}
+                chartType={(() => {
+                  const type = selectedChartType || 'Swiss Data';
+                  console.log('[SwissBox] Passing chartType to modal:', type);
+                  return type;
+                })()}
               />
 
               {/* Error Display */}
