@@ -8,6 +8,8 @@ const SB_KEY    = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const GEO_KEY   = Deno.env.get("GOOGLE_API_KEY")!;
 const GEO_TTL_MIN = +(Deno.env.get("GEOCODE_TTL_MIN") ?? "1440");
 const GEO_TABLE   = Deno.env.get("GEOCODE_CACHE_TABLE") ?? "geo_cache";
+
+// Updated: Added support for weekly chart type
 const VERSION = "translator-edge v3.4 (2025‑01‑15)"; // Updated with efficient audio pipeline
 
 const sb = createClient(SB_URL, SB_KEY);
