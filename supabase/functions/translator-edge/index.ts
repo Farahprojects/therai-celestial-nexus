@@ -214,7 +214,7 @@ async function logTranslator(run:{request_type:string;request_payload:any;swiss_
 }
 
 /*──────────────── Canon ----------------------------------------------------*/
-const CANON:Record<string,string>={ natal:"natal",transits:"transits",progressions:"progressions",return:"return",synastry:"synastry",compatibility:"synastry",positions:"positions",moonphases:"moonphases",body:"body_matrix",body_matrix:"body_matrix",sync:"sync",essence:"essence",flow:"flow",mindset:"mindset",monthly:"monthly",focus:"focus" };
+const CANON:Record<string,string>={ natal:"natal",transits:"transits",progressions:"progressions",return:"return",synastry:"synastry",compatibility:"synastry",positions:"positions",moonphases:"moonphases",body:"body_matrix",body_matrix:"body_matrix",sync:"sync",essence:"essence",flow:"flow",mindset:"mindset",weekly:"weekly",focus:"focus" };
 
 /*──────────────── Edge Function -------------------------------------------*/
 Deno.serve(async (req)=>{
