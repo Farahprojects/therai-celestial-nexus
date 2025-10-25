@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Copy, Check, Loader2, ChevronDown, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
@@ -29,7 +29,37 @@ export const SwissDataModal: React.FC<SwissDataModalProps> = ({
   
   const { prompts } = useSystemPrompts();
 
+  // Auto-inject system prompt for weekly and focus chart types
+  useEffect(() => {
+    if (!swissData || isLoading || error) return;
+
+    const chartTypeNormalized = chartType?.toLowerCase();
+    
+    // Check if this is a weekly or focus chart type that needs auto-injection
+    if (chartTypeNormalized === 'weekly' || chartTypeNormalized === 'focus') {
+      // Find the chart_type prompts
+      const chartTypePrompts = prompts['chart_type'];
+      if (chartTypePrompts && chartTypePrompts.length > 0) {
+        const autoPrompt = chartTypePrompts.find(
+          (p: SystemPrompt) => p.subcategory.toLowerCase() === chartTypeNormalized
+        );
+        
+        if (autoPrompt && !selectedPrompt) {
+          setSelectedPrompt({ 
+            name: autoPrompt.subcategory, 
+            text: autoPrompt.prompt_text 
+          });
+        }
+      }
+    }
+  }, [swissData, isLoading, error, chartType, prompts, selectedPrompt]);
+
   if (!isOpen) return null;
+
+  // Check if we should show the prompt selector
+  const chartTypeNormalized = chartType?.toLowerCase();
+  const shouldAutoInject = chartTypeNormalized === 'weekly' || chartTypeNormalized === 'focus';
+  const shouldShowPromptSelector = !shouldAutoInject;
 
   const handleCopy = async () => {
     try {
@@ -108,54 +138,54 @@ export const SwissDataModal: React.FC<SwissDataModalProps> = ({
               <div className="flex items-center justify-center mb-6">
                 <Check className="w-5 h-5 text-green-600 mr-2" />
                 <p className="text-gray-700 font-medium">
-                  Your Swiss Data is Ready!
+                  Swiss Data Ready
+                  {selectedPrompt && (
+                    <span className="text-gray-500 font-light ml-2">
+                      • {shouldAutoInject ? 'Chart-specific prompt' : `Starter ${selectedPrompt.name}`} added
+                    </span>
+                  )}
                 </p>
               </div>
 
-              {/* Starter Conversation Selector */}
-              <div className="space-y-2">
-                <p className="text-base text-gray-600 font-medium mb-3">
-                  Add a starter conversation prompt
-                </p>
-                
-                {categories.map((category) => (
-                  <div key={category}>
-                    {/* Category Button */}
-                    <button
-                      onClick={() => handleCategoryClick(category)}
-                      className="w-full text-left py-3 text-gray-700 font-light text-base hover:text-gray-900 transition-colors flex items-center justify-between"
-                    >
-                      <span className="capitalize">{category}</span>
-                      {expandedCategory === category ? (
-                        <ChevronDown className="w-4 h-4" />
-                      ) : (
-                        <ChevronRight className="w-4 h-4" />
+              {/* Starter Conversation Selector - Only show if not auto-injecting */}
+              {shouldShowPromptSelector && (
+                <div className="space-y-2">
+                  <p className="text-base text-gray-600 font-medium mb-3">
+                    Add a starter conversation prompt
+                  </p>
+                  
+                  {categories.map((category) => (
+                    <div key={category}>
+                      {/* Category Button */}
+                      <button
+                        onClick={() => handleCategoryClick(category)}
+                        className="w-full text-left py-3 text-gray-700 font-light text-base hover:text-gray-900 transition-colors flex items-center justify-between"
+                      >
+                        <span className="capitalize">{category}</span>
+                        {expandedCategory === category ? (
+                          <ChevronDown className="w-4 h-4" />
+                        ) : (
+                          <ChevronRight className="w-4 h-4" />
+                        )}
+                      </button>
+                      
+                      {/* Subcategories */}
+                      {expandedCategory === category && prompts[category] && (
+                        <div className="space-y-1 mb-2">
+                          {prompts[category].map((prompt: SystemPrompt) => (
+                            <button
+                              key={prompt.id}
+                              onClick={() => handleSubcategoryClick(prompt.subcategory, prompt.prompt_text)}
+                              className="w-full text-left pl-4 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-lg transition-colors"
+                            >
+                              {prompt.subcategory}
+                            </button>
+                          ))}
+                        </div>
                       )}
-                    </button>
-                    
-                    {/* Subcategories */}
-                    {expandedCategory === category && prompts[category] && (
-                      <div className="space-y-1 mb-2">
-                        {prompts[category].map((prompt: SystemPrompt) => (
-                          <button
-                            key={prompt.id}
-                            onClick={() => handleSubcategoryClick(prompt.subcategory, prompt.prompt_text)}
-                            className="w-full text-left pl-4 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-lg transition-colors"
-                          >
-                            {prompt.subcategory}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-
-              {/* Selected Prompt Indicator */}
-              {selectedPrompt && (
-                <p className="text-xs text-gray-600 text-center font-light">
-                  Starter: {selectedPrompt.name} has been added
-                </p>
+                    </div>
+                  ))}
+                </div>
               )}
 
               <p className="text-xs text-gray-500 text-center font-light">

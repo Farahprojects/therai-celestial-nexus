@@ -15,7 +15,7 @@ export const SWISS_ENDPOINTS = {
   RETURN: 'return',
   FOCUS: 'focus',
   MINDSET: 'mindset',
-  MONTHLY: 'monthly',
+  WEEKLY: 'weekly',
   ESSENCE: 'essence',
   BODY_MATRIX: 'body_matrix',
   SYNC: 'sync',
@@ -57,6 +57,16 @@ export const SWISS_CHART_TYPES = [
     id: SWISS_ENDPOINTS.SYNC,
     name: 'Composite',
     description: 'Relationship midpoint chart',
+  },
+  {
+    id: SWISS_ENDPOINTS.WEEKLY,
+    name: 'Weekly Chart',
+    description: 'Weekly forecast',
+  },
+  {
+    id: SWISS_ENDPOINTS.FOCUS,
+    name: 'Focus Chart',
+    description: 'Focus analysis',
   },
 ] as const;
 

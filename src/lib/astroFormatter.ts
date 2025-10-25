@@ -205,15 +205,15 @@ export const parseAstroData = (raw: any): any => {
     subject: raw.subject ?? {} // Carry over subject info
   };
 
-  // Handle single-block, top-level report types like 'monthly'
+  // Handle single-block, top-level report types like 'weekly'
   if (raw.block_type) {
     switch(raw.block_type) {
-      case 'monthly':
-        // The core data is in the 'components' object for monthly reports
-        parsedData.monthly = raw.components;
+      case 'weekly':
+        // The core data is in the 'components' object for weekly reports
+        parsedData.weekly = raw.components;
         // Also attach the top-level block type for easy identification
-        if (parsedData.monthly) {
-            parsedData.monthly.block_type = 'monthly';
+        if (parsedData.weekly) {
+            parsedData.weekly.block_type = 'weekly';
         }
         return parsedData;
     }

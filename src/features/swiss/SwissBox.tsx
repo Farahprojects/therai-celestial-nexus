@@ -172,7 +172,7 @@ export const SwissBox: React.FC<SwissBoxProps> = ({ onDelete }) => {
 
               {/* Main Content - Chart Selector */}
               <div className="flex-1 min-h-0 overflow-y-auto" style={{ overflowAnchor: 'none' as any }}>
-                <div className="h-full flex items-center justify-center">
+                <div className="h-full flex items-start md:items-center justify-center pt-4 md:pt-0">
                   <SwissChartSelector onSelectChart={handleSelectChart} />
                 </div>
               </div>

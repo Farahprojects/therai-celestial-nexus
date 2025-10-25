@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { User, Calendar, TrendingUp, Users, ChevronRight } from 'lucide-react';
+import { User, Calendar, TrendingUp, Users, ChevronRight, CalendarDays, Target } from 'lucide-react';
 
 interface ChartType {
   id: string;
@@ -27,6 +27,16 @@ const chartTypes: ChartType[] = [
     id: 'progressions', // Maps to /progressions endpoint
     name: 'Progressed Chart',
     icon: <TrendingUp className="w-5 h-5" />,
+  },
+  {
+    id: 'weekly', // Maps to /weekly endpoint
+    name: 'Weekly Chart',
+    icon: <CalendarDays className="w-5 h-5" />,
+  },
+  {
+    id: 'focus', // Maps to /focus endpoint
+    name: 'Focus Chart',
+    icon: <Target className="w-5 h-5" />,
   },
 ];
 
@@ -64,7 +74,7 @@ export const SwissChartSelector: React.FC<SwissChartSelectorProps> = ({ onSelect
               key={chart.id}
               onClick={() => handleChartClick(chart.id)}
               className={`
-                w-full flex items-center justify-between p-4 rounded-xl border-2 transition-all duration-200
+                w-full flex items-center justify-between p-4 rounded-full border-2 transition-all duration-200
                 ${
                   isSelected
                     ? 'border-gray-900 bg-gray-50'

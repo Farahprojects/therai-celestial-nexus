@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Download, Copy, Paperclip } from 'lucide-react';
+import { X, Download, Copy, Paperclip, Check, ChevronDown, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
@@ -11,6 +11,14 @@ import { supabase } from '@/integrations/supabase/client';
 import { ReportData, extractReportContent, getPersonName } from '@/utils/reportContentExtraction';
 import { renderUnifiedContentAsText } from '@/utils/componentToTextRenderer';
 import { AstroDataRenderer } from './AstroDataRenderer';
+import { useSystemPrompts, SystemPrompt } from '@/hooks/useSystemPrompts';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 interface ReportSlideOverProps {
   isOpen: boolean;
@@ -33,7 +41,12 @@ export const ReportSlideOver: React.FC<ReportSlideOverProps> = ({
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [activeView, setActiveView] = useState<'report' | 'astro'>('report');
+  const [showPromptSelector, setShowPromptSelector] = useState(false);
+  const [selectedPrompt, setSelectedPrompt] = useState<{ name: string; text: string } | null>(null);
+  const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
   const isMobile = useIsMobile();
+  const { prompts } = useSystemPrompts();
 
   // Determine what views to show based on metadata
   const hasReport = reportData?.metadata?.has_ai_report || false;
@@ -183,25 +196,105 @@ export const ReportSlideOver: React.FC<ReportSlideOverProps> = ({
 
   const personName = getPersonName(reportData);
 
+  const handleOpenPromptSelector = () => {
+    setShowPromptSelector(true);
+  };
+
+  const handleCategoryClick = (category: string) => {
+    setExpandedCategory(expandedCategory === category ? null : category);
+  };
+
+  const handleSubcategoryClick = (subcategory: string, promptText: string) => {
+    setSelectedPrompt({ name: subcategory, text: promptText });
+    setExpandedCategory(null);
+  };
+
   const handleCopyAstroData = async () => {
     try {
-      // Only copy if Swiss data is available and we're viewing astro data
       if (!reportData?.swiss_data) {
         toast.error('No astro data available to copy');
         return;
       }
 
       const dataString = JSON.stringify(reportData.swiss_data, null, 2);
-      await navigator.clipboard.writeText(dataString);
-      toast.success('Astro data copied to clipboard!');
+      const finalText = selectedPrompt 
+        ? `${dataString}\n\n---\n\nSystem Prompt:\n${selectedPrompt.text}`
+        : dataString;
+
+      await navigator.clipboard.writeText(finalText);
+      setCopied(true);
+      toast.success(selectedPrompt 
+        ? 'Astro data with system prompt copied!' 
+        : 'Astro data copied to clipboard!'
+      );
+      
+      setTimeout(() => {
+        setCopied(false);
+        setShowPromptSelector(false);
+      }, 2000);
     } catch (err) {
       console.error('[ReportSlideOver] Failed to copy:', err);
       toast.error('Failed to copy data');
     }
   };
 
+  // Detect chart type from swiss_data structure
+  const detectChartType = (swissData: any): string | null => {
+    if (!swissData) return null;
+    
+    // Check for block_type at top level (weekly, focus)
+    if (swissData.block_type) {
+      return swissData.block_type;
+    }
+    
+    // Check for blocks structure
+    if (swissData.blocks) {
+      // Sync/compatibility charts have natal_set
+      if (swissData.blocks.natal_set) return 'sync';
+      if (swissData.blocks.synastry) return 'sync';
+      
+      // Essence charts have both natal and transits
+      if (swissData.blocks.natal && swissData.blocks.transits) return 'essence';
+      
+      // Single block types
+      if (swissData.blocks.natal) return 'natal';
+      if (swissData.blocks.progressions) return 'progressions';
+      if (swissData.blocks.return) return 'return';
+    }
+    
+    return null;
+  };
+
+  const chartType = detectChartType(reportData?.swiss_data);
+
+  // Filter categories based on chart type
+  const getRelevantCategories = (): string[] => {
+    switch (chartType) {
+      case 'weekly':
+      case 'focus':
+        // Show only chart_type for these special charts
+        return ['chart_type'];
+      
+      case 'sync':
+      case 'synastry':
+        // Show only compatibility for relationship charts
+        return ['compatibility'];
+      
+      case 'essence':
+      case 'natal':
+      case 'progressions':
+      case 'return':
+      default:
+        // Show general life areas for personal charts
+        return ['mindset', 'health', 'wealth', 'soul', 'career'];
+    }
+  };
+
+  const categories = getRelevantCategories();
+
   return (
-    <Sheet open={isOpen} onOpenChange={onClose}>
+    <>
+      <Sheet open={isOpen} onOpenChange={onClose}>
       <SheetContent 
         side="right" 
         className="w-full sm:max-w-2xl p-0"
@@ -217,9 +310,9 @@ export const ReportSlideOver: React.FC<ReportSlideOverProps> = ({
               {/* Copy Astro Data Button - Only show when Swiss data is available */}
               {reportData?.swiss_data && (activeView === 'astro' || !hasReport) && (
                 <button
-                  onClick={handleCopyAstroData}
+                  onClick={handleOpenPromptSelector}
                   className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-                  title="Copy astro data"
+                  title="Copy astro data with prompt"
                 >
                   <Paperclip className="w-5 h-5 text-gray-600" />
                 </button>
@@ -285,5 +378,108 @@ export const ReportSlideOver: React.FC<ReportSlideOverProps> = ({
         </div>
       </SheetContent>
     </Sheet>
+
+    {/* System Prompt Selector Dialog - Using shadcn Dialog component */}
+    <Dialog open={showPromptSelector} onOpenChange={setShowPromptSelector}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+        <DialogHeader>
+          <DialogTitle className="text-2xl font-light">Add System Prompt</DialogTitle>
+          <DialogDescription className="text-base text-gray-600">
+            Select a system prompt to include with your astro data
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="flex-1 overflow-y-auto pr-2">
+          {selectedPrompt && (
+            <div className="flex items-center mb-4 p-3 bg-green-50 rounded-lg">
+              <Check className="w-5 h-5 text-green-600 mr-2 flex-shrink-0" />
+              <p className="text-gray-700 font-medium text-sm">
+                Prompt selected: <span className="text-gray-500 font-light">{selectedPrompt.name}</span>
+              </p>
+            </div>
+          )}
+          
+          <div className="space-y-2">
+            {categories.map((category) => {
+              const categoryPrompts = prompts[category];
+              const displayName = category === 'chart_type' 
+                ? `${chartType?.charAt(0).toUpperCase()}${chartType?.slice(1)} Prompts`
+                : category.charAt(0).toUpperCase() + category.slice(1);
+              
+              return (
+                <div key={category}>
+                  <button
+                    onClick={() => handleCategoryClick(category)}
+                    className="w-full text-left py-3 text-gray-700 font-light text-base hover:text-gray-900 transition-colors flex items-center justify-between"
+                  >
+                    <span>{displayName}</span>
+                    {expandedCategory === category ? (
+                      <ChevronDown className="w-4 h-4" />
+                    ) : (
+                      <ChevronRight className="w-4 h-4" />
+                    )}
+                  </button>
+                  
+                  {expandedCategory === category && categoryPrompts && (
+                    <div className="space-y-1 mb-2">
+                      {categoryPrompts
+                        .filter((prompt: SystemPrompt) => {
+                          // For chart_type category, only show prompts matching current chart type
+                          if (category === 'chart_type') {
+                            return prompt.subcategory.toLowerCase() === chartType?.toLowerCase();
+                          }
+                          return true;
+                        })
+                        .map((prompt: SystemPrompt) => (
+                          <button
+                            key={prompt.id}
+                            onClick={() => handleSubcategoryClick(prompt.subcategory, prompt.prompt_text)}
+                            className="w-full text-left pl-4 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-lg transition-colors"
+                          >
+                            {prompt.subcategory}
+                          </button>
+                        ))
+                      }
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          <p className="text-xs text-gray-500 text-center font-light pt-4">
+            The system prompt will be appended to your astro data when copied
+          </p>
+        </div>
+
+        <div className="flex gap-3 pt-4 border-t">
+          <Button
+            onClick={() => setShowPromptSelector(false)}
+            variant="outline"
+            className="flex-1 h-12 rounded-full border-2 border-gray-300 hover:border-gray-400 hover:bg-gray-50 font-light"
+          >
+            Cancel
+          </Button>
+
+          <Button
+            onClick={handleCopyAstroData}
+            className="flex-1 h-12 rounded-full bg-gray-900 hover:bg-gray-800 text-white font-light"
+          >
+            {copied ? (
+              <>
+                <Check className="w-5 h-5 mr-2" />
+                Copied!
+              </>
+            ) : (
+              <>
+                <Copy className="w-5 h-5 mr-2" />
+                {selectedPrompt ? 'Copy with Prompt' : 'Copy Data'}
+              </>
+            )}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 };
