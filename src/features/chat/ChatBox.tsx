@@ -126,7 +126,7 @@ export const ChatBox: React.FC<ChatBoxProps> = ({ onDelete }) => {
           <div className="hidden md:flex w-64 border-r border-gray-100 flex-col bg-gray-50/50 h-full">
             <div className="py-4 flex flex-col h-full">
               <Suspense fallback={<div className="space-y-4"><div className="h-8 bg-gray-200 rounded animate-pulse"></div><div className="h-6 bg-gray-200 rounded animate-pulse"></div><div className="h-6 bg-gray-200 rounded animate-pulse"></div></div>}>
-                <ChatSidebarControls onDelete={onDelete} />
+                <ChatSidebarControls onDelete={onDelete} conversationType="chat" />
               </Suspense>
             </div>
           </div>
@@ -157,7 +157,7 @@ export const ChatBox: React.FC<ChatBoxProps> = ({ onDelete }) => {
                     <div className="h-full flex flex-col bg-gray-50/50">
                       <div className="p-4 flex flex-col h-full bg-white">
                         <Suspense fallback={<div className="space-y-4"><div className="h-8 bg-gray-200 rounded animate-pulse"></div><div className="h-6 bg-gray-200 rounded animate-pulse"></div><div className="h-6 bg-gray-200 rounded animate-pulse"></div></div>}>
-                          <ChatSidebarControls onDelete={onDelete} onCloseMobileSidebar={() => setIsMobileSidebarOpen(false)} />
+                          <ChatSidebarControls onDelete={onDelete} onCloseMobileSidebar={() => setIsMobileSidebarOpen(false)} conversationType="chat" />
                         </Suspense>
                       </div>
                     </div>

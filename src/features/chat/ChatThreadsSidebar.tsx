@@ -528,9 +528,9 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
     return firstWords.substring(0, 27) + '...';
   }, [messages]);
 
-  // Filter threads by conversation type and apply lazy loading
-  const visibleThreadsList = useMemo(() => {
-    const filtered = threads.filter(thread => {
+  // Filter threads by conversation type first
+  const filteredThreads = useMemo(() => {
+    return threads.filter(thread => {
       // Filter by conversation type
       // Swiss conversations have mode='swiss', regular chat has mode='chat' or null
       if (conversationType === 'swiss') {
@@ -540,8 +540,12 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
         return thread.mode !== 'swiss';
       }
     });
-    return filtered.slice(0, visibleThreads);
-  }, [threads, visibleThreads, conversationType]);
+  }, [threads, conversationType]);
+
+  // Apply lazy loading to filtered threads
+  const visibleThreadsList = useMemo(() => {
+    return filteredThreads.slice(0, visibleThreads);
+  }, [filteredThreads, visibleThreads]);
 
   const isSharedThread = (thread: any) => {
     try {
@@ -557,8 +561,8 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
     }
   };
 
-  // Check if there are more threads to load
-  const hasMoreThreads = threads.length > visibleThreads;
+  // Check if there are more threads to load (only count filtered threads)
+  const hasMoreThreads = filteredThreads.length > visibleThreads;
 
   // Load more threads function
   const loadMoreThreads = useCallback(async () => {
@@ -569,9 +573,9 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
     // Simulate loading delay for better UX
     await new Promise(resolve => setTimeout(resolve, 300));
     
-    setVisibleThreads(prev => Math.min(prev + 10, threads.length));
+    setVisibleThreads(prev => Math.min(prev + 10, filteredThreads.length));
     setIsLoadingMore(false);
-  }, [isLoadingMore, hasMoreThreads, threads.length]);
+  }, [isLoadingMore, hasMoreThreads, filteredThreads.length]);
 
   // Handle edit title
   const handleEditTitle = (conversationId: string, currentTitle: string) => {
@@ -700,7 +704,7 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
                   </div>
                 ))}
               </div>
-            ) : threads.length === 0 ? (
+            ) : filteredThreads.length === 0 ? (
               <div className="text-xs text-gray-500 px-3 py-0.5">No previous chats</div>
             ) : (
               <div className="space-y-0.5">
@@ -781,7 +785,7 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
                       disabled={isLoadingMore}
                       className="w-full px-3 py-2 text-xs text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      {isLoadingMore ? 'Loading...' : `Load more (${threads.length - visibleThreads} remaining)`}
+                      {isLoadingMore ? 'Loading...' : `Load more (${filteredThreads.length - visibleThreads} remaining)`}
                     </button>
                   </div>
                 )}
