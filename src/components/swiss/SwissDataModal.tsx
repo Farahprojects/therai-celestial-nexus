@@ -290,15 +290,15 @@ export const SwissDataModal: React.FC<SwissDataModalProps> = ({
               <Button
                 onClick={onViewData || onClose}
                 variant="outline"
-                className="flex-1 h-14 rounded-full border-2 border-gray-300 hover:border-gray-400 hover:bg-gray-50 font-light text-base transition-all"
+                className="flex-1 h-10 rounded-full border-2 border-gray-300 hover:border-gray-400 hover:bg-gray-50 font-light text-sm transition-all"
               >
-                View Astro Data
+                View Data
               </Button>
 
               {/* Copy Button */}
               <Button
                 onClick={handleCopy}
-                className="flex-1 h-14 rounded-full bg-gray-900 hover:bg-gray-800 text-white font-light text-base shadow-lg hover:shadow-xl transition-all"
+                className="flex-1 h-10 rounded-full bg-gray-900 hover:bg-gray-800 text-white font-light text-sm shadow-lg hover:shadow-xl transition-all"
               >
                 {copied ? (
                   <>
@@ -306,10 +306,7 @@ export const SwissDataModal: React.FC<SwissDataModalProps> = ({
                     Copied!
                   </>
                 ) : (
-                  <>
-                    <Copy className="w-5 h-5 mr-2" />
-                    Copy Data
-                  </>
+                  'Copy Data'
                 )}
               </Button>
             </div>
