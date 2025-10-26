@@ -108,28 +108,42 @@ export const SwissDataModal: React.FC<SwissDataModalProps> = ({
     setExpandedCategory(null); // Collapse accordion
   };
 
-  // Filter categories based on chart type (same logic as ReportSlideOver)
-  const getRelevantCategories = (): string[] => {
-    switch (chartTypeNormalized) {
-      case 'weekly':
-      case 'focus':
-        // Show only chart_type for these special charts
-        return ['chart_type'];
-      
-      case 'sync':
-      case 'synastry':
-        // Show only compatibility for relationship charts
-        return ['compatibility'];
-      
-      case 'essence':
-      case 'natal':
-      default:
-        // Show general life areas for personal charts
-        return ['mindset', 'health', 'wealth', 'soul', 'career'];
+  // Filter categories based on chart type - deterministic and fail-fast
+  const getVisibleCategories = (): string[] => {
+    const normalized = chartTypeNormalized;
+    
+    if (!normalized) {
+      // Fail fast - no chart type means no prompts
+      return [];
     }
+    
+    if (normalized === 'essence') {
+      // Essence shows all standard categories + compatibility
+      return ['mindset', 'health', 'wealth', 'soul', 'career', 'compatibility'];
+    }
+    
+    if (normalized === 'sync') {
+      // Sync shows compatibility only
+      return ['compatibility'];
+    }
+    
+    // weekly/focus auto-inject, no manual selection needed
+    if (normalized === 'weekly' || normalized === 'focus') {
+      return [];
+    }
+    
+    // Unknown chart type - fail fast, show no prompts
+    return [];
   };
 
-  const categories = getRelevantCategories();
+  const categories = getVisibleCategories().filter(cat => prompts[cat] && prompts[cat].length > 0);
+
+  // Auto-expand the single category (e.g., compatibility for sync charts)
+  useEffect(() => {
+    if (categories.length === 1 && !expandedCategory) {
+      setExpandedCategory(categories[0]);
+    }
+  }, [categories, expandedCategory]);
 
   return (
     <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
@@ -179,9 +193,9 @@ export const SwissDataModal: React.FC<SwissDataModalProps> = ({
                 <Check className="w-5 h-5 text-green-600 mr-2" />
                 <p className="text-gray-700 font-medium">
                   Swiss Data Ready
-                  {selectedPrompt && (
+                  {selectedPrompt && shouldAutoInject && (
                     <span className="text-gray-500 font-light ml-2">
-                      • {shouldAutoInject ? `${chartType} prompt included` : `Starter ${selectedPrompt.name}`} added
+                      • {chartType} prompt included
                     </span>
                   )}
                 </p>
@@ -213,15 +227,25 @@ export const SwissDataModal: React.FC<SwissDataModalProps> = ({
                         {/* Subcategories */}
                         {expandedCategory === category && prompts[category] && (
                           <div className="space-y-1 mb-2">
-                            {prompts[category].map((prompt: SystemPrompt) => (
-                              <button
-                                key={prompt.id}
-                                onClick={() => handleSubcategoryClick(prompt.subcategory, prompt.prompt_text)}
-                                className="w-full text-left pl-4 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-lg transition-colors"
-                              >
-                                {prompt.subcategory}
-                              </button>
-                            ))}
+                            {prompts[category].map((prompt: SystemPrompt) => {
+                              const isSelected = selectedPrompt?.name === prompt.subcategory;
+                              return (
+                                <button
+                                  key={prompt.id}
+                                  onClick={() => handleSubcategoryClick(prompt.subcategory, prompt.prompt_text)}
+                                  className={`w-full text-left pl-4 py-2 text-sm rounded-lg transition-colors flex items-center justify-between ${
+                                    isSelected 
+                                      ? 'bg-green-50 text-green-800 border border-green-200' 
+                                      : 'text-gray-600 hover:bg-gray-50'
+                                  }`}
+                                >
+                                  <span>{prompt.subcategory}</span>
+                                  {isSelected && (
+                                    <Check className="w-4 h-4 text-green-600 mr-2 flex-shrink-0" />
+                                  )}
+                                </button>
+                              );
+                            })}
                           </div>
                         )}
                       </div>

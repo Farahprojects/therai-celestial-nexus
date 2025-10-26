@@ -99,13 +99,13 @@ Deno.serve(async (req) => {
     console.log(`[get-report-data][${requestId}] 🔍 Fetching translator_logs data...`);
     const { data: translatorLogs, error: translatorLogsError } = await supabase
       .from("translator_logs")
-      .select("swiss_data, created_at")
+      .select("swiss_data, request_type, created_at")
       .eq("chat_id", chat_id)
       .single();
     
-    let translatorLogData: { swiss_data: any } | null = null;
+    let translatorLogData: { swiss_data: any; request_type?: string } | null = null;
     if (!translatorLogsError && translatorLogs) {
-      translatorLogData = translatorLogs as { swiss_data: any };
+      translatorLogData = translatorLogs as { swiss_data: any; request_type?: string };
     } else {
       console.warn(`[get-report-data] Could not fetch translator_logs:`, translatorLogsError);
     }
@@ -136,7 +136,8 @@ Deno.serve(async (req) => {
         has_ai_report: hasReportText,
         has_swiss_data: hasSwissData,
         is_ready: true,
-        report_type: 'unknown'
+        report_type: translatorLogData?.request_type || 'unknown',
+        request_type: translatorLogData?.request_type || null
       }
     };
 

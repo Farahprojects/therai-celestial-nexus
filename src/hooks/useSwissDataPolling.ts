@@ -5,6 +5,7 @@ interface SwissDataResult {
   isLoading: boolean;
   swissData: any | null;
   error: string | null;
+  requestType: string | null;
 }
 
 /**
@@ -15,6 +16,7 @@ export const useSwissDataPolling = (chatId: string | null, enabled: boolean = tr
   const [isLoading, setIsLoading] = useState(false);
   const [swissData, setSwissData] = useState<any | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [requestType, setRequestType] = useState<string | null>(null);
 
   useEffect(() => {
     if (!chatId || !enabled || swissData) return;
@@ -29,7 +31,7 @@ export const useSwissDataPolling = (chatId: string | null, enabled: boolean = tr
         
         const { data, error: fetchError } = await supabase
           .from('translator_logs')
-          .select('swiss_data, swiss_error, error_message, created_at')
+          .select('swiss_data, request_type, swiss_error, error_message, created_at')
           .eq('chat_id', chatId)
           .order('created_at', { ascending: false })
           .limit(1)
@@ -54,6 +56,7 @@ export const useSwissDataPolling = (chatId: string | null, enabled: boolean = tr
 
           // Success - data is ready
           setSwissData(data.swiss_data);
+          setRequestType(data.request_type || null);
           setIsLoading(false);
           if (pollInterval) clearInterval(pollInterval);
         } else {
@@ -88,6 +91,6 @@ export const useSwissDataPolling = (chatId: string | null, enabled: boolean = tr
     };
   }, [chatId, enabled, swissData]);
 
-  return { isLoading, swissData, error };
+  return { isLoading, swissData, error, requestType };
 };
 

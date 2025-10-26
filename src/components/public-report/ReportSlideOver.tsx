@@ -255,55 +255,43 @@ export const ReportSlideOver: React.FC<ReportSlideOverProps> = ({
     }
   };
 
-  // Detect chart type from swiss_data structure
-  const detectChartType = (swissData: any): string | null => {
-    if (!swissData) return null;
-    
-    // Check for block_type at top level (weekly, focus)
-    if (swissData.block_type) {
-      return swissData.block_type;
+  // Get chart type directly from metadata.request_type (deterministic, no guessing)
+  const chartType = (reportData?.metadata as any)?.request_type || null;
+
+  // Filter categories based on chart type - deterministic and fail-fast
+  const getVisibleCategories = (): string[] => {
+    if (!chartType) {
+      // Fail fast - no chart type means no prompts
+      return [];
     }
     
-    // Check for blocks structure
-    if (swissData.blocks) {
-      // Sync/compatibility charts have natal_set
-      if (swissData.blocks.natal_set) return 'sync';
-      if (swissData.blocks.synastry) return 'sync';
-      
-      // Essence charts have both natal and transits
-      if (swissData.blocks.natal && swissData.blocks.transits) return 'essence';
-      
-      // Single block types
-      if (swissData.blocks.natal) return 'natal';
+    if (chartType === 'essence') {
+      // Essence shows all standard categories + compatibility
+      return ['mindset', 'health', 'wealth', 'soul', 'career', 'compatibility'];
     }
     
-    return null;
+    if (chartType === 'sync') {
+      // Sync shows compatibility only
+      return ['compatibility'];
+    }
+    
+    // weekly/focus auto-inject, no manual selection needed
+    if (chartType === 'weekly' || chartType === 'focus') {
+      return [];
+    }
+    
+    // Unknown chart type - fail fast, show no prompts
+    return [];
   };
 
-  const chartType = detectChartType(reportData?.swiss_data);
+  const categories = getVisibleCategories().filter(cat => prompts[cat] && prompts[cat].length > 0);
 
-  // Filter categories based on chart type
-  const getRelevantCategories = (): string[] => {
-    switch (chartType) {
-      case 'weekly':
-      case 'focus':
-        // Show only chart_type for these special charts
-        return ['chart_type'];
-      
-      case 'sync':
-      case 'synastry':
-        // Show only compatibility for relationship charts
-        return ['compatibility'];
-      
-      case 'essence':
-      case 'natal':
-      default:
-        // Show general life areas for personal charts
-        return ['mindset', 'health', 'wealth', 'soul', 'career'];
+  // Auto-expand the single category (e.g., compatibility for sync charts)
+  useEffect(() => {
+    if (categories.length === 1 && !expandedCategory) {
+      setExpandedCategory(categories[0]);
     }
-  };
-
-  const categories = getRelevantCategories();
+  }, [categories, expandedCategory]);
 
   return (
     <>
@@ -403,14 +391,6 @@ export const ReportSlideOver: React.FC<ReportSlideOverProps> = ({
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto pr-2">
-          {selectedPrompt && (
-            <div className="flex items-center mb-4 p-3 bg-green-50 rounded-lg">
-              <Check className="w-5 h-5 text-green-600 mr-2 flex-shrink-0" />
-              <p className="text-gray-700 font-medium text-sm">
-                Prompt selected: <span className="text-gray-500 font-light">{selectedPrompt.name}</span>
-              </p>
-            </div>
-          )}
           
           <div className="space-y-2">
             {categories.map((category) => {
@@ -443,15 +423,25 @@ export const ReportSlideOver: React.FC<ReportSlideOverProps> = ({
                           }
                           return true;
                         })
-                        .map((prompt: SystemPrompt) => (
-                          <button
-                            key={prompt.id}
-                            onClick={() => handleSubcategoryClick(prompt.subcategory, prompt.prompt_text)}
-                            className="w-full text-left pl-4 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-lg transition-colors"
-                          >
-                            {prompt.subcategory}
-                          </button>
-                        ))
+                        .map((prompt: SystemPrompt) => {
+                          const isSelected = selectedPrompt?.name === prompt.subcategory;
+                          return (
+                            <button
+                              key={prompt.id}
+                              onClick={() => handleSubcategoryClick(prompt.subcategory, prompt.prompt_text)}
+                              className={`w-full text-left pl-4 py-2 text-sm rounded-lg transition-colors flex items-center justify-between ${
+                                isSelected 
+                                  ? 'bg-green-50 text-green-800 border border-green-200' 
+                                  : 'text-gray-600 hover:bg-gray-50'
+                              }`}
+                            >
+                              <span>{prompt.subcategory}</span>
+                              {isSelected && (
+                                <Check className="w-4 h-4 text-green-600 mr-2 flex-shrink-0" />
+                              )}
+                            </button>
+                          );
+                        })
                       }
                     </div>
                   )}

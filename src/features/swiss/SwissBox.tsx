@@ -38,7 +38,7 @@ export const SwissBox: React.FC<SwissBoxProps> = ({ onDelete }) => {
   const { open: openReportModal } = useReportModal();
 
   // Poll for Swiss data when we have a chat_id
-  const { isLoading, swissData, error: pollingError } = useSwissDataPolling(
+  const { isLoading, swissData, error: pollingError, requestType } = useSwissDataPolling(
     activeChatIdForPolling,
     !!activeChatIdForPolling
   );
@@ -198,38 +198,7 @@ export const SwissBox: React.FC<SwissBoxProps> = ({ onDelete }) => {
                 swissData={swissData}
                 isLoading={isLoading}
                 error={pollingError}
-                chartType={(() => {
-                  // Detect chart type from Swiss data structure (same logic as ReportSlideOver)
-                  const detectChartType = (swissData: any): string | null => {
-                    if (!swissData) return null;
-                    
-                    // Check for block_type at top level (weekly, focus)
-                    if (swissData.block_type) {
-                      return swissData.block_type;
-                    }
-                    
-                    // Check for blocks structure
-                    if (swissData.blocks) {
-                      // Sync/compatibility charts have natal_set
-                      if (swissData.blocks.natal_set) return 'sync';
-                      if (swissData.blocks.synastry) return 'sync';
-                      
-                      // Essence charts have both natal and transits
-                      if (swissData.blocks.natal && swissData.blocks.transits) return 'essence';
-                      
-                      // Single block types
-                      if (swissData.blocks.natal) return 'natal';
-                      if (swissData.blocks.progressions) return 'progressions';
-                      if (swissData.blocks.return) return 'return';
-                    }
-                    
-                    return null;
-                  };
-
-                  const detectedType = detectChartType(swissData);
-                  const type = detectedType || selectedChartType || 'Swiss Data';
-                  return type;
-                })()}
+                chartType={requestType || selectedChartType || 'Swiss Data'}
               />
 
               {/* Error Display */}

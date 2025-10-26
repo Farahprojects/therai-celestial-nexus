@@ -9,6 +9,7 @@ export interface ReportData {
     has_swiss_data: boolean;
     is_ready: boolean;
     report_type: string | null;
+    request_type?: string | null;
   };
 }
 
