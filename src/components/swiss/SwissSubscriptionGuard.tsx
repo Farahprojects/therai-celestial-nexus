@@ -48,9 +48,9 @@ export const SwissSubscriptionGuard: React.FC<SwissSubscriptionGuardProps> = ({ 
           </div>
           
           <div className="space-y-2">
-            <h2 className="text-2xl font-light text-gray-900">Swiss Data Generator</h2>
+            <h2 className="text-2xl font-light text-gray-900">Astro Generator</h2>
             <p className="text-gray-600">
-              Generate and export Swiss data for use in your preferred AI tools.
+              Generate and export Astro data for use in your preferred AI tools.
             </p>
           </div>
 
@@ -62,7 +62,7 @@ export const SwissSubscriptionGuard: React.FC<SwissSubscriptionGuardProps> = ({ 
             <ul className="text-sm text-gray-600 space-y-2 text-left">
               <li className="flex items-start gap-2">
                 <span className="text-gray-900">•</span>
-                <span>Generate unlimited Swiss data</span>
+                <span>Generate unlimited Astro data</span>
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-gray-900">•</span>

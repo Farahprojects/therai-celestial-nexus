@@ -23,7 +23,7 @@ export const ChatSidebarControls: React.FC<ChatSidebarControlsProps> = ({
       
       {/* Chat Threads */}
       <ChatThreadsSidebar 
-        className="h-full" 
+        className="flex-1 min-h-0" 
         onDelete={onDelete} 
         onCloseMobileSidebar={onCloseMobileSidebar}
         conversationType={conversationType}

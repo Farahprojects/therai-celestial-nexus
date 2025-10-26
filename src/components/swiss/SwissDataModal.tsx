@@ -21,7 +21,7 @@ export const SwissDataModal: React.FC<SwissDataModalProps> = ({
   swissData,
   isLoading,
   error,
-  chartType = 'Swiss Data',
+  chartType = 'Astro Data',
 }) => {
   const [copied, setCopied] = useState(false);
   const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
@@ -118,7 +118,7 @@ export const SwissDataModal: React.FC<SwissDataModalProps> = ({
       
       await navigator.clipboard.writeText(finalText);
       setCopied(true);
-      toast.success('Swiss data copied to clipboard!');
+      toast.success('Astro data copied to clipboard!');
       
       // Reset copied state after 2 seconds
       setTimeout(() => setCopied(false), 2000);
@@ -172,7 +172,7 @@ export const SwissDataModal: React.FC<SwissDataModalProps> = ({
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <h2 className="text-2xl font-light text-gray-900">
-            {isLoading ? 'Generating Swiss Data...' : error ? 'Generation Failed' : 'Swiss Data Ready'}
+            {isLoading ? 'Generating Astro Data...' : error ? 'Generation Failed' : 'Astro Data Ready'}
           </h2>
           <button
             onClick={onClose}
@@ -213,7 +213,7 @@ export const SwissDataModal: React.FC<SwissDataModalProps> = ({
               <div className="flex items-center justify-center mb-6">
                 <Check className="w-5 h-5 text-green-600 mr-2" />
                 <p className="text-gray-700 font-medium">
-                  Swiss Data Ready
+                  Astro Data Ready
                   {selectedPrompt && shouldAutoInject && (
                     <span className="text-gray-500 font-light ml-2">
                       • {chartType} prompt included

@@ -48,7 +48,7 @@ export const useSwissDataPolling = (chatId: string | null, enabled: boolean = tr
           
           // Check if there was an error
           if (data.swiss_error) {
-            setError(data.error_message || 'Swiss data generation failed');
+            setError(data.error_message || 'Astro data generation failed');
             setIsLoading(false);
             if (pollInterval) clearInterval(pollInterval);
             return;

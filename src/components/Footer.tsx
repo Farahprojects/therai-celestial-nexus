@@ -172,7 +172,7 @@ const Footer = ({ hideMobileAstroToggle = false }: FooterProps) => {
               <div className="mt-4 p-4 bg-gray-50/60 rounded-xl border border-gray-200/30 animate-fade-in">
                 <div className="text-center mb-4">
                   <h4 className="font-medium text-gray-900 mb-2 text-sm tracking-wide uppercase">Sample Astro Data</h4>
-                  <p className="text-xs text-gray-600">Precise astronomical calculations • Powered by Therai Swiss</p>
+                  <p className="text-xs text-gray-600">Precise astronomical calculations • Powered by Therai Astro</p>
                 </div>
                 
                 <div className="space-y-3 text-xs">

@@ -22,7 +22,7 @@ export const SWISS_ENDPOINTS = {
 export type SwissEndpoint = typeof SWISS_ENDPOINTS[keyof typeof SWISS_ENDPOINTS];
 
 /**
- * Chart type mappings for the Swiss Data Generator UI
+ * Chart type mappings for the Astro Data Generator UI
  * Maps user-friendly chart names to their corresponding API endpoints
  */
 export const SWISS_CHART_TYPES = [
@@ -71,6 +71,6 @@ export const SWISS_CHART_TYPES = [
  */
 export const getSwissChartDisplayName = (chartId: string): string => {
   const chartType = SWISS_CHART_TYPES.find(ct => ct.id === chartId);
-  return chartType?.name || 'Swiss Data';
+  return chartType?.name || 'Astro Data';
 };
 

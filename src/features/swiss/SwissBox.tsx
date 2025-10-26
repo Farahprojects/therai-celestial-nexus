@@ -198,7 +198,7 @@ export const SwissBox: React.FC<SwissBoxProps> = ({ onDelete }) => {
                 swissData={swissData}
                 isLoading={isLoading}
                 error={pollingError}
-                chartType={requestType || selectedChartType || 'Swiss Data'}
+                chartType={requestType || selectedChartType || 'Astro Data'}
               />
 
               {/* Error Display */}

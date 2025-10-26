@@ -68,8 +68,8 @@ const AuthedAppShell: React.FC = () => {
       {/* Auth clean page - no auto thread creation */}
       <Route path="/therai" element={<AuthGuard><ChatContainer /></AuthGuard>} />
       
-      {/* Swiss Data Generator - REQUIRES AUTH */}
-      <Route path="/swiss" element={<AuthGuard><SwissContainer /></AuthGuard>} />
+      {/* Astro Data Generator - REQUIRES AUTH */}
+      <Route path="/astro" element={<AuthGuard><SwissContainer /></AuthGuard>} />
       
       {/* Protected routes */}
       <Route path="/settings" element={<AuthGuard><UserSettings /></AuthGuard>} />

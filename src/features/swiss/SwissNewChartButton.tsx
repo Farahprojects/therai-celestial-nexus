@@ -57,9 +57,9 @@ export const SwissNewChartButton: React.FC<SwissNewChartButtonProps> = ({ classN
       // Switch WebSocket subscription
       // Swiss mode doesn't need WebSocket - we'll poll for data instead
       
-      // Close modal and navigate to Swiss page with chat_id
+      // Close modal and navigate to Astro page with chat_id
       setShowAstroModal(false);
-      navigate(`/swiss?chat_id=${newChatId}`, { replace: true });
+      navigate(`/astro?chat_id=${newChatId}`, { replace: true });
     } catch (error) {
       console.error('[SwissNewChartButton] Failed to navigate to Swiss conversation:', error);
     }
@@ -80,7 +80,7 @@ export const SwissNewChartButton: React.FC<SwissNewChartButtonProps> = ({ classN
           >
             <div className="flex items-center gap-2">
               <Sparkles className="w-4 h-4" />
-              <span>Generate Swiss Data</span>
+              <span>Generate Astro Data</span>
             </div>
           </DropdownMenuItem>
         </DropdownMenuContent>

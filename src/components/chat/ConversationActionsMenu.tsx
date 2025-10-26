@@ -50,7 +50,7 @@ export const ConversationActionsMenuContent: React.FC<ConversationActionsMenuPro
   const targetConversationId = conversationId || chat_id;
   
   // Determine menu label based on mode
-  const astroLabel = mode === 'swiss' ? 'Generate Swiss Data' : 'Astro';
+  const astroLabel = mode === 'swiss' ? 'Generate Astro Data' : 'Astro';
 
   const handleShareClick = () => {
     setShowShareModal(true);

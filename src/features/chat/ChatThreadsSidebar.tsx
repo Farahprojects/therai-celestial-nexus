@@ -6,7 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { useUserData } from '@/hooks/useUserData';
 import { useThreads } from '@/contexts/ThreadsContext';
-import { Trash2, Sparkles, AlertTriangle, MoreHorizontal, UserPlus, Plus, Search, User, Settings, Bell, CreditCard, LifeBuoy, LogOut, BarChart3, ChevronDown } from 'lucide-react';
+import { Trash2, Sparkles, AlertTriangle, MoreHorizontal, UserPlus, Plus, Search, User, Settings, Bell, CreditCard, LifeBuoy, LogOut, BarChart3, ChevronDown, MessageCircle, Music } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useReportModal } from '@/contexts/ReportModalContext';
 import { getChatTokens, clearChatTokens } from '@/services/auth/chatTokens';
@@ -343,9 +343,9 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
     // Find the conversation to check its mode
     const conversation = threads.find(t => t.id === conversationId);
     
-    // For Swiss conversations, navigate to Swiss page (no WebSocket needed)
-    if (conversation?.mode === 'swiss') {
-      navigate(`/swiss?chat_id=${conversationId}`, { replace: true });
+      // For Swiss conversations, navigate to Astro page (no WebSocket needed)
+      if (conversation?.mode === 'swiss') {
+        navigate(`/astro?chat_id=${conversationId}`, { replace: true });
       onCloseMobileSidebar?.();
       return;
     }
@@ -469,9 +469,9 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
           currentState.clearChat();
         }
         
-        // Navigate based on current route - stay on same page type
-        if (conversationType === 'swiss') {
-          navigate('/swiss', { replace: true });
+          // Navigate based on current route - stay on same page type
+          if (conversationType === 'swiss') {
+            navigate('/astro', { replace: true });
         } else {
           navigate('/therai', { replace: true });
         }
@@ -635,6 +635,34 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
 
   return (
     <div className={cn("w-full h-full flex flex-col", className)}>
+
+      {/* Apps Section - Always visible for authenticated users */}
+      {isAuthenticated && (
+        <div className="px-3 py-2 shrink-0">
+          <div className="text-xs text-gray-600 font-medium py-0.5 mb-1">Apps</div>
+          <button
+            onClick={() => navigate('/therai')}
+            className="w-full flex items-center gap-2 px-3 py-1.5 text-sm text-black hover:bg-gray-100 rounded-lg transition-colors font-light"
+          >
+            <MessageCircle className="w-4 h-4" />
+            Therai
+          </button>
+          <button
+            onClick={() => navigate('/astro')}
+            className="w-full flex items-center gap-2 px-3 py-1.5 text-sm text-black hover:bg-gray-100 rounded-lg transition-colors font-light"
+          >
+            <Sparkles className="w-4 h-4" />
+            Astro
+          </button>
+          <button
+            onClick={() => navigate('/beats')}
+            className="w-full flex items-center gap-2 px-3 py-1.5 text-sm text-black hover:bg-gray-100 rounded-lg transition-colors font-light"
+          >
+            <Music className="w-4 h-4" />
+            Beats
+          </button>
+        </div>
+      )}
 
       {/* Scrollable middle section - only threads scroll */}
       <div className="flex-1 overflow-y-auto min-h-0">

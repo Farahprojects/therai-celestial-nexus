@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Play, Pause, Volume2, VolumeX } from 'lucide-react';
+import { BeatsNavigation } from '@/components/navigation/BeatsNavigation';
 
 interface ToneSource {
   id: string;
@@ -385,8 +386,10 @@ export default function Beats() {
   }, []);
 
     return (
-      <div className="min-h-screen bg-gray-50 py-8 md:py-16 px-4">
-        <div className="max-w-5xl mx-auto space-y-6 md:space-y-8">
+      <>
+        <BeatsNavigation />
+        <div className="min-h-screen bg-gray-50 py-8 md:py-16 px-4">
+          <div className="max-w-5xl mx-auto space-y-6 md:space-y-8">
          {/* Unified Binaural Mixer */}
          {isInitialized && (
            <div className="bg-white rounded-2xl md:rounded-3xl p-6 md:p-10 shadow-sm border border-gray-100">
@@ -663,5 +666,6 @@ export default function Beats() {
         )}
      </div>
    </div>
+      </>
  );
 }
