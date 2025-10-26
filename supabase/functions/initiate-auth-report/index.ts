@@ -136,7 +136,6 @@ Deno.serve(async (req) => {
     const translatorPayload = {
       ...report_data,
       chat_id: actualChatId, // Always pass chat_id (conversation id, user id for profile, or conversation id for insights)
-      request_id: crypto.randomUUID().slice(0, 8),
       email: email,
       name: name,
       mode: mode

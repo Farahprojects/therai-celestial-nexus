@@ -168,13 +168,24 @@ export const AstroDataForm: React.FC<AstroDataFormProps> = ({
         title = `${data.name} - Insight`;
       } else if (explicitMode === 'swiss') {
         conversationMode = 'swiss';
-        const chartTypeName = getSwissChartDisplayName(reportType || '');
+        const chartTypeName = getSwissChartDisplayName(selectedAstroType || '');
         title = `${data.name} - ${chartTypeName}`;
       }
       
+      // For Swiss mode, explicitly set reportType to null to skip orchestrator
+      const payloadToSend = explicitMode === 'swiss' 
+        ? { 
+            ...payload, 
+            report_data: { 
+              ...payload.report_data, 
+              reportType: null 
+            }
+          }
+        : { reportType, ...payload };
+      
       const currentChatId = await createConversation(conversationMode, 
         title,
-        { reportType, ...payload }
+        payloadToSend
       );
 
       onSubmit({ ...data, chat_id: currentChatId });
