@@ -27,6 +27,27 @@ export type SwissEndpoint = typeof SWISS_ENDPOINTS[keyof typeof SWISS_ENDPOINTS]
  */
 export const SWISS_CHART_TYPES = [
   {
+    id: SWISS_ENDPOINTS.ESSENCE,
+    name: 'The Self',
+    description: 'Natal + Transit combined',
+  },
+  {
+    id: SWISS_ENDPOINTS.SYNC,
+    name: 'Compatibility',
+    description: 'Relationship compatibility',
+  },
+  {
+    id: SWISS_ENDPOINTS.WEEKLY,
+    name: 'Weekly Snap',
+    description: 'Weekly forecast',
+  },
+  {
+    id: SWISS_ENDPOINTS.FOCUS,
+    name: 'Daily Shot',
+    description: 'Focus analysis',
+  },
+  // Legacy entries kept for backwards compatibility
+  {
     id: SWISS_ENDPOINTS.NATAL,
     name: 'Natal Chart',
     description: 'Your birth chart',
@@ -40,21 +61,6 @@ export const SWISS_CHART_TYPES = [
     id: SWISS_ENDPOINTS.SYNASTRY,
     name: 'Synastry',
     description: 'Relationship compatibility',
-  },
-  {
-    id: SWISS_ENDPOINTS.SYNC,
-    name: 'Composite',
-    description: 'Relationship midpoint chart',
-  },
-  {
-    id: SWISS_ENDPOINTS.WEEKLY,
-    name: 'Weekly Snap',
-    description: 'Weekly forecast',
-  },
-  {
-    id: SWISS_ENDPOINTS.FOCUS,
-    name: 'Daily Shot',
-    description: 'Focus analysis',
   },
 ] as const;
 
