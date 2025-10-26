@@ -72,6 +72,34 @@ export const SwissDataModal: React.FC<SwissDataModalProps> = ({
     }
   }, [swissData, isLoading, error, chartType, prompts, selectedPrompt]);
 
+  // Auto-expand the single category (e.g., compatibility for sync charts)
+  // Must be here at top level before any early returns
+  useEffect(() => {
+    if (!isOpen || !chartType) return;
+    
+    const chartTypeNormalized = chartType?.toLowerCase();
+    
+    const getVisibleCategories = (): string[] => {
+      if (!chartTypeNormalized) return [];
+      if (chartTypeNormalized === 'essence') {
+        return ['mindset', 'health', 'wealth', 'soul', 'career', 'compatibility'];
+      }
+      if (chartTypeNormalized === 'sync') {
+        return ['compatibility'];
+      }
+      if (chartTypeNormalized === 'weekly' || chartTypeNormalized === 'focus') {
+        return [];
+      }
+      return [];
+    };
+    
+    const categories = getVisibleCategories().filter(cat => prompts[cat] && prompts[cat].length > 0);
+    
+    if (categories.length === 1 && !expandedCategory) {
+      setExpandedCategory(categories[0]);
+    }
+  }, [isOpen, chartType, prompts, expandedCategory]);
+
   if (!isOpen) return null;
 
   // Check if we should show the prompt selector
@@ -137,13 +165,6 @@ export const SwissDataModal: React.FC<SwissDataModalProps> = ({
   };
 
   const categories = getVisibleCategories().filter(cat => prompts[cat] && prompts[cat].length > 0);
-
-  // Auto-expand the single category (e.g., compatibility for sync charts)
-  useEffect(() => {
-    if (categories.length === 1 && !expandedCategory) {
-      setExpandedCategory(categories[0]);
-    }
-  }, [categories, expandedCategory]);
 
   return (
     <div className="fixed inset-0 flex items-center justify-center z-50 p-4">

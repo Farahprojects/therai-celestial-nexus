@@ -118,6 +118,34 @@ export const ReportSlideOver: React.FC<ReportSlideOverProps> = ({
     }
   }, [isLoading, error, onLoad]);
 
+  // Auto-expand the single category (e.g., compatibility for sync charts)
+  // Must be here at top level before any early returns
+  useEffect(() => {
+    if (!reportData) return;
+    
+    const chartType = (reportData?.metadata as any)?.request_type || null;
+    if (!chartType) return;
+    
+    const getVisibleCategories = (): string[] => {
+      if (chartType === 'essence') {
+        return ['mindset', 'health', 'wealth', 'soul', 'career', 'compatibility'];
+      }
+      if (chartType === 'sync') {
+        return ['compatibility'];
+      }
+      if (chartType === 'weekly' || chartType === 'focus') {
+        return [];
+      }
+      return [];
+    };
+    
+    const categories = getVisibleCategories().filter(cat => prompts[cat] && prompts[cat].length > 0);
+    
+    if (categories.length === 1 && !expandedCategory) {
+      setExpandedCategory(categories[0]);
+    }
+  }, [reportData, prompts, expandedCategory]);
+
   if (isLoading) {
     return (
       <Sheet open={isOpen} onOpenChange={onClose}>
@@ -285,13 +313,6 @@ export const ReportSlideOver: React.FC<ReportSlideOverProps> = ({
   };
 
   const categories = getVisibleCategories().filter(cat => prompts[cat] && prompts[cat].length > 0);
-
-  // Auto-expand the single category (e.g., compatibility for sync charts)
-  useEffect(() => {
-    if (categories.length === 1 && !expandedCategory) {
-      setExpandedCategory(categories[0]);
-    }
-  }, [categories, expandedCategory]);
 
   return (
     <>
