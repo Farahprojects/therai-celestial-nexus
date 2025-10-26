@@ -10,6 +10,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useMode } from '@/contexts/ModeContext';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { getSwissChartDisplayName } from '@/constants/swissEndpoints';
+import { getAstroTitle, getInsightTitle } from '@/utils/reportTitles';
 
 // Custom hooks
 import { useAstroConversation } from '@/hooks/useAstroConversation';
@@ -165,11 +166,15 @@ export const AstroDataForm: React.FC<AstroDataFormProps> = ({
       
       if (explicitMode === 'insight' || mode === 'insight') {
         conversationMode = 'insight';
-        title = `${data.name} - Insight`;
+        // Use insight type name (Personal, Professional, Compatibility, etc.)
+        title = getInsightTitle(data.name, reportType || '', data.secondPersonName);
       } else if (explicitMode === 'swiss') {
         conversationMode = 'swiss';
         const chartTypeName = getSwissChartDisplayName(selectedAstroType || '');
         title = `${data.name} - ${chartTypeName}`;
+      } else {
+        // Regular astro mode - use "Self" or "Compatibility"
+        title = getAstroTitle(data.name, data.secondPersonName);
       }
       
       // For Swiss mode, explicitly set reportType to null to skip orchestrator

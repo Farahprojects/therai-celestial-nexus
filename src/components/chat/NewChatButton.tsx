@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { SquarePen, Sparkles } from 'lucide-react';
+import { SquarePen, Sparkles, MessageCircle, Orbit } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSubscription } from '@/contexts/SubscriptionContext';
@@ -129,7 +129,10 @@ export const NewChatButton: React.FC<NewChatButtonProps> = ({ className = "" }) 
             onClick={handleNewChat}
             className="cursor-pointer"
           >
-            Chat
+            <div className="flex items-center gap-2">
+              <MessageCircle className="w-4 h-4" />
+              <span>Chat</span>
+            </div>
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem
@@ -137,7 +140,7 @@ export const NewChatButton: React.FC<NewChatButtonProps> = ({ className = "" }) 
             className="cursor-pointer"
           >
             <div className="flex items-center gap-2">
-              <Sparkles className="w-4 h-4" />
+              <Orbit className="w-4 h-4" />
               <span>Generate Astro</span>
             </div>
           </DropdownMenuItem>

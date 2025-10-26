@@ -6,7 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { useUserData } from '@/hooks/useUserData';
 import { useThreads } from '@/contexts/ThreadsContext';
-import { Trash2, Sparkles, AlertTriangle, MoreHorizontal, UserPlus, Plus, Search, User, Settings, Bell, CreditCard, LifeBuoy, LogOut, BarChart3, ChevronDown, MessageCircle, Music } from 'lucide-react';
+import { Trash2, Sparkles, AlertTriangle, MoreHorizontal, UserPlus, Plus, Search, User, Settings, Bell, CreditCard, LifeBuoy, LogOut, BarChart3, ChevronDown, MessageCircle, Music, Orbit } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useReportModal } from '@/contexts/ReportModalContext';
 import { getChatTokens, clearChatTokens } from '@/services/auth/chatTokens';
@@ -393,7 +393,8 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
           .insert({
             id: reportId, // Use report_id as chat_id
             user_id: user.id,
-            title: `${formatReportType(reportType)} - Insight`,
+            title: formatReportType(reportType), // Just the type name (Personal, Professional, etc.)
+            mode: 'insight', // Explicitly set mode to insight
             meta: {
               type: 'insight_chat',
               insight_report_id: reportId,
@@ -767,6 +768,10 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
                         onClick={() => !isPending && handleSwitchToChat(conversation.id)}
                       >
                         <div className="flex items-center gap-2">
+                          {/* Mode icon */}
+                          {conversation.mode === 'insight' && <Sparkles className="w-4 h-4 flex-shrink-0 text-gray-600" />}
+                          {conversation.mode === 'astro' && <Orbit className="w-4 h-4 flex-shrink-0 text-gray-600" />}
+                          {(conversation.mode === 'chat' || !conversation.mode) && <MessageCircle className="w-4 h-4 flex-shrink-0 text-gray-600" />}
                           <div className="text-sm font-medium text-gray-900 truncate" title={conversation.title || 'New Chat'}>
                             {conversation.title || 'New Chat'}
                           </div>
