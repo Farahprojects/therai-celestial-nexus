@@ -662,56 +662,6 @@ export type Database = {
         }
         Relationships: []
       }
-      message_block_summaries: {
-        Row: {
-          block_index: number
-          chat_id: string
-          created_at: string
-          end_message_id: string | null
-          id: string
-          message_count: number
-          meta: Json
-          model: string | null
-          start_message_id: string | null
-          summary: string
-          updated_at: string
-        }
-        Insert: {
-          block_index: number
-          chat_id: string
-          created_at?: string
-          end_message_id?: string | null
-          id?: string
-          message_count?: number
-          meta?: Json
-          model?: string | null
-          start_message_id?: string | null
-          summary: string
-          updated_at?: string
-        }
-        Update: {
-          block_index?: number
-          chat_id?: string
-          created_at?: string
-          end_message_id?: string | null
-          id?: string
-          message_count?: number
-          meta?: Json
-          model?: string | null
-          start_message_id?: string | null
-          summary?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "message_block_summaries_chat_id_fkey"
-            columns: ["chat_id"]
-            isOneToOne: false
-            referencedRelation: "conversations"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       messages: {
         Row: {
           chat_id: string
@@ -1734,13 +1684,6 @@ export type Database = {
       get_user_email_by_id: {
         Args: { user_id_param: string }
         Returns: string
-      }
-      has_role: {
-        Args: {
-          _role: Database["public"]["Enums"]["user_role"]
-          _user_id?: string
-        }
-        Returns: boolean
       }
       http: {
         Args: { request: Database["public"]["CompositeTypes"]["http_request"] }
