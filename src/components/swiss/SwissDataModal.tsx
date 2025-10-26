@@ -29,6 +29,19 @@ export const SwissDataModal: React.FC<SwissDataModalProps> = ({
   
   const { prompts } = useSystemPrompts();
   
+  // Clear selectedPrompt when modal closes or chartType changes
+  useEffect(() => {
+    if (!isOpen) {
+      setSelectedPrompt(null);
+      setCopied(false);
+      setExpandedCategory(null);
+    }
+  }, [isOpen]);
+
+  // Clear selectedPrompt when chartType changes
+  useEffect(() => {
+    setSelectedPrompt(null);
+  }, [chartType]);
 
   // Auto-inject system prompt for weekly and focus chart types
   useEffect(() => {
