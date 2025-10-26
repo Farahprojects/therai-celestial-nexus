@@ -184,6 +184,7 @@ export const SwissBox: React.FC<SwissBoxProps> = ({ onDelete }) => {
                       onSubmit={handleFormSubmit}
                       mode="swiss"
                       preselectedType={selectedChartType}
+                      reportType={selectedChartType}
                     />
                   </div>
                 </div>

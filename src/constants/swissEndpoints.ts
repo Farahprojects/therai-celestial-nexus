@@ -58,3 +58,13 @@ export const SWISS_CHART_TYPES = [
   },
 ] as const;
 
+/**
+ * Get the display name for a Swiss chart type
+ * @param chartId - The chart type ID (e.g., 'essence', 'sync', 'weekly', 'focus')
+ * @returns The user-friendly display name for the chart type
+ */
+export const getSwissChartDisplayName = (chartId: string): string => {
+  const chartType = SWISS_CHART_TYPES.find(ct => ct.id === chartId);
+  return chartType?.name || 'Swiss Data';
+};
+

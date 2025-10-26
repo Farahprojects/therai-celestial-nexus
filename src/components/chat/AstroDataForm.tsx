@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { useMode } from '@/contexts/ModeContext';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { getSwissChartDisplayName } from '@/constants/swissEndpoints';
 
 // Custom hooks
 import { useAstroConversation } from '@/hooks/useAstroConversation';
@@ -167,7 +168,8 @@ export const AstroDataForm: React.FC<AstroDataFormProps> = ({
         title = `${data.name} - Insight`;
       } else if (explicitMode === 'swiss') {
         conversationMode = 'swiss';
-        title = `${data.name} - Swiss Data`;
+        const chartTypeName = getSwissChartDisplayName(reportType || '');
+        title = `${data.name} - ${chartTypeName}`;
       }
       
       const currentChatId = await createConversation(conversationMode, 

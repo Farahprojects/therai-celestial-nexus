@@ -47,10 +47,10 @@ export const SwissChartSelector: React.FC<SwissChartSelectorProps> = ({ onSelect
       {/* Header */}
       <div className="text-center space-y-2 pb-4">
         <h2 className="text-2xl md:text-3xl font-light text-gray-900 italic">
-          Select Chart Type
+          Select Insight Type
         </h2>
         <p className="text-sm text-gray-600 font-light">
-          Choose the chart you want to generate
+          Choose the chart you'd like to explore
         </p>
       </div>
 
@@ -103,10 +103,6 @@ export const SwissChartSelector: React.FC<SwissChartSelectorProps> = ({ onSelect
         })}
       </div>
 
-      {/* Helper Text */}
-      <div className="text-center text-xs text-gray-500 font-light pt-2">
-        Select a chart type to generate Swiss ephemeris data
-      </div>
     </div>
   );
 };

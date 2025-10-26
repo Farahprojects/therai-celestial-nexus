@@ -933,7 +933,7 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
             <div className="flex gap-3 justify-between">
               <button
                 onClick={() => setShowDeleteConfirm(false)}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-full transition-colors"
               >
                 Cancel
               </button>
@@ -943,7 +943,7 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
                   setShowDeleteConfirm(false);
                   setConversationToDelete(null);
                 }}
-                className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors"
+                className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-full transition-colors"
               >
                 {uiConfig.chatMenuActions.delete.confirmButton}
               </button>
