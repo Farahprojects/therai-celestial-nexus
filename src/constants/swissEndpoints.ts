@@ -8,11 +8,9 @@
 export const SWISS_ENDPOINTS = {
   NATAL: 'natal',
   TRANSITS: 'transits',
-  PROGRESSIONS: 'progressions',
   SYNASTRY: 'synastry',
   POSITIONS: 'positions',
   MOONPHASES: 'moonphases',
-  RETURN: 'return',
   FOCUS: 'focus',
   MINDSET: 'mindset',
   WEEKLY: 'weekly',
@@ -39,16 +37,6 @@ export const SWISS_CHART_TYPES = [
     description: 'Current planetary positions',
   },
   {
-    id: SWISS_ENDPOINTS.RETURN,
-    name: 'Solar Return',
-    description: 'Your yearly chart',
-  },
-  {
-    id: SWISS_ENDPOINTS.PROGRESSIONS,
-    name: 'Progressed Chart',
-    description: 'Your evolved chart',
-  },
-  {
     id: SWISS_ENDPOINTS.SYNASTRY,
     name: 'Synastry',
     description: 'Relationship compatibility',
@@ -60,12 +48,12 @@ export const SWISS_CHART_TYPES = [
   },
   {
     id: SWISS_ENDPOINTS.WEEKLY,
-    name: 'Weekly Chart',
+    name: 'Weekly Snap',
     description: 'Weekly forecast',
   },
   {
     id: SWISS_ENDPOINTS.FOCUS,
-    name: 'Focus Chart',
+    name: 'Daily Shot',
     description: 'Focus analysis',
   },
 ] as const;

@@ -10,7 +10,7 @@ interface ChartType {
 const chartTypes: ChartType[] = [
   {
     id: 'essence', // Maps to /essence endpoint (Natal + Transit combined)
-    name: 'The Self (Natal + Transit)',
+    name: 'The Self',
     icon: <User className="w-5 h-5" />,
   },
   {
@@ -19,23 +19,13 @@ const chartTypes: ChartType[] = [
     icon: <Users className="w-5 h-5" />,
   },
   {
-    id: 'return', // Maps to /return endpoint (Solar/Lunar Return)
-    name: 'Solar Return',
-    icon: <Calendar className="w-5 h-5" />,
-  },
-  {
-    id: 'progressions', // Maps to /progressions endpoint
-    name: 'Progressed Chart',
-    icon: <TrendingUp className="w-5 h-5" />,
-  },
-  {
     id: 'weekly', // Maps to /weekly endpoint
-    name: 'Weekly Chart',
+    name: 'Weekly Snap',
     icon: <CalendarDays className="w-5 h-5" />,
   },
   {
     id: 'focus', // Maps to /focus endpoint
-    name: 'Focus Chart',
+    name: 'Daily Shot',
     icon: <Target className="w-5 h-5" />,
   },
 ];

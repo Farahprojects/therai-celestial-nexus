@@ -275,8 +275,6 @@ export const ReportSlideOver: React.FC<ReportSlideOverProps> = ({
       
       // Single block types
       if (swissData.blocks.natal) return 'natal';
-      if (swissData.blocks.progressions) return 'progressions';
-      if (swissData.blocks.return) return 'return';
     }
     
     return null;
@@ -299,8 +297,6 @@ export const ReportSlideOver: React.FC<ReportSlideOverProps> = ({
       
       case 'essence':
       case 'natal':
-      case 'progressions':
-      case 'return':
       default:
         // Show general life areas for personal charts
         return ['mindset', 'health', 'wealth', 'soul', 'career'];

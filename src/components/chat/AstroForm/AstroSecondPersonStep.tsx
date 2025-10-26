@@ -126,7 +126,7 @@ export const AstroSecondPersonStep: React.FC<AstroSecondPersonStepProps> = ({
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="text-sm font-medium text-gray-700 mb-1 block">
-                  Birth Date * <span className="text-xs text-gray-500 font-normal">(DD/MM/YYYY)</span>
+                  Birth Date *
                 </label>
                 <InlineDateTimeSelector
                   type="date"

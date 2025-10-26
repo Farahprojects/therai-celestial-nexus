@@ -110,8 +110,6 @@ export const SwissDataModal: React.FC<SwissDataModalProps> = ({
       
       case 'essence':
       case 'natal':
-      case 'progressions':
-      case 'return':
       default:
         // Show general life areas for personal charts
         return ['mindset', 'health', 'wealth', 'soul', 'career'];
