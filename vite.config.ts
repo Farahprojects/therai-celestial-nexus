@@ -27,5 +27,11 @@ export default defineConfig(({ mode }) => ({
   },
   optimizeDeps: {
     exclude: ['src/workers/audio/ConversationAudioProcessor.js']
-  }
+  },
+  build: {
+    minify: 'esbuild',
+  },
+  esbuild: {
+    drop: mode === 'production' ? ['console', 'debugger'] : [],
+  },
 }));
