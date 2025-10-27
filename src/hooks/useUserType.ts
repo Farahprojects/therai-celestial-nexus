@@ -51,9 +51,9 @@ export const getUserTypeConfig = (userType: UserType) => {
           delete: {
             label: 'Delete',
             description: 'Delete this conversation permanently',
-            confirmTitle: 'Delete Conversation',
+            confirmTitle: 'Delete',
             confirmMessage: 'Are you sure you want to delete this conversation? All messages and data will be permanently removed.',
-            confirmButton: 'Delete Conversation'
+            confirmButton: 'Delete'
           }
         },
         newChatLabel: 'New chat',
