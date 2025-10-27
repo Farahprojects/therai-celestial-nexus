@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Loader2, AlertTriangle } from 'lucide-react';
+import { Loader2, AlertTriangle, Info } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { CancelSubscriptionModal } from '@/components/billing/CancelSubscriptionModal';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 
 interface SubscriptionData {
   status: string | null;
@@ -29,6 +30,7 @@ export const BillingPanel: React.FC = () => {
   const [availablePlans, setAvailablePlans] = useState<Plan[]>([]);
   const [updatingPlanId, setUpdatingPlanId] = useState<string | null>(null);
   const [showCancelModal, setShowCancelModal] = useState(false);
+  const [selectedPlanForInfo, setSelectedPlanForInfo] = useState<Plan | null>(null);
 
   const fetchBillingData = async () => {
     if (!user) return;
@@ -262,6 +264,13 @@ export const BillingPanel: React.FC = () => {
                         ${plan.unit_price_usd.toFixed(0)}
                         {plan.id.includes('yearly') || plan.id.includes('astro') ? '/year' : '/month'}
                       </span>
+                      <button
+                        onClick={() => setSelectedPlanForInfo(plan)}
+                        className="text-gray-400 hover:text-gray-600 transition-colors"
+                        title="View plan details"
+                      >
+                        <Info className="w-4 h-4" />
+                      </button>
                     </div>
                     
                     <Button
@@ -310,6 +319,96 @@ export const BillingPanel: React.FC = () => {
         onSuccess={fetchBillingData}
         currentPeriodEnd={subscription?.nextCharge}
       />
+
+      {/* Plan Details Sheet */}
+      <Sheet open={!!selectedPlanForInfo} onOpenChange={(open) => !open && setSelectedPlanForInfo(null)}>
+        <SheetContent side="right" className="w-full sm:max-w-md">
+          <SheetHeader>
+            <SheetTitle className="text-xl font-light">
+              {selectedPlanForInfo?.name} Plan
+            </SheetTitle>
+          </SheetHeader>
+
+          {selectedPlanForInfo && (
+            <div className="mt-6 space-y-6">
+              {/* Price */}
+              <div className="text-center py-6 border-b">
+                <div className="text-4xl font-light text-gray-900">
+                  ${selectedPlanForInfo.unit_price_usd.toFixed(0)}
+                </div>
+                <div className="text-sm text-gray-600 mt-1">
+                  {selectedPlanForInfo.id.includes('yearly') || selectedPlanForInfo.id.includes('astro') ? 'per year' : 'per month'}
+                </div>
+              </div>
+
+              {/* Description */}
+              {selectedPlanForInfo.description && (
+                <div className="space-y-2">
+                  <h3 className="text-sm font-medium text-gray-900">What's included</h3>
+                  <p className="text-sm text-gray-600">{selectedPlanForInfo.description}</p>
+                </div>
+              )}
+
+              {/* Features based on plan */}
+              <div className="space-y-3">
+                <h3 className="text-sm font-medium text-gray-900">Features</h3>
+                <ul className="space-y-2 text-sm text-gray-600">
+                  {selectedPlanForInfo.id === 'test_50c' && (
+                    <>
+                      <li>• Test plan for development</li>
+                      <li>• Limited features</li>
+                    </>
+                  )}
+                  {selectedPlanForInfo.id === '10_monthly' && (
+                    <>
+                      <li>• Unlimited text conversations</li>
+                      <li>• Unlimited astrology reports</li>
+                      <li>• All chart types</li>
+                      <li>• Priority support</li>
+                    </>
+                  )}
+                  {selectedPlanForInfo.id === '18_monthly' && (
+                    <>
+                      <li>• Everything in Growth plan</li>
+                      <li>• Voice conversation mode</li>
+                      <li>• Advanced AI insights</li>
+                      <li>• Access to all features</li>
+                      <li>• Premium support</li>
+                    </>
+                  )}
+                </ul>
+              </div>
+
+              {/* CTA */}
+              <div className="pt-6">
+                <Button
+                  onClick={() => {
+                    setSelectedPlanForInfo(null);
+                    if (isSubscriptionActive) {
+                      handleUpdatePlan(selectedPlanForInfo);
+                    } else {
+                      handleResubscribe(selectedPlanForInfo);
+                    }
+                  }}
+                  disabled={updatingPlanId === selectedPlanForInfo.id}
+                  className="w-full bg-gray-900 hover:bg-gray-800 text-white rounded-full font-light py-6"
+                >
+                  {updatingPlanId === selectedPlanForInfo.id ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      {isSubscriptionActive ? 'Switch to this plan' : 'Subscribe now'}
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          )}
+        </SheetContent>
+      </Sheet>
     </div>
   );
 };
