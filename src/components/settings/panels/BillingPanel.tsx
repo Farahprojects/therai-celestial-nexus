@@ -229,26 +229,41 @@ export const BillingPanel: React.FC = () => {
           </div>
         ) : (
           <div className="space-y-3">
-            {availablePlans.map((plan) => {
-              const isCurrentPlan = getPlanDisplayName(subscription?.plan) === plan.name;
-              const isUpdating = updatingPlanId === plan.id;
+            {availablePlans
+              .filter((plan) => {
+                // Hide current plan if user has active subscription
+                // Compare by plan ID, not name
+                if (isSubscriptionActive && !isCanceled) {
+                  const isCurrentPlan = subscription?.plan === plan.id;
+                  return !isCurrentPlan;
+                }
+                return true;
+              })
+              .map((plan) => {
+                const isUpdating = updatingPlanId === plan.id;
+                
+                // Find current plan to compare prices (by ID)
+                const currentPlan = availablePlans.find(
+                  p => subscription?.plan === p.id
+                );
+                const isUpgrade = currentPlan ? plan.unit_price_usd > currentPlan.unit_price_usd : true;
+                const buttonText = isSubscriptionActive 
+                  ? (isUpgrade ? 'Upgrade' : 'Downgrade')
+                  : 'Subscribe';
 
-              return (
-                <div
-                  key={plan.id}
-                  className="flex items-center justify-between py-3"
-                >
-                  <div className="flex items-center gap-3">
-                    <span className="text-sm text-gray-900">{plan.name}</span>
-                    <span className="text-sm text-gray-600">
-                      ${plan.unit_price_usd.toFixed(0)}
-                      {plan.id.includes('yearly') || plan.id.includes('astro') ? '/year' : '/month'}
-                    </span>
-                  </div>
-                  
-                  {isCurrentPlan && !isCanceled ? (
-                    <span className="text-sm text-gray-600">Current</span>
-                  ) : (
+                return (
+                  <div
+                    key={plan.id}
+                    className="flex items-center justify-between py-3"
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className="text-sm text-gray-900">{plan.name}</span>
+                      <span className="text-sm text-gray-600">
+                        ${plan.unit_price_usd.toFixed(0)}
+                        {plan.id.includes('yearly') || plan.id.includes('astro') ? '/year' : '/month'}
+                      </span>
+                    </div>
+                    
                     <Button
                       onClick={() => isSubscriptionActive ? handleUpdatePlan(plan) : handleResubscribe(plan)}
                       disabled={isUpdating}
@@ -261,13 +276,12 @@ export const BillingPanel: React.FC = () => {
                           Processing...
                         </>
                       ) : (
-                        isSubscriptionActive ? 'Upgrade' : 'Subscribe'
+                        buttonText
                       )}
                     </Button>
-                  )}
-                </div>
-              );
-            })}
+                  </div>
+                );
+              })}
           </div>
         )}
       </div>
