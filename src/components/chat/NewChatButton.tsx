@@ -7,6 +7,7 @@ import { useChatStore } from '@/core/store';
 import { useMessageStore } from '@/stores/messageStore';
 import { InsightsModal } from '@/components/insights/InsightsModal';
 import { AstroDataForm } from '@/components/chat/AstroDataForm';
+import { AstroChartSelector } from '@/components/chat/AstroChartSelector';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -24,7 +25,9 @@ export const NewChatButton: React.FC<NewChatButtonProps> = ({ className = "" }) 
   const { isSubscriptionActive } = useSubscription();
   const navigate = useNavigate();
   const [showInsightsModal, setShowInsightsModal] = useState(false);
+  const [showAstroChartSelector, setShowAstroChartSelector] = useState(false);
   const [showAstroModal, setShowAstroModal] = useState(false);
+  const [selectedChartType, setSelectedChartType] = useState<string | null>(null);
 
   // Shared handleNewChat function - only for simple chat mode
   const handleNewChat = async () => {
@@ -80,6 +83,13 @@ export const NewChatButton: React.FC<NewChatButtonProps> = ({ className = "" }) 
       navigate('/subscription');
       return;
     }
+    setShowAstroChartSelector(true);
+  };
+
+  // Handle chart selection from AstroChartSelector
+  const handleSelectChart = (chartId: string) => {
+    setSelectedChartType(chartId);
+    setShowAstroChartSelector(false);
     setShowAstroModal(true);
   };
 
@@ -110,10 +120,16 @@ export const NewChatButton: React.FC<NewChatButtonProps> = ({ className = "" }) 
       
       // Close modal and navigate
       setShowAstroModal(false);
+      setSelectedChartType(null);
       navigate(`/c/${newChatId}`, { replace: true });
     } catch (error) {
       console.error('[NewChatButton] Failed to navigate to astro conversation:', error);
     }
+  };
+
+  const handleCloseAstroModal = () => {
+    setShowAstroModal(false);
+    setSelectedChartType(null);
   };
 
   return (
@@ -156,12 +172,31 @@ export const NewChatButton: React.FC<NewChatButtonProps> = ({ className = "" }) 
         </DropdownMenuContent>
       </DropdownMenu>
 
-      {/* Astro Modal */}
-      {showAstroModal && (
-        <AstroDataForm
-          onClose={() => setShowAstroModal(false)}
-          onSubmit={handleAstroFormSubmit}
-        />
+      {/* Astro Chart Selector Modal */}
+      {showAstroChartSelector && (
+        <div className="fixed inset-0 flex items-center justify-center z-50 p-4 bg-black/50">
+          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <AstroChartSelector
+              onSelectChart={handleSelectChart}
+              onClose={() => setShowAstroChartSelector(false)}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Astro Data Form Modal */}
+      {showAstroModal && selectedChartType && (
+        <div className="fixed inset-0 flex items-center justify-center z-50 p-4 bg-black/50">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden">
+            <AstroDataForm
+              onClose={handleCloseAstroModal}
+              onSubmit={handleAstroFormSubmit}
+              mode="astro"
+              preselectedType={selectedChartType}
+              reportType={selectedChartType}
+            />
+          </div>
+        </div>
       )}
 
       {/* Insights Modal */}

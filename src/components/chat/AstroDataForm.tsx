@@ -173,8 +173,8 @@ export const AstroDataForm: React.FC<AstroDataFormProps> = ({
         const chartTypeName = getSwissChartDisplayName(selectedAstroType || '');
         title = `${data.name} - ${chartTypeName}`;
       } else {
-        // Regular astro mode - use "Self" or "Compatibility"
-        title = getAstroTitle(data.name, data.secondPersonName);
+        // Regular astro mode - use chart type display name (e.g., "Weekly Snap", "Daily Shot")
+        title = getAstroTitle(data.name, selectedAstroType, data.secondPersonName);
       }
       
       // For Swiss mode, explicitly set reportType to null to skip orchestrator

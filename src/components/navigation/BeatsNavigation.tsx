@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Menu, MessageCircle, Sparkles } from 'lucide-react';
+import { Menu, MessageCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import {
   DropdownMenu,
@@ -31,13 +31,6 @@ export const BeatsNavigation: React.FC = () => {
           >
             <MessageCircle className="w-4 h-4 mr-2" />
             Therai
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            onClick={() => navigate('/astro')}
-            className="cursor-pointer font-light"
-          >
-            <Sparkles className="w-4 h-4 mr-2" />
-            Astro
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

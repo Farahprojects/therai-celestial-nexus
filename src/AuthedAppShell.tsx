@@ -17,7 +17,6 @@ import SubscriptionSuccess from './pages/SubscriptionSuccess';
 import Blog from './pages/Blog';
 import BlogPost from './pages/BlogPost';
 import ChatContainer from './pages/ChatContainer';
-import SwissContainer from './pages/SwissContainer';
 import Index from './pages/Index';
 import MobileLanding from './pages/MobileLanding';
 import NotFound from './pages/NotFound';
@@ -67,9 +66,6 @@ const AuthedAppShell: React.FC = () => {
       
       {/* Auth clean page - no auto thread creation */}
       <Route path="/therai" element={<AuthGuard><ChatContainer /></AuthGuard>} />
-      
-      {/* Astro Data Generator - REQUIRES AUTH */}
-      <Route path="/astro" element={<AuthGuard><SwissContainer /></AuthGuard>} />
       
       {/* Protected routes */}
       <Route path="/settings" element={<AuthGuard><UserSettings /></AuthGuard>} />

@@ -3,6 +3,16 @@
  */
 
 /**
+ * Map astro chart types to display names
+ */
+const ASTRO_CHART_NAMES: Record<string, string> = {
+  'essence': 'The Self',
+  'sync': 'Compatibility',
+  'weekly': 'Weekly Snap',
+  'focus': 'Daily Shot',
+};
+
+/**
  * Map insight report types to display names
  */
 const INSIGHT_TYPE_NAMES: Record<string, string> = {
@@ -11,6 +21,15 @@ const INSIGHT_TYPE_NAMES: Record<string, string> = {
   'essence_relationship': 'Relationship',
   'sync_personal': 'Compatibility',
   'sync_professional': 'Co-working',
+};
+
+/**
+ * Get display name for an astro chart type
+ * @param chartType - The chart type (e.g., 'essence', 'weekly', 'focus')
+ * @returns User-friendly display name
+ */
+export const getAstroChartName = (chartType: string): string => {
+  return ASTRO_CHART_NAMES[chartType] || 'The Self';
 };
 
 /**
@@ -25,14 +44,21 @@ export const getInsightTypeName = (reportType: string): string => {
 /**
  * Generate a conversation title for an astro reading
  * @param primaryName - Name of the primary person
+ * @param chartType - The chart type (e.g., 'essence', 'weekly', 'focus')
  * @param secondaryName - Optional name of second person for compatibility readings
  * @returns Formatted title
  */
-export const getAstroTitle = (primaryName: string, secondaryName?: string): string => {
+export const getAstroTitle = (
+  primaryName: string, 
+  chartType?: string,
+  secondaryName?: string
+): string => {
+  const chartName = chartType ? getAstroChartName(chartType) : 'The Self';
+  
   if (secondaryName) {
-    return `${primaryName} & ${secondaryName} - Compatibility`;
+    return `${primaryName} & ${secondaryName} - ${chartName}`;
   }
-  return `${primaryName} - Self`;
+  return `${primaryName} - ${chartName}`;
 };
 
 /**
