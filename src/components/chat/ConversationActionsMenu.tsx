@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Share2, Sparkles, Edit3, Trash2, FolderInput, X, Folder } from 'lucide-react';
+import React from 'react';
+import { Sparkles, Edit3, Trash2, FolderInput, X, Folder } from 'lucide-react';
 import {
   DropdownMenuContent,
   DropdownMenuItem,
@@ -8,7 +8,6 @@ import {
   DropdownMenuSubContent,
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
-import { ShareConversationModal } from './ShareConversationModal';
 import { useChatStore } from '@/core/store';
 import { useReportModal } from '@/contexts/ReportModalContext';
 
@@ -44,17 +43,12 @@ export const ConversationActionsMenuContent: React.FC<ConversationActionsMenuPro
 }) => {
   const { chat_id } = useChatStore();
   const { open: openReportModal } = useReportModal();
-  const [showShareModal, setShowShareModal] = useState(false);
   
   // Use provided conversationId or fall back to current chat_id
   const targetConversationId = conversationId || chat_id;
   
   // Determine menu label based on mode
   const astroLabel = mode === 'swiss' ? 'Generate Astro Data' : 'Astro';
-
-  const handleShareClick = () => {
-    setShowShareModal(true);
-  };
 
   const handleAstroClick = () => {
     if (targetConversationId) {
@@ -87,27 +81,16 @@ export const ConversationActionsMenuContent: React.FC<ConversationActionsMenuPro
   };
 
   return (
-    <>
-      <DropdownMenuContent align={align} className="bg-white border border-gray-200 shadow-lg min-w-fit rounded-lg p-1">
-        <DropdownMenuItem
-          onClick={handleShareClick}
-          className="px-3 py-1.5 text-sm text-black hover:bg-gray-100 hover:text-black focus:bg-gray-100 focus:text-black cursor-pointer rounded-md"
-        >
-          <div className="flex items-center gap-2">
-            <Share2 className="w-4 h-4" />
-            <span>Share</span>
-          </div>
-        </DropdownMenuItem>
-        
-        <DropdownMenuItem
-          onClick={handleAstroClick}
-          className="px-3 py-1.5 text-sm text-black hover:bg-gray-100 hover:text-black focus:bg-gray-100 focus:text-black cursor-pointer rounded-md"
-        >
-          <div className="flex items-center gap-2">
-            <Sparkles className="w-4 h-4" />
-            <span>{astroLabel}</span>
-          </div>
-        </DropdownMenuItem>
+    <DropdownMenuContent align={align} className="bg-white border border-gray-200 shadow-lg min-w-fit rounded-lg p-1">
+      <DropdownMenuItem
+        onClick={handleAstroClick}
+        className="px-3 py-1.5 text-sm text-black hover:bg-gray-100 hover:text-black focus:bg-gray-100 focus:text-black cursor-pointer rounded-md"
+      >
+        <div className="flex items-center gap-2">
+          <Sparkles className="w-4 h-4" />
+          <span>{astroLabel}</span>
+        </div>
+      </DropdownMenuItem>
         
         {onEdit && (
           <DropdownMenuItem
@@ -185,15 +168,6 @@ export const ConversationActionsMenuContent: React.FC<ConversationActionsMenuPro
           </DropdownMenuItem>
         )}
       </DropdownMenuContent>
-
-      {/* Share Modal */}
-      {showShareModal && targetConversationId && (
-        <ShareConversationModal
-          conversationId={targetConversationId}
-          onClose={() => setShowShareModal(false)}
-        />
-      )}
-    </>
   );
 };
 

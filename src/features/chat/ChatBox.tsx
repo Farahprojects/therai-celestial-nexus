@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { chatController } from './ChatController';
 import { supabase } from '@/integrations/supabase/client';
 
-import { Menu, Sparkles } from 'lucide-react';
+import { Menu, Sparkles, Share2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { getChatTokens } from '@/services/auth/chatTokens';
@@ -13,6 +13,7 @@ import { MotionConfig } from 'framer-motion';
 import { useConversationUIStore } from './conversation-ui-store';
 import { SignInPrompt } from '@/components/auth/SignInPrompt';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { ShareConversationModal } from '@/components/chat/ShareConversationModal';
  
 
 // Lazy load components for better performance
@@ -39,6 +40,7 @@ export const ChatBox: React.FC<ChatBoxProps> = ({ onDelete }) => {
   const { error } = useChatStore();
   const { user } = useAuth();
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
   const navigate = useNavigate();
   const { uuid } = getChatTokens();
   const isConversationOpen = useConversationUIStore((s) => s.isConversationOpen);
@@ -137,38 +139,50 @@ export const ChatBox: React.FC<ChatBoxProps> = ({ onDelete }) => {
 
               {/* Mobile Header */}
               <div className="md:hidden flex items-center justify-between gap-2 p-3 bg-white border-b border-gray-100 pt-safe">
-                <Sheet open={isMobileSidebarOpen} onOpenChange={setIsMobileSidebarOpen}>
-                  <SheetTrigger asChild>
-                    <button
-                      aria-label="Open menu"
-                      className="p-2 rounded-md border border-gray-200 bg-white"
-                    >
-                      <Menu className="w-5 h-5" />
-                    </button>
-                  </SheetTrigger>
-                  <SheetContent 
-                    side="left" 
-                    className="w-[85%] sm:max-w-xs p-0"
-                    style={{
-                      paddingTop: 'env(safe-area-inset-top)',
-                      paddingBottom: 'env(safe-area-inset-bottom)',
-                    }}
-                  >
-                    <div className="h-full flex flex-col bg-gray-50/50">
-                      <div className="p-4 flex flex-col h-full bg-white">
-                        <Suspense fallback={<div className="space-y-4"><div className="h-8 bg-gray-200 rounded animate-pulse"></div><div className="h-6 bg-gray-200 rounded animate-pulse"></div><div className="h-6 bg-gray-200 rounded animate-pulse"></div></div>}>
-                          <ChatSidebarControls onDelete={onDelete} onCloseMobileSidebar={() => setIsMobileSidebarOpen(false)} conversationType="chat" />
-                        </Suspense>
-                      </div>
-                    </div>
-                  </SheetContent>
-                </Sheet>
-                
                 <div className="flex items-center gap-2">
-                  {/* Sexy New Chat Button */}
-                  <Suspense fallback={<div className="h-8 w-20 bg-gray-200 rounded-lg animate-pulse" />}>
+                  <Sheet open={isMobileSidebarOpen} onOpenChange={setIsMobileSidebarOpen}>
+                    <SheetTrigger asChild>
+                      <button
+                        aria-label="Open menu"
+                        className="p-2 rounded-md border border-gray-200 bg-white"
+                      >
+                        <Menu className="w-5 h-5" />
+                      </button>
+                    </SheetTrigger>
+                    <SheetContent 
+                      side="left" 
+                      className="w-[85%] sm:max-w-xs p-0"
+                      style={{
+                        paddingTop: 'env(safe-area-inset-top)',
+                        paddingBottom: 'env(safe-area-inset-bottom)',
+                      }}
+                    >
+                      <div className="h-full flex flex-col bg-gray-50/50">
+                        <div className="p-4 flex flex-col h-full bg-white">
+                          <Suspense fallback={<div className="space-y-4"><div className="h-8 bg-gray-200 rounded animate-pulse"></div><div className="h-6 bg-gray-200 rounded animate-pulse"></div><div className="h-6 bg-gray-200 rounded animate-pulse"></div></div>}>
+                            <ChatSidebarControls onDelete={onDelete} onCloseMobileSidebar={() => setIsMobileSidebarOpen(false)} conversationType="chat" />
+                          </Suspense>
+                        </div>
+                      </div>
+                    </SheetContent>
+                  </Sheet>
+                  
+                  {/* New Chat Button on left */}
+                  <Suspense fallback={<div className="h-8 w-8 bg-gray-200 rounded-lg animate-pulse" />}>
                     <NewChatButton />
                   </Suspense>
+                </div>
+                
+                <div className="flex items-center gap-2">
+                  {/* Share Button */}
+                  {chat_id && (
+                    <button
+                      onClick={() => setShowShareModal(true)}
+                      className="flex items-center justify-center w-8 h-8 text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors"
+                    >
+                      <Share2 className="w-4 h-4" />
+                    </button>
+                  )}
                   
                   {/* 3 Dots Menu */}
                   <Suspense fallback={<div className="h-8 w-8 bg-gray-200 rounded-lg animate-pulse" />}>
@@ -225,6 +239,14 @@ export const ChatBox: React.FC<ChatBoxProps> = ({ onDelete }) => {
         <SignInPrompt
           feature={signInPrompt.feature}
           onClose={() => setSignInPrompt({ show: false, feature: '' })}
+        />
+      )}
+
+      {/* Share Modal */}
+      {showShareModal && chat_id && (
+        <ShareConversationModal
+          conversationId={chat_id}
+          onClose={() => setShowShareModal(false)}
         />
       )}
 

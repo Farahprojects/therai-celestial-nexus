@@ -1,43 +1,45 @@
-import React from 'react';
-import { MessageCircle, Orbit, Sparkles } from 'lucide-react';
+import React, { useState } from 'react';
+import { Share2 } from 'lucide-react';
 import { useChatStore } from '@/core/store';
 import { NewChatButton } from './NewChatButton';
 import { ChatMenuButton } from './ChatMenuButton';
+import { ShareConversationModal } from './ShareConversationModal';
 
 export const ChatHeader: React.FC = () => {
-  const { chat_id, threads } = useChatStore();
-  
-  // Get current conversation details
-  const currentConversation = threads.find(t => t.id === chat_id);
-  const mode = currentConversation?.mode;
-  const title = currentConversation?.title || 'New Chat';
-  
-  // Get appropriate icon based on mode
-  const getIcon = () => {
-    if (mode === 'insight') return <Sparkles className="w-4 h-4 text-gray-600" />;
-    if (mode === 'astro') return <Orbit className="w-4 h-4 text-gray-600" />;
-    return <MessageCircle className="w-4 h-4 text-gray-600" />;
-  };
+  const { chat_id } = useChatStore();
+  const [showShareModal, setShowShareModal] = useState(false);
   
   return (
-    <div className="flex items-center justify-between px-4 py-3 bg-white border-b border-gray-100">
-      <div className="flex items-center gap-3 flex-1 min-w-0">
-        {/* Sexy New Chat Button */}
-        <NewChatButton />
-        
-        {/* Conversation title with icon */}
-        {chat_id && (
-          <div className="flex items-center gap-2 min-w-0">
-            {getIcon()}
-            <span className="text-sm font-medium text-gray-900 truncate">
-              {title}
-            </span>
-          </div>
-        )}
+    <>
+      <div className="flex items-center justify-between px-4 py-3 bg-white border-b border-gray-100">
+        <div className="flex items-center gap-3">
+          {/* New Chat Button */}
+          <NewChatButton />
+        </div>
+
+        <div className="flex items-center gap-2">
+          {/* Share Button */}
+          {chat_id && (
+            <button
+              onClick={() => setShowShareModal(true)}
+              className="flex items-center justify-center w-8 h-8 text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors"
+            >
+              <Share2 className="w-4 h-4" />
+            </button>
+          )}
+          
+          {/* 3 Dots Menu */}
+          <ChatMenuButton />
+        </div>
       </div>
 
-      {/* 3 Dots Menu - now uses the same component as sidebar threads */}
-      <ChatMenuButton />
-    </div>
+      {/* Share Modal */}
+      {showShareModal && chat_id && (
+        <ShareConversationModal
+          conversationId={chat_id}
+          onClose={() => setShowShareModal(false)}
+        />
+      )}
+    </>
   );
 };
