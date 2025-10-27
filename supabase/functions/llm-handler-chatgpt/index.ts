@@ -120,48 +120,35 @@ let history: MessageRow[] = [];
 
 try {
   console.log(`[llm-handler-chatgpt] ⏱️  Starting DB fetch for history (+${Date.now() - totalStartTime}ms)`);
-  const [systemResult, historyResult] = await Promise.all([
-    // Fetch system messages (context-injected, ordered oldest first)
-    supabase
-      .from("messages")
-      .select("role, text, created_at")
-      .eq("chat_id", chat_id)
-      .eq("role", "system")
-      .eq("status", "complete")
-      .not("text", "is", null)
-      .neq("text", "")
-      .order("created_at", { ascending: true })
-      .limit(1),
+  
+  // Single query: fetch all messages at once (index handles chat_id + created_at)
+  const { data: allMessages, error: fetchError } = await supabase
+    .from("messages")
+    .select("role, text, created_at")
+    .eq("chat_id", chat_id)
+    .order("created_at", { ascending: true });
+
+  if (fetchError) {
+    console.warn("[llm-handler-chatgpt] messages fetch warning:", fetchError.message);
+  }
+
+  // Separate system and history messages in JavaScript
+  if (allMessages && Array.isArray(allMessages)) {
+    const systemMessages = allMessages.filter((m: any) => m.role === "system");
+    const historyMessages = allMessages.filter((m: any) => m.role !== "system");
     
-    // Fetch recent non-system messages for history
-    supabase
-      .from("messages")
-      .select("role, text, created_at")
-      .eq("chat_id", chat_id)
-      .neq("role", "system")
-      .eq("status", "complete")
-      .not("text", "is", null)
-      .neq("text", "")
-      .order("created_at", { ascending: false })
-      .limit(HISTORY_LIMIT)
-  ]);
-
-  // Extract system text
-  if (systemResult.data && systemResult.data.length > 0) {
-    systemText = String(systemResult.data[0].text || "");
-  } else if (systemResult.error) {
-    console.warn("[llm-handler-chatgpt] system messages fetch warning:", systemResult.error.message);
+    // Get system text (most recent system message)
+    if (systemMessages.length > 0) {
+      systemText = String(systemMessages[systemMessages.length - 1].text || "");
+    }
+    
+    // Get history (most recent first, limit to HISTORY_LIMIT)
+    history = historyMessages.reverse().slice(0, HISTORY_LIMIT);
   }
-
-  // Extract history
-  if (historyResult.data) {
-    history = historyResult.data as MessageRow[];
-  } else if (historyResult.error) {
-    console.warn("[llm-handler-chatgpt] history fetch warning:", historyResult.error.message);
-  }
+  
   console.log(`[llm-handler-chatgpt] ⏱️  DB fetch complete (+${Date.now() - totalStartTime}ms) - Found ${history.length} history messages`);
 } catch (e: any) {
-  console.warn("[llm-handler-chatgpt] parallel fetch exception:", e?.message || String(e));
+  console.warn("[llm-handler-chatgpt] fetch exception:", e?.message || String(e));
 }
 
 // Build OpenAI request messages
