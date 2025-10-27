@@ -258,7 +258,7 @@ const Signup = () => {
         <Button 
           type="submit" 
           size="lg"
-          className="w-full py-6 text-lg font-light bg-gray-900 text-white hover:bg-gray-800 transition-all duration-300 rounded-full"
+          className="w-full py-6 text-lg font-light bg-gray-900 text-white hover:bg-gray-800 transition-all duration-300 rounded-full disabled:opacity-100 disabled:cursor-pointer"
           disabled={loading || !emailValid || !passwordValid || !passwordsMatch}
         >
           {loading ? 'Creating account...' : 'Begin'}
@@ -330,7 +330,7 @@ const Signup = () => {
       <main className="flex-grow flex items-center justify-center px-4 py-12">
         <div className="w-full max-w-md mx-auto space-y-12">
           <header className="text-center space-y-4 pt-8">
-            <h1 className="text-5xl md:text-6xl font-light text-gray-900 leading-tight">
+            <h1 className="text-4xl md:text-5xl font-light text-gray-900 leading-tight">
               {signupSuccess ? (
                 <>
                   Check your

@@ -1,14 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, Navigate } from 'react-router-dom';
+import { useNavigate, Navigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { FcGoogle } from 'react-icons/fc';
 import { FaApple } from 'react-icons/fa';
-import { Star, Clock, Shield } from 'lucide-react';
+import { Star, Clock, Shield, Menu, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuthModal } from '@/contexts/AuthModalContext';
 import { AuthModal } from '@/components/auth/AuthModal';
 import { CapacitorSocialLogin } from '@/components/auth/CapacitorSocialLogin';
 import { useIsNativeApp } from '@/hooks/use-native-app';
+import Logo from '@/components/Logo';
 
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -22,6 +23,7 @@ const MobileLanding: React.FC<Props> = ({ onGoogle, onApple }) => {
   const { user, loading, signInWithGoogle, signInWithApple } = useAuth();
   const { isAuthModalOpen, openAuthModal, closeAuthModal, authModalMode } = useAuthModal();
   const isNativeApp = useIsNativeApp();
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   // Debug: Log which auth buttons we're showing
   useEffect(() => {
@@ -54,6 +56,100 @@ const MobileLanding: React.FC<Props> = ({ onGoogle, onApple }) => {
 
   return (
     <div className="min-h-screen flex flex-col bg-white">
+      {/* Logo in top left */}
+      <div className="absolute top-6 left-5 z-20">
+        <Logo size="sm" />
+      </div>
+      
+      {/* Burger menu in top right */}
+      <div className="absolute top-6 right-5 z-20">
+        <button
+          onClick={() => setIsMenuOpen(!isMenuOpen)}
+          className="text-gray-700 focus:outline-none"
+        >
+          {isMenuOpen ? (
+            <X className="h-6 w-6" />
+          ) : (
+            <Menu className="h-6 w-6" />
+          )}
+        </button>
+      </div>
+      
+      {/* Mobile Menu - Slide in from right */}
+      <AnimatePresence>
+        {isMenuOpen && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="fixed inset-0 z-30 bg-black/50"
+              onClick={() => setIsMenuOpen(false)}
+            />
+            
+            {/* Side menu */}
+            <motion.div
+              initial={{ x: '100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              className="fixed top-0 right-0 bottom-0 w-64 z-40 bg-white shadow-xl"
+            >
+              <div className="p-5 pt-20">
+                {/* Close button */}
+                <button
+                  onClick={() => setIsMenuOpen(false)}
+                  className="absolute top-6 right-5 text-gray-700 hover:text-gray-900 transition-colors"
+                >
+                  <X className="h-6 w-6" />
+                </button>
+                
+                {/* Menu items */}
+                <div className="space-y-2">
+                  <Link 
+                    to="/pricing" 
+                    className="block text-gray-700 hover:text-gray-900 transition-colors py-3 text-lg font-light"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    Pricing
+                  </Link>
+                  <Link 
+                    to="/about" 
+                    className="block text-gray-700 hover:text-gray-900 transition-colors py-3 text-lg font-light"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    About
+                  </Link>
+                  <Link 
+                    to="/blog" 
+                    className="block text-gray-700 hover:text-gray-900 transition-colors py-3 text-lg font-light"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    Blog
+                  </Link>
+                  <Link 
+                    to="/contact" 
+                    className="block text-gray-700 hover:text-gray-900 transition-colors py-3 text-lg font-light"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    Contact
+                  </Link>
+                  <Link 
+                    to="/legal" 
+                    className="block text-gray-700 hover:text-gray-900 transition-colors py-3 text-lg font-light"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    Legal
+                  </Link>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+      
       {/* Hero Section - Same as desktop */}
       <section className="relative flex-1 flex items-center justify-center bg-white overflow-hidden px-4">
         <div className="relative z-10 w-full text-center">

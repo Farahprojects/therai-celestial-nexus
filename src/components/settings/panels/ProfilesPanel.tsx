@@ -35,6 +35,9 @@ export const ProfilesPanel = () => {
   const [profiles, setProfiles] = useState<SavedProfile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [profileToDelete, setProfileToDelete] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   
@@ -154,30 +157,35 @@ export const ProfilesPanel = () => {
     }
   };
 
-  const handleDelete = async (profileId: string) => {
-    if (!confirm('Are you sure you want to delete this saved profile?')) {
-      return;
-    }
+  const handleDeleteClick = (profileId: string) => {
+    setProfileToDelete(profileId);
+    setShowDeleteDialog(true);
+  };
 
-    setDeletingId(profileId);
+  const handleDelete = async () => {
+    if (!profileToDelete) return;
+
+    setIsDeleting(true);
     try {
       const { error } = await supabase
         .from('user_profile_list')
         .delete()
-        .eq('id', profileId)
+        .eq('id', profileToDelete)
         .eq('user_id', user?.id);
 
       if (error) {
         console.error('[ProfilesPanel] Failed to delete profile:', error);
         alert('Failed to delete profile');
       } else {
-        setProfiles(profiles.filter(p => p.id !== profileId));
+        setProfiles(profiles.filter(p => p.id !== profileToDelete));
       }
     } catch (err) {
       console.error('[ProfilesPanel] Error deleting profile:', err);
       alert('Failed to delete profile');
     } finally {
-      setDeletingId(null);
+      setIsDeleting(false);
+      setShowDeleteDialog(false);
+      setProfileToDelete(null);
     }
   };
 
@@ -403,14 +411,10 @@ export const ProfilesPanel = () => {
                   variant="ghost"
                   size="sm"
                   className="text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-full flex-shrink-0"
-                  onClick={() => handleDelete(profile.id)}
-                  disabled={deletingId === profile.id}
+                  onClick={() => handleDeleteClick(profile.id)}
+                  disabled={profileToDelete === profile.id}
                 >
-                  {deletingId === profile.id ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Trash2 className="w-4 h-4" />
-                  )}
+                  <Trash2 className="w-4 h-4" />
                 </Button>
               </div>
             </div>
@@ -424,6 +428,43 @@ export const ProfilesPanel = () => {
             Saved profiles are automatically created when you submit birth data in forms. 
             They can be reused for quick access.
           </p>
+        </div>
+      )}
+
+      {/* Delete Confirmation Dialog */}
+      {showDeleteDialog && (
+        <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-4">
+            <h3 className="text-xl font-light text-gray-900">Delete</h3>
+            <p className="text-sm text-gray-600">
+              Are you sure you want to delete this profile? This action cannot be undone.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => {
+                  setShowDeleteDialog(false);
+                  setProfileToDelete(null);
+                }}
+                disabled={isDeleting}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDelete}
+                disabled={isDeleting}
+                className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                {isDeleting && (
+                  <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                )}
+                Delete
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

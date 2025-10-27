@@ -233,7 +233,7 @@ const Contact = () => {
                 Get in Touch
               </h1>
               <p className="text-gray-600 text-lg font-light leading-relaxed">
-                Reach out about the API, partnerships, or anything else we can help with.
+                Reach out about partnerships, or anything else we can help with.
               </p>
             </section>
 
@@ -267,7 +267,7 @@ const Contact = () => {
                           onChange={handleChange} 
                           required 
                           placeholder="Enter your name"
-                          className={`h-12 rounded-xl border-gray-200 bg-gray-50/50 font-light placeholder:text-gray-400 focus:border-primary focus:bg-white transition-all duration-300 ${formErrors.name ? "border-red-300 bg-red-50/30" : ""}`}
+                          className={`h-12 rounded-full border-gray-200 bg-gray-50/50 font-light placeholder:text-gray-400 focus:border-primary focus:bg-white transition-all duration-300 ${formErrors.name ? "border-red-300 bg-red-50/30" : ""}`}
                         />
                         {formErrors.name && (
                           <p className="text-xs text-red-500 flex items-center font-light">
@@ -287,7 +287,7 @@ const Contact = () => {
                           onChange={handleChange} 
                           required 
                           placeholder="your@email.com"
-                          className={`h-12 rounded-xl border-gray-200 bg-gray-50/50 font-light placeholder:text-gray-400 focus:border-primary focus:bg-white transition-all duration-300 ${formErrors.email ? "border-red-300 bg-red-50/30" : ""}`}
+                          className={`h-12 rounded-full border-gray-200 bg-gray-50/50 font-light placeholder:text-gray-400 focus:border-primary focus:bg-white transition-all duration-300 ${formErrors.email ? "border-red-300 bg-red-50/30" : ""}`}
                         />
                         {formErrors.email && (
                           <p className="text-xs text-red-500 flex items-center font-light">
@@ -307,11 +307,10 @@ const Contact = () => {
                         value={formData.subject}
                         onChange={handleChange}
                         required
-                        className={`w-full h-12 rounded-xl border border-gray-200 bg-gray-50/50 px-4 py-3 text-sm font-light text-gray-700 focus:border-primary focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all duration-300 ${formErrors.subject ? "border-red-300 bg-red-50/30" : ""}`}
+                        className={`w-full h-12 rounded-full border border-gray-200 bg-gray-50/50 px-4 py-3 text-sm font-light text-gray-700 focus:border-primary focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all duration-300 ${formErrors.subject ? "border-red-300 bg-red-50/30" : ""}`}
                       >
                         <option value="" className="text-gray-400">Select a subject</option>
                         <option value="General Inquiry">General Inquiry</option>
-                        <option value="API Support">API Support</option>
                         <option value="Partnership">Partnership</option>
                         <option value="Billing">Billing</option>
                       </select>
@@ -334,7 +333,7 @@ const Contact = () => {
                         required
                         rows={6}
                         placeholder="Tell us how we can help you..."
-                        className={`rounded-xl border-gray-200 bg-gray-50/50 font-light placeholder:text-gray-400 focus:border-primary focus:bg-white transition-all duration-300 resize-none ${formErrors.message ? "border-red-300 bg-red-50/30" : ""}`}
+                        className={`rounded-3xl border-gray-200 bg-gray-50/50 font-light placeholder:text-gray-400 focus:border-primary focus:bg-white transition-all duration-300 resize-none ${formErrors.message ? "border-red-300 bg-red-50/30" : ""}`}
                       />
                       {formErrors.message && (
                         <p className="text-xs text-red-500 flex items-center font-light">
@@ -346,7 +345,7 @@ const Contact = () => {
                     <Button 
                       type="submit" 
                       disabled={isSubmitting} 
-                      className="w-full h-12 bg-gray-900 hover:bg-gray-800 text-white font-light text-base rounded-xl transition-all duration-300 hover:scale-[1.02] border-0 shadow-lg shadow-gray-900/25"
+                      className="w-full h-12 bg-gray-900 hover:bg-gray-800 text-white font-light text-base rounded-full transition-all duration-300 hover:scale-[1.02] border-0 shadow-lg shadow-gray-900/25"
                     >
                       {isSubmitting ? (
                         <span className="flex items-center">

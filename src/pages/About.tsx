@@ -148,8 +148,8 @@ const About = () => {
             <p className="text-lg text-gray-600 mb-12 max-w-2xl mx-auto font-light">
               Join thousands of users who are already discovering their cosmic insights with Therai.
             </p>
-            <Link to="/">
-              <button className="bg-black text-white px-10 py-4 text-lg font-light rounded-xl shadow-lg transition-all duration-300 hover:bg-gray-900 hover:scale-105 hover:shadow-xl focus-visible:ring-2 focus-visible:ring-gray-400">
+            <Link to="/login">
+              <button className="bg-black text-white px-10 py-4 text-lg font-light rounded-full shadow-lg transition-all duration-300 hover:bg-gray-900 hover:scale-105 hover:shadow-xl focus-visible:ring-2 focus-visible:ring-gray-400">
                 Get Started
               </button>
             </Link>

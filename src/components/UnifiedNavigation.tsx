@@ -82,10 +82,6 @@ const UnifiedNavigation = ({
   const isDashboardPage = isCalendarPage;
   const isMessagesPage = false; // Messages removed
   const isWebsiteBuilderPage = false; // Website builder removed
-  
-  // Determine if we should show home button
-  const isMainPage = location.pathname === '/';
-  const shouldShowHomeButton = !isMainPage && (isLoggedIn || !isLoggedIn);
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
@@ -265,20 +261,6 @@ const UnifiedNavigation = ({
 
             {/* Call to Action Buttons or User Menu */}
             <div className="flex items-center space-x-4">
-              {/* Home button - show when not on main page */}
-              {shouldShowHomeButton && (
-                <Link to="/">
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    className="hover:bg-gray-100 transition-colors duration-200"
-                    aria-label="Go to home"
-                  >
-                    <Home className="h-5 w-5 text-gray-700" />
-                  </Button>
-                </Link>
-              )}
-              
               {isLoggedIn ? (
                 <>
                   {/* Website Builder Action Buttons */}
@@ -367,14 +349,13 @@ const UnifiedNavigation = ({
               ) : (
                 <>
                   <Button 
-                    variant="outline" 
-                    className="px-4"
+                    className="px-6 rounded-full bg-gray-900 text-white hover:bg-gray-800 transition-all duration-300"
                     onClick={handleMobileLogin}
                   >
                     Log In
                   </Button>
                   <Button 
-                    className="px-4 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 ease-out transform hover:scale-105"
+                    className="px-6 rounded-full bg-white text-gray-900 border border-gray-900 hover:bg-gray-50 transition-all duration-300"
                     onClick={handleMobileSignup}
                   >
                     Sign Up
@@ -436,14 +417,13 @@ const UnifiedNavigation = ({
               
               <div className="flex flex-col space-y-2 pt-4">
                 <Button 
-                  variant="outline" 
-                  className="w-full hover:bg-gray-50 transition-all duration-300 ease-out"
+                  className="w-full rounded-full bg-gray-900 text-white hover:bg-gray-800 transition-all duration-300"
                   onClick={handleMobileLogin}
                 >
                   Log In
                 </Button>
                 <Button 
-                  className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 ease-out transform hover:scale-105"
+                  className="w-full rounded-full bg-white text-gray-900 border border-gray-900 hover:bg-gray-50 transition-all duration-300"
                   onClick={handleMobileSignup}
                 >
                   Sign Up
