@@ -153,7 +153,7 @@ Deno.serve(async (req) => {
       });
 
       // Fire and forget: Call LLM
-      fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/llm-handler-openai`, {
+      fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/llm-handler-chatgpt`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${Deno.env.get('SUPABASE_ANON_KEY')}`,

@@ -164,7 +164,7 @@ if (chattype === "voice" && chat_id) {
           user_name
         })
       }),
-      fetch(`${SUPABASE_URL}/functions/v1/llm-handler-gemini`, {
+      fetch(`${SUPABASE_URL}/functions/v1/llm-handler-chatgpt`, {
         method: "POST",
         headers,
         body: JSON.stringify({

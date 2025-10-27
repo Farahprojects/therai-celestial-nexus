@@ -91,7 +91,7 @@ const shouldStartLLM = role === "user" && chattype !== "voice";
 if (shouldStartLLM) {
 const llmStartTime = Date.now();
 console.log(`[chat-send] ⏱️  Firing LLM handler (+${Date.now() - startTime}ms)`);
-fetch(`${SUPABASE_URL}/functions/v1/llm-handler-gemini`, {
+fetch(`${SUPABASE_URL}/functions/v1/llm-handler-chatgpt`, {
 method: "POST",
 headers: {
 "Content-Type": "application/json",
