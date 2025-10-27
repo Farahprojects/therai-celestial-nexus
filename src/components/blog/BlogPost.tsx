@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { ArrowLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import DOMPurify from 'dompurify';
 import { LikeButton } from './LikeButton';
 import { ShareButton } from './ShareButton';
 import { TagPill } from './TagPill';
@@ -27,6 +28,14 @@ interface BlogPostProps {
 export const BlogPost: React.FC<BlogPostProps> = ({ post }) => {
   const timeAgo = formatDistanceToNow(new Date(post.created_at), { addSuffix: true });
   const defaultImage = "https://images.unsplash.com/photo-1499750310107-5fef28a66643?w=1200&h=600&fit=crop";
+  
+  // Sanitize HTML content to prevent XSS attacks
+  const sanitizedContent = useMemo(() => {
+    return DOMPurify.sanitize(post.content, {
+      ALLOWED_TAGS: ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'a', 'ul', 'ol', 'li', 'strong', 'em', 'code', 'pre', 'blockquote', 'br', 'img'],
+      ALLOWED_ATTR: ['href', 'src', 'alt', 'title', 'class']
+    });
+  }, [post.content]);
 
   return (
     <article className="max-w-4xl mx-auto">
@@ -106,7 +115,7 @@ export const BlogPost: React.FC<BlogPostProps> = ({ post }) => {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.8, delay: 0.4 }}
         className="prose prose-lg prose-gray max-w-none font-light leading-relaxed [&>h1]:text-3xl [&>h1]:font-light [&>h1]:text-gray-900 [&>h2]:text-2xl [&>h2]:font-light [&>h2]:text-gray-900 [&>h3]:text-xl [&>h3]:font-light [&>h3]:text-gray-900 [&>p]:text-gray-600 [&>a]:text-primary [&>strong]:text-gray-900 [&>blockquote]:border-gray-200 [&>blockquote]:text-gray-700"
-        dangerouslySetInnerHTML={{ __html: post.content }}
+        dangerouslySetInnerHTML={{ __html: sanitizedContent }}
       />
 
       {/* Footer Actions */}

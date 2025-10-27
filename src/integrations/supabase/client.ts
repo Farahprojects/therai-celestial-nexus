@@ -13,5 +13,20 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     storage: localStorage,
     persistSession: true,
     autoRefreshToken: true,
-  }
+    flowType: 'pkce',
+    detectSessionInUrl: true,
+    storageKey: 'supabase.auth.token',
+  },
+  global: {
+    headers: {
+      'X-Client-Info': 'supabase-js-web',
+    },
+  },
+  cookieOptions: {
+    name: 'sb-auth-token',
+    lifetime: 60 * 60 * 8, // 8 hours
+    domain: window.location.hostname,
+    path: '/',
+    sameSite: 'strict', // CSRF protection
+  },
 });

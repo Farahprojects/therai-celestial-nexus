@@ -392,8 +392,9 @@ export const SearchModal: React.FC<SearchModalProps> = ({
                               
                               <p 
                                 className="text-sm text-black leading-relaxed"
-                                dangerouslySetInnerHTML={{ __html: message.snippet }}
-                              />
+                              >
+                                {message.snippet.replace(/<[^>]*>/g, '')}
+                              </p>
                             </div>
                             
                             <ChevronRight className="w-4 h-4 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity" />

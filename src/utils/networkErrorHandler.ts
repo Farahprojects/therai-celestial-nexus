@@ -112,34 +112,57 @@ export class NetworkErrorHandler {
     // Create popup element
     const popup = document.createElement('div');
     popup.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
-    popup.innerHTML = `
-      <div class="bg-white rounded-xl p-6 max-w-md mx-4 shadow-2xl">
-        <div class="flex items-center mb-4">
-          <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mr-4">
-            <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.268 19.5c-.77.833.192 2.5 1.732 2.5z"></path>
-            </svg>
-          </div>
-          <div>
-            <h3 class="text-lg font-semibold text-gray-900">Connection Issue</h3>
-            <p class="text-sm text-gray-500">${error.userMessage}</p>
-          </div>
-        </div>
-        
-        <div class="flex gap-3 justify-end">
-          <button id="retry-btn" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
-            Try Again
-          </button>
-          <button id="refresh-btn" class="px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors">
-            Refresh Page
-          </button>
-        </div>
-      </div>
-    `;
+    
+    // Create container
+    const container = document.createElement('div');
+    container.className = 'bg-white rounded-xl p-6 max-w-md mx-4 shadow-2xl';
+    
+    // Create header
+    const header = document.createElement('div');
+    header.className = 'flex items-center mb-4';
+    
+    const iconWrapper = document.createElement('div');
+    iconWrapper.className = 'w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mr-4';
+    iconWrapper.innerHTML = `<svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.268 19.5c-.77.833.192 2.5 1.732 2.5z"></path>
+    </svg>`;
+    
+    const textWrapper = document.createElement('div');
+    const title = document.createElement('h3');
+    title.className = 'text-lg font-semibold text-gray-900';
+    title.textContent = 'Connection Issue';
+    
+    const message = document.createElement('p');
+    message.className = 'text-sm text-gray-500';
+    message.textContent = error.userMessage; // Safe text content, not innerHTML
+    
+    textWrapper.appendChild(title);
+    textWrapper.appendChild(message);
+    header.appendChild(iconWrapper);
+    header.appendChild(textWrapper);
+    
+    // Create buttons
+    const buttonWrapper = document.createElement('div');
+    buttonWrapper.className = 'flex gap-3 justify-end';
+    
+    const retryBtn = document.createElement('button');
+    retryBtn.id = 'retry-btn';
+    retryBtn.className = 'px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors';
+    retryBtn.textContent = 'Try Again';
+    
+    const refreshBtn = document.createElement('button');
+    refreshBtn.id = 'refresh-btn';
+    refreshBtn.className = 'px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors';
+    refreshBtn.textContent = 'Refresh Page';
+    
+    buttonWrapper.appendChild(retryBtn);
+    buttonWrapper.appendChild(refreshBtn);
+    
+    container.appendChild(header);
+    container.appendChild(buttonWrapper);
+    popup.appendChild(container);
 
     // Add event listeners
-    const retryBtn = popup.querySelector('#retry-btn');
-    const refreshBtn = popup.querySelector('#refresh-btn');
 
     retryBtn?.addEventListener('click', () => {
       this.closePopup(popup);

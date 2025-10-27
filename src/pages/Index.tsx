@@ -130,7 +130,7 @@ const Index = () => {
                 <Link to="/signup">
                   <Button 
                     size="lg" 
-                    className="bg-primary text-white px-12 py-6 rounded-xl text-lg font-medium hover:bg-primary-hover transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105"
+                    className="bg-primary text-white px-12 py-6 rounded-full text-lg font-medium hover:bg-primary-hover transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105"
                   >
                     Begin Your Journey
                   </Button>
