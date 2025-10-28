@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { X, AlertTriangle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
@@ -15,7 +16,14 @@ export const PaymentFailureToast: React.FC<PaymentFailureToastProps> = ({
   onDismiss,
   daysUntilCancellation
 }) => {
+  const location = useLocation();
   const [isOpening, setIsOpening] = useState(false);
+
+  // Don't show on checkout pages
+  const isCheckoutPage = location.pathname.startsWith('/checkout');
+  if (isCheckoutPage) {
+    return null;
+  }
 
   const handleUpdatePayment = async () => {
     setIsOpening(true);

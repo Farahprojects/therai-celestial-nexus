@@ -7,6 +7,7 @@ import { Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { getCheckoutFlowType } from '@/utils/deviceDetection';
+import { useSettingsModal } from '@/contexts/SettingsModalContext';
 
 interface CreditPurchaseModalProps {
   isOpen: boolean;
@@ -23,6 +24,7 @@ export const CreditPurchaseModal: React.FC<CreditPurchaseModalProps> = ({
   isAutoTopup = false,
 }) => {
   const navigate = useNavigate();
+  const { closeSettings } = useSettingsModal();
   const [selectedPackage, setSelectedPackage] = useState<number | null>(null);
   const [customAmount, setCustomAmount] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
@@ -63,6 +65,7 @@ export const CreditPurchaseModal: React.FC<CreditPurchaseModalProps> = ({
       // Desktop: Navigate to in-app checkout with client secret
       if (flowType === 'payment_element' && data?.clientSecret) {
         onClose();
+        closeSettings(); // Close settings modal before navigating to checkout
         navigate('/checkout', {
           state: {
             amount: amountUsd,

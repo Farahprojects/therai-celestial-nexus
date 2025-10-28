@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { CreditPurchaseModal } from '@/components/billing/CreditPurchaseModal';
 
 interface SubscriptionToastProps {
@@ -10,11 +11,18 @@ export const SubscriptionToast: React.FC<SubscriptionToastProps> = ({
   onDismiss,
   message = 'Low credit balance'
 }) => {
+  const location = useLocation();
   const [showCreditModal, setShowCreditModal] = useState(false);
 
   const handleTopUp = () => {
     setShowCreditModal(true);
   };
+
+  // Don't show on checkout pages - user is already purchasing credits
+  const isCheckoutPage = location.pathname.startsWith('/checkout');
+  if (isCheckoutPage) {
+    return null;
+  }
 
   return (
     <>
