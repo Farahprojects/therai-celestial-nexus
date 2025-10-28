@@ -124,8 +124,9 @@ async function getOrCreateCache(
   // Create new cache
   console.log(`[cache] 🔄 Creating new cache for chat_id: ${chat_id}`);
 
+  // Bookend astro data with system prompt for better attention
   const combinedSystemInstruction = systemText
-    ? `${systemPrompt}\n\n[System Data]\n${systemText}`
+    ? `${systemPrompt}\n\n[System Data]\n${systemText}\n\n[CRITICAL: Remember Your Instructions]\n${systemPrompt}`
     : systemPrompt;
 
   const cacheUrl = `https://generativelanguage.googleapis.com/v1beta/cachedContents`;
@@ -389,9 +390,9 @@ Deno.serve(async (req) => {
     // Use cached content (system message already in cache)
     requestBody.cachedContent = cacheName;
   } else {
-    // Fallback: include system instruction directly
+    // Fallback: include system instruction directly (bookend with prompt for better attention)
     const combinedSystemInstruction = systemText
-      ? `${systemPrompt}\n\n[System Data]\n${systemText}`
+      ? `${systemPrompt}\n\n[System Data]\n${systemText}\n\n[CRITICAL: Remember Your Instructions]\n${systemPrompt}`
       : systemPrompt;
     requestBody.system_instruction = {
       role: "system",
