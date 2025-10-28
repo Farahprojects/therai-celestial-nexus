@@ -338,26 +338,32 @@ export const useChatStore = create<ChatState>()((set, get) => ({
       // Check if conversation already exists to avoid duplicates
       const exists = state.threads.some(thread => thread.id === conversation.id);
       if (exists) {
+        // Thread already exists (added optimistically), don't re-sort or change anything
         return state;
       }
       
-      // Add new conversation and sort by updated_at desc
-      const updatedThreads = [conversation, ...state.threads].sort(
-        (a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
-      );
-      
-      return { threads: updatedThreads };
+      // Add new conversation to the top (no sorting to prevent re-render)
+      return { threads: [conversation, ...state.threads] };
     });
   },
 
   updateConversation: (conversation: Conversation) => {
-    set(state => ({
-      threads: state.threads.map(thread => 
+    set(state => {
+      // Update the conversation in place without re-sorting to prevent re-render
+      const threads = state.threads.map(thread => 
         thread.id === conversation.id ? conversation : thread
-      ).sort(
-        (a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
-      )
-    }));
+      );
+      
+      // Only move to top if the updated conversation is not already at the top
+      const currentIndex = threads.findIndex(t => t.id === conversation.id);
+      if (currentIndex > 0) {
+        // Move to top only if it's not already there
+        const [updated] = threads.splice(currentIndex, 1);
+        threads.unshift(updated);
+      }
+      
+      return { threads };
+    });
   },
 
   removeConversation: (conversationId: string) => {
