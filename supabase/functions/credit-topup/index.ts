@@ -41,12 +41,20 @@ Deno.serve(async (req) => {
       );
     }
 
-    const { amount_usd, credits, is_auto_topup, embedded } = await req.json();
+    const { amount_usd, credits, is_auto_topup, flow_type = 'hosted' } = await req.json();
 
     // Validate inputs
     if (!amount_usd || !credits) {
       return new Response(
         JSON.stringify({ error: "Missing amount_usd or credits" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Validate flow_type
+    if (!['hosted', 'payment_element'].includes(flow_type)) {
+      return new Response(
+        JSON.stringify({ error: "Invalid flow_type. Must be 'hosted' or 'payment_element'" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -91,7 +99,37 @@ Deno.serve(async (req) => {
         .eq("id", user.id);
     }
 
-    // Create checkout session
+    const origin = req.headers.get("origin");
+    const metadata = {
+      user_id: user.id,
+      credits: credits.toString(),
+      is_auto_topup: is_auto_topup ? "true" : "false",
+      amount_usd: amount_usd.toString(),
+    };
+
+    // Handle Payment Element flow (desktop)
+    if (flow_type === 'payment_element') {
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: Math.round(amount_usd * 100), // Convert to cents
+        currency: "usd",
+        customer: customerId,
+        metadata: metadata,
+        description: `Purchase ${credits} credits for your Therai account${is_auto_topup ? ' (Auto top-up)' : ''}`,
+        automatic_payment_methods: {
+          enabled: true,
+        },
+      });
+
+      return new Response(
+        JSON.stringify({ 
+          clientSecret: paymentIntent.client_secret,
+          paymentIntentId: paymentIntent.id,
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Handle Hosted Checkout flow (mobile)
     const sessionConfig: any = {
       customer: customerId,
       payment_method_types: ["card"],
@@ -109,28 +147,16 @@ Deno.serve(async (req) => {
         },
       ],
       mode: "payment",
-      metadata: {
-        user_id: user.id,
-        credits: credits.toString(),
-        is_auto_topup: is_auto_topup ? "true" : "false",
-      },
+      metadata: metadata,
+      success_url: `${origin}/checkout/success?session_id={CHECKOUT_SESSION_ID}&source=topup`,
+      cancel_url: `${origin}/settings?credit_purchase=cancelled`,
     };
-
-    // Configure for embedded or redirect mode
-    if (embedded) {
-      sessionConfig.ui_mode = "embedded";
-      sessionConfig.return_url = `${req.headers.get("origin")}/settings?credit_purchase=success`;
-    } else {
-      sessionConfig.success_url = `${req.headers.get("origin")}/settings?credit_purchase=success`;
-      sessionConfig.cancel_url = `${req.headers.get("origin")}/settings?credit_purchase=cancelled`;
-    }
 
     const session = await stripe.checkout.sessions.create(sessionConfig);
 
     return new Response(
       JSON.stringify({ 
         sessionId: session.id, 
-        clientSecret: session.client_secret,
         url: session.url 
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }

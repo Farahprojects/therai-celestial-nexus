@@ -1,12 +1,12 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Loader2, ArrowLeft } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { loadStripe } from '@stripe/stripe-js';
-import { EmbeddedCheckout, EmbeddedCheckoutProvider } from '@stripe/react-stripe-js';
+import { getCheckoutFlowType } from '@/utils/deviceDetection';
 
 interface CreditPurchaseModalProps {
   isOpen: boolean;
@@ -16,19 +16,16 @@ interface CreditPurchaseModalProps {
 
 const CREDIT_PRICE = 0.15;
 const MIN_PURCHASE = 5;
-const STRIPE_PUBLISHABLE_KEY = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY as string;
-
-const stripePromise = STRIPE_PUBLISHABLE_KEY ? loadStripe(STRIPE_PUBLISHABLE_KEY) : Promise.resolve(null);
 
 export const CreditPurchaseModal: React.FC<CreditPurchaseModalProps> = ({
   isOpen,
   onClose,
   isAutoTopup = false,
 }) => {
+  const navigate = useNavigate();
   const [selectedPackage, setSelectedPackage] = useState<number | null>(null);
   const [customAmount, setCustomAmount] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
-  const [clientSecret, setClientSecret] = useState<string | null>(null);
 
   const packages = [
     { amount: 5, credits: Math.floor(5 / CREDIT_PRICE) },
@@ -40,22 +37,41 @@ export const CreditPurchaseModal: React.FC<CreditPurchaseModalProps> = ({
   const handlePurchase = async (amountUsd: number, credits: number) => {
     setIsProcessing(true);
     try {
+      const flowType = getCheckoutFlowType();
+      
       const { data, error } = await supabase.functions.invoke('credit-topup', {
         body: {
           amount_usd: amountUsd,
           credits: credits,
           is_auto_topup: isAutoTopup,
-          embedded: true,
+          flow_type: flowType,
         },
       });
 
       if (error) {
         toast.error('Failed to start checkout');
+        setIsProcessing(false);
         return;
       }
 
-      if (data?.clientSecret) {
-        setClientSecret(data.clientSecret);
+      // Mobile: Redirect to Stripe hosted checkout
+      if (flowType === 'hosted' && data?.url) {
+        window.location.href = data.url;
+        return;
+      }
+
+      // Desktop: Navigate to in-app checkout with client secret
+      if (flowType === 'payment_element' && data?.clientSecret) {
+        onClose();
+        navigate('/checkout', {
+          state: {
+            amount: amountUsd,
+            credits: credits,
+            isAutoTopup: isAutoTopup,
+            clientSecret: data.clientSecret,
+            paymentIntentId: data.paymentIntentId,
+          },
+        });
       }
     } catch (err) {
       console.error('Purchase error:', err);
@@ -75,48 +91,12 @@ export const CreditPurchaseModal: React.FC<CreditPurchaseModalProps> = ({
     handlePurchase(amount, credits);
   };
 
-  const handleBack = () => {
-    setClientSecret(null);
-    setSelectedPackage(null);
-    setCustomAmount('');
-  };
-
   const handleCloseModal = () => {
-    setClientSecret(null);
     setSelectedPackage(null);
     setCustomAmount('');
     onClose();
   };
 
-  const options = useMemo(() => (clientSecret ? { clientSecret } : undefined), [clientSecret]);
-
-  // Show embedded checkout
-  if (clientSecret && options) {
-    return (
-      <Dialog open={isOpen} onOpenChange={handleCloseModal}>
-        <DialogContent className="sm:max-w-2xl rounded-3xl p-0 overflow-hidden">
-          <div className="p-6 border-b flex items-center gap-4">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleBack}
-              className="rounded-full"
-            >
-              <ArrowLeft className="w-4 h-4" />
-            </Button>
-            <DialogTitle className="text-xl font-light">Complete Your Purchase</DialogTitle>
-          </div>
-          <div className="p-6">
-            <EmbeddedCheckoutProvider stripe={stripePromise} options={options as any}>
-              <EmbeddedCheckout />
-            </EmbeddedCheckoutProvider>
-          </div>
-        </DialogContent>
-      </Dialog>
-    );
-  }
-
-  // Show credit selection
   return (
     <Dialog open={isOpen} onOpenChange={handleCloseModal}>
       <DialogContent className="sm:max-w-md rounded-3xl">

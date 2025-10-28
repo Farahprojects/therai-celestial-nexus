@@ -22,6 +22,8 @@ import MobileLanding from './pages/MobileLanding';
 import NotFound from './pages/NotFound';
 const EmbeddedCheckout = lazy(() => import('./pages/EmbeddedCheckout'));
 import Beats from './pages/Beats';
+import { CheckoutPage } from './pages/CheckoutPage';
+import { CheckoutSuccessPage } from './pages/CheckoutSuccessPage';
 
 // This shell contains all routes that can rely on context providers. Providers are now applied at the App root.
 const AuthedAppShell: React.FC = () => {
@@ -60,6 +62,10 @@ const AuthedAppShell: React.FC = () => {
       <Route path="/success" element={<SubscriptionSuccess />} />
       <Route path="/cancel" element={<SubscriptionPaywall />} />
       <Route path="/stripe" element={<EmbeddedCheckout />} />
+      
+      {/* Credit purchase checkout routes */}
+      <Route path="/checkout" element={<AuthGuard><CheckoutPage /></AuthGuard>} />
+      <Route path="/checkout/success" element={<AuthGuard><CheckoutSuccessPage /></AuthGuard>} />
       
       {/* Auth routes - /c/:thread_id - REQUIRES AUTH */}
       <Route path="/c/:threadId" element={<AuthGuard><ChatContainer /></AuthGuard>} />

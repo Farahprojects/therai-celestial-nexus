@@ -82,6 +82,33 @@ export const BillingPanel: React.FC = () => {
 
   useEffect(() => {
     fetchBillingData();
+
+    // Set up real-time subscription for credit balance updates
+    if (!user) return;
+
+    const channel = supabase
+      .channel('user_credits_realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'user_credits',
+          filter: `user_id=eq.${user.id}`,
+        },
+        (payload) => {
+          console.log('Credit balance updated:', payload);
+          // Update credit data with new balance
+          if (payload.new && 'credits' in payload.new) {
+            setCreditData((prev) => prev ? { ...prev, credits: payload.new.credits } : null);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [user]);
 
   const formatDate = (dateString: string) => {

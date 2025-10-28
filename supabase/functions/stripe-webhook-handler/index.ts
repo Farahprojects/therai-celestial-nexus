@@ -118,10 +118,81 @@ async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent)
     currency: paymentIntent.currency
   });
 
+  // Check if this is a credit purchase (Payment Element flow)
+  if (paymentIntent.metadata?.credits && paymentIntent.metadata?.user_id) {
+    const userId = paymentIntent.metadata.user_id
+    const credits = parseInt(paymentIntent.metadata.credits, 10)
+    const isAutoTopup = paymentIntent.metadata.is_auto_topup === 'true'
+    const amountUsd = paymentIntent.amount / 100
+    
+    console.log(`[Webhook] Processing credit purchase for user ${userId}: ${credits} credits ($${amountUsd})`)
+    
+    try {
+      // Add credits to user account
+      const { error: creditError } = await supabase.rpc('add_credits', {
+        _user_id: userId,
+        _credits: credits,
+        _amount_usd: amountUsd,
+        _type: isAutoTopup ? 'auto_topup' : 'purchase',
+        _reference_id: paymentIntent.id,
+        _description: isAutoTopup 
+          ? `Auto top-up: ${credits} credits` 
+          : `Credit purchase: ${credits} credits`
+      })
+      
+      if (creditError) {
+        console.error(`[Webhook] Failed to add credits for user ${userId}:`, creditError)
+        throw creditError
+      }
+      
+      // Log to topup_logs
+      await supabase.from('topup_logs').insert({
+        user_id: userId,
+        stripe_payment_intent_id: paymentIntent.id,
+        amount_cents: paymentIntent.amount,
+        credits: credits,
+        is_auto_topup: isAutoTopup,
+        status: 'succeeded',
+        credited: true,
+        receipt_url: null
+      })
+      
+      console.log(`[Webhook] ✅ Successfully credited ${credits} credits to user ${userId}`)
+      
+      // If this was an auto top-up, mark the queue item as processed
+      if (isAutoTopup) {
+        await supabase
+          .from('topup_queue')
+          .update({ 
+            status: 'completed', 
+            processed_at: new Date().toISOString(),
+            message: `Auto top-up completed: ${credits} credits added`
+          })
+          .eq('user_id', userId)
+          .eq('status', 'pending')
+      }
+    } catch (error) {
+      console.error(`[Webhook] Error processing credit purchase:`, error)
+      
+      // Log failed topup
+      await supabase.from('topup_logs').insert({
+        user_id: userId,
+        stripe_payment_intent_id: paymentIntent.id,
+        amount_cents: paymentIntent.amount,
+        credits: credits,
+        is_auto_topup: isAutoTopup,
+        status: 'failed',
+        credited: false
+      })
+    }
+    return
+  }
+
+  // Handle guest report payment
   const guestId = (paymentIntent.metadata?.guest_id as string) || ''
   
   if (!guestId) {
-    console.log('[Webhook] No guest_id found in metadata, skipping guest report update');
+    console.log('[Webhook] No guest_id or credits found in metadata, skipping');
     return
   }
 
