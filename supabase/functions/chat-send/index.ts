@@ -4,8 +4,10 @@
 // - Single path for saving messages (role inferred)
 // - Awaits DB insert; fires LLM call asynchronously when needed
 // - Consistent JSON responses and CORS handling
+// - Dynamically routes to correct LLM handler based on system config
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { getLLMHandler } from "../_shared/llmConfig.ts";
 
 const corsHeaders = {
 "Access-Control-Allow-Origin": "*",
@@ -90,18 +92,24 @@ meta: {}
 const shouldStartLLM = role === "user" && chattype !== "voice";
 if (shouldStartLLM) {
 const llmStartTime = Date.now();
-console.log(`[chat-send] ⏱️  Firing LLM handler (+${Date.now() - startTime}ms)`);
-fetch(`${SUPABASE_URL}/functions/v1/llm-handler-chatgpt`, {
-method: "POST",
-headers: {
-"Content-Type": "application/json",
-"Authorization": `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`
-},
-body: JSON.stringify({ chat_id, text, mode, user_id, user_name })
+console.log(`[chat-send] ⏱️  Determining LLM handler (+${Date.now() - startTime}ms)`);
+
+// Get configured LLM handler
+getLLMHandler(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY).then((llmHandler) => {
+  console.log(`[chat-send] ⏱️  Firing ${llmHandler} (+${Date.now() - startTime}ms)`);
+  
+  return fetch(`${SUPABASE_URL}/functions/v1/${llmHandler}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`
+    },
+    body: JSON.stringify({ chat_id, text, mode, user_id, user_name })
+  });
 }).then(() => {
-console.log(`[chat-send] ⏱️  LLM handler fetch completed (+${Date.now() - llmStartTime}ms from fire)`);
+  console.log(`[chat-send] ⏱️  LLM handler fetch completed (+${Date.now() - llmStartTime}ms from fire)`);
 }).catch((err) => {
-console.error("[chat-send] LLM call failed:", err);
+  console.error("[chat-send] LLM call failed:", err);
 });
 }
 

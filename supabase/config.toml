@@ -29,3 +29,39 @@ verify_jwt = false
 
 [functions.verify-email-token]
 verify_jwt = false
+
+[functions.llm-handler-chatgpt]
+verify_jwt = false
+
+[functions.llm-handler-gemini]
+verify_jwt = false
+
+[functions.chat-send]
+verify_jwt = false
+
+[functions.google-whisper]
+verify_jwt = false
+
+[functions.google-text-to-speech]
+verify_jwt = false
+
+[functions.report-orchestrator]
+verify_jwt = false
+
+[functions.get-report-data]
+verify_jwt = false
+
+[functions.context-injector]
+verify_jwt = false
+
+[functions.keep-warm]
+verify_jwt = false
+
+[functions.initiate-auth-report]
+verify_jwt = false
+
+[functions.conversation-manager]
+verify_jwt = false
+
+[functions.generate-insights]
+verify_jwt = false

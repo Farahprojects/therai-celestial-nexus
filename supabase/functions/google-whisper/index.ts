@@ -3,6 +3,9 @@
 // - Validates inputs, consistent CORS + JSON responses
 // - Minimal helpers, clear flow
 // - Fire-and-forget internal calls guarded by env checks
+// - Dynamically routes to correct LLM handler based on system config
+
+import { getLLMHandler } from "../_shared/llmConfig.ts";
 
 const corsHeaders = {
 "Access-Control-Allow-Origin": "*",
@@ -149,47 +152,53 @@ if (chattype === "voice" && chat_id) {
       "Authorization": `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`
     };
 
-    // Fire-and-forget: save message, call LLM, broadcast thinking-mode
-    const tasks = [
-      fetch(`${SUPABASE_URL}/functions/v1/chat-send`, {
-        method: "POST",
-        headers,
-        body: JSON.stringify({
-          chat_id,
-          text: transcript,
-          client_msg_id: crypto.randomUUID(),
-          chattype: "voice",
-          mode,
-          user_id,
-          user_name
+    // Get configured LLM handler, then fire-and-forget tasks
+    getLLMHandler(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY).then((llmHandler) => {
+      console.log(`[google-stt] Using ${llmHandler} for voice mode`);
+      
+      const tasks = [
+        fetch(`${SUPABASE_URL}/functions/v1/chat-send`, {
+          method: "POST",
+          headers,
+          body: JSON.stringify({
+            chat_id,
+            text: transcript,
+            client_msg_id: crypto.randomUUID(),
+            chattype: "voice",
+            mode,
+            user_id,
+            user_name
+          })
+        }),
+        fetch(`${SUPABASE_URL}/functions/v1/${llmHandler}`, {
+          method: "POST",
+          headers,
+          body: JSON.stringify({
+            chat_id,
+            text: transcript,
+            chattype: "voice",
+            mode,
+            voice,
+            user_id,
+            user_name
+          })
+        }),
+        fetch(`${SUPABASE_URL}/functions/v1/broadcast`, {
+          method: "POST",
+          headers,
+          body: JSON.stringify({
+            channel: `conversation:${chat_id}`,
+            event: "thinking-mode",
+            payload: { transcript }
+          })
         })
-      }),
-      fetch(`${SUPABASE_URL}/functions/v1/llm-handler-chatgpt`, {
-        method: "POST",
-        headers,
-        body: JSON.stringify({
-          chat_id,
-          text: transcript,
-          chattype: "voice",
-          mode,
-          voice,
-          user_id,
-          user_name
-        })
-      }),
-      fetch(`${SUPABASE_URL}/functions/v1/broadcast`, {
-        method: "POST",
-        headers,
-        body: JSON.stringify({
-          channel: `conversation:${chat_id}`,
-          event: "thinking-mode",
-          payload: { transcript }
-        })
-      })
-    ];
+      ];
 
-    // Start without awaiting to keep response snappy
-    Promise.allSettled(tasks).catch(() => {});
+      // Start without awaiting to keep response snappy
+      Promise.allSettled(tasks).catch(() => {});
+    }).catch((err) => {
+      console.error("[google-stt] Failed to determine LLM handler:", err);
+    });
   }
 }
 
