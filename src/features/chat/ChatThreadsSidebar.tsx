@@ -36,6 +36,7 @@ import { FoldersList } from '@/components/folders/FoldersList';
 import { FolderModal } from '@/components/folders/FolderModal';
 import { ConversationActionsMenuContent } from '@/components/chat/ConversationActionsMenu';
 import { getUserFolders, createFolder, updateFolderName, deleteFolder, getFolderConversations, moveConversationToFolder } from '@/services/folders';
+import { CreditPurchaseModal } from '@/components/billing/CreditPurchaseModal';
 
 
 interface ChatThreadsSidebarProps {
@@ -266,6 +267,7 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
   const [editTitle, setEditTitle] = useState('');
   const [isSavingTitle, setIsSavingTitle] = useState(false);
   const [showSearchModal, setShowSearchModal] = useState(false);
+  const [showCreditPurchaseModal, setShowCreditPurchaseModal] = useState(false);
   
   // Folders state (dev-only UI while building)
   const [showFolderModal, setShowFolderModal] = useState(false);
@@ -825,11 +827,11 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
                       <div 
                         onClick={(e) => {
                           e.stopPropagation();
-                          navigate('/subscription');
+                          setShowCreditPurchaseModal(true);
                         }}
                         className="flex-shrink-0 px-3 py-1 text-xs font-light bg-gray-900 text-white rounded-full hover:bg-gray-800 transition-colors cursor-pointer"
                       >
-                        Upgrade
+                        Top Up
                       </div>
                     )}
                     <Settings className="h-4 w-4 text-gray-500 flex-shrink-0" />
@@ -855,11 +857,11 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        navigate('/subscription');
+                        setShowCreditPurchaseModal(true);
                       }}
                       className="flex-shrink-0 px-3 py-1 text-xs font-light bg-gray-900 text-white rounded-full hover:bg-gray-800 transition-colors"
                     >
-                      Upgrade
+                      Top Up
                     </button>
                   )}
                 </div>
@@ -1050,6 +1052,12 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
         }}
         onCreateFolder={handleCreateFolder}
         editingFolder={editingFolder}
+      />
+
+      {/* Credit Purchase Modal */}
+      <CreditPurchaseModal
+        isOpen={showCreditPurchaseModal}
+        onClose={() => setShowCreditPurchaseModal(false)}
       />
     </div>
   );

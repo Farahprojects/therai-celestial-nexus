@@ -41,7 +41,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    const { amount_usd, credits, is_auto_topup } = await req.json();
+    const { amount_usd, credits, is_auto_topup, embedded } = await req.json();
 
     // Validate inputs
     if (!amount_usd || !credits) {
@@ -92,7 +92,7 @@ Deno.serve(async (req) => {
     }
 
     // Create checkout session
-    const session = await stripe.checkout.sessions.create({
+    const sessionConfig: any = {
       customer: customerId,
       payment_method_types: ["card"],
       line_items: [
@@ -109,17 +109,30 @@ Deno.serve(async (req) => {
         },
       ],
       mode: "payment",
-      success_url: `${req.headers.get("origin")}/settings?credit_purchase=success`,
-      cancel_url: `${req.headers.get("origin")}/settings?credit_purchase=cancelled`,
       metadata: {
         user_id: user.id,
         credits: credits.toString(),
         is_auto_topup: is_auto_topup ? "true" : "false",
       },
-    });
+    };
+
+    // Configure for embedded or redirect mode
+    if (embedded) {
+      sessionConfig.ui_mode = "embedded";
+      sessionConfig.return_url = `${req.headers.get("origin")}/settings?credit_purchase=success`;
+    } else {
+      sessionConfig.success_url = `${req.headers.get("origin")}/settings?credit_purchase=success`;
+      sessionConfig.cancel_url = `${req.headers.get("origin")}/settings?credit_purchase=cancelled`;
+    }
+
+    const session = await stripe.checkout.sessions.create(sessionConfig);
 
     return new Response(
-      JSON.stringify({ sessionId: session.id, url: session.url }),
+      JSON.stringify({ 
+        sessionId: session.id, 
+        clientSecret: session.client_secret,
+        url: session.url 
+      }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {

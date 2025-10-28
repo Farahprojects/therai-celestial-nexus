@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Loader2 } from 'lucide-react';
+import { Loader2, ArrowLeft } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { loadStripe } from '@stripe/stripe-js';
+import { EmbeddedCheckout, EmbeddedCheckoutProvider } from '@stripe/react-stripe-js';
 
 interface CreditPurchaseModalProps {
   isOpen: boolean;
@@ -14,6 +16,9 @@ interface CreditPurchaseModalProps {
 
 const CREDIT_PRICE = 0.15;
 const MIN_PURCHASE = 5;
+const STRIPE_PUBLISHABLE_KEY = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY as string;
+
+const stripePromise = STRIPE_PUBLISHABLE_KEY ? loadStripe(STRIPE_PUBLISHABLE_KEY) : Promise.resolve(null);
 
 export const CreditPurchaseModal: React.FC<CreditPurchaseModalProps> = ({
   isOpen,
@@ -23,6 +28,7 @@ export const CreditPurchaseModal: React.FC<CreditPurchaseModalProps> = ({
   const [selectedPackage, setSelectedPackage] = useState<number | null>(null);
   const [customAmount, setCustomAmount] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [clientSecret, setClientSecret] = useState<string | null>(null);
 
   const packages = [
     { amount: 5, credits: Math.floor(5 / CREDIT_PRICE) },
@@ -39,6 +45,7 @@ export const CreditPurchaseModal: React.FC<CreditPurchaseModalProps> = ({
           amount_usd: amountUsd,
           credits: credits,
           is_auto_topup: isAutoTopup,
+          embedded: true,
         },
       });
 
@@ -47,8 +54,8 @@ export const CreditPurchaseModal: React.FC<CreditPurchaseModalProps> = ({
         return;
       }
 
-      if (data?.url) {
-        window.location.href = data.url;
+      if (data?.clientSecret) {
+        setClientSecret(data.clientSecret);
       }
     } catch (err) {
       console.error('Purchase error:', err);
@@ -68,27 +75,60 @@ export const CreditPurchaseModal: React.FC<CreditPurchaseModalProps> = ({
     handlePurchase(amount, credits);
   };
 
+  const handleBack = () => {
+    setClientSecret(null);
+    setSelectedPackage(null);
+    setCustomAmount('');
+  };
+
+  const handleCloseModal = () => {
+    setClientSecret(null);
+    setSelectedPackage(null);
+    setCustomAmount('');
+    onClose();
+  };
+
+  const options = useMemo(() => (clientSecret ? { clientSecret } : undefined), [clientSecret]);
+
+  // Show embedded checkout
+  if (clientSecret && options) {
+    return (
+      <Dialog open={isOpen} onOpenChange={handleCloseModal}>
+        <DialogContent className="sm:max-w-2xl rounded-3xl p-0 overflow-hidden">
+          <div className="p-6 border-b flex items-center gap-4">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleBack}
+              className="rounded-full"
+            >
+              <ArrowLeft className="w-4 h-4" />
+            </Button>
+            <DialogTitle className="text-xl font-light">Complete Your Purchase</DialogTitle>
+          </div>
+          <div className="p-6">
+            <EmbeddedCheckoutProvider stripe={stripePromise} options={options as any}>
+              <EmbeddedCheckout />
+            </EmbeddedCheckoutProvider>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
+  // Show credit selection
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md">
+    <Dialog open={isOpen} onOpenChange={handleCloseModal}>
+      <DialogContent className="sm:max-w-md rounded-3xl">
         <DialogHeader>
-          <DialogTitle className="text-xl font-light">
-            {isAutoTopup ? 'Configure Auto Top-Up' : 'Purchase Credits'}
+          <DialogTitle className="text-2xl font-light text-center">
+            {isAutoTopup ? 'Configure Auto Top-Up' : 'Top Up Credits'}
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-6 mt-4">
-          {/* Credit Rate Info */}
-          <div className="bg-gray-50 rounded-xl p-4 text-center">
-            <div className="text-sm text-gray-600">Credit Rate</div>
-            <div className="text-2xl font-light text-gray-900 mt-1">
-              ${CREDIT_PRICE} <span className="text-sm text-gray-600">per credit</span>
-            </div>
-          </div>
-
+        <div className="space-y-6 mt-6">
           {/* Package Options */}
           <div className="space-y-3">
-            <h3 className="text-sm font-medium text-gray-900">Quick Select</h3>
             <div className="grid grid-cols-2 gap-3">
               {packages.map((pkg) => (
                 <button
@@ -98,7 +138,7 @@ export const CreditPurchaseModal: React.FC<CreditPurchaseModalProps> = ({
                     setCustomAmount('');
                   }}
                   className={`
-                    rounded-xl border-2 p-4 transition-all text-center
+                    rounded-full border-2 p-6 transition-all text-center
                     ${
                       selectedPackage === pkg.amount
                         ? 'border-gray-900 bg-gray-50'
@@ -106,8 +146,8 @@ export const CreditPurchaseModal: React.FC<CreditPurchaseModalProps> = ({
                     }
                   `}
                 >
-                  <div className="text-2xl font-light text-gray-900">${pkg.amount}</div>
-                  <div className="text-sm text-gray-600 mt-1">{pkg.credits} credits</div>
+                  <div className="text-3xl font-light text-gray-900">${pkg.amount}</div>
+                  <div className="text-sm text-gray-600 mt-2">{pkg.credits} credits</div>
                 </button>
               ))}
             </div>
@@ -115,10 +155,10 @@ export const CreditPurchaseModal: React.FC<CreditPurchaseModalProps> = ({
 
           {/* Custom Amount */}
           <div className="space-y-3">
-            <h3 className="text-sm font-medium text-gray-900">Custom Amount</h3>
+            <h3 className="text-sm font-light text-gray-600 text-center">Or enter custom amount</h3>
             <div className="space-y-2">
               <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">$</span>
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 text-lg">$</span>
                 <Input
                   type="number"
                   min={MIN_PURCHASE}
@@ -128,8 +168,8 @@ export const CreditPurchaseModal: React.FC<CreditPurchaseModalProps> = ({
                     setCustomAmount(e.target.value);
                     setSelectedPackage(null);
                   }}
-                  placeholder={`Min $${MIN_PURCHASE}`}
-                  className="pl-7 rounded-xl"
+                  placeholder="5.00"
+                  className="pl-8 rounded-full h-14 text-center text-lg"
                 />
               </div>
               {customAmount && parseFloat(customAmount) >= MIN_PURCHASE && (
@@ -151,7 +191,7 @@ export const CreditPurchaseModal: React.FC<CreditPurchaseModalProps> = ({
               }
             }}
             disabled={isProcessing || (!selectedPackage && !customAmount)}
-            className="w-full bg-gray-900 hover:bg-gray-800 text-white rounded-full font-light py-6"
+            className="w-full bg-gray-900 hover:bg-gray-800 text-white rounded-full font-light py-6 text-base"
           >
             {isProcessing ? (
               <>
@@ -163,12 +203,11 @@ export const CreditPurchaseModal: React.FC<CreditPurchaseModalProps> = ({
             )}
           </Button>
 
-          <p className="text-xs text-gray-500 text-center">
-            Minimum purchase: ${MIN_PURCHASE}. Credits never expire.
+          <p className="text-xs text-gray-500 text-center font-light">
+            Minimum $5 • Credits never expire
           </p>
         </div>
       </DialogContent>
     </Dialog>
   );
 };
-
