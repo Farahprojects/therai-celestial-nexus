@@ -239,13 +239,26 @@ Deno.serve(async (req) => {
   try {
     console.log(`[llm-handler-gemini] ⏱️  Starting context fetch (+${Date.now() - totalStartTime}ms)`);
 
-    // Parallel fetch: cache status, conversation metadata, summary, and history
-    const [cacheResult, conversationResult, summaryResult, historyResult] = await Promise.all([
-      // Check if cache exists
+    // Parallel fetch: cache status, system message, conversation metadata, summary, and history
+    const [cacheResult, systemMessageResult, conversationResult, summaryResult, historyResult] = await Promise.all([
+      // Check if cache exists (include hash for validation)
       supabase
         .from("conversation_caches")
-        .select("cache_name, expires_at")
+        .select("cache_name, expires_at, system_data_hash")
         .eq("chat_id", chat_id)
+        .single(),
+
+      // Always fetch system message to validate hash
+      supabase
+        .from("messages")
+        .select("text")
+        .eq("chat_id", chat_id)
+        .eq("role", "system")
+        .eq("status", "complete")
+        .not("text", "is", null)
+        .neq("text", "")
+        .order("created_at", { ascending: true })
+        .limit(1)
         .single(),
 
       // Get conversation metadata for turn tracking
@@ -277,27 +290,32 @@ Deno.serve(async (req) => {
         .limit(HISTORY_LIMIT)
     ]);
 
-    // Process cache result
-    if (cacheResult.data && new Date(cacheResult.data.expires_at) > new Date()) {
-      cacheName = cacheResult.data.cache_name;
-      console.log(`[llm-handler-gemini] ✅ Cache found, skipping system fetch`);
-    } else {
-      // No valid cache - fetch system message
-      const { data: systemResult } = await supabase
-        .from("messages")
-        .select("text")
-        .eq("chat_id", chat_id)
-        .eq("role", "system")
-        .eq("status", "complete")
-        .not("text", "is", null)
-        .neq("text", "")
-        .order("created_at", { ascending: true })
-        .limit(1)
-        .single();
+    // Process system message
+    if (systemMessageResult.data) {
+      systemText = String(systemMessageResult.data.text || "");
+    }
 
-      if (systemResult) {
-        systemText = String(systemResult.text || "");
-        // Create cache with system data
+    // Validate cache - check if exists, not expired, AND hash matches current system message
+    const cacheExists = cacheResult.data && new Date(cacheResult.data.expires_at) > new Date();
+    const currentHash = systemText ? hashSystemData(systemText) : "";
+    const hashMatches = cacheExists && cacheResult.data.system_data_hash === currentHash;
+
+    if (cacheExists && hashMatches) {
+      // Cache is valid and matches current system message
+      cacheName = cacheResult.data.cache_name;
+      console.log(`[llm-handler-gemini] ✅ Cache valid and hash matches, using cache`);
+    } else {
+      if (cacheExists && !hashMatches) {
+        console.log(`[llm-handler-gemini] ⚠️  Cache exists but hash mismatch! Invalidating and recreating cache`);
+        // Delete stale cache
+        await supabase
+          .from("conversation_caches")
+          .delete()
+          .eq("chat_id", chat_id);
+      }
+
+      // Create new cache with current system data
+      if (systemText) {
         cacheName = await getOrCreateCache(
           chat_id,
           systemText,
