@@ -7,7 +7,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 
-const CREDIT_PRICE = 0.15;
+const CREDIT_PRICE = 0.10;
 const TOPUP_OPTIONS = [
   { amount: 5, credits: Math.floor(5 / CREDIT_PRICE) },
   { amount: 10, credits: Math.floor(10 / CREDIT_PRICE) },
@@ -22,8 +22,8 @@ interface AutoTopUpSettingsProps {
 export const AutoTopUpSettings: React.FC<AutoTopUpSettingsProps> = ({ onSettingsChange }) => {
   const { user } = useAuth();
   const [enabled, setEnabled] = useState(false);
-  const [threshold, setThreshold] = useState(7); // ~$1
-  const [amount, setAmount] = useState(34); // $5 worth
+  const [threshold, setThreshold] = useState(10); // ~$1 @ $0.10/credit
+  const [amount, setAmount] = useState(50); // $5 worth @ $0.10/credit
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -44,8 +44,8 @@ export const AutoTopUpSettings: React.FC<AutoTopUpSettingsProps> = ({ onSettings
 
       if (!error && data) {
         setEnabled(data.auto_topup_enabled ?? false);
-        setThreshold(data.auto_topup_threshold ?? 7);
-        setAmount(data.auto_topup_amount ?? 34);
+        setThreshold(data.auto_topup_threshold ?? 10);
+        setAmount(data.auto_topup_amount ?? 50);
       }
     } catch (error) {
       console.error('Error loading auto top-up settings:', error);

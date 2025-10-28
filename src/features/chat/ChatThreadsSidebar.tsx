@@ -831,7 +831,7 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
                         }}
                         className="flex-shrink-0 px-3 py-1 text-xs font-light bg-gray-900 text-white rounded-full hover:bg-gray-800 transition-colors cursor-pointer"
                       >
-                        Top Up
+                        Upgrade
                       </div>
                     )}
                     <Settings className="h-4 w-4 text-gray-500 flex-shrink-0" />
@@ -861,7 +861,7 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
                       }}
                       className="flex-shrink-0 px-3 py-1 text-xs font-light bg-gray-900 text-white rounded-full hover:bg-gray-800 transition-colors"
                     >
-                      Top Up
+                      Upgrade
                     </button>
                   )}
                 </div>

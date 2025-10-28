@@ -67,8 +67,8 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Validate credit calculation (should be amount_usd / 0.15)
-    const expectedCredits = Math.floor(amount_usd / 0.15);
+    // Validate credit calculation (should be amount_usd / 0.10)
+    const expectedCredits = Math.floor(amount_usd / 0.10);
     if (Math.abs(credits - expectedCredits) > 1) {
       return new Response(
         JSON.stringify({ error: "Invalid credit calculation" }),

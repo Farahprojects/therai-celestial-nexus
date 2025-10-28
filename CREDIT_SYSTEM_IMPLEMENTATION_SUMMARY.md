@@ -1,7 +1,7 @@
 # Credit System Implementation Summary
 
 ## Overview
-Successfully implemented a complete credit-based billing system to replace the subscription model. Users purchase credits at $0.15 per credit with a minimum purchase of $5 (33 credits).
+Successfully implemented a complete credit-based billing system to replace the subscription model. Users purchase credits at $0.10 per credit with a minimum purchase of $5 (50 credits).
 
 ## What Was Implemented
 
@@ -33,7 +33,7 @@ Successfully implemented a complete credit-based billing system to replace the s
 
 #### chat-send (`supabase/functions/chat-send/index.ts`)
 - Deducts 1 credit for normal chat messages
-- Deducts 3 credits for voice conversation messages
+- Deducts 2 credits for voice conversation messages
 - Fire-and-forget credit deduction (non-blocking)
 
 #### translator-edge (`supabase/functions/translator-edge/index.ts`)
@@ -66,7 +66,7 @@ Complete rewrite showing:
 - Purchase credits button
 
 #### CreditPurchaseModal (`src/components/billing/CreditPurchaseModal.tsx`)
-- Two predefined packages: $5 (33 credits), $10 (66 credits)
+- Two predefined packages: $5 (50 credits), $10 (100 credits)
 - Custom amount input (minimum $5)
 - Real-time credit calculation display
 - Stripe checkout integration
@@ -92,21 +92,21 @@ Complete rewrite showing:
 ## Credit Pricing Structure
 
 ### Usage Costs
-- Chat message (text): **1 credit** ($0.15)
-- Voice conversation: **3 credits** ($0.45)
-- Astro data (base): **1 credit** ($0.15)
-- Sync chart: **2 credits** ($0.30)
-- Report generation: **2 credits** ($0.30)
-- Sync + Report: **4 credits** ($0.60)
+- Chat message (text): **1 credit** ($0.10)
+- Voice conversation: **2 credits** ($0.20)
+- Astro data (base): **1 credit** ($0.10)
+- Sync chart: **2 credits** ($0.20)
+- Report generation: **2 credits** ($0.20)
+- Sync + Report: **4 credits** ($0.40)
 
 ### Purchase Options
-- **$5 Package:** 33 credits
-- **$10 Package:** 66 credits
-- **Custom Amount:** Minimum $5, calculated at $0.15/credit
+- **$5 Package:** 50 credits
+- **$10 Package:** 100 credits
+- **Custom Amount:** Minimum $5, calculated at $0.10/credit
 
 ### Auto Top-Up
-- Default threshold: 7 credits (~$1)
-- Default amount: 34 credits ($5)
+- Default threshold: 10 credits (~$1)
+- Default amount: 50 credits ($5)
 - Automatically triggers when balance drops to/below threshold
 - Uses Stripe for payment processing
 
@@ -144,7 +144,7 @@ Complete rewrite showing:
 - [ ] User can purchase credits via packages
 - [ ] User can purchase custom credit amount
 - [ ] Credits deducted on normal chat (1 credit)
-- [ ] Credits deducted on voice chat (3 credits)
+- [ ] Credits deducted on voice chat (2 credits)
 - [ ] Credits deducted for astro data (1-4 credits)
 - [ ] Auto top-up triggers at threshold
 - [ ] Transaction history displays correctly
@@ -169,7 +169,7 @@ Complete rewrite showing:
 3. **Test the flow:**
    - Purchase credits via UI
    - Send chat messages (verify 1 credit deduction)
-   - Use voice mode (verify 3 credit deduction)
+   - Use voice mode (verify 2 credit deduction)
    - Request astro data (verify 1-4 credit deduction)
    - Configure and test auto top-up
 

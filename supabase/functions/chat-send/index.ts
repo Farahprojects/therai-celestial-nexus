@@ -128,7 +128,7 @@ console.log(`[chat-send] ⏱️  DB insert complete (+${Date.now() - startTime}m
 
 // ⚡ FIRE-AND-FORGET: Deduct credits for assistant messages
 if (role === "assistant" && user_id) {
-const creditsToDeduct = chattype === "voice" ? 3 : 1;
+const creditsToDeduct = chattype === "voice" ? 2 : 1;
 console.log(`[chat-send] ⏱️  Deducting ${creditsToDeduct} credits for ${chattype || 'text'} message`);
 supabase.rpc('deduct_credits', {
 _user_id: user_id,

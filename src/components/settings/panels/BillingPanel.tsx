@@ -13,7 +13,7 @@ import {
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
 
-const CREDIT_PRICE = 0.15;
+const CREDIT_PRICE = 0.10;
 
 interface CreditData {
   credits: number;
@@ -39,6 +39,7 @@ export const BillingPanel: React.FC = () => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [showPurchaseModal, setShowPurchaseModal] = useState(false);
   const [showTransactions, setShowTransactions] = useState(false);
+  const [showPricing, setShowPricing] = useState(false);
 
   const fetchBillingData = async () => {
     if (!user) return;
@@ -171,35 +172,44 @@ export const BillingPanel: React.FC = () => {
         </Button>
       </div>
 
-      {/* Pricing Info */}
+      {/* Pricing Info - Collapsible */}
       <div className="border-b pb-6">
-        <h3 className="text-sm font-normal text-gray-900 mb-4">Credit Pricing</h3>
-        <div className="space-y-2 text-sm text-gray-600">
-          <div className="flex justify-between py-2">
-            <span>Chat Message</span>
-            <span className="text-gray-900">1 credit ($0.15)</span>
-          </div>
-          <div className="flex justify-between py-2">
-            <span>Voice Conversation</span>
-            <span className="text-gray-900">3 credits ($0.45)</span>
-          </div>
-          <div className="flex justify-between py-2">
-            <span>Astro Data (Basic)</span>
-            <span className="text-gray-900">1 credit ($0.15)</span>
-          </div>
-          <div className="flex justify-between py-2">
-            <span>Sync Chart</span>
-            <span className="text-gray-900">2 credits ($0.30)</span>
-          </div>
-          <div className="flex justify-between py-2">
-            <span>Report Generation</span>
-            <span className="text-gray-900">2 credits ($0.30)</span>
-          </div>
-          <div className="flex justify-between py-2">
-            <span>Sync + Report</span>
-            <span className="text-gray-900">4 credits ($0.60)</span>
-          </div>
-        </div>
+        <Collapsible open={showPricing} onOpenChange={setShowPricing}>
+          <CollapsibleTrigger className="w-full flex items-center justify-between text-left hover:bg-gray-50 -mx-2 px-2 py-2 rounded-lg transition-colors">
+            <h3 className="text-sm font-normal text-gray-900">How Credits Work</h3>
+            <span className="text-xs text-gray-500">
+              {showPricing ? 'Hide' : 'Show'} breakdown
+            </span>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <div className="space-y-2 text-sm text-gray-600 mt-4">
+              <div className="flex justify-between py-2">
+                <span>Chat Message</span>
+                <span className="text-gray-900">1 credit ($0.10)</span>
+              </div>
+              <div className="flex justify-between py-2">
+                <span>Voice Conversation</span>
+                <span className="text-gray-900">2 credits ($0.20)</span>
+              </div>
+              <div className="flex justify-between py-2">
+                <span>Astro Data (Basic)</span>
+                <span className="text-gray-900">1 credit ($0.10)</span>
+              </div>
+              <div className="flex justify-between py-2">
+                <span>Sync Chart</span>
+                <span className="text-gray-900">2 credits ($0.20)</span>
+              </div>
+              <div className="flex justify-between py-2">
+                <span>Report Generation</span>
+                <span className="text-gray-900">2 credits ($0.20)</span>
+              </div>
+              <div className="flex justify-between py-2">
+                <span>Sync + Report</span>
+                <span className="text-gray-900">4 credits ($0.40)</span>
+              </div>
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
       </div>
 
       {/* Auto Top-Up Settings */}

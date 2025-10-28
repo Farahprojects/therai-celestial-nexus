@@ -1,6 +1,6 @@
 -- Credit System Migration
 -- Replaces subscription system with credit-based pricing
--- Credits are purchased at $0.15 per credit (minimum $5 = 33 credits)
+-- Credits are purchased at $0.10 per credit (minimum $5 = 50 credits)
 
 -- 1. Drop existing user_credits table and recreate
 DROP TABLE IF EXISTS user_credits CASCADE;
@@ -9,8 +9,8 @@ CREATE TABLE user_credits (
   user_id uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   credits integer NOT NULL DEFAULT 0,
   auto_topup_enabled boolean DEFAULT false,
-  auto_topup_threshold integer DEFAULT 7, -- ~$1 threshold (7 credits)
-  auto_topup_amount integer DEFAULT 34, -- $5 package (34 credits)
+  auto_topup_threshold integer DEFAULT 10, -- ~$1 threshold (10 credits @ $0.10 each)
+  auto_topup_amount integer DEFAULT 50, -- $5 package (50 credits @ $0.10 each)
   last_updated timestamptz DEFAULT now(),
   created_at timestamptz DEFAULT now()
 );
@@ -114,7 +114,7 @@ BEGIN
     INSERT INTO topup_queue (user_id, amount_usd, status, message)
     VALUES (
       _user_id, 
-      (_auto_topup_amount * 0.15), 
+      (_auto_topup_amount * 0.10), 
       'pending', 
       'Auto top-up triggered: balance dropped to ' || _new_credits || ' credits'
     );

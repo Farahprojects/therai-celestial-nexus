@@ -67,49 +67,32 @@ export const SwissSubscriptionGuard: React.FC<SwissSubscriptionGuardProps> = ({ 
         <div className="flex items-center justify-center h-full p-6">
           <div className="max-w-md w-full space-y-6 text-center">
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100">
-              <Lock className="w-8 h-8 text-gray-600" />
+              <Sparkles className="w-8 h-8 text-gray-600" />
             </div>
             
-            <div className="space-y-2">
-              <h2 className="text-2xl font-light text-gray-900">Astro Generator</h2>
-              <p className="text-gray-600">
-                Generate and export Astro data for use in your preferred AI tools.
+            <div className="space-y-3">
+              <h2 className="text-3xl font-light text-gray-900">Get Started</h2>
+              <p className="text-gray-600 font-light">
+                Experience the full app — charts, reports, voice conversations, and more
               </p>
             </div>
 
-            <div className="bg-gray-50 rounded-xl p-6 space-y-4">
-              <div className="flex items-center justify-center gap-2 text-gray-900">
-                <Sparkles className="w-5 h-5" />
-                <span className="text-lg font-medium">1-4 credits per generation</span>
+            <div className="bg-gray-50 rounded-2xl p-8 space-y-3">
+              <div className="text-5xl font-light text-gray-900">$5</div>
+              <div className="text-sm text-gray-500">
+                50 credits • Everything unlocked • Never expires
               </div>
-              <p className="text-sm text-gray-600">
-                You currently have <span className="font-medium text-gray-900">{credits} credits</span>
-              </p>
-              <ul className="text-sm text-gray-600 space-y-2 text-left">
-                <li className="flex items-start gap-2">
-                  <span className="text-gray-900">•</span>
-                  <span>Generate unlimited Astro data</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-gray-900">•</span>
-                  <span>Save and organize your datasets</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-gray-900">•</span>
-                  <span>Copy and export to any AI tool</span>
-                </li>
-              </ul>
             </div>
 
             <Button
               onClick={() => setShowCreditModal(true)}
-              className="w-full bg-gray-900 text-white hover:bg-gray-800 rounded-lg py-3"
+              className="w-full bg-gray-900 text-white hover:bg-gray-800 rounded-full font-light py-6 text-lg shadow-lg"
             >
-              Top Up Credits
+              Get Started - $5
             </Button>
 
-            <p className="text-xs text-gray-500">
-              Credits start at $5 (33 credits). Credits never expire.
+            <p className="text-xs text-gray-500 font-light">
+              No subscription • Top up anytime • Credits never expire
             </p>
           </div>
         </div>

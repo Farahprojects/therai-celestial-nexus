@@ -14,7 +14,7 @@ export const SubscriptionToast: React.FC<SubscriptionToastProps> = ({
   const location = useLocation();
   const [showCreditModal, setShowCreditModal] = useState(false);
 
-  const handleTopUp = () => {
+  const handleUpgrade = () => {
     setShowCreditModal(true);
   };
 
@@ -30,10 +30,10 @@ export const SubscriptionToast: React.FC<SubscriptionToastProps> = ({
         <div className="bg-gray-900 text-white rounded-full px-6 py-3 shadow-lg flex items-center gap-4">
           <span className="text-sm font-light">{message}</span>
           <button
-            onClick={handleTopUp}
+            onClick={handleUpgrade}
             className="px-4 py-1.5 bg-white text-gray-900 text-sm font-light rounded-full hover:bg-gray-100 transition-colors"
           >
-            Top Up
+            Upgrade
           </button>
         </div>
       </div>
