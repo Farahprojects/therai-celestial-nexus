@@ -348,6 +348,34 @@ Deno.serve(async (req)=>{
 
     await logTranslator({ request_type:canon, request_payload:body, swiss_data:swissData, swiss_status:swiss.status, processing_ms:Date.now()-t0, error: swiss.ok?undefined:`Swiss ${swiss.status}`, google_geo:googleGeo, translator_payload:payload, chat_id:body.chat_id, mode:body.mode });
     
+    // Deduct credits based on request type
+    if (body.user_id && swiss.ok) {
+      let creditsToDeduct = 1; // Base cost for astro data
+      
+      // Additional charges
+      if (canon === 'sync') creditsToDeduct += 1; // +1 for sync (total 2)
+      if (parsed.reportType) creditsToDeduct += 1; // +1 for report (total 2 or 3)
+      
+      console.log(`[translator-edge-${reqId}] Deducting ${creditsToDeduct} credits for ${canon}${parsed.reportType ? ` + ${parsed.reportType}` : ''}`);
+      try {
+        const { error: creditError } = await sb.rpc('deduct_credits', {
+          _user_id: body.user_id,
+          _credits: creditsToDeduct,
+          _endpoint: 'translator-edge',
+          _reference_id: body.chat_id,
+          _description: `Astro data: ${canon}${parsed.reportType ? ` + ${parsed.reportType}` : ''}`
+        });
+        
+        if (creditError) {
+          console.error(`[translator-edge-${reqId}] Credit deduction failed:`, creditError);
+        } else {
+          console.log(`[translator-edge-${reqId}] Credits deducted successfully`);
+        }
+      } catch (err) {
+        console.error(`[translator-edge-${reqId}] Credit error:`, err);
+      }
+    }
+    
     // Call context-injector for all successful astro data reports (skip for insight mode)
     if (body.chat_id && swiss.ok && body.mode !== 'insight') {
       console.log(`[translator-edge-${reqId}] Calling context-injector for chat_id: ${body.chat_id}`);

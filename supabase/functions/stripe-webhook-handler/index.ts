@@ -286,6 +286,76 @@ async function handleInvoicePayment(invoice: Stripe.Invoice, eventType: string) 
 }
 
 async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
+  // Check if this is a credit purchase
+  if (session.metadata?.credits && session.metadata?.user_id) {
+    const userId = session.metadata.user_id
+    const credits = parseInt(session.metadata.credits, 10)
+    const isAutoTopup = session.metadata.is_auto_topup === 'true'
+    const amountUsd = session.amount_total ? session.amount_total / 100 : 0
+    
+    console.log(`Processing credit purchase for user ${userId}: ${credits} credits ($${amountUsd})`)
+    
+    try {
+      // Add credits to user account
+      const { error: creditError } = await supabase.rpc('add_credits', {
+        _user_id: userId,
+        _credits: credits,
+        _amount_usd: amountUsd,
+        _type: isAutoTopup ? 'auto_topup' : 'purchase',
+        _reference_id: session.id,
+        _description: isAutoTopup 
+          ? `Auto top-up: ${credits} credits` 
+          : `Credit purchase: ${credits} credits`
+      })
+      
+      if (creditError) {
+        console.error(`Failed to add credits for user ${userId}:`, creditError)
+        throw creditError
+      }
+      
+      // Log to topup_logs
+      await supabase.from('topup_logs').insert({
+        user_id: userId,
+        stripe_payment_intent_id: session.payment_intent as string,
+        amount_cents: session.amount_total,
+        credits: credits,
+        is_auto_topup: isAutoTopup,
+        status: 'succeeded',
+        credited: true,
+        receipt_url: session.url
+      })
+      
+      console.log(`✅ Successfully credited ${credits} credits to user ${userId}`)
+      
+      // If this was an auto top-up, mark the queue item as processed
+      if (isAutoTopup) {
+        await supabase
+          .from('topup_queue')
+          .update({ 
+            status: 'completed', 
+            processed_at: new Date().toISOString(),
+            message: `Auto top-up completed: ${credits} credits added`
+          })
+          .eq('user_id', userId)
+          .eq('status', 'pending')
+      }
+    } catch (error) {
+      console.error(`Error processing credit purchase:`, error)
+      
+      // Log failed topup
+      await supabase.from('topup_logs').insert({
+        user_id: userId,
+        stripe_payment_intent_id: session.payment_intent as string,
+        amount_cents: session.amount_total,
+        credits: credits,
+        is_auto_topup: isAutoTopup,
+        status: 'failed',
+        credited: false
+      })
+    }
+    return
+  }
+  
   // Check if this is a guest checkout by looking for guest_id in URLs
   const successUrl = session.success_url
   const cancelUrl = session.cancel_url

@@ -1278,7 +1278,9 @@ export type Database = {
           amount_cents: number
           created_at: string | null
           credited: boolean | null
+          credits: number | null
           id: string
+          is_auto_topup: boolean
           receipt_url: string | null
           status: string
           stripe_payment_intent_id: string | null
@@ -1288,7 +1290,9 @@ export type Database = {
           amount_cents: number
           created_at?: string | null
           credited?: boolean | null
+          credits?: number | null
           id?: string
+          is_auto_topup?: boolean
           receipt_url?: string | null
           status: string
           stripe_payment_intent_id?: string | null
@@ -1298,7 +1302,9 @@ export type Database = {
           amount_cents?: number
           created_at?: string | null
           credited?: boolean | null
+          credits?: number | null
           id?: string
+          is_auto_topup?: boolean
           receipt_url?: string | null
           status?: string
           stripe_payment_intent_id?: string | null
@@ -1390,21 +1396,69 @@ export type Database = {
         }
         Relationships: []
       }
-      user_credits: {
+      credit_transactions: {
         Row: {
-          balance_usd: number
-          last_updated: string | null
+          id: string
           user_id: string
+          type: string
+          credits: number
+          amount_usd: number | null
+          description: string | null
+          reference_id: string | null
+          endpoint: string | null
+          created_at: string
         }
         Insert: {
-          balance_usd?: number
-          last_updated?: string | null
+          id?: string
           user_id: string
+          type: string
+          credits: number
+          amount_usd?: number | null
+          description?: string | null
+          reference_id?: string | null
+          endpoint?: string | null
+          created_at?: string
         }
         Update: {
-          balance_usd?: number
-          last_updated?: string | null
+          id?: string
           user_id?: string
+          type?: string
+          credits?: number
+          amount_usd?: number | null
+          description?: string | null
+          reference_id?: string | null
+          endpoint?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      user_credits: {
+        Row: {
+          user_id: string
+          credits: number
+          auto_topup_enabled: boolean
+          auto_topup_threshold: number
+          auto_topup_amount: number
+          last_updated: string | null
+          created_at: string
+        }
+        Insert: {
+          user_id: string
+          credits?: number
+          auto_topup_enabled?: boolean
+          auto_topup_threshold?: number
+          auto_topup_amount?: number
+          last_updated?: string | null
+          created_at?: string
+        }
+        Update: {
+          user_id?: string
+          credits?: number
+          auto_topup_enabled?: boolean
+          auto_topup_threshold?: number
+          auto_topup_amount?: number
+          last_updated?: string | null
+          created_at?: string
         }
         Relationships: []
       }
@@ -1599,6 +1653,36 @@ export type Database = {
       bytea_to_text: {
         Args: { data: string }
         Returns: string
+      }
+      add_credits: {
+        Args: {
+          _user_id: string
+          _credits: number
+          _amount_usd: number
+          _type?: string
+          _reference_id?: string
+          _description?: string
+        }
+        Returns: boolean
+      }
+      deduct_credits: {
+        Args: {
+          _user_id: string
+          _credits: number
+          _endpoint: string
+          _reference_id?: string
+          _description?: string
+        }
+        Returns: boolean
+      }
+      update_auto_topup_settings: {
+        Args: {
+          _user_id: string
+          _enabled: boolean
+          _threshold: number
+          _amount: number
+        }
+        Returns: boolean
       }
       check_orphaned_data: {
         Args: Record<PropertyKey, never>

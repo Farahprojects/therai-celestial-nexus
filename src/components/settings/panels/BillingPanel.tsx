@@ -1,67 +1,76 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Loader2, AlertTriangle, Info } from 'lucide-react';
+import { Loader2, Plus, Clock } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { CancelSubscriptionModal } from '@/components/billing/CancelSubscriptionModal';
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { CreditPurchaseModal } from '@/components/billing/CreditPurchaseModal';
+import { AutoTopUpSettings } from '@/components/billing/AutoTopUpSettings';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
 
-interface SubscriptionData {
-  status: string | null;
-  plan: string | null;
-  nextCharge: string | null;
-  active: boolean | null;
-  subscriptionId: string | null;
+const CREDIT_PRICE = 0.15;
+
+interface CreditData {
+  credits: number;
+  auto_topup_enabled: boolean;
+  auto_topup_threshold: number;
+  auto_topup_amount: number;
 }
 
-interface Plan {
+interface Transaction {
   id: string;
-  name: string;
+  type: string;
+  credits: number;
+  amount_usd: number | null;
   description: string | null;
-  unit_price_usd: number;
-  stripe_price_id: string | null;
+  created_at: string;
 }
 
 export const BillingPanel: React.FC = () => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
-  const [subscription, setSubscription] = useState<SubscriptionData | null>(null);
-  const [availablePlans, setAvailablePlans] = useState<Plan[]>([]);
-  const [updatingPlanId, setUpdatingPlanId] = useState<string | null>(null);
-  const [showCancelModal, setShowCancelModal] = useState(false);
-  const [selectedPlanForInfo, setSelectedPlanForInfo] = useState<Plan | null>(null);
+  const [creditData, setCreditData] = useState<CreditData | null>(null);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [showPurchaseModal, setShowPurchaseModal] = useState(false);
+  const [showTransactions, setShowTransactions] = useState(false);
 
   const fetchBillingData = async () => {
     if (!user) return;
-    
+
     setLoading(true);
     try {
-      // Fetch subscription data
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('subscription_status, subscription_plan, subscription_next_charge, subscription_active, stripe_subscription_id')
-        .eq('id', user.id)
-        .single();
+      // Fetch credit balance and auto top-up settings
+      const { data: creditsData, error: creditsError } = await supabase
+        .from('user_credits')
+        .select('credits, auto_topup_enabled, auto_topup_threshold, auto_topup_amount')
+        .eq('user_id', user.id)
+        .maybeSingle();
 
-      if (profileError) throw profileError;
+      if (creditsError && creditsError.code !== 'PGRST116') {
+        throw creditsError;
+      }
 
-      setSubscription({
-        status: profileData?.subscription_status || null,
-        plan: profileData?.subscription_plan || null,
-        nextCharge: profileData?.subscription_next_charge || null,
-        active: profileData?.subscription_active || null,
-        subscriptionId: profileData?.stripe_subscription_id || null,
+      setCreditData(creditsData || {
+        credits: 0,
+        auto_topup_enabled: false,
+        auto_topup_threshold: 7,
+        auto_topup_amount: 34,
       });
 
-      // Fetch available plans
-      const { data: plansData, error: plansError } = await supabase
-        .from('price_list')
+      // Fetch transaction history
+      const { data: transactionsData, error: transactionsError } = await supabase
+        .from('credit_transactions')
         .select('*')
-        .eq('endpoint', 'subscription');
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(20);
 
-      if (!plansError && plansData) {
-        setAvailablePlans(plansData);
+      if (!transactionsError && transactionsData) {
+        setTransactions(transactionsData);
       }
     } catch (error) {
       console.error('Error fetching billing data:', error);
@@ -75,341 +84,166 @@ export const BillingPanel: React.FC = () => {
     fetchBillingData();
   }, [user]);
 
-  const handleUpdatePlan = async (plan: Plan) => {
-    if (!plan.stripe_price_id) {
-      toast.error('Invalid plan configuration');
-      return;
-    }
-
-    setUpdatingPlanId(plan.id);
-    try {
-      const { data, error } = await supabase.functions.invoke('update-subscription', {
-        body: { newPriceId: plan.stripe_price_id },
-      });
-
-      if (error) {
-        toast.error('Failed to update subscription');
-        return;
-      }
-
-      toast.success('Subscription updated successfully');
-      await fetchBillingData(); // Refresh billing data
-    } catch (err) {
-      console.error('Update subscription error:', err);
-      toast.error('Failed to update subscription');
-    } finally {
-      setUpdatingPlanId(null);
-    }
-  };
-
-  const formatDate = (dateString: string | null) => {
-    if (!dateString) return 'N/A';
+  const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
   };
 
-  const getPlanDisplayName = (planName: string | null) => {
-    if (!planName) return 'No plan';
-    // Map plan names to UI-friendly names
-    if (planName === 'Growth' || planName.includes('15')) return 'Growth';
-    if (planName === 'Premium' || planName.includes('25')) return 'Premium';
-    if (planName === 'Test Plan' || planName.includes('Test')) return 'Test';
-    if (planName === 'Therai Astro data' || planName.includes('Astro')) return 'Therai Astro data';
-    return planName;
-  };
-
-  const openCustomerPortal = async () => {
-    setUpdatingPlanId('portal');
-    try {
-      const { data, error } = await supabase.functions.invoke('customer-portal');
-      
-      if (error) throw error;
-      
-      if (data?.url) {
-        window.open(data.url, '_blank');
-      }
-    } catch (error) {
-      console.error('Error opening customer portal:', error);
-      toast.error('Failed to open payment portal');
-    } finally {
-      setUpdatingPlanId(null);
+  const getTransactionLabel = (transaction: Transaction) => {
+    switch (transaction.type) {
+      case 'purchase':
+        return 'Credit Purchase';
+      case 'auto_topup':
+        return 'Auto Top-Up';
+      case 'deduct':
+        return transaction.description || 'Credit Used';
+      case 'refund':
+        return 'Refund';
+      default:
+        return transaction.type;
     }
   };
 
-  const handleResubscribe = async (plan: Plan) => {
-    if (!plan.stripe_price_id) {
-      toast.error('Invalid plan configuration');
-      return;
-    }
-
-    setUpdatingPlanId(plan.id);
-    try {
-      const { data, error } = await supabase.functions.invoke('create-subscription-checkout', {
-        body: {
-          priceId: plan.id,
-          embedded: false,
-        },
-      });
-
-      if (error) {
-        toast.error('Failed to start checkout');
-        return;
-      }
-
-      if (data?.url) {
-        window.location.href = data.url;
-      }
-    } catch (err) {
-      console.error('Resubscribe error:', err);
-      toast.error('Failed to start checkout');
-    } finally {
-      setUpdatingPlanId(null);
-    }
+  const getTransactionSign = (transaction: Transaction) => {
+    return ['purchase', 'auto_topup', 'refund'].includes(transaction.type) ? '+' : '-';
   };
 
-  const isSubscriptionActive = subscription?.active && ['active', 'trialing'].includes(subscription?.status || '');
-  const canChangePlan = isSubscriptionActive && subscription?.status !== 'past_due';
-  const isCanceled = subscription?.status === 'canceled' || !subscription?.active;
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-6">
-      {/* Payment Failure Alert for Past Due */}
-      {subscription?.status === 'past_due' && (
-        <div className="border-2 border-red-400 bg-red-50 rounded-xl p-4">
-          <div className="flex items-start gap-3">
-            <AlertTriangle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
-            <div className="flex-1">
-              <h3 className="text-sm font-medium text-gray-900 mb-1">Payment Failed</h3>
-              <p className="text-sm text-gray-700 mb-3">
-                Your last payment was declined. Update your payment method to restore access to your subscription.
-              </p>
-              <Button
-                onClick={openCustomerPortal}
-                disabled={updatingPlanId === 'portal'}
-                size="sm"
-                className="bg-red-600 hover:bg-red-700 text-white rounded-full font-light px-6"
-              >
-                {updatingPlanId === 'portal' ? (
-                  <>
-                    <Loader2 className="w-3 h-3 mr-1 animate-spin" />
-                    Opening...
-                  </>
-                ) : (
-                  'Update Payment Method'
-                )}
-              </Button>
-            </div>
-          </div>
+    <div className="space-y-8">
+      {/* Credit Balance */}
+      <div className="text-center py-8 border-b">
+        <h3 className="text-sm font-normal text-gray-600 mb-2">Available Credits</h3>
+        <div className="text-5xl font-light text-gray-900 mb-2">
+          {creditData?.credits || 0}
         </div>
-      )}
-
-      {/* Current Subscription Info */}
-      {isSubscriptionActive && (
-        <div className="border-b pb-6">
-          <h3 className="text-sm font-normal text-gray-900 mb-4">Current Subscription</h3>
-          <div className="flex items-center justify-between py-3">
-            <span className="text-sm text-gray-800">Plan</span>
-            <span className="text-sm text-gray-900">{getPlanDisplayName(subscription?.plan)}</span>
-          </div>
-          <div className="flex items-center justify-between py-3">
-            <span className="text-sm text-gray-800">Next Billing Date</span>
-            <span className="text-sm text-gray-900">{formatDate(subscription?.nextCharge)}</span>
-          </div>
+        <div className="text-sm text-gray-600">
+          ${((creditData?.credits || 0) * CREDIT_PRICE).toFixed(2)} USD
         </div>
-      )}
-
-      {/* Available Plans */}
-      <div className="border-b pb-6">
-        <h3 className="text-sm font-normal text-gray-900 mb-4">
-          {isCanceled ? 'Choose Your Plan' : 'Plans'}
-        </h3>
-        
-        {loading ? (
-          <div className="space-y-3">
-            <div className="h-12 bg-gray-200 rounded animate-pulse" />
-            <div className="h-12 bg-gray-200 rounded animate-pulse" />
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {availablePlans
-              .filter((plan) => {
-                // Hide current plan if user has active subscription
-                // Compare by plan ID, not name
-                if (isSubscriptionActive && !isCanceled) {
-                  const isCurrentPlan = subscription?.plan === plan.id;
-                  return !isCurrentPlan;
-                }
-                return true;
-              })
-              .map((plan) => {
-                const isUpdating = updatingPlanId === plan.id;
-                
-                // Find current plan to compare prices (by ID)
-                const currentPlan = availablePlans.find(
-                  p => subscription?.plan === p.id
-                );
-                const isUpgrade = currentPlan ? plan.unit_price_usd > currentPlan.unit_price_usd : true;
-                const buttonText = isSubscriptionActive 
-                  ? (isUpgrade ? 'Upgrade' : 'Downgrade')
-                  : 'Subscribe';
-
-                return (
-                  <div
-                    key={plan.id}
-                    className="flex items-center justify-between py-3"
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className="text-sm text-gray-900">{plan.name}</span>
-                      <span className="text-sm text-gray-600">
-                        ${plan.unit_price_usd.toFixed(0)}
-                        {plan.id.includes('yearly') || plan.id.includes('astro') ? '/year' : '/month'}
-                      </span>
-                      <button
-                        onClick={() => setSelectedPlanForInfo(plan)}
-                        className="text-gray-400 hover:text-gray-600 transition-colors"
-                        title="View plan details"
-                      >
-                        <Info className="w-4 h-4" />
-                      </button>
-                    </div>
-                    
-                    <Button
-                      onClick={() => isSubscriptionActive ? handleUpdatePlan(plan) : handleResubscribe(plan)}
-                      disabled={isUpdating}
-                      size="sm"
-                      className="bg-gray-900 hover:bg-gray-800 text-white rounded-full font-light px-6"
-                    >
-                      {isUpdating ? (
-                        <>
-                          <Loader2 className="w-3 h-3 mr-1 animate-spin" />
-                          Processing...
-                        </>
-                      ) : (
-                        buttonText
-                      )}
-                    </Button>
-                  </div>
-                );
-              })}
-          </div>
-        )}
+        <Button
+          onClick={() => setShowPurchaseModal(true)}
+          className="mt-6 bg-gray-900 hover:bg-gray-800 text-white rounded-full font-light px-8"
+        >
+          <Plus className="w-4 h-4 mr-2" />
+          Purchase Credits
+        </Button>
       </div>
 
-      {/* Cancel Subscription */}
-      {isSubscriptionActive && (
-        <div>
-          <div className="flex items-center justify-between py-3">
-            <h3 className="text-sm font-normal text-gray-900">Cancel Subscription</h3>
-            <Button
-              onClick={() => setShowCancelModal(true)}
-              size="sm"
-              variant="outline"
-              className="rounded-full border-red-300 text-red-600 hover:bg-red-50 hover:border-red-400 font-light px-6"
-            >
-              Cancel Plan
-            </Button>
+      {/* Pricing Info */}
+      <div className="border-b pb-6">
+        <h3 className="text-sm font-normal text-gray-900 mb-4">Credit Pricing</h3>
+        <div className="space-y-2 text-sm text-gray-600">
+          <div className="flex justify-between py-2">
+            <span>Chat Message</span>
+            <span className="text-gray-900">1 credit ($0.15)</span>
+          </div>
+          <div className="flex justify-between py-2">
+            <span>Voice Conversation</span>
+            <span className="text-gray-900">3 credits ($0.45)</span>
+          </div>
+          <div className="flex justify-between py-2">
+            <span>Astro Data (Basic)</span>
+            <span className="text-gray-900">1 credit ($0.15)</span>
+          </div>
+          <div className="flex justify-between py-2">
+            <span>Sync Chart</span>
+            <span className="text-gray-900">2 credits ($0.30)</span>
+          </div>
+          <div className="flex justify-between py-2">
+            <span>Report Generation</span>
+            <span className="text-gray-900">2 credits ($0.30)</span>
+          </div>
+          <div className="flex justify-between py-2">
+            <span>Sync + Report</span>
+            <span className="text-gray-900">4 credits ($0.60)</span>
           </div>
         </div>
-      )}
+      </div>
 
-      {/* Cancel Subscription Modal */}
-      <CancelSubscriptionModal
-        isOpen={showCancelModal}
-        onClose={() => setShowCancelModal(false)}
-        onSuccess={fetchBillingData}
-        currentPeriodEnd={subscription?.nextCharge}
-      />
+      {/* Auto Top-Up Settings */}
+      <div className="border-b pb-6">
+        <h3 className="text-sm font-normal text-gray-900 mb-4">Auto Top-Up</h3>
+        <AutoTopUpSettings onSettingsChange={fetchBillingData} />
+      </div>
 
-      {/* Plan Details Sheet */}
-      <Sheet open={!!selectedPlanForInfo} onOpenChange={(open) => !open && setSelectedPlanForInfo(null)}>
-        <SheetContent side="right" className="w-full sm:max-w-md">
-          <SheetHeader>
-            <SheetTitle className="text-xl font-light">
-              {selectedPlanForInfo?.name} Plan
-            </SheetTitle>
-          </SheetHeader>
-
-          {selectedPlanForInfo && (
-            <div className="mt-6 space-y-6">
-              {/* Price */}
-              <div className="text-center py-6 border-b">
-                <div className="text-4xl font-light text-gray-900">
-                  ${selectedPlanForInfo.unit_price_usd.toFixed(0)}
-                </div>
-                <div className="text-sm text-gray-600 mt-1">
-                  {selectedPlanForInfo.id.includes('yearly') || selectedPlanForInfo.id.includes('astro') ? 'per year' : 'per month'}
-                </div>
-              </div>
-
-              {/* Description */}
-              {selectedPlanForInfo.description && (
-                <div className="space-y-2">
-                  <h3 className="text-sm font-medium text-gray-900">What's included</h3>
-                  <p className="text-sm text-gray-600">{selectedPlanForInfo.description}</p>
-                </div>
-              )}
-
-              {/* Features based on plan */}
-              <div className="space-y-3">
-                <h3 className="text-sm font-medium text-gray-900">Features</h3>
-                <ul className="space-y-2 text-sm text-gray-600">
-                  {selectedPlanForInfo.id === 'test_50c' && (
-                    <>
-                      <li>• Test plan for development</li>
-                      <li>• Limited features</li>
-                    </>
-                  )}
-                  {selectedPlanForInfo.id === '10_monthly' && (
-                    <>
-                      <li>• Unlimited text conversations</li>
-                      <li>• Unlimited astrology reports</li>
-                      <li>• All chart types</li>
-                      <li>• Priority support</li>
-                    </>
-                  )}
-                  {selectedPlanForInfo.id === '18_monthly' && (
-                    <>
-                      <li>• Everything in Growth plan</li>
-                      <li>• Voice conversation mode</li>
-                      <li>• Advanced AI insights</li>
-                      <li>• Access to all features</li>
-                      <li>• Premium support</li>
-                    </>
-                  )}
-                </ul>
-              </div>
-
-              {/* CTA */}
-              <div className="pt-6">
-                <Button
-                  onClick={() => {
-                    setSelectedPlanForInfo(null);
-                    if (isSubscriptionActive) {
-                      handleUpdatePlan(selectedPlanForInfo);
-                    } else {
-                      handleResubscribe(selectedPlanForInfo);
-                    }
-                  }}
-                  disabled={updatingPlanId === selectedPlanForInfo.id}
-                  className="w-full bg-gray-900 hover:bg-gray-800 text-white rounded-full font-light py-6"
-                >
-                  {updatingPlanId === selectedPlanForInfo.id ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Processing...
-                    </>
-                  ) : (
-                    <>
-                      {isSubscriptionActive ? 'Switch to this plan' : 'Subscribe now'}
-                    </>
-                  )}
-                </Button>
-              </div>
+      {/* Transaction History */}
+      <div>
+        <Collapsible open={showTransactions} onOpenChange={setShowTransactions}>
+          <CollapsibleTrigger className="flex items-center justify-between w-full py-3 hover:bg-gray-50 rounded-xl px-4 transition-colors">
+            <div className="flex items-center gap-2">
+              <Clock className="w-4 h-4 text-gray-600" />
+              <h3 className="text-sm font-normal text-gray-900">Transaction History</h3>
             </div>
-          )}
-        </SheetContent>
-      </Sheet>
+            <span className="text-xs text-gray-600">
+              {showTransactions ? 'Hide' : 'Show'} ({transactions.length})
+            </span>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <div className="mt-4 space-y-2">
+              {transactions.length === 0 ? (
+                <div className="text-center py-8 text-sm text-gray-500">
+                  No transactions yet
+                </div>
+              ) : (
+                transactions.map((transaction) => (
+                  <div
+                    key={transaction.id}
+                    className="flex items-center justify-between py-3 px-4 hover:bg-gray-50 rounded-xl transition-colors"
+                  >
+                    <div className="flex-1">
+                      <div className="text-sm text-gray-900">
+                        {getTransactionLabel(transaction)}
+                      </div>
+                      <div className="text-xs text-gray-500 mt-1">
+                        {formatDate(transaction.created_at)}
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div
+                        className={`text-sm font-medium ${
+                          getTransactionSign(transaction) === '+'
+                            ? 'text-green-600'
+                            : 'text-gray-900'
+                        }`}
+                      >
+                        {getTransactionSign(transaction)}
+                        {transaction.credits} credits
+                      </div>
+                      {transaction.amount_usd && (
+                        <div className="text-xs text-gray-500 mt-1">
+                          ${transaction.amount_usd.toFixed(2)}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
+      </div>
+
+      {/* Purchase Modal */}
+      <CreditPurchaseModal
+        isOpen={showPurchaseModal}
+        onClose={() => {
+          setShowPurchaseModal(false);
+          fetchBillingData();
+        }}
+      />
     </div>
   );
 };
-
