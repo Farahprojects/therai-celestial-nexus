@@ -121,16 +121,20 @@ export const CreditPurchaseModal: React.FC<CreditPurchaseModalProps> = ({
                     setCustomAmount('');
                   }}
                   className={`
-                    rounded-full border-2 p-6 transition-all text-center
+                    relative rounded-xl border px-4 py-4 transition-all text-left
                     ${
                       selectedPackage === pkg.amount
-                        ? 'border-gray-900 bg-gray-50'
-                        : 'border-gray-200 hover:border-gray-300'
+                        ? 'border-gray-900 bg-gray-900 text-white'
+                        : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
                     }
                   `}
                 >
-                  <div className="text-3xl font-light text-gray-900">${pkg.amount}</div>
-                  <div className="text-sm text-gray-600 mt-2">{pkg.credits} credits</div>
+                  <div className={`text-2xl font-light ${selectedPackage === pkg.amount ? 'text-white' : 'text-gray-900'}`}>
+                    ${pkg.amount}
+                  </div>
+                  <div className={`text-xs mt-1 ${selectedPackage === pkg.amount ? 'text-gray-300' : 'text-gray-500'}`}>
+                    {pkg.credits} credits
+                  </div>
                 </button>
               ))}
             </div>
