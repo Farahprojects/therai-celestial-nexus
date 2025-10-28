@@ -17,7 +17,7 @@ if (typeof window !== 'undefined') {
   // One-time cleanup of old storage keys
   cleanupOldStorage();
   
-  if (process.env.NODE_ENV !== 'production') {
+  if (import.meta.env.DEV) {
     initDevConsoleFilter();
   }
   // Initialize unified auth manager AFTER window is available
