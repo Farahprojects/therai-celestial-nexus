@@ -4,7 +4,7 @@
 -- 1. Create conversation_caches table
 -- Stores Gemini cache references per conversation
 CREATE TABLE IF NOT EXISTS conversation_caches (
-  chat_id TEXT PRIMARY KEY REFERENCES conversations(id) ON DELETE CASCADE,
+  chat_id UUID PRIMARY KEY REFERENCES conversations(id) ON DELETE CASCADE,
   cache_name TEXT NOT NULL,
   system_data_hash TEXT NOT NULL,
   created_at TIMESTAMPTZ DEFAULT NOW(),
@@ -29,7 +29,7 @@ CREATE POLICY "Service role full access on conversation_caches"
 -- Stores lightweight summaries of conversation context
 CREATE TABLE IF NOT EXISTS conversation_summaries (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  chat_id TEXT NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
+  chat_id UUID NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
   summary_text TEXT NOT NULL,
   turn_range TEXT NOT NULL, -- e.g., "1-15", "16-30"
   message_count INTEGER NOT NULL,
