@@ -144,6 +144,20 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Invalidate Gemini cache since system message has changed
+    console.log(`[context-injector][${requestId}] 🔄 Invalidating Gemini cache for chat_id: ${chat_id}`);
+    const { error: cacheDeleteError } = await supabase
+      .from("conversation_caches")
+      .delete()
+      .eq("chat_id", chat_id);
+    
+    if (cacheDeleteError) {
+      console.warn(`[context-injector][${requestId}] ⚠️  Failed to invalidate cache:`, cacheDeleteError.message);
+      // Don't fail the request - cache will be recreated on next LLM call
+    } else {
+      console.log(`[context-injector][${requestId}] ✅ Cache invalidated, will be recreated on next message`);
+    }
+
     const processingTime = Date.now() - startTime;
     console.log(`[context-injector][${requestId}] ✅ ${contextType} context injected successfully in ${processingTime}ms`);
     console.log(`[context-injector][${requestId}] 📝 Message ID: ${contextMessage.id}, Chat ID: ${chat_id}`);
