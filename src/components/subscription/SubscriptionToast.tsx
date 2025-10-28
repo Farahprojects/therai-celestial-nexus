@@ -18,9 +18,11 @@ export const SubscriptionToast: React.FC<SubscriptionToastProps> = ({
     setShowCreditModal(true);
   };
 
-  // Don't show on checkout pages - user is already purchasing credits
+  // Only show on /therai route - not on public pages
+  const isTheraiRoute = location.pathname.startsWith('/therai');
   const isCheckoutPage = location.pathname.startsWith('/checkout');
-  if (isCheckoutPage) {
+  
+  if (!isTheraiRoute || isCheckoutPage) {
     return null;
   }
 
