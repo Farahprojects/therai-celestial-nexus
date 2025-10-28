@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS conversation_caches (
   chat_id UUID PRIMARY KEY REFERENCES conversations(id) ON DELETE CASCADE,
   cache_name TEXT NOT NULL,
   system_data_hash TEXT NOT NULL,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
+  created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
   expires_at TIMESTAMPTZ NOT NULL
 );
 
@@ -33,7 +33,7 @@ CREATE TABLE IF NOT EXISTS conversation_summaries (
   summary_text TEXT NOT NULL,
   turn_range TEXT NOT NULL, -- e.g., "1-15", "16-30"
   message_count INTEGER NOT NULL,
-  created_at TIMESTAMPTZ DEFAULT NOW()
+  created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Index for efficient chat_id + created_at queries
