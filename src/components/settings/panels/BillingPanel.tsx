@@ -6,6 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { CreditPurchaseModal } from '@/components/billing/CreditPurchaseModal';
 import { AutoTopUpSettings } from '@/components/billing/AutoTopUpSettings';
+import { useSettingsModal } from '@/contexts/SettingsModalContext';
 import {
   Collapsible,
   CollapsibleContent,
@@ -32,6 +33,7 @@ interface Transaction {
 
 export const BillingPanel: React.FC = () => {
   const { user } = useAuth();
+  const { closeSettings } = useSettingsModal();
   const [loading, setLoading] = useState(true);
   const [creditData, setCreditData] = useState<CreditData | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -269,6 +271,10 @@ export const BillingPanel: React.FC = () => {
         onClose={() => {
           setShowPurchaseModal(false);
           fetchBillingData();
+        }}
+        onNavigateToCheckout={() => {
+          // Close settings modal when navigating to checkout
+          closeSettings();
         }}
       />
     </div>
