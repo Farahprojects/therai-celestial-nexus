@@ -7,8 +7,7 @@ const corsHeaders = {
 };
 
 /**
- * Optimizes astrological data for AI injection by abbreviating keys and
- * converting simple objects to arrays to reduce token count.
+ * A more robust optimizer that handles deg/sign inside complex objects.
  * @param {any} data The original astrological data object.
  * @returns {any} The optimized data object.
  */
@@ -17,42 +16,38 @@ function optimizeSwissData(data: any): any {
     return data;
   }
 
-  // Use a recursive function to process each node (object, array, or primitive)
   function processNode(node: any): any {
-    // If it's not an object/array, return it as is
     if (node === null || typeof node !== 'object') {
       return node;
     }
 
-    // If it's an array, process each item in the array
     if (Array.isArray(node)) {
       return node.map(item => processNode(item));
     }
 
-    // --- This is the core logic for objects ---
-
     const keys = Object.keys(node);
-    
-    // PATTERN 1a: Check for objects like { type: "Planet", deg: 11.83, sign: "Cancer" }
-    // and convert them to a more compact array: ["Planet", 11.83, "Cancer"]
-    if (keys.length === 3 && keys.includes('type') && keys.includes('deg') && keys.includes('sign')) {
-      return [node.type, node.deg, node.sign];
-    }
-    
-    // PATTERN 1b: Check for objects like { deg: 11.83, sign: "Cancer" }
-    // and convert them to a more compact array: [11.83, "Cancer"]
+
+    // PATTERN 1: Simple {deg, sign} object -> [deg, sign]
     if (keys.length === 2 && keys.includes('deg') && keys.includes('sign')) {
       return [node.deg, node.sign];
     }
     
-    // PATTERN 2: Abbreviate common, long key names
+    // --- NEW LOGIC for complex objects (like planets) ---
     const optimizedObj: { [key: string]: any } = {};
+    
+    // Check if the complex object has position data to combine
+    if (keys.includes('deg') && keys.includes('sign')) {
+      optimizedObj.pos = [node.deg, node.sign]; // Use a new key 'pos' for the array
+    }
+
+    // Process all other keys, abbreviating them and skipping the original deg/sign
     for (const [key, value] of Object.entries(node)) {
+      if (key === 'deg' || key === 'sign') {
+        continue; // Skip the original keys as they've been combined
+      }
+
       let newKey = key;
       switch (key) {
-        case 'type':
-          newKey = 't';
-          break;
         case 'retrograde':
           newKey = 'r';
           break;
@@ -62,16 +57,15 @@ function optimizeSwissData(data: any): any {
         case 'zodiac_type':
           newKey = 'zt';
           break;
-        // Add other abbreviations as needed
-        // case 'datetime_utc': newKey = 'utc'; break; 
+        case 'type':
+          newKey = 't';
+          break;
       }
-      // Recursively process the value and assign it to the new (or old) key
       optimizedObj[newKey] = processNode(value);
     }
     return optimizedObj;
   }
 
-  // Deep clone to avoid modifying the original object and start the process
   const dataToOptimize = JSON.parse(JSON.stringify(data));
   return processNode(dataToOptimize);
 }
