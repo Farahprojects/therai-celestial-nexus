@@ -196,7 +196,11 @@ export const BillingPanel: React.FC = () => {
                 <span className="text-gray-900">1 credit ($0.10)</span>
               </div>
               <div className="flex justify-between py-2">
-                <span>Sync Chart</span>
+                <span>The Self Chart</span>
+                <span className="text-gray-900">1 credit ($0.10)</span>
+              </div>
+              <div className="flex justify-between py-2">
+                <span>Compatibility Chart</span>
                 <span className="text-gray-900">2 credits ($0.20)</span>
               </div>
               <div className="flex justify-between py-2">
@@ -204,7 +208,7 @@ export const BillingPanel: React.FC = () => {
                 <span className="text-gray-900">2 credits ($0.20)</span>
               </div>
               <div className="flex justify-between py-2">
-                <span>Sync + Report</span>
+                <span>Compatibility + Report</span>
                 <span className="text-gray-900">4 credits ($0.40)</span>
               </div>
             </div>
@@ -214,7 +218,6 @@ export const BillingPanel: React.FC = () => {
 
       {/* Auto Top-Up Settings */}
       <div className="border-b pb-6">
-        <h3 className="text-sm font-normal text-gray-900 mb-4">Auto Top-Up</h3>
         <AutoTopUpSettings onSettingsChange={fetchBillingData} />
       </div>
 

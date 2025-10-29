@@ -204,7 +204,7 @@ export const CreditPurchaseModal: React.FC<CreditPurchaseModalProps> = ({
                           <span className="text-sm font-medium text-gray-900">2 credits ($0.20)</span>
                         </div>
                         <div className="flex justify-between items-center py-2">
-                          <span className="text-sm text-gray-700">Full sync + report</span>
+                          <span className="text-sm text-gray-700">Full compatibility + report</span>
                           <span className="text-sm font-medium text-gray-900">4 credits ($0.40)</span>
                         </div>
                       </div>
