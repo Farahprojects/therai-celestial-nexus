@@ -47,9 +47,9 @@ export function buildLogQuery(userId: string, filters: ActivityLogsFilterState) 
   }
   
   if (filters.search) {
-    // This is a simplified search - in a real implementation you'd need to 
-    // check if the database supports full-text search or adjust accordingly
-    query = query.or(`request_type.ilike.%${filters.search}%`);
+    // Sanitize search input to prevent SQL injection
+    const sanitizedSearch = filters.search.trim().replace(/[%_\\]/g, '\\$&');
+    query = query.ilike('request_type', `%${sanitizedSearch}%`);
   }
   
   return query;

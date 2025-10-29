@@ -229,10 +229,24 @@ Deno.serve(async (req) => {
 
   urlObj.searchParams.delete("api_key");
   
+  // Sanitize and validate URL parameters to prevent injection
+  const sanitizedUrlParams: Record<string, string> = {};
+  const allowedParams = ['request', 'date', 'time', 'location', 'name', 'latitude', 'longitude', 'tz', 'house_system', 'year', 'return_date'];
+  
+  for (const [key, value] of urlObj.searchParams.entries()) {
+    if (allowedParams.includes(key) && typeof value === 'string') {
+      // Sanitize parameter values
+      const sanitizedValue = value.trim().slice(0, 1000); // Limit length
+      if (sanitizedValue.length > 0) {
+        sanitizedUrlParams[key] = sanitizedValue;
+      }
+    }
+  }
+  
   // Create the merged payload from URL parameters and body
   const mergedPayload = {
     ...(bodyJson ?? {}),
-    ...Object.fromEntries(urlObj.searchParams.entries()),
+    ...sanitizedUrlParams,
     user_id: row.user_id,
     api_key: apiKey,
     auth_method: authMethod, 
