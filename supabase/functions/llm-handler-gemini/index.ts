@@ -2,7 +2,7 @@
 // - Caches system messages (7K tokens) for 1 hour → 90% cost reduction
 // - Generates conversation summaries every 10-15 turns
 // - Fetches only recent 6-8 messages for context
-// - Tracks turn count for summary generation
+// - Tracks turn count for summary generation.
 
 declare const Deno: {
   env: {
