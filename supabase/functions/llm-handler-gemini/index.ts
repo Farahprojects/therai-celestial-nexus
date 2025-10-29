@@ -401,7 +401,8 @@ Deno.serve(async (req) => {
   }
 
   requestBody.generationConfig = {
-    temperature: 0.7
+    temperature: 0.7,
+    thinkingConfig: { thinkingBudget: 0 }
   };
 
   // Make Gemini API call
