@@ -1,13 +1,14 @@
-//
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { log } from '@/utils/logUtils';
+import { AuthModal } from './AuthModal';
 
 export const AuthGuard = ({ children }: { children: React.ReactNode }) => {
   const { user, loading, isValidating, pendingEmailAddress, isPendingEmailCheck } = useAuth();
   const location = useLocation();
   const searchParams = new URLSearchParams(location.search);
+  const [showAuthModal, setShowAuthModal] = useState(false);
   
   // Check for password reset route with more precision
   // This will match both /auth/password and /auth/password?type=recovery
@@ -29,6 +30,15 @@ export const AuthGuard = ({ children }: { children: React.ReactNode }) => {
     }
   }, [location.pathname, user, loading, isPasswordResetRoute, hasRecoveryToken, pendingEmailAddress]);
   
+  // Open auth modal when user is not authenticated
+  useEffect(() => {
+    if (!loading && !user && !isPasswordResetRoute && !hasRecoveryToken) {
+      setShowAuthModal(true);
+    } else {
+      setShowAuthModal(false);
+    }
+  }, [user, loading, isPasswordResetRoute, hasRecoveryToken]);
+  
   // If user is on password reset route, don't apply auth guard
   if (isPasswordResetRoute) {
     log('debug', 'Password reset route detected, bypassing auth guard');
@@ -46,15 +56,33 @@ export const AuthGuard = ({ children }: { children: React.ReactNode }) => {
     return null; // Lazy loading - no spinner
   }
   
-  // Not logged in, redirect to login
+  // Not logged in - show page with auth modal overlay
   if (!user) {
-    return <Navigate to="/login" state={{ from: location }} replace />;
+    return (
+      <>
+        {children}
+        <AuthModal
+          isOpen={showAuthModal}
+          onClose={() => setShowAuthModal(false)}
+          defaultMode="login"
+        />
+      </>
+    );
   }
 
-  // If user has pending email verification, redirect to login to show verification modal
+  // If user has pending email verification, show page with auth modal overlay
   if (pendingEmailAddress) {
-    log('info', 'User has pending email verification, redirecting to login');
-    return <Navigate to="/login" state={{ from: location, showVerification: true, pendingEmail: pendingEmailAddress }} replace />;
+    log('info', 'User has pending email verification, showing auth modal');
+    return (
+      <>
+        {children}
+        <AuthModal
+          isOpen={true}
+          onClose={() => {}} // Don't allow closing - must verify
+          defaultMode="login"
+        />
+      </>
+    );
   }
   
   // User is logged in and verified, render protected component

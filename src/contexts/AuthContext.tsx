@@ -434,10 +434,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.warn('Additional cleanup failed:', cleanupError);
       }
 
-      // Step 5: Navigate to index page
-      if (typeof window !== 'undefined' && window.location.pathname !== '/') {
-        window.location.href = '/';
-      }
+      // No navigation - let user stay on current page
+      // AuthGuard will show auth modal if needed
       
     } catch (error) {
       console.error('Sign out error:', error);

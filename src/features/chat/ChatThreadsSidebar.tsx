@@ -910,12 +910,14 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
         ) : (
           /* Unauthenticated User - Sign In Button */
           uiConfig.authButtonLabel && (
-            <button
-              onClick={() => setShowAuthModal(true)}
-              className="w-full px-3 py-3 text-sm bg-gray-900 text-white hover:bg-gray-800 rounded-xl transition-colors font-light"
-            >
-              {uiConfig.authButtonLabel}
-            </button>
+            <div className="flex justify-center">
+              <button
+                onClick={() => setShowAuthModal(true)}
+                className="w-4/5 px-2.5 py-2 text-sm bg-gray-900 text-white hover:bg-gray-800 rounded-full transition-colors font-light"
+              >
+                {uiConfig.authButtonLabel}
+              </button>
+            </div>
           )
         )}
       </div>

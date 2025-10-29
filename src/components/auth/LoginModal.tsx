@@ -275,12 +275,15 @@ const LoginModal: React.FC<LoginModalProps> = ({ onSuccess, showAsPage = false }
           </div>
         )}
 
-        <p className="text-center text-sm text-gray-600 font-light">
-          Don't have an account?{' '}
-          <Link to="/signup" className="text-gray-900 hover:text-gray-700 transition-colors border-b border-gray-300 hover:border-gray-600 pb-1">
-            Sign up
-          </Link>
-        </p>
+        {/* Only show sign up link when shown as a page, not in modal */}
+        {showAsPage && (
+          <p className="text-center text-sm text-gray-600 font-light">
+            Don't have an account?{' '}
+            <Link to="/signup" className="text-gray-900 hover:text-gray-700 transition-colors border-b border-gray-300 hover:border-gray-600 pb-1">
+              Sign up
+            </Link>
+          </p>
+        )}
       </div>
       </div>
     </div>

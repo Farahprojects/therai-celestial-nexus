@@ -3,11 +3,13 @@ import { useLocation } from 'react-router-dom';
 import { CreditPurchaseModal } from '@/components/billing/CreditPurchaseModal';
 
 interface SubscriptionToastProps {
+  isVisible: boolean;
   onDismiss: () => void;
   message?: string;
 }
 
 export const SubscriptionToast: React.FC<SubscriptionToastProps> = ({ 
+  isVisible,
   onDismiss,
   message = 'Low credit balance'
 }) => {
@@ -22,7 +24,7 @@ export const SubscriptionToast: React.FC<SubscriptionToastProps> = ({
   const isTheraiRoute = location.pathname.startsWith('/therai');
   const isCheckoutPage = location.pathname.startsWith('/checkout');
   
-  if (!isTheraiRoute || isCheckoutPage) {
+  if (!isVisible || !isTheraiRoute || isCheckoutPage) {
     return null;
   }
 

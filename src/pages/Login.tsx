@@ -16,11 +16,12 @@ export default function Login() {
   }, []);
 
   // Redirect if already authenticated
-  if (user && !authLoading) {
-    const from = (location.state as any)?.from?.pathname || '/therai';
-    navigate(from, { replace: true });
-    return null;
-  }
+  useEffect(() => {
+    if (user && !authLoading) {
+      const from = (location.state as any)?.from?.pathname || '/therai';
+      navigate(from, { replace: true });
+    }
+  }, [user, authLoading, navigate, location.state]);
 
   const handleSuccess = () => {
     const from = (location.state as any)?.from?.pathname || '/therai';
