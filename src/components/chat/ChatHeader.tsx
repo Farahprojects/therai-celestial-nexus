@@ -18,15 +18,18 @@ export const ChatHeader: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-2">
-          {/* Share Button */}
-          {chat_id && (
-            <button
-              onClick={() => setShowShareModal(true)}
-              className="flex items-center justify-center w-8 h-8 text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors"
-            >
-              <Share2 className="w-4 h-4" />
-            </button>
-          )}
+          {/* Share Button - Always visible */}
+          <button
+            onClick={() => chat_id && setShowShareModal(true)}
+            disabled={!chat_id}
+            className={`flex items-center justify-center w-8 h-8 rounded-lg transition-colors ${
+              chat_id 
+                ? 'text-gray-700 hover:text-gray-900 hover:bg-gray-50' 
+                : 'text-gray-300 cursor-not-allowed'
+            }`}
+          >
+            <Share2 className="w-4 h-4" />
+          </button>
           
           {/* 3 Dots Menu */}
           <ChatMenuButton />
