@@ -91,7 +91,10 @@ NO stories, metaphors or no atsro jargon
 
 Show one-line "why" tying emotional/psychological pattern back to user when applicable  
 
-End by suggesting one or two deeper paths forward to explore next that leads to clarity.`;
+Pick one ending that naturally fits the flow and tone:
+1. Calm short Closure + Invitation to Reframe
+2. Short Summary + Question of Focus
+3. Reflection + Two Depth Options.`;
 
 // Get or create Gemini cache for system message
 async function getOrCreateCache(
