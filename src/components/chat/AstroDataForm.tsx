@@ -26,6 +26,7 @@ import { AstroSecondPersonStep } from './AstroForm/AstroSecondPersonStep';
 interface AstroDataFormProps {
   onClose: () => void;
   onSubmit: (data: ReportFormData) => void;
+  onBack?: () => void;
   preselectedType?: string;
   reportType?: string;
   contextId?: string;
@@ -57,6 +58,7 @@ const DEFAULT_FORM_VALUES: ReportFormData = {
 export const AstroDataForm: React.FC<AstroDataFormProps> = ({
   onClose,
   onSubmit,
+  onBack,
   preselectedType,
   reportType,
   contextId,
@@ -67,7 +69,7 @@ export const AstroDataForm: React.FC<AstroDataFormProps> = ({
   // State
   const isInsights = variant === 'insights';
   const [currentStep, setCurrentStep] = useState<'type' | 'details' | 'secondPerson'>(
-    isInsights ? 'details' : preselectedType ? 'details' : 'type'
+    isInsights ? 'details' : preselectedType ? 'details' : 'details'
   );
   const [selectedAstroType, setSelectedAstroType] = useState<string>(preselectedType || '');
   const [activeSelector, setActiveSelector] = useState<string | null>(null);
@@ -225,8 +227,12 @@ export const AstroDataForm: React.FC<AstroDataFormProps> = ({
   };
 
   const goBackToType = () => {
-    setCurrentStep('type');
-    setSelectedAstroType('');
+    // Use onBack prop if provided, otherwise close the form
+    if (onBack) {
+      onBack();
+    } else {
+      handleClose();
+    }
   };
 
   const goBackToDetails = () => {

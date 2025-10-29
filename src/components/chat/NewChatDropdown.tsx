@@ -135,6 +135,11 @@ export const NewChatDropdown: React.FC<NewChatDropdownProps> = ({ className = ""
     setSelectedChartType(null);
   };
 
+  const handleBackToChartSelector = () => {
+    setShowAstroModal(false);
+    setShowAstroChartSelector(true);
+  };
+
   return (
     <>
       <DropdownMenu>
@@ -202,6 +207,7 @@ export const NewChatDropdown: React.FC<NewChatDropdownProps> = ({ className = ""
             <AstroDataForm
               onClose={handleCloseAstroModal}
               onSubmit={handleAstroFormSubmit}
+              onBack={handleBackToChartSelector}
               mode="astro"
               preselectedType={selectedChartType}
               reportType={selectedChartType}
