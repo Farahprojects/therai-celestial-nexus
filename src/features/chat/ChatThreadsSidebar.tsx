@@ -58,6 +58,10 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
   const userPermissions = useUserPermissions();
   const uiConfig = getUserTypeConfig(isAuthenticated ? 'authenticated' : 'unauthenticated');
   
+  // Credit balance state
+  const [credits, setCredits] = useState<number>(0);
+  const [creditsLoading, setCreditsLoading] = useState(true);
+  
   // Get chat_id directly from URL (most reliable source)
   const { threadId } = useParams<{ threadId?: string }>();
   const storeChatId = useChatStore((state) => state.chat_id);
@@ -97,10 +101,30 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
     openSettings(panel as "general" | "account" | "notifications" | "support" | "billing");
   };
 
-  // Load folders on mount
+  // Load credits and folders on mount
   useEffect(() => {
     if (!user?.id) return;
     
+    const loadCredits = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('user_credits')
+          .select('credits')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        if (error && error.code !== 'PGRST116') {
+          console.error('[ChatThreadsSidebar] Failed to load credits:', error);
+        } else {
+          setCredits((data as any)?.credits || 0);
+        }
+      } catch (error) {
+        console.error('[ChatThreadsSidebar] Failed to load credits:', error);
+      } finally {
+        setCreditsLoading(false);
+      }
+    };
+
     const loadFolders = async () => {
       try {
         const userFolders = await getUserFolders(user.id);
@@ -127,7 +151,36 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
       }
     };
     
+    loadCredits();
     loadFolders();
+  }, [user?.id]);
+
+  // Set up real-time subscription for credit balance updates
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const channel = supabase
+      .channel('user_credits_realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'user_credits',
+          filter: `user_id=eq.${user.id}`,
+        },
+        (payload) => {
+          console.log('[ChatThreadsSidebar] Credit balance updated:', payload);
+          if (payload.new && 'credits' in payload.new) {
+            setCredits((payload.new as any).credits);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [user?.id]);
 
   // Folder handlers
@@ -823,7 +876,7 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
                         {displayName}
                       </div>
                     </div>
-                    {!isSubscriptionActive && (
+                    {!creditsLoading && credits === 0 && (
                       <div 
                         onClick={(e) => {
                           e.stopPropagation();
@@ -853,7 +906,7 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
                     </button>
                   </DropdownMenuTrigger>
                   
-                  {!isSubscriptionActive && (
+                  {!creditsLoading && credits === 0 && (
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
