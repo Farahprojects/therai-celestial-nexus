@@ -61,6 +61,27 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
   // Credit balance state
   const [credits, setCredits] = useState<number>(0);
   const [creditsLoading, setCreditsLoading] = useState(true);
+
+  // Function to refresh credit balance
+  const refreshCredits = async () => {
+    if (!user?.id) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('user_credits')
+        .select('credits')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (error && error.code !== 'PGRST116') {
+        console.error('[ChatThreadsSidebar] Failed to refresh credits:', error);
+      } else {
+        setCredits((data as any)?.credits || 0);
+      }
+    } catch (error) {
+      console.error('[ChatThreadsSidebar] Failed to refresh credits:', error);
+    }
+  };
   
   // Get chat_id directly from URL (most reliable source)
   const { threadId } = useParams<{ threadId?: string }>();
@@ -1112,7 +1133,14 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
       {/* Credit Purchase Modal */}
       <CreditPurchaseModal
         isOpen={showCreditPurchaseModal}
-        onClose={() => setShowCreditPurchaseModal(false)}
+        onClose={() => {
+          setShowCreditPurchaseModal(false);
+          refreshCredits(); // Refresh credit balance after purchase
+        }}
+        onNavigateToCheckout={() => {
+          // Close any open modals when navigating to checkout
+          setShowCreditPurchaseModal(false);
+        }}
       />
     </div>
   );
