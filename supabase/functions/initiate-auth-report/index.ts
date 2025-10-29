@@ -136,6 +136,7 @@ Deno.serve(async (req) => {
     const translatorPayload = {
       ...report_data,
       chat_id: actualChatId, // Always pass chat_id (conversation id, user id for profile, or conversation id for insights)
+      user_id: user.id, // Add user_id for credit deduction
       email: email,
       name: name,
       mode: mode
