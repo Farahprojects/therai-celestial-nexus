@@ -100,7 +100,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
       value={{
         showToast,
         dismissToast,
-        isSubscriptionActive: isActive,
+        isSubscriptionActive: true, // TEMPORARILY DISABLED: Always return true to bypass subscription checks
         subscriptionPlan: plan,
         loading,
         isPastDue,
