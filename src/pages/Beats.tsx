@@ -43,7 +43,7 @@ const PLANETARY_FREQUENCIES = [
 export default function Beats() {
   const [audioContext, setAudioContext] = useState<AudioContext | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
-  const [brainwaveType, setBrainwaveType] = useState<'delta' | 'alpha' | 'gamma'>('alpha');
+  const [brainwaveType, setBrainwaveType] = useState<'delta' | 'alpha' | 'gamma' | null>('alpha');
   const [centerFrequency, setCenterFrequency] = useState(136.10);
   
   // Track selected planet frequencies for left and right tones
@@ -198,20 +198,23 @@ export default function Beats() {
   };
 
   // Apply preset frequency with brainwave offset
-  const applyPresetWithBrainwave = (frequency: number, brainwave: 'delta' | 'alpha' | 'gamma') => {
+  const applyPresetWithBrainwave = (frequency: number, brainwave: 'delta' | 'alpha' | 'gamma' | null) => {
     let offset = 0;
-    switch (brainwave) {
-      case 'delta': offset = 1; break;  // 2 Hz beat
-      case 'alpha': offset = 5; break;  // 10 Hz beat
-      case 'gamma': offset = 20; break; // 40 Hz beat
+    if (brainwave) {
+      switch (brainwave) {
+        case 'delta': offset = 1; break;  // 2 Hz beat
+        case 'alpha': offset = 5; break;  // 10 Hz beat
+        case 'gamma': offset = 20; break; // 40 Hz beat
+      }
     }
     
     const lowFreq = frequency - offset;
     const highFreq = frequency + offset;
     
     setCenterFrequency(frequency);
-    setLowTonePlanet(lowFreq);
-    setHighTonePlanet(highFreq);
+    // Set both tone planets to the same preset frequency so they show the same selection
+    setLowTonePlanet(frequency);
+    setHighTonePlanet(frequency);
     updateFrequency('low', lowFreq);
     updateFrequency('high', highFreq);
   };
@@ -528,14 +531,15 @@ export default function Beats() {
                <div className="space-y-3">
                  <div className="text-xs font-light text-gray-500 uppercase tracking-wide text-center">Brainwave</div>
                  <select
-                   value={brainwaveType}
+                   value={brainwaveType || ''}
                    onChange={(e) => {
-                     const newBrainwave = e.target.value as 'delta' | 'alpha' | 'gamma';
+                     const newBrainwave = e.target.value === '' ? null : e.target.value as 'delta' | 'alpha' | 'gamma';
                      setBrainwaveType(newBrainwave);
                      applyPresetWithBrainwave(centerFrequency, newBrainwave);
                    }}
                    className="w-full px-4 py-3.5 md:py-3 bg-white border border-gray-200 rounded-full font-light text-base md:text-sm focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all hover:border-gray-300"
                  >
+                   <option value="">None</option>
                    <option value="delta">Delta (2 Hz)</option>
                    <option value="alpha">Alpha (10 Hz)</option>
                    <option value="gamma">Gamma (40 Hz)</option>
@@ -550,7 +554,8 @@ export default function Beats() {
                    onChange={(e) => {
                      const selectedHz = parseFloat(e.target.value);
                      if (!isNaN(selectedHz)) {
-                       applyPresetWithBrainwave(selectedHz, brainwaveType);
+                       setBrainwaveType(null); // Reset brainwave to null when preset is selected
+                       applyPresetWithBrainwave(selectedHz, null);
                      }
                    }}
                    className="w-full px-4 py-3.5 md:py-3 bg-white border border-gray-200 rounded-full font-light text-base md:text-sm focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all hover:border-gray-300"
