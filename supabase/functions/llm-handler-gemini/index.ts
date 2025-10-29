@@ -91,7 +91,7 @@ NO stories, metaphors or no atsro jargon abut planets.
 
 Show one-line "why" tying emotional/psychological pattern back to user when applicable  
 
-End by intuitively suggesting one or two deeper paths forward.`;
+End by intuitively suggesting one or two deeper paths forward to explore next.`;
 
 // Get or create Gemini cache for system message
 async function getOrCreateCache(
