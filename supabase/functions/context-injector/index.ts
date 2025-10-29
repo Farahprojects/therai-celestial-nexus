@@ -6,36 +6,74 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Function to optimize Swiss data by removing redundant fields to reduce token usage
-function optimizeSwissData(swissData: any): any {
-  if (!swissData || typeof swissData !== 'object') {
-    return swissData;
+/**
+ * Optimizes astrological data for AI injection by abbreviating keys and
+ * converting simple objects to arrays to reduce token count.
+ * @param {any} data The original astrological data object.
+ * @returns {any} The optimized data object.
+ */
+function optimizeSwissData(data: any): any {
+  if (!data || typeof data !== 'object') {
+    return data;
   }
 
-  // Deep clone to avoid modifying original data
-  const optimized = JSON.parse(JSON.stringify(swissData));
+  // Use a recursive function to process each node (object, array, or primitive)
+  function processNode(node: any): any {
+    // If it's not an object/array, return it as is
+    if (node === null || typeof node !== 'object') {
+      return node;
+    }
 
-  // Recursively remove redundant fields from all objects
-  function removeRedundantFields(obj: any): any {
-    if (Array.isArray(obj)) {
-      return obj.map(item => removeRedundantFields(item));
+    // If it's an array, process each item in the array
+    if (Array.isArray(node)) {
+      return node.map(item => processNode(item));
+    }
+
+    // --- This is the core logic for objects ---
+
+    const keys = Object.keys(node);
+    
+    // PATTERN 1a: Check for objects like { type: "Planet", deg: 11.83, sign: "Cancer" }
+    // and convert them to a more compact array: ["Planet", 11.83, "Cancer"]
+    if (keys.length === 3 && keys.includes('type') && keys.includes('deg') && keys.includes('sign')) {
+      return [node.type, node.deg, node.sign];
     }
     
-    if (obj && typeof obj === 'object') {
-      const cleaned: any = {};
-      for (const [key, value] of Object.entries(obj)) {
-        // Skip redundant fields that don't add value for AI processing
-        if (!['type', 'deg', 'sign'].includes(key)) {
-          cleaned[key] = removeRedundantFields(value);
-        }
+    // PATTERN 1b: Check for objects like { deg: 11.83, sign: "Cancer" }
+    // and convert them to a more compact array: [11.83, "Cancer"]
+    if (keys.length === 2 && keys.includes('deg') && keys.includes('sign')) {
+      return [node.deg, node.sign];
+    }
+    
+    // PATTERN 2: Abbreviate common, long key names
+    const optimizedObj: { [key: string]: any } = {};
+    for (const [key, value] of Object.entries(node)) {
+      let newKey = key;
+      switch (key) {
+        case 'type':
+          newKey = 't';
+          break;
+        case 'retrograde':
+          newKey = 'r';
+          break;
+        case 'house_system':
+          newKey = 'hs';
+          break;
+        case 'zodiac_type':
+          newKey = 'zt';
+          break;
+        // Add other abbreviations as needed
+        // case 'datetime_utc': newKey = 'utc'; break; 
       }
-      return cleaned;
+      // Recursively process the value and assign it to the new (or old) key
+      optimizedObj[newKey] = processNode(value);
     }
-    
-    return obj;
+    return optimizedObj;
   }
 
-  return removeRedundantFields(optimized);
+  // Deep clone to avoid modifying the original object and start the process
+  const dataToOptimize = JSON.parse(JSON.stringify(data));
+  return processNode(dataToOptimize);
 }
 
 
