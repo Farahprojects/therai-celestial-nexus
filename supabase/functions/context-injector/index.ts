@@ -6,6 +6,38 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Function to optimize Swiss data by removing redundant fields to reduce token usage
+function optimizeSwissData(swissData: any): any {
+  if (!swissData || typeof swissData !== 'object') {
+    return swissData;
+  }
+
+  // Deep clone to avoid modifying original data
+  const optimized = JSON.parse(JSON.stringify(swissData));
+
+  // Recursively remove redundant fields from all objects
+  function removeRedundantFields(obj: any): any {
+    if (Array.isArray(obj)) {
+      return obj.map(item => removeRedundantFields(item));
+    }
+    
+    if (obj && typeof obj === 'object') {
+      const cleaned: any = {};
+      for (const [key, value] of Object.entries(obj)) {
+        // Skip redundant fields that don't add value for AI processing
+        if (!['type', 'deg', 'sign'].includes(key)) {
+          cleaned[key] = removeRedundantFields(value);
+        }
+      }
+      return cleaned;
+    }
+    
+    return obj;
+  }
+
+  return removeRedundantFields(optimized);
+}
+
 
 Deno.serve(async (req) => {
   const startTime = Date.now();
@@ -80,7 +112,15 @@ Deno.serve(async (req) => {
         .single();
 
       if (translatorLogs?.swiss_data) {
-        contextContent = `Astro data available for this conversation:\n${JSON.stringify(translatorLogs.swiss_data, null, 2)}`;
+        // Optimize Swiss data by removing redundant fields to reduce token usage
+        const originalSize = JSON.stringify(translatorLogs.swiss_data).length;
+        const optimizedSwissData = optimizeSwissData(translatorLogs.swiss_data);
+        const optimizedSize = JSON.stringify(optimizedSwissData).length;
+        const reductionPercent = Math.round(((originalSize - optimizedSize) / originalSize) * 100);
+        
+        console.log(`[context-injector][${requestId}] 📊 Swiss data optimization: ${originalSize} → ${optimizedSize} chars (${reductionPercent}% reduction)`);
+        
+        contextContent = `Astro data available for this conversation:\n${JSON.stringify(optimizedSwissData, null, 2)}`;
       } else {
         contextContent = "Astro data context injected for this conversation.";
       }
