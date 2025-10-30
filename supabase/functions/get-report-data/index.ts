@@ -75,7 +75,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log(`[get-report-data][${requestId}] 📋 Fetching report data: ${chat_id}`);
+    console.log(`[get-report-data][${requestId}] 📋 Fetching report data`);
 
     // Initialize Supabase client with service role
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
@@ -142,7 +142,7 @@ Deno.serve(async (req) => {
     };
 
     const processingTime = Date.now() - startTime;
-    console.log(`[get-report-data][${requestId}] ✅ Report data retrieved in ${processingTime}ms: ${chat_id}`);
+    console.log(`[get-report-data][${requestId}] ✅ Report data retrieved in ${processingTime}ms`);
     
     // Return report data
     return new Response(

@@ -279,14 +279,14 @@ function logAndSignalCompletion(logPrefix: string, reportData: any, report: stri
         if (error) {
           console.error(`${logPrefix} Insights update failed:`, error);
         } else {
-          console.log(`${logPrefix} Insights table updated: ${reportData.chat_id}`);
+          console.log(`${logPrefix} Insights table updated`);
         }
       });
   }
   
   // Fire-and-forget context-injector call for insight mode reports
   if (reportData.mode === 'insight' && reportData.chat_id && report) {
-    console.log(`${logPrefix} Calling context-injector to inject report text for chat_id: ${reportData.chat_id}`);
+    console.log(`${logPrefix} Calling context-injector to inject report text`);
     supabase.functions.invoke('context-injector', {
       body: {
         chat_id: reportData.chat_id,
@@ -299,7 +299,7 @@ function logAndSignalCompletion(logPrefix: string, reportData: any, report: stri
       if (error) {
         console.error(`${logPrefix} Context-injector failed:`, error);
       } else {
-        console.log(`${logPrefix} Context-injector completed successfully for chat_id: ${reportData.chat_id}`);
+        console.log(`${logPrefix} Context-injector completed successfully`);
       }
     })
     .catch((err) => {

@@ -143,7 +143,7 @@ class UnifiedWebSocketService {
             }
             
             // Emit global event with full message data (no DB refetch needed)
-            if (DEBUG) console.log(`[UnifiedWebSocket] 🔔 Emitting message event with data for chat_id:`, chat_id);
+            if (DEBUG) console.log(`[UnifiedWebSocket] 🔔 Emitting message event with data`);
             
             window.dispatchEvent(new CustomEvent('assistant-message', { 
               detail: { 
@@ -160,11 +160,11 @@ class UnifiedWebSocketService {
           // 🔒 Ignore stale subscription callbacks
           if (currentToken !== this.subscribeToken) return;
           
-          if (DEBUG) console.log(`[UnifiedWebSocket] 🔌 Status changed:`, status, `for chat_id: ${chat_id}`);
+          if (DEBUG) console.log(`[UnifiedWebSocket] 🔌 Status changed:`, status);
           this.realtimeStatus = status as any;
           
           if (status === 'SUBSCRIBED') {
-            if (DEBUG) console.log(`[UnifiedWebSocket] ✅ CONNECTED & LISTENING for chat_id: ${chat_id}`);
+            if (DEBUG) console.log(`[UnifiedWebSocket] ✅ CONNECTED & LISTENING`);
             this.subscriptionRetryCount = 0;
             this.coldReconnectAttempts = 0;
             if (this.connectTimeoutId !== null) {

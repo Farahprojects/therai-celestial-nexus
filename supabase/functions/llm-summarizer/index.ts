@@ -77,7 +77,7 @@ Deno.serve(async (req) => {
   const fromTurn = typeof from_turn === "number" ? from_turn : 0;
   const toTurn = typeof to_turn === "number" ? to_turn : 999999;
 
-  console.log(`[llm-summarizer] Generating summary for chat_id: ${chat_id}, turns ${fromTurn}-${toTurn}`);
+  console.log(`[llm-summarizer] Generating summary for turns ${fromTurn}-${toTurn}`);
 
   try {
     // Fetch messages for the specified turn range

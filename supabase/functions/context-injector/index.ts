@@ -121,7 +121,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log(`[context-injector][${requestId}] 📋 Processing context injection for chat_id: ${chat_id}, injection_type: ${injection_type || 'swiss_data'}`);
+    console.log(`[context-injector][${requestId}] 📋 Processing context injection for injection_type: ${injection_type || 'swiss_data'}`);
 
     // Initialize Supabase client
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
@@ -165,7 +165,7 @@ Deno.serve(async (req) => {
       .limit(1);
 
     if (existingContext && existingContext.length > 0) {
-      console.log(`[context-injector][${requestId}] ✅ ${contextType} context already injected for chat_id: ${chat_id}`);
+      console.log(`[context-injector][${requestId}] ✅ ${contextType} context already injected`);
       return new Response(
         JSON.stringify({ 
           success: true, 
@@ -214,7 +214,7 @@ Deno.serve(async (req) => {
     }
 
     // Invalidate Gemini cache since system message has changed
-    console.log(`[context-injector][${requestId}] 🔄 Invalidating Gemini cache for chat_id: ${chat_id}`);
+    console.log(`[context-injector][${requestId}] 🔄 Invalidating Gemini cache`);
     const { error: cacheDeleteError } = await supabase
       .from("conversation_caches")
       .delete()
@@ -229,7 +229,7 @@ Deno.serve(async (req) => {
 
     const processingTime = Date.now() - startTime;
     console.log(`[context-injector][${requestId}] ✅ ${contextType} context injected successfully in ${processingTime}ms`);
-    console.log(`[context-injector][${requestId}] 📝 Message ID: ${contextMessage.id}, Chat ID: ${chat_id}`);
+    console.log(`[context-injector][${requestId}] 📝 Context message injected successfully`);
     
     return new Response(
       JSON.stringify({ 

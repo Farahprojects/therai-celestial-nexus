@@ -47,7 +47,7 @@ Deno.serve(async (req) => {
   try {
     const { chat_id, report_data, email, name, mode } = await req.json() as AuthReportRequest;
     
-    console.log(`🔄 [initiate-auth-report] Processing request for chat_id: ${chat_id}, mode: ${mode}`);
+    console.log(`🔄 [initiate-auth-report] Processing request for mode: ${mode}`);
 
     if (!chat_id || !report_data) {
       return new Response(JSON.stringify({ error: "chat_id and report_data are required" }), {
@@ -93,7 +93,7 @@ Deno.serve(async (req) => {
     
     // Check if this is an insights report by mode
     if (mode === 'insight') {
-      console.log(`🔄 [initiate-auth-report] Insights report flow for chat_id: ${chat_id}`);
+      console.log(`🔄 [initiate-auth-report] Insights report flow`);
       isInsightsReport = true;
       actualChatId = chat_id; // Use chat_id for insights
       
@@ -110,7 +110,7 @@ Deno.serve(async (req) => {
           if (error) {
             console.error(`❌ [initiate-auth-report] Failed to insert insight:`, error);
           } else {
-            console.log(`✅ [initiate-auth-report] Insight record created: ${chat_id}`);
+            console.log(`✅ [initiate-auth-report] Insight record created`);
           }
         });
     } else {
@@ -129,7 +129,7 @@ Deno.serve(async (req) => {
           headers: { ...corsHeaders, "Content-Type": "application/json" }
         });
       }
-      console.log(`✅ [initiate-auth-report] Conversation verified: ${chat_id}`);
+      console.log(`✅ [initiate-auth-report] Conversation verified`);
     }
 
     // Step 3: Build translator-edge payload
@@ -142,7 +142,7 @@ Deno.serve(async (req) => {
       mode: mode
     };
 
-    console.log(`🔄 [initiate-auth-report] Built translator payload for: ${chat_id}`);
+    console.log(`🔄 [initiate-auth-report] Built translator payload`);
 
     // Step 4: Fire-and-forget call to translator-edge
     EdgeRuntime.waitUntil(
@@ -177,13 +177,13 @@ Deno.serve(async (req) => {
         console.error(`❌ [initiate-auth-report] Failed to save form meta: ${chat_id}`, metaError);
         // Don't fail the request, just log the error
       } else {
-        console.log(`✅ [initiate-auth-report] Form meta saved for: ${chat_id}`);
+        console.log(`✅ [initiate-auth-report] Form meta saved`);
       }
     } else {
       console.log(`✅ [initiate-auth-report] Skipping conversation meta save for insights flow`);
     }
 
-    console.log(`✅ [initiate-auth-report] Successfully processed: ${chat_id}`);
+    console.log(`✅ [initiate-auth-report] Successfully processed`);
 
     return new Response(JSON.stringify({
       success: true,

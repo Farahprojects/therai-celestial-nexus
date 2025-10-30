@@ -303,7 +303,6 @@ if (typeof window !== 'undefined' && !(window as any).__msgStoreListenerInstalle
     
     if (DEBUG) {
       console.log('[MessageStore] 🔔 Message event received:', { 
-        event_chat_id: chat_id,
         role,
         hasMessageData: !!messageData
       });
@@ -313,7 +312,6 @@ if (typeof window !== 'undefined' && !(window as any).__msgStoreListenerInstalle
     
     if (DEBUG) {
       console.log('[MessageStore] Current store state:', { 
-        currentChatId, 
         messageCount: messages.length,
         matchesEvent: chat_id === currentChatId 
       });

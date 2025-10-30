@@ -378,7 +378,7 @@ Deno.serve(async (req)=>{
     
     // Call context-injector for all successful astro data reports (skip for insight mode)
     if (body.chat_id && swiss.ok && body.mode !== 'insight') {
-      console.log(`[translator-edge-${reqId}] Calling context-injector for chat_id: ${body.chat_id}`);
+      console.log(`[translator-edge-${reqId}] Calling context-injector`);
       try {
         const { error: injectorError } = await sb.functions.invoke('context-injector', {
           body: { chat_id: body.chat_id, mode: body.mode }
@@ -398,7 +398,7 @@ Deno.serve(async (req)=>{
 
     // Call report-orchestrator for all insight reports (fire-and-forget)
     if (body.chat_id && swiss.ok && parsed.reportType) {
-      console.log(`[translator-edge-${reqId}] Calling report-orchestrator for ${parsed.reportType} report with chat_id: ${body.chat_id}`);
+      console.log(`[translator-edge-${reqId}] Calling report-orchestrator for ${parsed.reportType} report`);
       try {
         const orchestratorPayload = {
           endpoint: 'profile',
