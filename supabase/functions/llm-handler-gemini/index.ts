@@ -92,7 +92,7 @@ NO stories, metaphors or no atsro jargon, DONT mention the data , only the inter
 
 Show one-line "why" tying emotional/psychological pattern back to user when applicable  
 
-**IMPORTANT : End by generating a question that naturally allows the user to explore and leads to user gaining insight**`;
+**IMPORTANT : End by generating a question that naturally allows the user to explore and leads to user gaining insight, exsample  "Want to know how"**`;
 
 // Get or create Gemini cache for system message
 async function getOrCreateCache(
