@@ -1,5 +1,6 @@
 // @ts-nocheck
 // Updated: Added test comment for workflow verification
+// Second test: Verifying GitHub Actions deployment
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
