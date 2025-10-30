@@ -94,7 +94,9 @@ Show one-line "why" tying emotional/psychological pattern back to user when appl
 **IMPORTANT : End with a line that naturally fits the flow with questions that leads to conversation:** 
 1. Calm short Closure + Invitation to Reframe.
 2. Short Summary + Question of Focus with , 
-3. Reflection + Two Depth Options.`;
+3. Reflection + Two Depth Options.
+
+frame them as direct questions to invite further interaction`;
 
 // Get or create Gemini cache for system message
 async function getOrCreateCache(
