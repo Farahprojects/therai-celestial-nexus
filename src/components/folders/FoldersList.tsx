@@ -72,7 +72,14 @@ export const FoldersList: React.FC<FoldersListProps> = ({
             {/* Folder Header */}
             <div className="flex items-center gap-1 group">
               <button
-                onClick={() => toggleFolder(folder.id)}
+                onClick={(e) => {
+                  // If onFolderClick is provided, call it instead of toggling
+                  if (onFolderClick) {
+                    onFolderClick(folder.id);
+                  } else {
+                    toggleFolder(folder.id);
+                  }
+                }}
                 className="flex-1 flex items-center gap-2 px-3 py-1.5 text-sm text-black hover:bg-gray-100 rounded-lg transition-colors font-light"
               >
                 {isExpanded ? (

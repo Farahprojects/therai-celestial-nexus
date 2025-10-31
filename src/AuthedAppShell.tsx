@@ -70,6 +70,9 @@ const AuthedAppShell: React.FC = () => {
       {/* Auth routes - /c/:thread_id - REQUIRES AUTH */}
       <Route path="/c/:threadId" element={<AuthGuard><ChatContainer /></AuthGuard>} />
       
+      {/* Folder routes - /folders/:folderId - REQUIRES AUTH */}
+      <Route path="/folders/:folderId" element={<AuthGuard><ChatContainer /></AuthGuard>} />
+      
       {/* Auth clean page - no auto thread creation */}
       <Route path="/therai" element={<AuthGuard><ChatContainer /></AuthGuard>} />
       

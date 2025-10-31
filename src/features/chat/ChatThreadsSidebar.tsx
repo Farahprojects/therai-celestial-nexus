@@ -288,6 +288,12 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
     }
   };
 
+  const handleFolderClick = (folderId: string) => {
+    // Navigate to folder URL
+    navigate(`/folders/${folderId}`, { replace: true });
+    onCloseMobileSidebar?.();
+  };
+
   const handleFolderChatClick = (folderId: string, chatId: string) => {
     // Navigate to the chat (handleSwitchToChat already handles swiss vs chat routing)
     handleSwitchToChat(chatId);
@@ -746,6 +752,7 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
           {areFoldersExpanded && (
             <FoldersList
               folders={folders}
+              onFolderClick={handleFolderClick}
               onChatClick={handleFolderChatClick}
               onEditFolder={handleEditFolder}
               onDeleteFolder={handleDeleteFolder}

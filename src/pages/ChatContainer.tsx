@@ -20,11 +20,41 @@ const ChatContainerContent: React.FC = () => {
   // Single responsibility: Initialize chat when threadId changes
   useChatInitialization();
   
-  // Check for pending join token and open auth modal
+  // Check for pending join token/folder and open auth modal
   useEffect(() => {
     const pendingToken = localStorage.getItem('pending_join_token');
-    if (pendingToken && !user) {
+    const pendingFolderId = localStorage.getItem('pending_join_folder_id');
+    if ((pendingToken || pendingFolderId) && !user) {
       setShowAuthModal(true);
+    }
+  }, [user]);
+
+  // Handle pending folder join after sign in
+  useEffect(() => {
+    const handlePendingFolderJoin = async () => {
+      const pendingFolderId = localStorage.getItem('pending_join_folder_id');
+      if (pendingFolderId && user?.id) {
+        try {
+          const { joinFolder, isFolderParticipant } = await import('@/services/folders');
+          
+          // Check if already a participant
+          const isParticipant = await isFolderParticipant(pendingFolderId, user.id);
+          if (!isParticipant) {
+            await joinFolder(pendingFolderId, user.id);
+          }
+          
+          // Clear pending and redirect to folder
+          localStorage.removeItem('pending_join_folder_id');
+          window.location.href = `/folders/${pendingFolderId}`;
+        } catch (error) {
+          console.error('Error joining pending folder:', error);
+          localStorage.removeItem('pending_join_folder_id');
+        }
+      }
+    };
+
+    if (user?.id) {
+      handlePendingFolderJoin();
     }
   }, [user]);
 

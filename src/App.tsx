@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Toaster } from 'sonner'
 import AuthedAppShell from '@/AuthedAppShell'
 import JoinConversation from '@/pages/JoinConversation'
+import JoinFolder from '@/pages/JoinFolder'
 import { AuthProvider } from '@/contexts/AuthContext'
 import NavigationStateProvider from '@/contexts/NavigationStateContext'
 import { ModeProvider } from '@/contexts/ModeContext'
@@ -47,6 +48,7 @@ function App() {
           <Routes>
             {/* Public routes - no auth required */}
             <Route path="/join/:chatId" element={<JoinConversation />} />
+            <Route path="/join/folder/:folderId" element={<JoinFolder />} />
             
             {/* All other routes go through AuthedAppShell */}
             <Route path="/*" element={<AuthedAppShell />} />

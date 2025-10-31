@@ -23,6 +23,7 @@ const ChatSidebarControls = lazy(() => import('./ChatSidebarControls').then(modu
 const ChatHeader = lazy(() => import('@/components/chat/ChatHeader').then(module => ({ default: module.ChatHeader })));
 const NewChatButton = lazy(() => import('@/components/chat/NewChatButton').then(module => ({ default: module.NewChatButton })));
 const ChatMenuButton = lazy(() => import('@/components/chat/ChatMenuButton').then(module => ({ default: module.ChatMenuButton })));
+const FolderView = lazy(() => import('@/components/folders/FolderView').then(module => ({ default: module.FolderView })));
 
 // Check if report is already generated for a chat_id (authenticated users only)
 async function checkReportGeneratedStatus(chatId: string): Promise<boolean> {
@@ -37,7 +38,7 @@ interface ChatBoxProps {
 }
 
 export const ChatBox: React.FC<ChatBoxProps> = ({ onDelete }) => {
-  const { error } = useChatStore();
+  const { error, viewMode, selectedFolderId } = useChatStore();
   const { user } = useAuth();
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
@@ -47,7 +48,7 @@ export const ChatBox: React.FC<ChatBoxProps> = ({ onDelete }) => {
   
   
   // Get chat_id from store for payment flow
-  const { chat_id } = useChatStore();
+  const { chat_id, startConversation, setViewMode } = useChatStore();
   
   // Get user type from URL parameters - authenticated users only
   const [searchParams] = useSearchParams();
@@ -201,26 +202,40 @@ export const ChatBox: React.FC<ChatBoxProps> = ({ onDelete }) => {
                 </Suspense>
               </div>
 
-              {/* Message List - Lazy Loaded */}
+              {/* Main Content Area - Conditionally render FolderView or MessageList */}
               <div className="flex-1 min-h-0 mobile-messages-area" style={{ overflowAnchor: 'none' as any }}>
-                <Suspense fallback={<MessageListSkeleton />}>
-                  <MessageList />
-                </Suspense>
+                {viewMode === 'folder' && selectedFolderId ? (
+                  <Suspense fallback={<MessageListSkeleton />}>
+                    <FolderView
+                      folderId={selectedFolderId}
+                      onChatClick={(chatId: string) => {
+                        startConversation(chatId);
+                        navigate(`/c/${chatId}`);
+                      }}
+                    />
+                  </Suspense>
+                ) : (
+                  <Suspense fallback={<MessageListSkeleton />}>
+                    <MessageList />
+                  </Suspense>
+                )}
               </div>
 
-              {/* Footer Area - Natural flow for keyboard handling */}
-              <div 
-                className="mobile-input-area mobile-input-container"
-              >
-                {error && (
-                  <div className="p-3 text-sm font-medium text-red-700 bg-red-100 border-t border-red-200">
-                    {error}
+              {/* Footer Area - Only show ChatInput when in chat view */}
+              {viewMode === 'chat' && (
+                <div 
+                  className="mobile-input-area mobile-input-container"
+                >
+                  {error && (
+                    <div className="p-3 text-sm font-medium text-red-700 bg-red-100 border-t border-red-200">
+                      {error}
+                    </div>
+                  )}
+                  <div className="border-t border-gray-100">
+                    <ChatInput />
                   </div>
-                )}
-                <div className="border-t border-gray-100">
-                  <ChatInput />
                 </div>
-              </div>
+              )}
 
               {/* Conversation Overlay */}
               <Suspense fallback={null}>

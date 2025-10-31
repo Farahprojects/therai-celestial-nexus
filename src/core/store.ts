@@ -35,6 +35,10 @@ interface ChatState {
   conversationChannel: any;
   isConversationSyncActive: boolean;
 
+  // View mode state
+  viewMode: 'chat' | 'folder';
+  selectedFolderId: string | null;
+
   // Chat actions (authenticated users only)
   startConversation: (chat_id: string) => void;
   startNewConversation: (user_id?: string) => Promise<string>;
@@ -70,6 +74,9 @@ interface ChatState {
   initializeConversationSync: (userId: string) => void;
   cleanupConversationSync: () => void;
   
+  // View mode actions
+  setViewMode: (mode: 'chat' | 'folder', folderId?: string | null) => void;
+  
 }
 
 export const useChatStore = create<ChatState>()((set, get) => ({
@@ -95,6 +102,10 @@ export const useChatStore = create<ChatState>()((set, get) => ({
   conversationChannel: null,
   isConversationSyncActive: false,
 
+  // View mode state
+  viewMode: 'chat',
+  selectedFolderId: null,
+
   startConversation: (id) => {
     set({ 
       chat_id: id, 
@@ -103,7 +114,9 @@ export const useChatStore = create<ChatState>()((set, get) => ({
       error: null,
       messageLoadError: null,
       lastMessagesFetch: null,
-      isAssistantTyping: false
+      isAssistantTyping: false,
+      viewMode: 'chat', // Reset to chat view when starting a conversation
+      selectedFolderId: null
     });
     
     // Update both session and local storage for persistence
@@ -192,7 +205,9 @@ export const useChatStore = create<ChatState>()((set, get) => ({
       messageLoadError: null,
       lastMessagesFetch: null,
       isAssistantTyping: false,
-      isPaymentFlowStopIcon: false
+      isPaymentFlowStopIcon: false,
+      viewMode: 'chat',
+      selectedFolderId: null
     });
     
     // Clear session storage but keep localStorage for cross-session persistence
@@ -422,6 +437,18 @@ export const useChatStore = create<ChatState>()((set, get) => ({
         conversationChannel: null, 
         isConversationSyncActive: false 
       });
+    }
+  },
+
+  setViewMode: (mode: 'chat' | 'folder', folderId?: string | null) => {
+    set({ 
+      viewMode: mode,
+      selectedFolderId: folderId ?? null
+    });
+    
+    // When switching to chat view, clear folder selection
+    if (mode === 'chat') {
+      set({ selectedFolderId: null });
     }
   },
 

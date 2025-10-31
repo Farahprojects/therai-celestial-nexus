@@ -15,9 +15,9 @@ import { getLastChatId } from '@/services/auth/chatTokens';
  * - Everything is explicit and direct
  */
 export const useChatInitialization = () => {
-  const { threadId, chatId } = useParams<{ threadId?: string; chatId?: string }>();
+  const { threadId, chatId, folderId } = useParams<{ threadId?: string; chatId?: string; folderId?: string }>();
   const routeChatId = threadId || chatId;
-  const { chat_id, startConversation } = useChatStore();
+  const { chat_id, startConversation, setViewMode } = useChatStore();
   const { user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -35,6 +35,12 @@ export const useChatInitialization = () => {
   }, [user]);
 
   useEffect(() => {
+    // Handle folder navigation from URL
+    if (folderId) {
+      setViewMode('folder', folderId);
+      return;
+    }
+
     // Handle direct URL navigation for both /c/:threadId and /join/:chatId
     if (routeChatId && routeChatId !== "1") {
       // Load the chat directly - let the message store handle validation
@@ -55,10 +61,13 @@ export const useChatInitialization = () => {
     } else if (routeChatId === "1") {
       useChatStore.getState().clearChat();
     }
-  }, [routeChatId, startConversation]);
+  }, [routeChatId, folderId, startConversation, setViewMode]);
 
   // Smart navigation: redirect to last chat when visiting root URLs
   useEffect(() => {
+    // Don't redirect if we're on a folder route
+    if (folderId) return;
+    
     if (!threadId && user) {
       const redirectToLastChat = async () => {
         try {
@@ -104,5 +113,5 @@ export const useChatInitialization = () => {
 
       redirectToLastChat();
     }
-  }, [threadId, user, location.pathname, navigate]);
+  }, [threadId, folderId, user, location.pathname, navigate]);
 };
