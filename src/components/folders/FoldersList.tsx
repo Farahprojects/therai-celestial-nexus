@@ -17,7 +17,6 @@ interface FolderItem {
     id: string;
     title: string;
   }>;
-  isTemp?: boolean;
 }
 
 interface FoldersListProps {
@@ -83,21 +82,14 @@ export const FoldersList: React.FC<FoldersListProps> = ({
                 }}
                 className="flex-1 flex items-center gap-2 px-3 py-1.5 text-sm text-black hover:bg-gray-100 rounded-lg transition-colors font-light"
               >
-                {isExpanded ? (
+                {!onFolderClick && (isExpanded ? (
                   <ChevronDown className="w-3 h-3 text-gray-500" />
                 ) : (
                   <ChevronRight className="w-3 h-3 text-gray-500" />
-                )}
+                ))}
                 <Folder className="w-4 h-4 text-gray-600" />
-                <span className="flex-1 text-left">
-                  {folder.name}
-                  {folder.isTemp && (
-                    <span className="ml-2 text-[10px] px-1.5 py-0.5 rounded-full bg-gray-200 text-gray-600 border border-gray-300">
-                      temp
-                    </span>
-                  )}
-                </span>
-                <span className="text-xs text-gray-500">({folder.chatsCount})</span>
+                <span className="flex-1 text-left">{folder.name}</span>
+                <span className="text-sm font-semibold text-gray-900">{folder.chatsCount}</span>
               </button>
 
               {/* Folder Actions Menu - only show for authenticated users */}

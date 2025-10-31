@@ -12,8 +12,9 @@ import { getChatTokens } from '@/services/auth/chatTokens';
 import { MotionConfig } from 'framer-motion';
 import { useConversationUIStore } from './conversation-ui-store';
 import { SignInPrompt } from '@/components/auth/SignInPrompt';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams, useParams } from 'react-router-dom';
 import { ShareConversationModal } from '@/components/chat/ShareConversationModal';
+import { ShareFolderModal } from '@/components/folders/ShareFolderModal';
  
 
 // Lazy load components for better performance
@@ -42,9 +43,11 @@ export const ChatBox: React.FC<ChatBoxProps> = ({ onDelete }) => {
   const { user } = useAuth();
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
+  const [showFolderShareModal, setShowFolderShareModal] = useState(false);
   const navigate = useNavigate();
   const { uuid } = getChatTokens();
   const isConversationOpen = useConversationUIStore((s) => s.isConversationOpen);
+  const { folderId: urlFolderId } = useParams<{ folderId?: string }>();
   
   
   // Get chat_id from store for payment flow
@@ -175,12 +178,18 @@ export const ChatBox: React.FC<ChatBoxProps> = ({ onDelete }) => {
                 </div>
                 
                 <div className="flex items-center gap-2">
-                  {/* Share Button - Always visible */}
+                  {/* Share Button - Works for both folders and chats */}
                   <button
-                    onClick={() => chat_id && setShowShareModal(true)}
-                    disabled={!chat_id}
+                    onClick={() => {
+                      if (viewMode === 'folder' && (selectedFolderId || urlFolderId)) {
+                        setShowFolderShareModal(true);
+                      } else if (chat_id) {
+                        setShowShareModal(true);
+                      }
+                    }}
+                    disabled={!chat_id && viewMode !== 'folder'}
                     className={`flex items-center justify-center w-8 h-8 rounded-lg transition-colors ${
-                      chat_id 
+                      (chat_id || viewMode === 'folder')
                         ? 'text-gray-700 hover:text-gray-900 hover:bg-gray-50' 
                         : 'text-gray-300 cursor-not-allowed'
                     }`}
@@ -265,6 +274,14 @@ export const ChatBox: React.FC<ChatBoxProps> = ({ onDelete }) => {
         <ShareConversationModal
           conversationId={chat_id}
           onClose={() => setShowShareModal(false)}
+        />
+      )}
+
+      {/* Folder Share Modal */}
+      {showFolderShareModal && (selectedFolderId || urlFolderId) && (
+        <ShareFolderModal
+          folderId={selectedFolderId || urlFolderId || ''}
+          onClose={() => setShowFolderShareModal(false)}
         />
       )}
 

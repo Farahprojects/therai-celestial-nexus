@@ -730,6 +730,11 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
   // Filter threads by conversation type first
   const filteredThreads = useMemo(() => {
     return threads.filter(thread => {
+      // Exclude conversations that are in folders (they're displayed in the folders section)
+      if (thread.folder_id) {
+        return false;
+      }
+      
       // Filter by conversation type
       // Swiss conversations have mode='swiss', regular chat has mode='chat' or null
       if (conversationType === 'swiss') {
@@ -1006,24 +1011,6 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
 
       {/* Clean Footer - Sticky at bottom */}
       <div className="mt-auto pt-4 shrink-0">
-        {/* Folder ID Display - Show when viewing a folder */}
-        {folderId && (
-          <div className="px-3 py-2 mb-2 border-t border-gray-100">
-            <div className="text-xs text-gray-500 font-mono truncate" title={folderId}>
-              Folder: {folderId.slice(0, 8)}...
-            </div>
-          </div>
-        )}
-        
-        {/* Chat ID Display - Show when in a chat */}
-        {chat_id && !folderId && (
-          <div className="px-3 py-2 mb-2 border-t border-gray-100">
-            <div className="text-xs text-gray-500 font-mono truncate" title={chat_id}>
-              Chat: {chat_id.slice(0, 8)}...
-            </div>
-          </div>
-        )}
-        
         {isAuthenticated ? (
           /* Authenticated User - Settings Menu */
           <div className="space-y-2">
