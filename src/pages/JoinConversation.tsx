@@ -43,8 +43,27 @@ const JoinConversation: React.FC = () => {
         return;
       }
 
+      // If user is not authenticated, preserve redirect and prompt for auth
+      // This prevents RLS errors when querying conversations
+      if (!isAuthenticated) {
+        console.log('[JoinConversation] User not authenticated - preserving redirect for chat');
+        const redirectPath = setRedirectPath(`/c/${chatId}`);
+        const encodedRedirect = encodeRedirectPath(redirectPath);
+        
+        // Also store for backward compatibility
+        try {
+          localStorage.setItem('pending_join_chat_id', chatId);
+        } catch {
+          // Ignore localStorage errors
+        }
+        
+        setLoading(false);
+        navigate(`/therai?redirect=${encodedRedirect}`, { replace: true });
+        return;
+      }
+
       try {
-        // Check if conversation exists and is public
+        // User is authenticated - check if conversation exists and is public
         const { data, error: fetchError } = await supabase
           .from('conversations')
           .select('id, user_id, title, created_at, updated_at, meta, is_public')
@@ -53,38 +72,27 @@ const JoinConversation: React.FC = () => {
           .maybeSingle();
 
         if (fetchError || !data) {
-          // Conversation not found or not public - check if it's private and needs auth
-          if (!isAuthenticated) {
-            // Try to fetch to see if it exists (might be private)
-            const { data: privateConv } = await supabase
-              .from('conversations')
-              .select('id')
-              .eq('id', chatId)
-              .maybeSingle();
-            
-            if (privateConv) {
-              // Private conversation - preserve redirect in URL params
-              const redirectPath = setRedirectPath(`/c/${chatId}`);
-              const encodedRedirect = encodeRedirectPath(redirectPath);
-              
-              // Also store for backward compatibility
-              try {
-                localStorage.setItem('pending_join_chat_id', chatId);
-              } catch {
-                // Ignore localStorage errors
-              }
-              
-              navigate(`/therai?redirect=${encodedRedirect}`, { replace: true });
-              return;
-            }
+          // Try fetching as private conversation (user is authenticated)
+          const { data: privateConv } = await supabase
+            .from('conversations')
+            .select('id, user_id, title, created_at, updated_at, meta, is_public')
+            .eq('id', chatId)
+            .maybeSingle();
+          
+          if (!privateConv) {
+            // Conversation doesn't exist at all
+            console.log('[JoinConversation] Conversation not found');
+            setLoading(false);
+            navigate('/therai', { replace: true });
+            return;
           }
           
-          // Conversation doesn't exist - navigate to main route
-          navigate('/therai', { replace: true });
-          return;
+          // Private conversation found - proceed to add as participant below
+          setConversation(privateConv as Conversation);
+        } else {
+          // Public conversation found
+          setConversation(data as Conversation);
         }
-
-        setConversation(data as Conversation);
 
         // Store the path for backward compatibility
         try {

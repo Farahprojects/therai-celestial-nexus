@@ -21,6 +21,27 @@ const JoinFolder: React.FC = () => {
         return;
       }
 
+      // Check authentication FIRST before trying to fetch folder
+      // This prevents RLS errors when unauthenticated users can't query the folder
+      if (!isAuthenticated || !user) {
+        console.log('[JoinFolder] User not authenticated - preserving redirect for folder');
+        // Preserve redirect path in URL params (more reliable than localStorage)
+        const redirectPath = setRedirectPath(`/folders/${folderId}`);
+        const encodedRedirect = encodeRedirectPath(redirectPath);
+        
+        // Also store folder ID for backward compatibility
+        try {
+          localStorage.setItem('pending_join_folder_id', folderId);
+        } catch {
+          // Ignore localStorage errors
+        }
+        
+        // Navigate with redirect param - auth flow will preserve it
+        setLoading(false);
+        navigate(`/therai?redirect=${encodedRedirect}`, { replace: true });
+        return;
+      }
+
       try {
         console.log('[JoinFolder] Fetching folder:', folderId);
         const folder = await getSharedFolder(folderId);
@@ -41,26 +62,7 @@ const JoinFolder: React.FC = () => {
           return;
         }
 
-        // Private folder - requires sign-in
-        if (!isAuthenticated || !user) {
-          console.log('[JoinFolder] Private folder, user not authenticated - preserving redirect');
-          // Preserve redirect path in URL params (more reliable than localStorage)
-          const redirectPath = setRedirectPath(`/folders/${folderId}`);
-          const encodedRedirect = encodeRedirectPath(redirectPath);
-          
-          // Also store folder ID for backward compatibility
-          try {
-            localStorage.setItem('pending_join_folder_id', folderId);
-          } catch {
-            // Ignore localStorage errors
-          }
-          
-          // Navigate with redirect param - auth flow will preserve it
-          setLoading(false);
-          navigate(`/therai?redirect=${encodedRedirect}`, { replace: true });
-          return;
-        }
-
+        // Private folder - user is authenticated (we checked above), check participant status
         console.log('[JoinFolder] Private folder, user authenticated - checking participant status');
         // Check if already a participant
         const participantStatus = await isFolderParticipant(folderId, user.id);
