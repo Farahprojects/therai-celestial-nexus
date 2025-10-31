@@ -4,6 +4,7 @@ import { ReportModalProvider } from '@/contexts/ReportModalContext';
 import { useChatInitialization } from '@/hooks/useChatInitialization';
 import { AuthModal } from '@/components/auth/AuthModal';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 
 /**
  * Streamlined ChatContainer - Single Responsibility
@@ -20,20 +21,24 @@ const ChatContainerContent: React.FC = () => {
   // Single responsibility: Initialize chat when threadId changes
   useChatInitialization();
   
-  // Check for pending join token/folder and open auth modal
+  // Check for pending join token/folder/chat and open auth modal
   useEffect(() => {
     const pendingToken = localStorage.getItem('pending_join_token');
     const pendingFolderId = localStorage.getItem('pending_join_folder_id');
-    if ((pendingToken || pendingFolderId) && !user) {
+    const pendingChatId = localStorage.getItem('pending_join_chat_id');
+    if ((pendingToken || pendingFolderId || pendingChatId) && !user) {
       setShowAuthModal(true);
     }
   }, [user]);
 
-  // Handle pending folder join after sign in
+  // Handle pending folder/chat join after sign in
   useEffect(() => {
-    const handlePendingFolderJoin = async () => {
+    const handlePendingJoins = async () => {
+      if (!user?.id) return;
+      
+      // Handle pending folder join
       const pendingFolderId = localStorage.getItem('pending_join_folder_id');
-      if (pendingFolderId && user?.id) {
+      if (pendingFolderId) {
         try {
           const { addFolderParticipant, isFolderParticipant } = await import('@/services/folders');
           
@@ -46,15 +51,54 @@ const ChatContainerContent: React.FC = () => {
           // Clear pending and redirect to folder
           localStorage.removeItem('pending_join_folder_id');
           window.location.href = `/folders/${pendingFolderId}`;
+          return;
         } catch (error) {
           console.error('Error joining pending folder:', error);
           localStorage.removeItem('pending_join_folder_id');
         }
       }
+      
+      // Handle pending chat join
+      const pendingChatId = localStorage.getItem('pending_join_chat_id');
+      if (pendingChatId) {
+        try {
+          // Check if user is already a participant
+          const { data: existingParticipant } = await supabase
+            .from('conversations_participants')
+            .select('conversation_id')
+            .eq('conversation_id', pendingChatId)
+            .eq('user_id', user.id)
+            .maybeSingle();
+
+          if (!existingParticipant) {
+            // Add user as a participant
+            const { error: insertError } = await supabase
+              .from('conversations_participants')
+              .insert({
+                conversation_id: pendingChatId,
+                user_id: user.id,
+                role: 'member',
+              });
+
+            if (insertError) {
+              console.error('Error adding user as participant:', insertError);
+              localStorage.removeItem('pending_join_chat_id');
+              return;
+            }
+          }
+          
+          // Clear pending and redirect to chat
+          localStorage.removeItem('pending_join_chat_id');
+          window.location.href = `/c/${pendingChatId}`;
+        } catch (error) {
+          console.error('Error joining pending chat:', error);
+          localStorage.removeItem('pending_join_chat_id');
+        }
+      }
     };
 
     if (user?.id) {
-      handlePendingFolderJoin();
+      handlePendingJoins();
     }
   }, [user]);
 

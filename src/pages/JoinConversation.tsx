@@ -37,8 +37,8 @@ const JoinConversation: React.FC = () => {
   useEffect(() => {
     const loadPublicConversation = async () => {
       if (!chatId) {
-        setError('Invalid conversation link');
-        setLoading(false);
+        // Invalid chat ID - navigate to main route
+        navigate('/therai', { replace: true });
         return;
       }
 
@@ -52,8 +52,25 @@ const JoinConversation: React.FC = () => {
           .maybeSingle();
 
         if (fetchError || !data) {
-          setError('Conversation not found or not shared');
-          setLoading(false);
+          // Conversation not found or not public - check if it's private and needs auth
+          if (!isAuthenticated) {
+            // Try to fetch to see if it exists (might be private)
+            const { data: privateConv } = await supabase
+              .from('conversations')
+              .select('id')
+              .eq('id', chatId)
+              .maybeSingle();
+            
+            if (privateConv) {
+              // Private conversation - store pending and show auth
+              localStorage.setItem('pending_join_chat_id', chatId);
+              navigate('/therai', { replace: true });
+              return;
+            }
+          }
+          
+          // Conversation doesn't exist - navigate to main route
+          navigate('/therai', { replace: true });
           return;
         }
 
@@ -93,7 +110,8 @@ const JoinConversation: React.FC = () => {
         }
       } catch (err) {
         console.error('Error loading conversation:', err);
-        setError('Failed to load conversation');
+        // On error, navigate to main route instead of showing error
+        navigate('/therai', { replace: true });
       } finally {
         setLoading(false);
       }
@@ -152,26 +170,21 @@ const JoinConversation: React.FC = () => {
     );
   }
 
-  if (error || !conversation) {
+  // Component handles navigation internally - show loading or ChatContainer
+  if (loading) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="text-center max-w-md mx-auto px-4">
-          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">                                                     
-            <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">                                                        
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />               
-            </svg>
-          </div>
-          <h1 className="text-xl font-medium text-gray-900 mb-2">Conversation Not Found</h1>                                                                    
-          <p className="text-gray-600 mb-6">{error}</p>
-          <button
-            onClick={() => navigate('/', { replace: true })}
-            className="px-6 py-3 bg-gray-900 hover:bg-gray-800 text-white rounded-xl text-sm font-medium transition-colors"                                     
-          >
-            Go Home
-          </button>
+        <div className="text-center">
+          <div className="w-8 h-8 border-2 border-gray-300 border-t-gray-900 rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600 font-light">Loading conversation...</p>
         </div>
       </div>
     );
+  }
+  
+  if (!conversation || error) {
+    // Will navigate to /therai - show ChatContainer in meantime
+    return <ChatContainer />;
   }
 
   return (
