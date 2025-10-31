@@ -48,6 +48,25 @@ const JoinFolder: React.FC = () => {
         if (!isParticipant) {
           // Add user as participant
           await addFolderParticipant(folderId, user.id, 'member');
+          
+          // Small delay to ensure participant record is committed
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
+
+        // Store folder in sessionStorage so it appears in sidebar immediately
+        try {
+          const tempFoldersJson = sessionStorage.getItem('temp_folders');
+          const tempFolders = tempFoldersJson ? JSON.parse(tempFoldersJson) : [];
+          const exists = tempFolders.some((f: any) => f.id === folderId);
+          if (!exists) {
+            tempFolders.push({
+              id: folder.id,
+              name: folder.name,
+            });
+            sessionStorage.setItem('temp_folders', JSON.stringify(tempFolders));
+          }
+        } catch (error) {
+          console.error('[JoinFolder] Failed to save folder to sessionStorage:', error);
         }
 
         // Navigate to folder view

@@ -202,31 +202,49 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
         }
         
         // If currently viewing a shared folder that's not in the list, add it
+        // This handles both public folders and private folders where user is a participant
         if (folderId && !foldersList.find(f => f.id === folderId)) {
           try {
             const sharedFolder = await getSharedFolder(folderId);
-            if (sharedFolder && sharedFolder.is_public) {
-              const conversations = await getFolderConversations(folderId);
-              foldersList.push({
-                id: sharedFolder.id,
-                name: sharedFolder.name,
-                chatsCount: conversations.length,
-                chats: conversations.map(conv => ({
-                  id: conv.id,
-                  title: conv.title || 'New Chat',
-                })),
-              });
+            if (sharedFolder) {
+              // Check if user is a participant (for private folders) or folder is public
+              let canView = false;
+              if (sharedFolder.is_public) {
+                canView = true;
+              } else if (user?.id) {
+                // Check if user is a participant
+                const { data: participant } = await supabase
+                  .from('chat_folder_participants')
+                  .select('folder_id')
+                  .eq('folder_id', folderId)
+                  .eq('user_id', user.id)
+                  .maybeSingle();
+                canView = !!participant;
+              }
               
-              // Save to sessionStorage
-              const tempFoldersJson = sessionStorage.getItem('temp_folders');
-              const tempFolders = tempFoldersJson ? JSON.parse(tempFoldersJson) : [];
-              const exists = tempFolders.some((f: any) => f.id === folderId);
-              if (!exists) {
-                tempFolders.push({
+              if (canView) {
+                const conversations = await getFolderConversations(folderId);
+                foldersList.push({
                   id: sharedFolder.id,
                   name: sharedFolder.name,
+                  chatsCount: conversations.length,
+                  chats: conversations.map(conv => ({
+                    id: conv.id,
+                    title: conv.title || 'New Chat',
+                  })),
                 });
-                sessionStorage.setItem('temp_folders', JSON.stringify(tempFolders));
+                
+                // Save to sessionStorage for persistence
+                const tempFoldersJson = sessionStorage.getItem('temp_folders');
+                const tempFolders = tempFoldersJson ? JSON.parse(tempFoldersJson) : [];
+                const exists = tempFolders.some((f: any) => f.id === folderId);
+                if (!exists) {
+                  tempFolders.push({
+                    id: sharedFolder.id,
+                    name: sharedFolder.name,
+                  });
+                  sessionStorage.setItem('temp_folders', JSON.stringify(tempFolders));
+                }
               }
             }
           } catch (error) {
