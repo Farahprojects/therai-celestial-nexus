@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { getFolderConversations, getUserFolders } from '@/services/folders';
-import { Plus } from 'lucide-react';
+import { Plus, Share2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useChatStore } from '@/core/store';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
+import { ShareFolderModal } from './ShareFolderModal';
 
 interface FolderViewProps {
   folderId: string;
@@ -23,6 +24,7 @@ export const FolderView: React.FC<FolderViewProps> = ({ folderId, onChatClick })
   const [folderName, setFolderName] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showShareModal, setShowShareModal] = useState(false);
   const navigate = useNavigate();
   const { user } = useAuth();
   const { setViewMode, startConversation } = useChatStore();
@@ -97,19 +99,30 @@ export const FolderView: React.FC<FolderViewProps> = ({ folderId, onChatClick })
 
   return (
     <div className="h-full flex flex-col bg-white">
-      {/* Folder Name and Add Button - Below Header */}
+      {/* Folder Name and Share/Add Buttons - Below Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
         <div className="text-lg font-light text-gray-900">{folderName}</div>
         {user && (
-          <Button
-            variant="outline"
-            size="sm"
-            className="rounded-full font-light"
-            disabled
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Add
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="rounded-full font-light"
+              onClick={() => setShowShareModal(true)}
+            >
+              <Share2 className="w-4 h-4 mr-2" />
+              Share
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="rounded-full font-light"
+              disabled
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Add
+            </Button>
+          </div>
         )}
       </div>
 
@@ -139,6 +152,15 @@ export const FolderView: React.FC<FolderViewProps> = ({ folderId, onChatClick })
           </div>
         )}
       </div>
+
+      {/* Share Folder Modal */}
+      {showShareModal && (
+        <ShareFolderModal
+          folderId={folderId}
+          folderName={folderName}
+          onClose={() => setShowShareModal(false)}
+        />
+      )}
     </div>
   );
 };

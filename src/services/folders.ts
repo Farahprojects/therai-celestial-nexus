@@ -7,6 +7,7 @@ export interface ChatFolder {
   name: string;
   created_at: string;
   updated_at: string;
+  is_public?: boolean;
 }
 
 /**
@@ -133,6 +134,127 @@ export async function getFolderStats(folderId: string): Promise<{ chatsCount: nu
   return { chatsCount: count || 0 };
 }
 
-// Note: Folder sharing has been removed. To share conversations, use conversation-level sharing.
-// Set conversations.is_public = true to share individual conversations.
+/**
+ * Share a folder publicly (no auth required)
+ */
+export async function shareFolderPublic(folderId: string): Promise<void> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('User not authenticated');
+
+  const { error } = await supabase
+    .from('chat_folders')
+    .update({ is_public: true, updated_at: new Date().toISOString() })
+    .eq('id', folderId)
+    .eq('user_id', user.id);
+
+  if (error) {
+    console.error('[folders] Error sharing folder publicly:', error);
+    throw new Error('Failed to share folder');
+  }
+}
+
+/**
+ * Share a folder privately (requires sign-in, adds user as participant)
+ */
+export async function shareFolderPrivate(folderId: string): Promise<void> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('User not authenticated');
+
+  // Just set is_public to false (private sharing uses participants)
+  const { error } = await supabase
+    .from('chat_folders')
+    .update({ is_public: false, updated_at: new Date().toISOString() })
+    .eq('id', folderId)
+    .eq('user_id', user.id);
+
+  if (error) {
+    console.error('[folders] Error setting folder to private:', error);
+    throw new Error('Failed to update folder');
+  }
+
+  // Add owner as participant
+  await addFolderParticipant(folderId, user.id, 'owner');
+}
+
+/**
+ * Stop sharing a folder
+ */
+export async function unshareFolder(folderId: string): Promise<void> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('User not authenticated');
+
+  const { error } = await supabase
+    .from('chat_folders')
+    .update({ is_public: false, updated_at: new Date().toISOString() })
+    .eq('id', folderId)
+    .eq('user_id', user.id);
+
+  if (error) {
+    console.error('[folders] Error unsharing folder:', error);
+    throw new Error('Failed to unshare folder');
+  }
+}
+
+/**
+ * Get shared folder by ID (public or participant)
+ */
+export async function getSharedFolder(folderId: string): Promise<ChatFolder | null> {
+  const { data, error } = await supabase
+    .from('chat_folders')
+    .select('*')
+    .eq('id', folderId)
+    .maybeSingle();
+
+  if (error) {
+    console.error('[folders] Error fetching folder:', error);
+    throw error;
+  }
+
+  return data;
+}
+
+/**
+ * Add user as participant to a folder
+ */
+export async function addFolderParticipant(
+  folderId: string,
+  userId: string,
+  role: 'owner' | 'member' = 'member'
+): Promise<void> {
+  const { error } = await supabase
+    .from('chat_folder_participants')
+    .upsert(
+      {
+        folder_id: folderId,
+        user_id: userId,
+        role,
+        invited_by: null,
+      },
+      { onConflict: 'folder_id,user_id' }
+    );
+
+  if (error) {
+    console.error('[folders] Error adding folder participant:', error);
+    throw new Error('Failed to add participant');
+  }
+}
+
+/**
+ * Check if user is a participant in a folder
+ */
+export async function isFolderParticipant(folderId: string, userId: string): Promise<boolean> {
+  const { data, error } = await supabase
+    .from('chat_folder_participants')
+    .select('folder_id')
+    .eq('folder_id', folderId)
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (error) {
+    console.error('[folders] Error checking folder participant:', error);
+    return false;
+  }
+
+  return !!data;
+}
 
