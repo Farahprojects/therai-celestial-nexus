@@ -35,26 +35,49 @@ export const FolderView: React.FC<FolderViewProps> = ({ folderId, onChatClick })
       setError(null);
       
       try {
-        if (!user?.id) {
-          setError('Please sign in to view folders');
-          setIsLoading(false);
-          return;
-        }
-
+        // Try to load folder - works for authenticated users
+        if (user?.id) {
+          try {
             const [folders, conversationsData] = await Promise.all([
               getUserFolders(user.id),
               getFolderConversations(folderId)
             ]);
 
             const folder = folders.find(f => f.id === folderId);
-        if (!folder) {
-          setError('Folder not found or not accessible');
+            if (folder) {
+              setFolderName(folder.name);
+              setConversations(conversationsData);
               setIsLoading(false);
               return;
             }
+          } catch (err) {
+            console.error('[FolderView] Failed to load from user folders:', err);
+            // Fall through to try as shared folder
+          }
+        }
 
-        setFolderName(folder.name);
+        // Try loading as shared/public folder (for non-owners or unauthenticated)
+        const sharedFolder = await getSharedFolder(folderId);
+        if (sharedFolder) {
+          // If folder is public, anyone can view it
+          if (sharedFolder.is_public) {
+            const conversationsData = await getFolderConversations(folderId);
+            setFolderName(sharedFolder.name);
             setConversations(conversationsData);
+            setIsLoading(false);
+            return;
+          }
+          
+          // Private folder - requires authentication
+          if (!user?.id) {
+            setError('Please sign in to view this folder');
+            setIsLoading(false);
+            return;
+          }
+        }
+
+        // If we get here, folder not found or not accessible
+        setError('Folder not found or not accessible');
       } catch (err) {
         console.error('[FolderView] Failed to load folder data:', err);
         setError('Failed to load folder');
