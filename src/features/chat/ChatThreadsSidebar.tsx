@@ -152,42 +152,14 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
 
     const loadFolders = async () => {
       try {
-        let foldersList: Array<{ id: string; name: string; chatsCount: number; chats: Array<{ id: string; title: string }>; isTemp?: boolean }> = [];
-        
-        // Load temp folders from sessionStorage (shared public folders)
-        try {
-          const tempFoldersJson = sessionStorage.getItem('temp_folders');
-          if (tempFoldersJson) {
-            const tempFolders = JSON.parse(tempFoldersJson);
-            for (const tempFolder of tempFolders) {
-              try {
-                // Reload folder data to get latest conversations
-                const conversations = await getFolderConversations(tempFolder.id);
-                foldersList.push({
-                  id: tempFolder.id,
-                  name: tempFolder.name,
-                  chatsCount: conversations.length,
-                  chats: conversations.map(conv => ({
-                    id: conv.id,
-                    title: conv.title || 'New Chat',
-                  })),
-                  isTemp: true,
-                });
-              } catch (error) {
-                console.error('[ChatThreadsSidebar] Failed to reload temp folder:', error);
-              }
-            }
-          }
-        } catch (error) {
-          console.error('[ChatThreadsSidebar] Failed to load temp folders from storage:', error);
-        }
+        let foldersList: Array<{ id: string; name: string; chatsCount: number; chats: Array<{ id: string; title: string }> }> = [];
         
         // For authenticated users, load their folders
         if (user?.id) {
           const userFolders = await getUserFolders(user.id);
           
           // Load conversations for each folder
-          const userFoldersList = await Promise.all(
+          foldersList = await Promise.all(
             userFolders.map(async (folder) => {
               const conversations = await getFolderConversations(folder.id);
               return {
@@ -198,15 +170,35 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
                   id: conv.id,
                   title: conv.title || 'New Chat',
                 })),
-                isTemp: false,
               };
             })
           );
-          
-          // Merge temp folders and user folders (avoid duplicates)
-          const existingIds = new Set(userFoldersList.map(f => f.id));
-          const uniqueTempFolders = foldersList.filter(f => !existingIds.has(f.id));
-          foldersList = [...userFoldersList, ...uniqueTempFolders];
+        }
+        
+        // Load temp folders from sessionStorage (public shared folders)
+        try {
+          const tempFoldersJson = sessionStorage.getItem('temp_folders');
+          if (tempFoldersJson) {
+            const tempFolders = JSON.parse(tempFoldersJson);
+            for (const tempFolder of tempFolders) {
+              try {
+                const conversations = await getFolderConversations(tempFolder.id);
+                foldersList.push({
+                  id: tempFolder.id,
+                  name: tempFolder.name,
+                  chatsCount: conversations.length,
+                  chats: conversations.map(conv => ({
+                    id: conv.id,
+                    title: conv.title || 'New Chat',
+                  })),
+                });
+              } catch (error) {
+                console.error('[ChatThreadsSidebar] Failed to load temp folder:', error);
+              }
+            }
+          }
+        } catch (error) {
+          console.error('[ChatThreadsSidebar] Failed to load temp folders:', error);
         }
         
         // If currently viewing a shared folder that's not in the list, add it
@@ -223,7 +215,6 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
                   id: conv.id,
                   title: conv.title || 'New Chat',
                 })),
-                isTemp: true,
               });
               
               // Save to sessionStorage
@@ -239,11 +230,19 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
               }
             }
           } catch (error) {
-            console.error('[ChatThreadsSidebar] Failed to load current shared folder:', error);
+            console.error('[ChatThreadsSidebar] Failed to load shared folder:', error);
           }
         }
         
-        setFolders(foldersList);
+        // Remove duplicates (user folders take priority)
+        const seen = new Set<string>();
+        const uniqueFolders = foldersList.filter(folder => {
+          if (seen.has(folder.id)) return false;
+          seen.add(folder.id);
+          return true;
+        });
+        
+        setFolders(uniqueFolders);
       } catch (error) {
         console.error('[ChatThreadsSidebar] Failed to load folders:', error);
       }
