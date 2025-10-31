@@ -77,6 +77,9 @@ const JoinConversation: React.FC = () => {
 
         setConversation(data as Conversation);
 
+        // Store the path so it can be preserved in session (for future sign-in)
+        localStorage.setItem('pending_redirect_path', `/c/${chatId}`);
+
         // If user is signed in, add them as a participant; then redirect to /c/:chatId
         if (isAuthenticated && user) {
           // Check if user is already a participant
