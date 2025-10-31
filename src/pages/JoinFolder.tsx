@@ -34,8 +34,9 @@ const JoinFolder: React.FC = () => {
 
         // Private folder - requires sign-in
         if (!isAuthenticated || !user) {
-          // Store pending join for after sign-in
+          // Store pending join and full URL path for after sign-in
           localStorage.setItem('pending_join_folder_id', folderId);
+          localStorage.setItem('pending_redirect_path', `/folders/${folderId}`);
           // Navigate to main route - ChatContainer will open auth modal
           navigate('/therai', { replace: true });
           return;

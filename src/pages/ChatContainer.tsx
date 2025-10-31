@@ -36,6 +36,9 @@ const ChatContainerContent: React.FC = () => {
     const handlePendingJoins = async () => {
       if (!user?.id) return;
       
+      // Get the preserved redirect path
+      const redirectPath = localStorage.getItem('pending_redirect_path');
+      
       // Handle pending folder join
       const pendingFolderId = localStorage.getItem('pending_join_folder_id');
       if (pendingFolderId) {
@@ -48,13 +51,16 @@ const ChatContainerContent: React.FC = () => {
             await addFolderParticipant(pendingFolderId, user.id, 'member');
           }
           
-          // Clear pending and redirect to folder
+          // Clear pending and redirect to preserved path or folder URL
           localStorage.removeItem('pending_join_folder_id');
-          window.location.href = `/folders/${pendingFolderId}`;
+          const finalPath = redirectPath || `/folders/${pendingFolderId}`;
+          localStorage.removeItem('pending_redirect_path');
+          window.location.href = finalPath;
           return;
         } catch (error) {
           console.error('Error joining pending folder:', error);
           localStorage.removeItem('pending_join_folder_id');
+          localStorage.removeItem('pending_redirect_path');
         }
       }
       
@@ -83,16 +89,20 @@ const ChatContainerContent: React.FC = () => {
             if (insertError) {
               console.error('Error adding user as participant:', insertError);
               localStorage.removeItem('pending_join_chat_id');
+              localStorage.removeItem('pending_redirect_path');
               return;
             }
           }
           
-          // Clear pending and redirect to chat
+          // Clear pending and redirect to preserved path or chat URL
           localStorage.removeItem('pending_join_chat_id');
-          window.location.href = `/c/${pendingChatId}`;
+          const finalPath = redirectPath || `/c/${pendingChatId}`;
+          localStorage.removeItem('pending_redirect_path');
+          window.location.href = finalPath;
         } catch (error) {
           console.error('Error joining pending chat:', error);
           localStorage.removeItem('pending_join_chat_id');
+          localStorage.removeItem('pending_redirect_path');
         }
       }
     };

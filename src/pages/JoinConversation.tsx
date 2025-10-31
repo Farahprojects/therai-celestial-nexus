@@ -62,8 +62,9 @@ const JoinConversation: React.FC = () => {
               .maybeSingle();
             
             if (privateConv) {
-              // Private conversation - store pending and show auth
+              // Private conversation - store pending and full URL path
               localStorage.setItem('pending_join_chat_id', chatId);
+              localStorage.setItem('pending_redirect_path', `/c/${chatId}`);
               navigate('/therai', { replace: true });
               return;
             }
