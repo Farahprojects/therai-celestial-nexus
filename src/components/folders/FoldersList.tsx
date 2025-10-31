@@ -17,6 +17,7 @@ interface FolderItem {
     id: string;
     title: string;
   }>;
+  isTemp?: boolean;
 }
 
 interface FoldersListProps {
@@ -88,7 +89,14 @@ export const FoldersList: React.FC<FoldersListProps> = ({
                   <ChevronRight className="w-3 h-3 text-gray-500" />
                 )}
                 <Folder className="w-4 h-4 text-gray-600" />
-                <span className="flex-1 text-left">{folder.name}</span>
+                <span className="flex-1 text-left">
+                  {folder.name}
+                  {folder.isTemp && (
+                    <span className="ml-2 text-[10px] px-1.5 py-0.5 rounded-full bg-gray-200 text-gray-600 border border-gray-300">
+                      temp
+                    </span>
+                  )}
+                </span>
                 <span className="text-xs text-gray-500">({folder.chatsCount})</span>
               </button>
 

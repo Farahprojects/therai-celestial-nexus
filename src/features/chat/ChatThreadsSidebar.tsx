@@ -35,7 +35,7 @@ import { AddFolderButton } from '@/components/folders/AddFolderButton';
 import { FoldersList } from '@/components/folders/FoldersList';
 import { FolderModal } from '@/components/folders/FolderModal';
 import { ConversationActionsMenuContent } from '@/components/chat/ConversationActionsMenu';
-import { getUserFolders, createFolder, updateFolderName, deleteFolder, getFolderConversations, moveConversationToFolder } from '@/services/folders';
+import { getUserFolders, createFolder, updateFolderName, deleteFolder, getFolderConversations, moveConversationToFolder, getSharedFolder } from '@/services/folders';
 import { getConversation } from '@/services/conversations';
 import { CreditPurchaseModal } from '@/components/billing/CreditPurchaseModal';
 
@@ -152,14 +152,42 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
 
     const loadFolders = async () => {
       try {
-        let foldersList: Array<{ id: string; name: string; chatsCount: number; chats: Array<{ id: string; title: string }> }> = [];
+        let foldersList: Array<{ id: string; name: string; chatsCount: number; chats: Array<{ id: string; title: string }>; isTemp?: boolean }> = [];
+        
+        // Load temp folders from sessionStorage (shared public folders)
+        try {
+          const tempFoldersJson = sessionStorage.getItem('temp_folders');
+          if (tempFoldersJson) {
+            const tempFolders = JSON.parse(tempFoldersJson);
+            for (const tempFolder of tempFolders) {
+              try {
+                // Reload folder data to get latest conversations
+                const conversations = await getFolderConversations(tempFolder.id);
+                foldersList.push({
+                  id: tempFolder.id,
+                  name: tempFolder.name,
+                  chatsCount: conversations.length,
+                  chats: conversations.map(conv => ({
+                    id: conv.id,
+                    title: conv.title || 'New Chat',
+                  })),
+                  isTemp: true,
+                });
+              } catch (error) {
+                console.error('[ChatThreadsSidebar] Failed to reload temp folder:', error);
+              }
+            }
+          }
+        } catch (error) {
+          console.error('[ChatThreadsSidebar] Failed to load temp folders from storage:', error);
+        }
         
         // For authenticated users, load their folders
         if (user?.id) {
           const userFolders = await getUserFolders(user.id);
           
           // Load conversations for each folder
-          foldersList = await Promise.all(
+          const userFoldersList = await Promise.all(
             userFolders.map(async (folder) => {
               const conversations = await getFolderConversations(folder.id);
               return {
@@ -170,9 +198,49 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
                   id: conv.id,
                   title: conv.title || 'New Chat',
                 })),
+                isTemp: false,
               };
             })
           );
+          
+          // Merge temp folders and user folders (avoid duplicates)
+          const existingIds = new Set(userFoldersList.map(f => f.id));
+          const uniqueTempFolders = foldersList.filter(f => !existingIds.has(f.id));
+          foldersList = [...userFoldersList, ...uniqueTempFolders];
+        }
+        
+        // If currently viewing a shared folder that's not in the list, add it
+        if (folderId && !foldersList.find(f => f.id === folderId)) {
+          try {
+            const sharedFolder = await getSharedFolder(folderId);
+            if (sharedFolder && sharedFolder.is_public) {
+              const conversations = await getFolderConversations(folderId);
+              foldersList.push({
+                id: sharedFolder.id,
+                name: sharedFolder.name,
+                chatsCount: conversations.length,
+                chats: conversations.map(conv => ({
+                  id: conv.id,
+                  title: conv.title || 'New Chat',
+                })),
+                isTemp: true,
+              });
+              
+              // Save to sessionStorage
+              const tempFoldersJson = sessionStorage.getItem('temp_folders');
+              const tempFolders = tempFoldersJson ? JSON.parse(tempFoldersJson) : [];
+              const exists = tempFolders.some((f: any) => f.id === folderId);
+              if (!exists) {
+                tempFolders.push({
+                  id: sharedFolder.id,
+                  name: sharedFolder.name,
+                });
+                sessionStorage.setItem('temp_folders', JSON.stringify(tempFolders));
+              }
+            }
+          } catch (error) {
+            console.error('[ChatThreadsSidebar] Failed to load current shared folder:', error);
+          }
         }
         
         setFolders(foldersList);
@@ -771,19 +839,19 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
         )}
 
         {/* Folders Section - show for all users */}
-        <AddFolderButton 
-          onClick={() => {
+          <AddFolderButton 
+            onClick={() => {
             if (!isAuthenticated) {
               // Show auth modal if not authenticated
               setShowAuthModal(true);
               return;
             }
-            setEditingFolder(null);
-            setShowFolderModal(true);
-          }}
-          isExpanded={areFoldersExpanded}
-          onToggleExpand={() => setAreFoldersExpanded(!areFoldersExpanded)}
-        />
+              setEditingFolder(null);
+              setShowFolderModal(true);
+            }}
+            isExpanded={areFoldersExpanded}
+            onToggleExpand={() => setAreFoldersExpanded(!areFoldersExpanded)}
+          />
         {areFoldersExpanded && (
           <FoldersList
             folders={folders}
