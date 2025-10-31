@@ -35,7 +35,7 @@ import { AddFolderButton } from '@/components/folders/AddFolderButton';
 import { FoldersList } from '@/components/folders/FoldersList';
 import { FolderModal } from '@/components/folders/FolderModal';
 import { ConversationActionsMenuContent } from '@/components/chat/ConversationActionsMenu';
-import { getUserFolders, createFolder, updateFolderName, deleteFolder, getFolderConversations, moveConversationToFolder, getSharedFolder } from '@/services/folders';
+import { getUserFolders, createFolder, updateFolderName, deleteFolder, getFolderConversations, moveConversationToFolder } from '@/services/folders';
 import { getConversation } from '@/services/conversations';
 import { CreditPurchaseModal } from '@/components/billing/CreditPurchaseModal';
 
@@ -173,33 +173,6 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
               };
             })
           );
-        }
-        
-        // If user is viewing a folder via URL (join link), load that folder too
-        if (folderId) {
-          try {
-            const sharedFolder = await getSharedFolder(folderId);
-            if (sharedFolder) {
-              // Check if folder is already in the list
-              const exists = foldersList.some(f => f.id === folderId);
-              
-              if (!exists) {
-                // Load conversations for this shared folder
-                const conversations = await getFolderConversations(folderId);
-                foldersList.push({
-                  id: sharedFolder.id,
-                  name: sharedFolder.name,
-                  chatsCount: conversations.length,
-                  chats: conversations.map(conv => ({
-                    id: conv.id,
-                    title: conv.title || 'New Chat',
-                  })),
-                });
-              }
-            }
-          } catch (error) {
-            console.error('[ChatThreadsSidebar] Failed to load shared folder from URL:', error);
-          }
         }
         
         setFolders(foldersList);
