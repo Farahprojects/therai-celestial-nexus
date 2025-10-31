@@ -8,10 +8,11 @@ import { getAuthManager } from '@/services/authManager';
 
 import { authService } from '@/services/authService';
 /**
- * Utility – only logs outside production builds.
+ * Utility – logs enabled in production for debugging.
  */
 const debug = (...args: any[]) => {
-  if (process.env.NODE_ENV !== 'production') console.log(...args);
+  // Console logs enabled in production for debugging
+  console.log(...args);
 };
 
 // Lightweight trace object

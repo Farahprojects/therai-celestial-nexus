@@ -12,9 +12,9 @@ import { validateEmail } from '@/utils/authValidation';
 import { Mail } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
-// Debug utility
+// Debug utility - logs enabled in production for debugging
 const debug = (...args: any[]) => {
-  if (process.env.NODE_ENV !== 'production') console.log('[Signup]', ...args);
+  console.log('[Signup]', ...args);
 };
 
 const Signup = () => {
