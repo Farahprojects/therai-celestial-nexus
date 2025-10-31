@@ -48,14 +48,18 @@ class AuthManager {
    * Routes to correct flow based on platform automatically
    */
   async signInWithOAuth(provider: OAuthProvider): Promise<{ error: Error | null }> {
-    // Clean up any existing localStorage data before OAuth sign-in
-    // This ensures no stale data from previous sessions
+    // IMPORTANT: Do NOT clear Supabase auth state before OAuth!
+    // Supabase stores the PKCE code_verifier in sessionStorage/localStorage
+    // and needs it when exchanging the code for a session after redirect
+    // Only clear very specific non-auth related items
+    console.log('[AuthManager] Starting OAuth sign-in', { provider, platform: this.platform });
+    
+    // Only clear non-Supabase related items that won't affect PKCE flow
     try {
-      const { cleanupAuthState } = await import('../utils/authCleanup');
-      await cleanupAuthState();
-      console.log('[AuthManager] Cleaned up existing auth state before OAuth');
+      localStorage.removeItem('pending_join_token'); // Old token, not needed
+      console.log('[AuthManager] Cleared pending_join_token (preserving PKCE state)');
     } catch (error) {
-      console.warn('[AuthManager] Failed to cleanup auth state:', error);
+      console.warn('[AuthManager] Failed to clear pending_join_token:', error);
     }
 
     if (this.isNativeApp()) {
@@ -110,10 +114,23 @@ class AuthManager {
     try {
       console.log(`[AuthManager] Web OAuth: ${provider}`);
       const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
+      
+      // Preserve pending folder/chat join state for post-auth redirect
+      const pendingFolderId = localStorage.getItem('pending_join_folder_id');
+      const pendingChatId = localStorage.getItem('pending_join_chat_id');
+      const pendingRedirectPath = localStorage.getItem('pending_redirect_path');
+      
+      console.log('[AuthManager] Preserving pending join state:', { 
+        pendingFolderId, 
+        pendingChatId, 
+        pendingRedirectPath 
+      });
 
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
+          // Redirect back to /therai - AuthContext will handle the callback
+          // ChatContainer will then handle pending folder/chat joins
           redirectTo: `${baseUrl}/therai`,
           queryParams: provider === 'google'
             ? { access_type: 'offline', prompt: 'consent' }
@@ -126,6 +143,7 @@ class AuthManager {
         return { error: new Error(error.message || 'OAuth failed') };
       }
 
+      console.log('[AuthManager] OAuth redirect initiated successfully');
       return { error: null };
     } catch (err: unknown) {
       console.error('[AuthManager] Web OAuth error:', err);

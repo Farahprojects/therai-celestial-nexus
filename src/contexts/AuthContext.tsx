@@ -100,31 +100,64 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const code = urlParams.get('code');
       const error = urlParams.get('error');
       
-      if (code || error) {
-        log('debug', 'OAuth callback detected', { code: !!code, error }, 'auth');
+      // Also check hash for PKCE flow
+      const hashParams = new URLSearchParams(window.location.hash.slice(1));
+      const hashCode = hashParams.get('code');
+      const hashError = hashParams.get('error');
+      
+      const oauthCode = code || hashCode;
+      const oauthError = error || hashError;
+      
+      if (oauthCode || oauthError) {
+        console.log('[AuthContext] OAuth callback detected', { 
+          code: !!oauthCode, 
+          error: oauthError,
+          hasHashCode: !!hashCode,
+          hasQueryCode: !!code,
+          fullUrl: window.location.href 
+        });
         
-        if (error) {
-          console.error('OAuth error:', error);
+        if (oauthError) {
+          console.error('[AuthContext] OAuth error:', oauthError);
           // Clean up URL parameters
           const url = new URL(window.location.href);
           url.searchParams.delete('code');
           url.searchParams.delete('error');
           url.searchParams.delete('state');
+          url.hash = url.hash.replace(/[?&](code|error|state)=[^&]*/g, '');
           window.history.replaceState({}, '', url.toString());
           return;
         }
         
-        if (code) {
+        if (oauthCode) {
           try {
-            // Exchange code for session
-            const { data, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+            console.log('[AuthContext] Attempting to exchange code for session');
+            // Check if PKCE verifier exists in sessionStorage
+            const pkceVerifier = sessionStorage.getItem('supabase.auth.token') 
+              ? JSON.parse(sessionStorage.getItem('supabase.auth.token') || '{}')?.pkceCodeVerifier
+              : null;
+            
+            console.log('[AuthContext] PKCE verifier check:', { 
+              hasVerifier: !!pkceVerifier,
+              hasAuthToken: !!sessionStorage.getItem('supabase.auth.token'),
+              sessionStorageKeys: Object.keys(sessionStorage).filter(k => k.includes('supabase'))
+            });
+            
+            // Exchange code for session - Supabase should handle PKCE automatically
+            const { data, error: exchangeError } = await supabase.auth.exchangeCodeForSession(oauthCode);
             if (exchangeError) {
-              console.error('OAuth code exchange error:', exchangeError);
+              console.error('[AuthContext] OAuth code exchange error:', exchangeError);
+              console.error('[AuthContext] Exchange error details:', {
+                message: exchangeError.message,
+                status: exchangeError.status,
+                url: window.location.href
+              });
             } else {
+              console.log('[AuthContext] OAuth code exchanged successfully');
               log('debug', 'OAuth code exchanged successfully', null, 'auth');
             }
           } catch (err) {
-            console.error('OAuth code exchange exception:', err);
+            console.error('[AuthContext] OAuth code exchange exception:', err);
           }
         }
         
@@ -133,6 +166,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         url.searchParams.delete('code');
         url.searchParams.delete('error');
         url.searchParams.delete('state');
+        // Also clean hash
+        url.hash = url.hash.replace(/[?&](code|error|state)=[^&]*/g, '');
         window.history.replaceState({}, '', url.toString());
       }
     };
