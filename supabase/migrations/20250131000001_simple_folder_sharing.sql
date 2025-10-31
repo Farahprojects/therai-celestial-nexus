@@ -93,19 +93,27 @@ FOR INSERT
 TO authenticated
 WITH CHECK (user_id = auth.uid());
 
--- Users can leave folders (delete their own participation)
-DROP POLICY IF EXISTS "Users can leave folders" ON public.chat_folder_participants;
-CREATE POLICY "Users can leave folders"
+-- Users can leave folders OR owners can remove participants
+DROP POLICY IF EXISTS "Users can leave folders or owners remove" ON public.chat_folder_participants;
+CREATE POLICY "Users can leave folders or owners remove"
 ON public.chat_folder_participants
 FOR DELETE
 TO authenticated
-USING (user_id = auth.uid());
+USING (
+  user_id = auth.uid()  -- User leaving themselves
+  OR EXISTS (           -- Or folder owner removing someone
+    SELECT 1 FROM public.chat_folders
+    WHERE id = folder_id
+    AND user_id = auth.uid()
+  )
+);
 
--- Folder owners can manage all participants
-DROP POLICY IF EXISTS "Owners can manage participants" ON public.chat_folder_participants;
-CREATE POLICY "Owners can manage participants"
+-- Folder owners can manage participants (INSERT/UPDATE/DELETE only, not SELECT)
+-- UPDATE policy for owners to modify participant roles
+DROP POLICY IF EXISTS "Owners can update participants" ON public.chat_folder_participants;
+CREATE POLICY "Owners can update participants"
 ON public.chat_folder_participants
-FOR ALL
+FOR UPDATE
 TO authenticated
 USING (
   EXISTS (
@@ -121,6 +129,7 @@ WITH CHECK (
     AND user_id = auth.uid()
   )
 );
+
 
 -- ============================================================================
 -- STEP 4: Update CONVERSATIONS RLS to inherit folder access
