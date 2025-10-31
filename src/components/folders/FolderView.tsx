@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { getFolderConversations, getUserFolders } from '@/services/folders';
+import { getFolderConversations, getUserFolders, getSharedFolder } from '@/services/folders';
 import { Plus, Share2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useChatStore } from '@/core/store';
