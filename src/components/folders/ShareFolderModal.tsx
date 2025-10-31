@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Share2, Copy, Check, Lock, Globe } from 'lucide-react';
+import { X, Copy, Check, Lock, Globe } from 'lucide-react';
 import { shareFolderPublic, shareFolderPrivate, unshareFolder, getSharedFolder } from '@/services/folders';
 
 interface ShareFolderModalProps {
@@ -85,53 +85,46 @@ export const ShareFolderModal: React.FC<ShareFolderModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center z-50 p-4 bg-black/20">
-      <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl">
+    <div className="fixed inset-0 flex items-center justify-center z-50 p-6 bg-black/10 backdrop-blur-sm">
+      <div className="bg-white rounded-3xl w-full max-w-lg shadow-xl border border-gray-100">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-100">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
-              <Share2 className="w-4 h-4 text-gray-600" />
-            </div>
-            <div>
-              <h2 className="text-lg font-medium text-gray-900">Share Folder</h2>
-              <p className="text-sm text-gray-500">{folderName || 'Untitled'}</p>
-            </div>
+        <div className="flex items-center justify-between px-8 pt-8 pb-6">
+          <div>
+            <h2 className="text-2xl font-light text-gray-900">Share Folder</h2>
+            <p className="text-sm font-light text-gray-500 mt-1">{folderName || 'Untitled'}</p>
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors"
+            className="w-9 h-9 rounded-full hover:bg-gray-100 flex items-center justify-center transition-colors"
+            aria-label="Close"
           >
-            <X className="w-4 h-4 text-gray-600" />
+            <X className="w-5 h-5 text-gray-400" />
           </button>
         </div>
 
         {/* Content */}
-        <div className="p-6 space-y-6">
+        <div className="px-8 pb-8 space-y-6">
           {!isShared ? (
             /* Share Options Selection */
-            <div className="space-y-4">
-              <div className="text-center mb-6">
-                <h3 className="text-lg font-medium text-gray-900 mb-2">Share Folder</h3>
-                <p className="text-sm text-gray-600">
-                  All conversations in this folder will be shared
-                </p>
-              </div>
+            <div className="space-y-3">
+              <p className="text-sm font-light text-gray-600 mb-6">
+                Choose who can access this folder
+              </p>
 
-              {/* Private (Sign-in required) Option */}
+              {/* Private Option */}
               <button
                 onClick={handleSharePrivate}
                 disabled={isLoading}
-                className="w-full p-4 border-2 border-gray-200 hover:border-gray-300 rounded-xl text-left transition-all hover:bg-gray-50"
+                className="w-full px-6 py-5 bg-gray-50 hover:bg-gray-100 rounded-3xl text-left transition-all group"
               >
-                <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
-                    <Lock className="w-5 h-5 text-blue-600" />
+                <div className="flex items-center gap-4">
+                  <div className="w-11 h-11 bg-white rounded-full flex items-center justify-center flex-shrink-0 shadow-sm">
+                    <Lock className="w-5 h-5 text-gray-600" />
                   </div>
-                  <div className="flex-1">
-                    <div className="font-medium text-gray-900 mb-1">Private</div>
-                    <div className="text-sm text-gray-600">
-                      Anyone with the link can view, but they need to sign in first.
+                  <div className="flex-1 min-w-0">
+                    <div className="font-light text-gray-900 mb-1">Private</div>
+                    <div className="text-sm font-light text-gray-500">
+                      Link requires sign-in to view
                     </div>
                   </div>
                 </div>
@@ -141,16 +134,16 @@ export const ShareFolderModal: React.FC<ShareFolderModalProps> = ({
               <button
                 onClick={handleSharePublic}
                 disabled={isLoading}
-                className="w-full p-4 border-2 border-gray-200 hover:border-gray-300 rounded-xl text-left transition-all hover:bg-gray-50"
+                className="w-full px-6 py-5 bg-gray-50 hover:bg-gray-100 rounded-3xl text-left transition-all group"
               >
-                <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
-                    <Globe className="w-5 h-5 text-green-600" />
+                <div className="flex items-center gap-4">
+                  <div className="w-11 h-11 bg-white rounded-full flex items-center justify-center flex-shrink-0 shadow-sm">
+                    <Globe className="w-5 h-5 text-gray-600" />
                   </div>
-                  <div className="flex-1">
-                    <div className="font-medium text-gray-900 mb-1">Public</div>
-                    <div className="text-sm text-gray-600">
-                      Anyone with the link can view without signing in.
+                  <div className="flex-1 min-w-0">
+                    <div className="font-light text-gray-900 mb-1">Public</div>
+                    <div className="text-sm font-light text-gray-500">
+                      Anyone with link can view
                     </div>
                   </div>
                 </div>
@@ -158,66 +151,60 @@ export const ShareFolderModal: React.FC<ShareFolderModalProps> = ({
             </div>
           ) : (
             /* Share Success */
-            <div className="space-y-4">
-              <div className="text-center">
-                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Check className="w-8 h-8 text-green-600" />
-                </div>
-                <h3 className="text-lg font-medium text-gray-900 mb-2">Folder shared!</h3>
-                <div className="flex items-center justify-center gap-2 mb-2">
-                  {isPublic ? (
+            <div className="space-y-6">
+              {/* Status Badge */}
+              <div className="inline-flex items-center gap-2 px-4 py-2 bg-gray-50 rounded-full">
+                {isPublic ? (
+                  <>
+                    <Globe className="w-4 h-4 text-gray-600" />
+                    <span className="text-sm font-light text-gray-700">Public</span>
+                  </>
+                ) : (
+                  <>
+                    <Lock className="w-4 h-4 text-gray-600" />
+                    <span className="text-sm font-light text-gray-700">Private</span>
+                  </>
+                )}
+              </div>
+
+              <p className="text-sm font-light text-gray-600 leading-relaxed">
+                {isPublic
+                  ? "Anyone with this link can view all conversations without signing in"
+                  : "Anyone with this link can view after signing in"
+                }
+              </p>
+
+              {/* Link with Copy Button */}
+              <div className="bg-gray-50 rounded-full overflow-hidden flex items-center">
+                <input
+                  type="text"
+                  value={`https://therai.co/folder/${folderId}`}
+                  readOnly
+                  className="flex-1 px-6 py-4 text-sm font-light text-gray-700 bg-transparent border-none outline-none"
+                />
+                <button
+                  onClick={handleCopyLink}
+                  className="px-8 py-4 bg-gray-900 hover:bg-gray-800 text-white text-sm font-light transition-colors flex items-center gap-2 rounded-full mr-1"
+                >
+                  {copied ? (
                     <>
-                      <Globe className="w-4 h-4 text-green-600" />
-                      <span className="text-sm font-medium text-green-600">Public</span>
+                      <Check className="w-4 h-4" />
+                      <span>Copied</span>
                     </>
                   ) : (
                     <>
-                      <Lock className="w-4 h-4 text-blue-600" />
-                      <span className="text-sm font-medium text-blue-600">Private</span>
+                      <Copy className="w-4 h-4" />
+                      <span>Copy</span>
                     </>
                   )}
-                </div>
-                <p className="text-sm text-gray-600">
-                  {isPublic
-                    ? "Anyone with this link can view all conversations in this folder without signing in."
-                    : "Anyone with this link can view all conversations in this folder after signing in."
-                  }
-                </p>
+                </button>
               </div>
 
-              {/* Link Input with Copy Button */}
-              <div className="relative">
-                <div className="flex items-center gap-0 border border-gray-200 rounded-xl overflow-hidden hover:border-gray-300 transition-colors">
-                  <input
-                    type="text"
-                    value={`https://therai.co/folder/${folderId}`}
-                    readOnly
-                    className="flex-1 px-4 py-3 text-sm text-gray-700 bg-white border-none outline-none"
-                  />
-                  <button
-                    onClick={handleCopyLink}
-                    className="px-6 py-3 bg-gray-900 hover:bg-gray-800 text-white text-sm font-medium transition-colors flex items-center gap-2"
-                  >
-                    {copied ? (
-                      <>
-                        <Check className="w-4 h-4" />
-                        Copied
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="w-4 h-4" />
-                        Copy
-                      </>
-                    )}
-                  </button>
-                </div>
-              </div>
-
-              {/* Stop Sharing Button */}
+              {/* Stop Sharing */}
               <button
                 onClick={handleUnshare}
                 disabled={isLoading}
-                className="w-full px-4 py-3 text-red-600 hover:bg-red-50 rounded-xl text-sm font-medium transition-colors"
+                className="w-full px-6 py-4 text-gray-600 hover:bg-gray-50 rounded-full text-sm font-light transition-colors"
               >
                 Stop sharing
               </button>
