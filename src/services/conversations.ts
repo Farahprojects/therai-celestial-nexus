@@ -37,6 +37,24 @@ export const createConversation = async (
 };
 
 /**
+ * Get a single conversation by ID (works for public conversations or authenticated users)
+ */
+export const getConversation = async (conversationId: string): Promise<Conversation | null> => {
+  const { data, error } = await supabase
+    .from('conversations')
+    .select('*')
+    .eq('id', conversationId)
+    .maybeSingle();
+
+  if (error) {
+    console.error('[Conversations] Error fetching conversation:', error);
+    return null;
+  }
+
+  return data;
+};
+
+/**
  * List all conversations for an authenticated user using edge function
  */
 export const listConversations = async (userId: string, limit?: number, offset?: number): Promise<Conversation[]> => {

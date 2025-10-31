@@ -35,7 +35,8 @@ import { AddFolderButton } from '@/components/folders/AddFolderButton';
 import { FoldersList } from '@/components/folders/FoldersList';
 import { FolderModal } from '@/components/folders/FolderModal';
 import { ConversationActionsMenuContent } from '@/components/chat/ConversationActionsMenu';
-import { getUserFolders, createFolder, updateFolderName, deleteFolder, getFolderConversations, moveConversationToFolder } from '@/services/folders';
+import { getUserFolders, createFolder, updateFolderName, deleteFolder, getFolderConversations, moveConversationToFolder, getSharedFolder } from '@/services/folders';
+import { getConversation } from '@/services/conversations';
 import { CreditPurchaseModal } from '@/components/billing/CreditPurchaseModal';
 
 
@@ -83,8 +84,8 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
     }
   };
   
-  // Get chat_id directly from URL (most reliable source)
-  const { threadId } = useParams<{ threadId?: string }>();
+  // Get chat_id and folderId directly from URL (most reliable source)
+  const { threadId, folderId } = useParams<{ threadId?: string; folderId?: string }>();
   const storeChatId = useChatStore((state) => state.chat_id);
   const navigate = useNavigate();
   
@@ -124,9 +125,12 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
 
   // Load credits and folders on mount
   useEffect(() => {
-    if (!user?.id) return;
-    
     const loadCredits = async () => {
+      if (!user?.id) {
+        setCreditsLoading(false);
+        return;
+      }
+      
       try {
         const { data, error } = await supabase
           .from('user_credits')
@@ -148,33 +152,87 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
 
     const loadFolders = async () => {
       try {
-        const userFolders = await getUserFolders(user.id);
+        let foldersList: Array<{ id: string; name: string; chatsCount: number; chats: Array<{ id: string; title: string }> }> = [];
         
-        // Load conversations for each folder
-        const foldersWithChats = await Promise.all(
-          userFolders.map(async (folder) => {
-            const conversations = await getFolderConversations(folder.id);
-            return {
-              id: folder.id,
-              name: folder.name,
-              chatsCount: conversations.length,
-              chats: conversations.map(conv => ({
-                id: conv.id,
-                title: conv.title || 'New Chat',
-              })),
-            };
-          })
-        );
+        // For authenticated users, load their folders
+        if (user?.id) {
+          const userFolders = await getUserFolders(user.id);
+          
+          // Load conversations for each folder
+          foldersList = await Promise.all(
+            userFolders.map(async (folder) => {
+              const conversations = await getFolderConversations(folder.id);
+              return {
+                id: folder.id,
+                name: folder.name,
+                chatsCount: conversations.length,
+                chats: conversations.map(conv => ({
+                  id: conv.id,
+                  title: conv.title || 'New Chat',
+                })),
+              };
+            })
+          );
+        }
         
-        setFolders(foldersWithChats);
+        // If user is viewing a folder via URL (join link), load that folder too
+        if (folderId) {
+          try {
+            const sharedFolder = await getSharedFolder(folderId);
+            if (sharedFolder) {
+              // Check if folder is already in the list
+              const exists = foldersList.some(f => f.id === folderId);
+              
+              if (!exists) {
+                // Load conversations for this shared folder
+                const conversations = await getFolderConversations(folderId);
+                foldersList.push({
+                  id: sharedFolder.id,
+                  name: sharedFolder.name,
+                  chatsCount: conversations.length,
+                  chats: conversations.map(conv => ({
+                    id: conv.id,
+                    title: conv.title || 'New Chat',
+                  })),
+                });
+              }
+            }
+          } catch (error) {
+            console.error('[ChatThreadsSidebar] Failed to load shared folder from URL:', error);
+          }
+        }
+        
+        setFolders(foldersList);
       } catch (error) {
         console.error('[ChatThreadsSidebar] Failed to load folders:', error);
       }
     };
     
+    // Load current conversation if accessing via join link (for unauthenticated users)
+    const loadCurrentConversation = async () => {
+      if (chat_id && !user?.id) {
+        try {
+          const conversation = await getConversation(chat_id);
+          if (conversation && conversation.is_public) {
+            // Check if conversation is already in threads
+            const { threads } = useChatStore.getState();
+            const exists = threads.some(t => t.id === chat_id);
+            
+            if (!exists) {
+              // Add to threads list
+              useChatStore.setState({ threads: [conversation, ...threads] });
+            }
+          }
+        } catch (error) {
+          console.error('[ChatThreadsSidebar] Failed to load current conversation:', error);
+        }
+      }
+    };
+    
     loadCredits();
     loadFolders();
-  }, [user?.id]);
+    loadCurrentConversation();
+  }, [user?.id, folderId, chat_id]);
 
   // Set up real-time subscription for credit balance updates
   useEffect(() => {
