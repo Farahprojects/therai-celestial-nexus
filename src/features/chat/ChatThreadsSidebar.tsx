@@ -780,61 +780,59 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
       {/* Scrollable middle section - only threads scroll */}
       <div className="flex-1 overflow-y-auto min-h-0">
 
-      {/* Thread history - show for authenticated users OR unauthenticated users viewing shared content */}
-      {(isAuthenticated && uiConfig.showThreadHistory) || (!isAuthenticated && (folders.length > 0 || threads.length > 0)) ? (
-        <div className="space-y-1">
-          {/* Hide New Chat and Search for Swiss route - only for authenticated users */}
-          {isAuthenticated && conversationType !== 'swiss' && uiConfig.newChatLabel && (
-            <NewChatDropdown className="w-full font-light" />
-          )}
-          
-          {isAuthenticated && conversationType !== 'swiss' && uiConfig.showSearchChat && (
-            <button
-              onClick={() => setShowSearchModal(true)}
-              className="w-full flex items-center gap-2 px-3 py-1.5 text-sm text-black hover:bg-gray-100 rounded-lg transition-colors font-light"
-            >
-              <Search className="w-4 h-4" />
-              Search chat
-            </button>
-          )}
+      {/* Thread history */}
+      <div className="space-y-1">
+        {/* New Chat and Search - only for authenticated users */}
+        {isAuthenticated && conversationType !== 'swiss' && uiConfig.newChatLabel && (
+          <NewChatDropdown className="w-full font-light" />
+        )}
+        
+        {isAuthenticated && conversationType !== 'swiss' && uiConfig.showSearchChat && (
+          <button
+            onClick={() => setShowSearchModal(true)}
+            className="w-full flex items-center gap-2 px-3 py-1.5 text-sm text-black hover:bg-gray-100 rounded-lg transition-colors font-light"
+          >
+            <Search className="w-4 h-4" />
+            Search chat
+          </button>
+        )}
 
-          {/* Folders Section - only show AddFolderButton for authenticated users */}
-          {isAuthenticated && (
-            <AddFolderButton 
-              onClick={() => {
-                setEditingFolder(null);
-                setShowFolderModal(true);
-              }}
-              isExpanded={areFoldersExpanded}
-              onToggleExpand={() => setAreFoldersExpanded(!areFoldersExpanded)}
-            />
-          )}
-          {/* Show folders for both authenticated and unauthenticated users */}
-          {((isAuthenticated && areFoldersExpanded) || (!isAuthenticated && folders.length > 0)) && (
-            <FoldersList
-              folders={folders}
-              onFolderClick={handleFolderClick}
-              onChatClick={handleFolderChatClick}
-              onEditFolder={isAuthenticated ? handleEditFolder : undefined}
-              onDeleteFolder={isAuthenticated ? handleDeleteFolder : undefined}
-              onEditChat={isAuthenticated ? handleEditTitle : undefined}
-              onDeleteChat={isAuthenticated ? (conversationId) => {
-                setConversationToDelete(conversationId);
-                setShowDeleteConfirm(true);
-              } : undefined}
-              onMoveToFolder={isAuthenticated ? handleMoveToFolder : undefined}
-              onCreateFolder={isAuthenticated ? handleCreateFolderAndMove : undefined}
-              allFolders={folders.map(f => ({ id: f.id, name: f.name }))}
-              activeChatId={chat_id}
-            />
-          )}
-          
-          {/* Space between Folders and Chat History */}
-          <div className="py-2"></div>
-          
-          {/* Chat history section */}
-          <div className="space-y-0.5">
-            <div className="text-xs text-gray-600 font-medium px-3 py-0.5">{isAuthenticated ? uiConfig.threadSectionLabel : 'Conversation'}</div>
+        {/* Folders Section */}
+        {isAuthenticated && (
+          <AddFolderButton 
+            onClick={() => {
+              setEditingFolder(null);
+              setShowFolderModal(true);
+            }}
+            isExpanded={areFoldersExpanded}
+            onToggleExpand={() => setAreFoldersExpanded(!areFoldersExpanded)}
+          />
+        )}
+        {areFoldersExpanded && (
+          <FoldersList
+            folders={folders}
+            onFolderClick={handleFolderClick}
+            onChatClick={handleFolderChatClick}
+            onEditFolder={isAuthenticated ? handleEditFolder : undefined}
+            onDeleteFolder={isAuthenticated ? handleDeleteFolder : undefined}
+            onEditChat={isAuthenticated ? handleEditTitle : undefined}
+            onDeleteChat={isAuthenticated ? (conversationId) => {
+              setConversationToDelete(conversationId);
+              setShowDeleteConfirm(true);
+            } : undefined}
+            onMoveToFolder={isAuthenticated ? handleMoveToFolder : undefined}
+            onCreateFolder={isAuthenticated ? handleCreateFolderAndMove : undefined}
+            allFolders={folders.map(f => ({ id: f.id, name: f.name }))}
+            activeChatId={chat_id}
+          />
+        )}
+        
+        {/* Space between Folders and Chat History */}
+        <div className="py-2"></div>
+        
+        {/* Chat history section */}
+        <div className="space-y-0.5">
+          <div className="text-xs text-gray-600 font-medium px-3 py-0.5">{uiConfig.threadSectionLabel}</div>
             {isLoadingThreads ? (
               // Loading skeleton
               <div className="space-y-0.5">
@@ -942,7 +940,6 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
             )}
           </div>
         </div>
-      ) : null}
 
       </div>
 
