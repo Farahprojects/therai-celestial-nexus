@@ -942,7 +942,7 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
             )}
           </div>
         </div>
-      )}
+      ) : null}
 
       </div>
 
