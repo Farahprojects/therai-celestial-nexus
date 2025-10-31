@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { getFolderConversations, getUserFolders } from '@/services/folders';
+import { getFolderConversations, getUserFolders, getSharedFolder } from '@/services/folders';
 import { Plus, Share2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useChatStore } from '@/core/store';
@@ -30,28 +30,48 @@ export const FolderView: React.FC<FolderViewProps> = ({ folderId, onChatClick })
   const { setViewMode, startConversation } = useChatStore();
 
   useEffect(() => {
-    if (!user?.id) return;
-
     const loadFolderData = async () => {
       setIsLoading(true);
       setError(null);
       
       try {
-        // Load folder name and conversations in parallel
-        const [folders, conversationsData] = await Promise.all([
-          getUserFolders(user.id),
-          getFolderConversations(folderId)
-        ]);
+        // For authenticated users, try to load from their folders first
+        // For unauthenticated users or if folder not found in user's folders, try shared folder
+        if (user?.id) {
+          try {
+            const [folders, conversationsData] = await Promise.all([
+              getUserFolders(user.id),
+              getFolderConversations(folderId)
+            ]);
 
-        const folder = folders.find(f => f.id === folderId);
-        if (!folder) {
-          setError('Folder not found');
-          setIsLoading(false);
-          return;
+            const folder = folders.find(f => f.id === folderId);
+            if (folder) {
+              setFolderName(folder.name);
+              setConversations(conversationsData);
+              setIsLoading(false);
+              return;
+            }
+          } catch (err) {
+            console.error('[FolderView] Failed to load from user folders:', err);
+            // Fall through to try shared folder
+          }
         }
 
-        setFolderName(folder.name);
-        setConversations(conversationsData);
+        // Try loading as shared folder (works for both authenticated and unauthenticated)
+        const sharedFolder = await getSharedFolder(folderId);
+        if (sharedFolder) {
+          // Check if it's a public folder or user is authenticated
+          if (sharedFolder.share_mode === 'public' || user?.id) {
+            const conversationsData = await getFolderConversations(folderId);
+            setFolderName(sharedFolder.name);
+            setConversations(conversationsData);
+            setIsLoading(false);
+            return;
+          }
+        }
+
+        // If we get here, folder not found or not accessible
+        setError('Folder not found or not accessible');
       } catch (err) {
         console.error('[FolderView] Failed to load folder data:', err);
         setError('Failed to load folder');
@@ -99,26 +119,29 @@ export const FolderView: React.FC<FolderViewProps> = ({ folderId, onChatClick })
       {/* Folder Name and Add Button - Below Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
         <div className="text-lg font-light text-gray-900">{folderName}</div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            className="rounded-full font-light"
-            onClick={() => setShowShareModal(true)}
-          >
-            <Share2 className="w-4 h-4 mr-2" />
-            Share
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className="rounded-full font-light"
-            disabled
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Add
-          </Button>
-        </div>
+        {/* Only show share/add buttons for authenticated users who own the folder */}
+        {user && (
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="rounded-full font-light"
+              onClick={() => setShowShareModal(true)}
+            >
+              <Share2 className="w-4 h-4 mr-2" />
+              Share
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="rounded-full font-light"
+              disabled
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Add
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Conversations List */}
