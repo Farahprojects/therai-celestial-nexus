@@ -17,9 +17,11 @@ if (typeof window !== 'undefined') {
   // One-time cleanup of old storage keys
   cleanupOldStorage();
   
-  if (process.env.NODE_ENV !== 'production') {
-    initDevConsoleFilter();
-  }
+  // TEMPORARILY DISABLED: Enable full console logs in production for debugging
+  // if (process.env.NODE_ENV !== 'production') {
+  //   initDevConsoleFilter();
+  // }
+  console.log('[main.tsx] Console logging enabled in production for debugging');
   // Initialize unified auth manager AFTER window is available
   // Ensures Capacitor bridge is ready before platform detection
   try { 

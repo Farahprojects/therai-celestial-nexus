@@ -20,7 +20,7 @@ interface LogConfig {
 
 // Default configuration - can be overridden via localStorage
 const defaultConfig: LogConfig = {
-  enabled: process.env.NODE_ENV === 'development',
+  enabled: true, // TEMPORARILY ENABLED IN PRODUCTION FOR DEBUGGING
   level: 'info',
   components: {
     ReportForm: process.env.NODE_ENV === 'development', // Enable ReportForm logs only in development
