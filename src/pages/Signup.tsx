@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, Link, Navigate } from 'react-router-dom';
+import { useNavigate, Link, Navigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -11,6 +11,7 @@ import SocialLogin from '@/components/auth/SocialLogin';
 import { validateEmail } from '@/utils/authValidation';
 import { Mail } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { getRedirectPath } from '@/utils/redirectUtils';
 
 // Debug utility - logs enabled in production for debugging
 const debug = (...args: any[]) => {
@@ -19,6 +20,7 @@ const debug = (...args: any[]) => {
 
 const Signup = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { toast } = useToast();
   const { signUp, signInWithGoogle, signInWithApple, user } = useAuth();
 
@@ -43,7 +45,9 @@ const Signup = () => {
 
   // Redirect if already logged in
   if (user) {
-    return <Navigate to="/" replace />;
+    const redirectPath = getRedirectPath(searchParams);
+    const destination = redirectPath || '/';
+    return <Navigate to={destination} replace />;
   }
 
   const handleSubmit = async (e: React.FormEvent) => {

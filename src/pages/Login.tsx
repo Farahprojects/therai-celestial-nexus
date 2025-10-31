@@ -1,13 +1,15 @@
 import { useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import LoginModal from '@/components/auth/LoginModal';
 import UnifiedNavigation from '@/components/UnifiedNavigation';
 import Footer from '@/components/Footer';
+import { getRedirectPath } from '@/utils/redirectUtils';
 
 export default function Login() {
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
   const { user, loading: authLoading } = useAuth();
 
   // Auto-scroll to top when component mounts
@@ -18,13 +20,17 @@ export default function Login() {
   // Redirect if already authenticated
   useEffect(() => {
     if (user && !authLoading) {
-      const from = (location.state as any)?.from?.pathname || '/therai';
+      // Check for redirect param first, then location state, then default
+      const redirectPath = getRedirectPath(searchParams);
+      const from = redirectPath || (location.state as any)?.from?.pathname || '/therai';
       navigate(from, { replace: true });
     }
-  }, [user, authLoading, navigate, location.state]);
+  }, [user, authLoading, navigate, location.state, searchParams]);
 
   const handleSuccess = () => {
-    const from = (location.state as any)?.from?.pathname || '/therai';
+    // Check for redirect param first, then location state, then default
+    const redirectPath = getRedirectPath(searchParams);
+    const from = redirectPath || (location.state as any)?.from?.pathname || '/therai';
     navigate(from, { replace: true });
   };
 

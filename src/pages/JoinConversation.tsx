@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Conversation } from '@/core/types';
 import ChatContainer from './ChatContainer';
+import { setRedirectPath, encodeRedirectPath } from '@/utils/redirectUtils';
 
 const JoinConversation: React.FC = () => {
   const { chatId } = useParams<{ chatId: string }>();
@@ -62,10 +63,18 @@ const JoinConversation: React.FC = () => {
               .maybeSingle();
             
             if (privateConv) {
-              // Private conversation - store pending and full URL path
-              localStorage.setItem('pending_join_chat_id', chatId);
-              localStorage.setItem('pending_redirect_path', `/c/${chatId}`);
-              navigate('/therai', { replace: true });
+              // Private conversation - preserve redirect in URL params
+              const redirectPath = setRedirectPath(`/c/${chatId}`);
+              const encodedRedirect = encodeRedirectPath(redirectPath);
+              
+              // Also store for backward compatibility
+              try {
+                localStorage.setItem('pending_join_chat_id', chatId);
+              } catch {
+                // Ignore localStorage errors
+              }
+              
+              navigate(`/therai?redirect=${encodedRedirect}`, { replace: true });
               return;
             }
           }
@@ -77,8 +86,12 @@ const JoinConversation: React.FC = () => {
 
         setConversation(data as Conversation);
 
-        // Store the path so it can be preserved in session (for future sign-in)
-        localStorage.setItem('pending_redirect_path', `/c/${chatId}`);
+        // Store the path for backward compatibility
+        try {
+          localStorage.setItem('pending_redirect_path', `/c/${chatId}`);
+        } catch {
+          // Ignore localStorage errors
+        }
 
         // If user is signed in, add them as a participant; then redirect to /c/:chatId
         if (isAuthenticated && user) {
@@ -155,12 +168,13 @@ const JoinConversation: React.FC = () => {
   };
 
   const handleSignIn = () => {
-    try {
-      if (chatId) {
-        localStorage.setItem('pending_join_chat_id', chatId);
-      }
-    } catch {}
-    navigate('/therai');
+    if (chatId) {
+      const redirectPath = setRedirectPath(`/c/${chatId}`);
+      const encodedRedirect = encodeRedirectPath(redirectPath);
+      navigate(`/therai?redirect=${encodedRedirect}`);
+    } else {
+      navigate('/therai');
+    }
   };
 
   if (loading) {

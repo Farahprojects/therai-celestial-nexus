@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getSharedFolder, addFolderParticipant, isFolderParticipant } from '@/services/folders';
 import { useAuth } from '@/contexts/AuthContext';
+import { setRedirectPath, encodeRedirectPath } from '@/utils/redirectUtils';
 
 const JoinFolder: React.FC = () => {
   const { folderId } = useParams<{ folderId: string }>();
@@ -42,13 +43,21 @@ const JoinFolder: React.FC = () => {
 
         // Private folder - requires sign-in
         if (!isAuthenticated || !user) {
-          console.log('[JoinFolder] Private folder, user not authenticated - storing pending join');
-          // Store pending join and full URL path for after sign-in
-          localStorage.setItem('pending_join_folder_id', folderId);
-          localStorage.setItem('pending_redirect_path', `/folders/${folderId}`);
-          // Navigate to main route - ChatContainer will open auth modal
+          console.log('[JoinFolder] Private folder, user not authenticated - preserving redirect');
+          // Preserve redirect path in URL params (more reliable than localStorage)
+          const redirectPath = setRedirectPath(`/folders/${folderId}`);
+          const encodedRedirect = encodeRedirectPath(redirectPath);
+          
+          // Also store folder ID for backward compatibility
+          try {
+            localStorage.setItem('pending_join_folder_id', folderId);
+          } catch {
+            // Ignore localStorage errors
+          }
+          
+          // Navigate with redirect param - auth flow will preserve it
           setLoading(false);
-          navigate('/therai', { replace: true });
+          navigate(`/therai?redirect=${encodedRedirect}`, { replace: true });
           return;
         }
 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, Navigate, Link } from 'react-router-dom';
+import { useNavigate, Navigate, Link, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { FcGoogle } from 'react-icons/fc';
 import { FaApple } from 'react-icons/fa';
@@ -12,6 +12,7 @@ import { useIsNativeApp } from '@/hooks/use-native-app';
 import Logo from '@/components/Logo';
 
 import { useAuth } from '@/contexts/AuthContext';
+import { getRedirectPath } from '@/utils/redirectUtils';
 
 type Props = {
   onGoogle?: () => void;
@@ -20,6 +21,7 @@ type Props = {
 
 const MobileLanding: React.FC<Props> = ({ onGoogle, onApple }) => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user, loading, signInWithGoogle, signInWithApple } = useAuth();
   const { isAuthModalOpen, openAuthModal, closeAuthModal, authModalMode } = useAuthModal();
   const isNativeApp = useIsNativeApp();
@@ -45,13 +47,17 @@ const MobileLanding: React.FC<Props> = ({ onGoogle, onApple }) => {
   }, [rotatingWords.length]);
 
   const handleSocialLoginSuccess = () => {
-    // Social login completed successfully
-    navigate('/therai');
+    // Social login completed successfully - check for redirect param
+    const redirectPath = getRedirectPath(searchParams);
+    const destination = redirectPath || '/therai';
+    navigate(destination);
   };
 
   // Redirect authenticated users to chat
   if (!loading && user) {
-    return <Navigate to="/therai" replace />;
+    const redirectPath = getRedirectPath(searchParams);
+    const destination = redirectPath || '/therai';
+    return <Navigate to={destination} replace />;
   }
 
   return (

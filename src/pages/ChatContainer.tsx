@@ -5,6 +5,8 @@ import { useChatInitialization } from '@/hooks/useChatInitialization';
 import { AuthModal } from '@/components/auth/AuthModal';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { useSearchParams, useNavigate } from 'react-router-dom';
+import { getRedirectPath, clearRedirectPath, extractIdFromPath } from '@/utils/redirectUtils';
 
 /**
  * Streamlined ChatContainer - Single Responsibility
@@ -17,6 +19,8 @@ import { supabase } from '@/integrations/supabase/client';
 const ChatContainerContent: React.FC = () => {
   const { user } = useAuth();
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
 
   // Single responsibility: Initialize chat when threadId changes
   useChatInitialization();
@@ -36,18 +40,98 @@ const ChatContainerContent: React.FC = () => {
     const handlePendingJoins = async () => {
       if (!user?.id) return;
       
-      // Get the preserved redirect path
-      const redirectPath = localStorage.getItem('pending_redirect_path');
+      // Priority 1: Check URL params for redirect
+      const redirectPath = getRedirectPath(searchParams);
       
-      // Handle pending folder join
+      if (redirectPath) {
+        console.log('[ChatContainer] Found redirect path in URL params:', redirectPath);
+        
+        // Extract ID and type from path
+        const { type, id } = extractIdFromPath(redirectPath);
+        
+        if (type === 'folder' && id) {
+          console.log('[ChatContainer] Handling folder redirect', { folderId: id, userId: user.id });
+          try {
+            const { addFolderParticipant, isFolderParticipant } = await import('@/services/folders');
+            
+            const isParticipant = await isFolderParticipant(id, user.id);
+            console.log('[ChatContainer] Is participant:', isParticipant);
+            
+            if (!isParticipant) {
+              console.log('[ChatContainer] Adding as participant');
+              await addFolderParticipant(id, user.id, 'member');
+              console.log('[ChatContainer] Successfully added as participant');
+            }
+            
+            // Clear redirect param and navigate
+            clearRedirectPath();
+            searchParams.delete('redirect');
+            setSearchParams(searchParams);
+            console.log('[ChatContainer] Redirecting to:', redirectPath);
+            navigate(redirectPath, { replace: true });
+            return;
+          } catch (error) {
+            console.error('[ChatContainer] Error joining folder:', error);
+            clearRedirectPath();
+            searchParams.delete('redirect');
+            setSearchParams(searchParams);
+          }
+        } else if (type === 'chat' && id) {
+          console.log('[ChatContainer] Handling chat redirect', { chatId: id });
+          try {
+            // Check if user is already a participant
+            const { data: existingParticipant } = await supabase
+              .from('conversations_participants')
+              .select('conversation_id')
+              .eq('conversation_id', id)
+              .eq('user_id', user.id)
+              .maybeSingle();
+
+            if (!existingParticipant) {
+              // Add user as participant
+              await supabase
+                .from('conversations_participants')
+                .insert({
+                  conversation_id: id,
+                  user_id: user.id,
+                  role: 'member',
+                });
+              console.log('[ChatContainer] Added as chat participant');
+            }
+            
+            // Clear redirect param and navigate
+            clearRedirectPath();
+            searchParams.delete('redirect');
+            setSearchParams(searchParams);
+            console.log('[ChatContainer] Redirecting to:', redirectPath);
+            navigate(redirectPath, { replace: true });
+            return;
+          } catch (error) {
+            console.error('[ChatContainer] Error joining chat:', error);
+            clearRedirectPath();
+            searchParams.delete('redirect');
+            setSearchParams(searchParams);
+          }
+        } else {
+          // Unknown redirect path, just navigate to it
+          console.log('[ChatContainer] Navigating to redirect path:', redirectPath);
+          clearRedirectPath();
+          searchParams.delete('redirect');
+          setSearchParams(searchParams);
+          navigate(redirectPath, { replace: true });
+          return;
+        }
+      }
+      
+      // Priority 2: Fallback to localStorage (backward compatibility)
+      const storedRedirectPath = localStorage.getItem('pending_redirect_path');
       const pendingFolderId = localStorage.getItem('pending_join_folder_id');
+      
       if (pendingFolderId) {
-        console.log('[ChatContainer] Handling pending folder join', { pendingFolderId, userId: user.id });
+        console.log('[ChatContainer] Handling pending folder join from localStorage', { pendingFolderId, userId: user.id });
         try {
           const { addFolderParticipant, isFolderParticipant } = await import('@/services/folders');
           
-          // Check if already a participant
-          console.log('[ChatContainer] Checking if already participant');
           const isParticipant = await isFolderParticipant(pendingFolderId, user.id);
           console.log('[ChatContainer] Is participant:', isParticipant);
           
@@ -55,25 +139,20 @@ const ChatContainerContent: React.FC = () => {
             console.log('[ChatContainer] Not a participant - adding as participant');
             await addFolderParticipant(pendingFolderId, user.id, 'member');
             console.log('[ChatContainer] Successfully added as participant');
-          } else {
-            console.log('[ChatContainer] Already a participant');
           }
           
-          // Clear pending and redirect to preserved path or folder URL
-          localStorage.removeItem('pending_join_folder_id');
-          const finalPath = redirectPath || `/folders/${pendingFolderId}`;
-          localStorage.removeItem('pending_redirect_path');
+          const finalPath = storedRedirectPath || `/folders/${pendingFolderId}`;
+          clearRedirectPath();
           console.log('[ChatContainer] Redirecting to:', finalPath);
-          window.location.href = finalPath;
+          navigate(finalPath, { replace: true });
           return;
         } catch (error) {
           console.error('[ChatContainer] Error joining pending folder:', error);
-          localStorage.removeItem('pending_join_folder_id');
-          localStorage.removeItem('pending_redirect_path');
+          clearRedirectPath();
         }
       }
       
-      // Handle pending chat join
+      // Handle pending chat join from localStorage
       const pendingChatId = localStorage.getItem('pending_join_chat_id');
       if (pendingChatId) {
         try {
@@ -103,23 +182,19 @@ const ChatContainerContent: React.FC = () => {
             }
           }
           
-          // Clear pending and redirect to preserved path or chat URL
-          localStorage.removeItem('pending_join_chat_id');
-          const finalPath = redirectPath || `/c/${pendingChatId}`;
-          localStorage.removeItem('pending_redirect_path');
-          window.location.href = finalPath;
+          const finalPath = storedRedirectPath || `/c/${pendingChatId}`;
+          clearRedirectPath();
+          console.log('[ChatContainer] Redirecting to:', finalPath);
+          navigate(finalPath, { replace: true });
         } catch (error) {
-          console.error('Error joining pending chat:', error);
-          localStorage.removeItem('pending_join_chat_id');
-          localStorage.removeItem('pending_redirect_path');
+          console.error('[ChatContainer] Error joining pending chat:', error);
+          clearRedirectPath();
         }
       }
     };
 
-    if (user?.id) {
-      handlePendingJoins();
-    }
-  }, [user]);
+    handlePendingJoins();
+  }, [user, searchParams, setSearchParams, navigate]);
 
   return (
     <div 

@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { getRedirectPath } from '@/utils/redirectUtils';
 
 export const AuthPage = () => {
   const { user, session, loading } = useAuth();
@@ -10,19 +11,26 @@ export const AuthPage = () => {
   useEffect(() => {
     if (loading) return;
 
-    // If user is authenticated after email verification, redirect to therai
+    // If user is authenticated after email verification, redirect appropriately
     if (user && session) {
-      navigate('/therai', { replace: true });
+      // Check for redirect param
+      const redirectPath = getRedirectPath(searchParams);
+      const destination = redirectPath || '/therai';
+      navigate(destination, { replace: true });
       return;
     }
 
-    // If not authenticated, show message and redirect to signup
+    // If not authenticated, show message and redirect to signup with redirect param preserved
     const timer = setTimeout(() => {
-      navigate('/signup', { replace: true });
+      const redirectParam = searchParams.get('redirect');
+      const signupUrl = redirectParam 
+        ? `/signup?redirect=${encodeURIComponent(redirectParam)}`
+        : '/signup';
+      navigate(signupUrl, { replace: true });
     }, 3000);
 
     return () => clearTimeout(timer);
-  }, [user, session, loading, navigate]);
+  }, [user, session, loading, navigate, searchParams]);
 
   // Always render the UI with lazy loading - no spinners
 

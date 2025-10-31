@@ -115,7 +115,22 @@ class AuthManager {
       console.log(`[AuthManager] Web OAuth: ${provider}`);
       const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
       
-      // Preserve pending folder/chat join state for post-auth redirect
+      // Preserve redirect path through OAuth flow (URL params are more reliable than localStorage)
+      let redirectTo = `${baseUrl}/therai`;
+      
+      // Check if there's a redirect param in the current URL
+      if (typeof window !== 'undefined') {
+        const currentUrl = new URL(window.location.href);
+        const redirectParam = currentUrl.searchParams.get('redirect');
+        
+        if (redirectParam) {
+          // Preserve the redirect param through OAuth flow
+          redirectTo = `${baseUrl}/therai?redirect=${encodeURIComponent(redirectParam)}`;
+          console.log('[AuthManager] Preserving redirect through OAuth:', redirectParam);
+        }
+      }
+      
+      // Also preserve in localStorage as fallback
       const pendingFolderId = localStorage.getItem('pending_join_folder_id');
       const pendingChatId = localStorage.getItem('pending_join_chat_id');
       const pendingRedirectPath = localStorage.getItem('pending_redirect_path');
@@ -123,15 +138,15 @@ class AuthManager {
       console.log('[AuthManager] Preserving pending join state:', { 
         pendingFolderId, 
         pendingChatId, 
-        pendingRedirectPath 
+        pendingRedirectPath,
+        redirectTo
       });
 
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
-          // Redirect back to /therai - AuthContext will handle the callback
-          // ChatContainer will then handle pending folder/chat joins
-          redirectTo: `${baseUrl}/therai`,
+          // Redirect back to /therai with redirect param preserved
+          redirectTo,
           queryParams: provider === 'google'
             ? { access_type: 'offline', prompt: 'consent' }
             : { response_mode: 'form_post' },
