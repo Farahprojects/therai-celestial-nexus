@@ -755,12 +755,12 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
 
       {/* Thread history */}
       <div className="space-y-1">
-        {/* New Chat and Search - only for authenticated users */}
-        {isAuthenticated && conversationType !== 'swiss' && uiConfig.newChatLabel && (
+        {/* New Chat and Search - show for all users */}
+        {conversationType !== 'swiss' && uiConfig.newChatLabel && (
           <NewChatDropdown className="w-full font-light" />
         )}
         
-        {isAuthenticated && conversationType !== 'swiss' && uiConfig.showSearchChat && (
+        {conversationType !== 'swiss' && uiConfig.showSearchChat && (
           <button
             onClick={() => setShowSearchModal(true)}
             className="w-full flex items-center gap-2 px-3 py-1.5 text-sm text-black hover:bg-gray-100 rounded-lg transition-colors font-light"
@@ -770,17 +770,20 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
           </button>
         )}
 
-        {/* Folders Section */}
-        {isAuthenticated && (
-          <AddFolderButton 
-            onClick={() => {
-              setEditingFolder(null);
-              setShowFolderModal(true);
-            }}
-            isExpanded={areFoldersExpanded}
-            onToggleExpand={() => setAreFoldersExpanded(!areFoldersExpanded)}
-          />
-        )}
+        {/* Folders Section - show for all users */}
+        <AddFolderButton 
+          onClick={() => {
+            if (!isAuthenticated) {
+              // Show auth modal if not authenticated
+              setShowAuthModal(true);
+              return;
+            }
+            setEditingFolder(null);
+            setShowFolderModal(true);
+          }}
+          isExpanded={areFoldersExpanded}
+          onToggleExpand={() => setAreFoldersExpanded(!areFoldersExpanded)}
+        />
         {areFoldersExpanded && (
           <FoldersList
             folders={folders}

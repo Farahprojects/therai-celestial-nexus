@@ -70,12 +70,12 @@ export const getUserTypeConfig = (userType: UserType) => {
         chatMenuActions: {
           delete: null // No delete option for unauthenticated
         },
-        newChatLabel: null,
-        threadSectionLabel: null,
+        newChatLabel: 'New chat', // Show same UI as authenticated
+        threadSectionLabel: 'Chat history', // Show same UI as authenticated
         authButtonLabel: 'Sign in',
-        showThreadHistory: false,
-        showSearchChat: false,
-        showAstroData: false
+        showThreadHistory: true, // Show same UI as authenticated
+        showSearchChat: true, // Show same UI as authenticated
+        showAstroData: true // Show same UI as authenticated
       };
   }
 };
