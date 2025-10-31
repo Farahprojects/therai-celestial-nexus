@@ -165,4 +165,19 @@ export function clearAllChatPersistence(): void {
     ls?.removeItem(LAST_CHAT_ID_KEY); 
     ls?.removeItem(LAST_CHAT_TIMESTAMP_KEY);
   } catch (_e) {}
+  
+  // Also clear redirect persistence on logout
+  try {
+    ls?.removeItem('pending_redirect_path');
+    ls?.removeItem('pending_join_folder_id');
+    ls?.removeItem('pending_join_chat_id');
+    ls?.removeItem('pending_join_token');
+    ls?.removeItem('chat_id');
+    // Clear any namespaced active chat keys
+    Object.keys(ls || {}).forEach((key) => {
+      if (key.startsWith('therai_active_chat_auth_')) {
+        ls?.removeItem(key);
+      }
+    });
+  } catch (_e) {}
 }

@@ -269,6 +269,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } catch (error) {
           console.warn('Could not clear chat stores on sign out:', error);
         }
+        
+        // Clear redirect persistence on sign out
+        try {
+          const { clearRedirectPath } = await import('@/utils/redirectUtils');
+          clearRedirectPath();
+        } catch (error) {
+          console.warn('Could not clear redirect persistence on sign out:', error);
+        }
       }
       
       // Additional check for user deletion - validate user still exists
@@ -291,6 +299,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (typeof window !== 'undefined') (window as any).__authTrace.initialSessionChecks++;
     supabase.auth.getSession().then(async ({ data: { session: supaSession } }) => {
       log('debug', 'Initial session check', { hasSession: !!supaSession }, 'auth');
+      
+      // Strategic refresh: Clear redirect persistence if no session AND no redirect in URL
+      // This ensures shared links persist (they have redirect in URL) but stale persistence
+      // is cleared when users open therai.co without a shared link
+      if (!supaSession && typeof window !== 'undefined') {
+        const urlParams = new URLSearchParams(window.location.search);
+        const hasRedirectInUrl = urlParams.has('redirect');
+        
+        // Only clear if there's no redirect parameter in URL (not a shared link)
+        if (!hasRedirectInUrl) {
+          try {
+            const { clearRedirectPath } = await import('@/utils/redirectUtils');
+            clearRedirectPath();
+            console.log('[AuthContext] Cleared redirect persistence - no authenticated session and no redirect in URL');
+          } catch (error) {
+            console.warn('Could not clear redirect persistence on initial load:', error);
+          }
+        }
+      }
       
       // Set user and session state initially
       setUser(supaSession?.user ?? null);

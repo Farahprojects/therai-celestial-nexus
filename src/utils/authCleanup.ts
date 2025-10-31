@@ -15,6 +15,23 @@ export const cleanupAuthState = async () => {
     console.warn('Could not clear chat stores during auth cleanup:', error);
   }
   
+  // Clear redirect persistence (shared URL persistence)
+  try {
+    const { clearRedirectPath } = await import('@/utils/redirectUtils');
+    clearRedirectPath();
+    // Also clear any additional redirect-related keys
+    localStorage.removeItem('pending_join_token');
+    localStorage.removeItem('chat_id');
+    // Clear any namespaced active chat keys
+    Object.keys(localStorage).forEach((key) => {
+      if (key.startsWith('therai_active_chat_auth_')) {
+        localStorage.removeItem(key);
+      }
+    });
+  } catch (error) {
+    console.warn('Could not clear redirect persistence during auth cleanup:', error);
+  }
+  
   // Clear all Supabase auth keys from localStorage (comprehensive patterns)
   Object.keys(localStorage).forEach((key) => {
     if (key.startsWith('supabase') || 

@@ -67,6 +67,14 @@ export function clearRedirectPath() {
     localStorage.removeItem('pending_redirect_path');
     localStorage.removeItem('pending_join_folder_id');
     localStorage.removeItem('pending_join_chat_id');
+    localStorage.removeItem('pending_join_token');
+    localStorage.removeItem('chat_id');
+    // Clear any namespaced active chat keys
+    Object.keys(localStorage).forEach((key) => {
+      if (key.startsWith('therai_active_chat_auth_')) {
+        localStorage.removeItem(key);
+      }
+    });
   } catch {
     // Ignore localStorage errors
   }
