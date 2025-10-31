@@ -42,23 +42,32 @@ const ChatContainerContent: React.FC = () => {
       // Handle pending folder join
       const pendingFolderId = localStorage.getItem('pending_join_folder_id');
       if (pendingFolderId) {
+        console.log('[ChatContainer] Handling pending folder join', { pendingFolderId, userId: user.id });
         try {
           const { addFolderParticipant, isFolderParticipant } = await import('@/services/folders');
           
           // Check if already a participant
+          console.log('[ChatContainer] Checking if already participant');
           const isParticipant = await isFolderParticipant(pendingFolderId, user.id);
+          console.log('[ChatContainer] Is participant:', isParticipant);
+          
           if (!isParticipant) {
+            console.log('[ChatContainer] Not a participant - adding as participant');
             await addFolderParticipant(pendingFolderId, user.id, 'member');
+            console.log('[ChatContainer] Successfully added as participant');
+          } else {
+            console.log('[ChatContainer] Already a participant');
           }
           
           // Clear pending and redirect to preserved path or folder URL
           localStorage.removeItem('pending_join_folder_id');
           const finalPath = redirectPath || `/folders/${pendingFolderId}`;
           localStorage.removeItem('pending_redirect_path');
+          console.log('[ChatContainer] Redirecting to:', finalPath);
           window.location.href = finalPath;
           return;
         } catch (error) {
-          console.error('Error joining pending folder:', error);
+          console.error('[ChatContainer] Error joining pending folder:', error);
           localStorage.removeItem('pending_join_folder_id');
           localStorage.removeItem('pending_redirect_path');
         }

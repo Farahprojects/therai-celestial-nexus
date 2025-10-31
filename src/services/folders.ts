@@ -260,7 +260,9 @@ export async function addFolderParticipant(
   userId: string,
   role: 'owner' | 'member' = 'member'
 ): Promise<void> {
-  const { error } = await supabase
+  console.log('[addFolderParticipant] Starting', { folderId, userId, role });
+  
+  const { data, error } = await supabase
     .from('chat_folder_participants')
     .upsert(
       {
@@ -270,18 +272,23 @@ export async function addFolderParticipant(
         invited_by: null,
       },
       { onConflict: 'folder_id,user_id' }
-    );
+    )
+    .select();
 
   if (error) {
-    console.error('[folders] Error adding folder participant:', error);
-    throw new Error('Failed to add participant');
+    console.error('[addFolderParticipant] Error:', error);
+    throw new Error(`Failed to add participant: ${error.message}`);
   }
+  
+  console.log('[addFolderParticipant] Success:', data);
 }
 
 /**
  * Check if user is a participant in a folder
  */
 export async function isFolderParticipant(folderId: string, userId: string): Promise<boolean> {
+  console.log('[isFolderParticipant] Checking', { folderId, userId });
+  
   const { data, error } = await supabase
     .from('chat_folder_participants')
     .select('folder_id')
@@ -290,10 +297,12 @@ export async function isFolderParticipant(folderId: string, userId: string): Pro
     .maybeSingle();
 
   if (error) {
-    console.error('[folders] Error checking folder participant:', error);
+    console.error('[isFolderParticipant] Error:', error);
     return false;
   }
 
-  return !!data;
+  const isParticipant = !!data;
+  console.log('[isFolderParticipant] Result:', isParticipant);
+  return isParticipant;
 }
 

@@ -11,50 +11,72 @@ const JoinFolder: React.FC = () => {
 
   useEffect(() => {
     const loadFolder = async () => {
+      console.log('[JoinFolder] Starting loadFolder', { folderId, isAuthenticated, userId: user?.id });
+      
       if (!folderId) {
-        // Invalid folder ID - navigate to main route
+        console.log('[JoinFolder] No folderId - navigating to /therai');
+        setLoading(false);
         navigate('/therai', { replace: true });
         return;
       }
 
       try {
+        console.log('[JoinFolder] Fetching folder:', folderId);
         const folder = await getSharedFolder(folderId);
+        console.log('[JoinFolder] Folder fetched:', folder ? { id: folder.id, name: folder.name, is_public: folder.is_public } : 'null');
         
         if (!folder) {
-          // Folder doesn't exist - still show main route
+          console.log('[JoinFolder] Folder not found - navigating to /therai');
+          setLoading(false);
           navigate('/therai', { replace: true });
           return;
         }
 
         // If folder is public, anyone can view without auth
         if (folder.is_public) {
+          console.log('[JoinFolder] Public folder - navigating to /folders/:folderId');
+          setLoading(false);
           navigate(`/folders/${folderId}`, { replace: true });
           return;
         }
 
         // Private folder - requires sign-in
         if (!isAuthenticated || !user) {
+          console.log('[JoinFolder] Private folder, user not authenticated - storing pending join');
           // Store pending join and full URL path for after sign-in
           localStorage.setItem('pending_join_folder_id', folderId);
           localStorage.setItem('pending_redirect_path', `/folders/${folderId}`);
           // Navigate to main route - ChatContainer will open auth modal
+          setLoading(false);
           navigate('/therai', { replace: true });
           return;
         }
 
+        console.log('[JoinFolder] Private folder, user authenticated - checking participant status');
         // Check if already a participant
-        const isParticipant = await isFolderParticipant(folderId, user.id);
+        const participantStatus = await isFolderParticipant(folderId, user.id);
+        console.log('[JoinFolder] Is participant:', participantStatus);
         
-        if (!isParticipant) {
-          // Add user as participant
-          await addFolderParticipant(folderId, user.id, 'member');
-          
-          // Small delay to ensure participant record is committed
-          await new Promise(resolve => setTimeout(resolve, 100));
+        if (!participantStatus) {
+          console.log('[JoinFolder] Not a participant - adding as participant', { folderId, userId: user.id });
+          try {
+            await addFolderParticipant(folderId, user.id, 'member');
+            console.log('[JoinFolder] Successfully added as participant');
+            
+            // Small delay to ensure participant record is committed
+            await new Promise(resolve => setTimeout(resolve, 100));
+            console.log('[JoinFolder] Delay completed, participant should be committed');
+          } catch (err) {
+            console.error('[JoinFolder] Error adding participant:', err);
+            throw err;
+          }
+        } else {
+          console.log('[JoinFolder] Already a participant - skipping add');
         }
 
         // Store folder in sessionStorage so it appears in sidebar immediately
         try {
+          console.log('[JoinFolder] Saving folder to sessionStorage');
           const tempFoldersJson = sessionStorage.getItem('temp_folders');
           const tempFolders = tempFoldersJson ? JSON.parse(tempFoldersJson) : [];
           const exists = tempFolders.some((f: any) => f.id === folderId);
@@ -64,15 +86,21 @@ const JoinFolder: React.FC = () => {
               name: folder.name,
             });
             sessionStorage.setItem('temp_folders', JSON.stringify(tempFolders));
+            console.log('[JoinFolder] Folder saved to sessionStorage');
+          } else {
+            console.log('[JoinFolder] Folder already in sessionStorage');
           }
         } catch (error) {
           console.error('[JoinFolder] Failed to save folder to sessionStorage:', error);
         }
 
         // Navigate to folder view
+        console.log('[JoinFolder] Navigating to /folders/:folderId');
+        setLoading(false);
         navigate(`/folders/${folderId}`, { replace: true });
       } catch (err) {
-        console.error('Error loading folder:', err);
+        console.error('[JoinFolder] Error loading folder:', err);
+        setLoading(false);
         // On error, navigate to main route instead of showing error
         navigate('/therai', { replace: true });
       }
