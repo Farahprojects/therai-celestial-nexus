@@ -41,20 +41,20 @@ export const FolderView: React.FC<FolderViewProps> = ({ folderId, onChatClick })
           return;
         }
 
-        const [folders, conversationsData] = await Promise.all([
-          getUserFolders(user.id),
-          getFolderConversations(folderId)
-        ]);
+            const [folders, conversationsData] = await Promise.all([
+              getUserFolders(user.id),
+              getFolderConversations(folderId)
+            ]);
 
-        const folder = folders.find(f => f.id === folderId);
+            const folder = folders.find(f => f.id === folderId);
         if (!folder) {
           setError('Folder not found or not accessible');
-          setIsLoading(false);
-          return;
-        }
+              setIsLoading(false);
+              return;
+            }
 
         setFolderName(folder.name);
-        setConversations(conversationsData);
+            setConversations(conversationsData);
       } catch (err) {
         console.error('[FolderView] Failed to load folder data:', err);
         setError('Failed to load folder');

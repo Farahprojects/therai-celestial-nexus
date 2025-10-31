@@ -12,20 +12,59 @@ export interface ChatFolder {
 
 /**
  * Fetch all folders for the current user
+ * Includes owned folders and folders where user is a participant
  */
 export async function getUserFolders(userId: string): Promise<ChatFolder[]> {
-  const { data, error } = await supabase
+  // Step 1: Get folders user owns (RLS allows this)
+  const { data: ownedFolders, error: ownedError } = await supabase
     .from('chat_folders')
     .select('*')
-    .eq('user_id', userId)
-    .order('created_at', { ascending: true });
+    .eq('user_id', userId);
 
-  if (error) {
-    console.error('[folders] Failed to fetch folders:', error);
-    throw error;
+  if (ownedError) {
+    console.error('[folders] Failed to fetch owned folders:', ownedError);
+    throw ownedError;
   }
 
-  return data || [];
+  // Step 2: Get folder IDs where user is a participant
+  const { data: participantRecords, error: participantError } = await supabase
+    .from('chat_folder_participants')
+    .select('folder_id')
+    .eq('user_id', userId);
+
+  if (participantError) {
+    console.error('[folders] Failed to fetch participant folders:', participantError);
+    // Return owned folders only if participant fetch fails
+    return (ownedFolders || []).sort(
+      (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+    );
+  }
+
+  // Step 3: Get participant folders by ID (only if there are any)
+  let participantFolders: ChatFolder[] = [];
+  const participantFolderIds = (participantRecords || []).map(p => p.folder_id);
+  
+  if (participantFolderIds.length > 0) {
+    const { data: folders, error: foldersError } = await supabase
+      .from('chat_folders')
+      .select('*')
+      .in('id', participantFolderIds);
+
+    if (!foldersError && folders) {
+      participantFolders = folders;
+    }
+  }
+
+  // Step 4: Combine and deduplicate
+  const allFolders = [...(ownedFolders || []), ...participantFolders];
+  const uniqueFolders = Array.from(
+    new Map(allFolders.map(f => [f.id, f])).values()
+  );
+
+  // Sort by created_at
+  return uniqueFolders.sort(
+    (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+  );
 }
 
 /**

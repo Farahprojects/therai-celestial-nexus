@@ -41,10 +41,16 @@ CREATE INDEX IF NOT EXISTS idx_chat_folders_is_public
   ON public.chat_folders(is_public) WHERE is_public = true;
 
 -- ============================================================================
--- STEP 3: Simple RLS Policies - No circular dependencies
+-- STEP 3: Simple RLS Policies - ZERO RECURSION RISK
+-- ============================================================================
+-- CRITICAL: To avoid infinite recursion (42P17 error), we DO NOT check
+-- chat_folder_participants from chat_folders policies or vice versa.
+-- Participant checking is handled in application code (getUserFolders).
+-- This ensures policies are self-contained and cannot create circular dependencies.
 -- ============================================================================
 
--- FOLDERS: Users can view folders they own, participate in, or are public
+-- FOLDERS: Users can view folders they own or public folders
+-- Participant checking is done in application code to avoid recursion
 DROP POLICY IF EXISTS "Users can view folders" ON public.chat_folders;
 CREATE POLICY "Users can view folders"
 ON public.chat_folders
@@ -53,11 +59,7 @@ TO authenticated
 USING (
   user_id = auth.uid()  -- Owner
   OR is_public = true   -- Public folder
-  OR EXISTS (           -- Participant (private folder)
-    SELECT 1 FROM public.chat_folder_participants
-    WHERE folder_id = chat_folders.id
-    AND user_id = auth.uid()
-  )
+  -- NO participant check here - breaks recursion
 );
 
 -- Public (unauthenticated) users can view truly public folders
@@ -77,13 +79,14 @@ TO authenticated
 USING (user_id = auth.uid())
 WITH CHECK (user_id = auth.uid());
 
--- FOLDER PARTICIPANTS: Simple non-recursive policy
+-- FOLDER PARTICIPANTS: Users can only see their own participant records
+-- This prevents recursion and maintains privacy
 DROP POLICY IF EXISTS "Users can view folder participants" ON public.chat_folder_participants;
 CREATE POLICY "Users can view folder participants"
 ON public.chat_folder_participants
 FOR SELECT
 TO authenticated
-USING (true);  -- Non-recursive: anyone authenticated can view participants
+USING (user_id = auth.uid());  -- Only see your own participation
 
 -- Users can join folders (insert themselves)
 DROP POLICY IF EXISTS "Users can join folders" ON public.chat_folder_participants;
@@ -93,42 +96,24 @@ FOR INSERT
 TO authenticated
 WITH CHECK (user_id = auth.uid());
 
--- Users can leave folders OR owners can remove participants
-DROP POLICY IF EXISTS "Users can leave folders or owners remove" ON public.chat_folder_participants;
-CREATE POLICY "Users can leave folders or owners remove"
+-- Users can only leave folders (delete their own participation)
+-- Owner removal of participants must be done via application code
+DROP POLICY IF EXISTS "Users can leave folders" ON public.chat_folder_participants;
+CREATE POLICY "Users can leave folders"
 ON public.chat_folder_participants
 FOR DELETE
 TO authenticated
-USING (
-  user_id = auth.uid()  -- User leaving themselves
-  OR EXISTS (           -- Or folder owner removing someone
-    SELECT 1 FROM public.chat_folders
-    WHERE id = folder_id
-    AND user_id = auth.uid()
-  )
-);
+USING (user_id = auth.uid());  -- Only delete your own participation
 
--- Folder owners can manage participants (INSERT/UPDATE/DELETE only, not SELECT)
--- UPDATE policy for owners to modify participant roles
-DROP POLICY IF EXISTS "Owners can update participants" ON public.chat_folder_participants;
-CREATE POLICY "Owners can update participants"
+-- Users can only update their own participant records
+-- Owner management of other participants must be done via application code with service role
+DROP POLICY IF EXISTS "Users can update own participant" ON public.chat_folder_participants;
+CREATE POLICY "Users can update own participant"
 ON public.chat_folder_participants
 FOR UPDATE
 TO authenticated
-USING (
-  EXISTS (
-    SELECT 1 FROM public.chat_folders
-    WHERE id = folder_id
-    AND user_id = auth.uid()
-  )
-)
-WITH CHECK (
-  EXISTS (
-    SELECT 1 FROM public.chat_folders
-    WHERE id = folder_id
-    AND user_id = auth.uid()
-  )
-);
+USING (user_id = auth.uid())
+WITH CHECK (user_id = auth.uid());
 
 
 -- ============================================================================
