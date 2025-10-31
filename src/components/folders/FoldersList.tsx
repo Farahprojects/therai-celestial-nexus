@@ -23,8 +23,8 @@ interface FoldersListProps {
   folders: FolderItem[];
   onFolderClick?: (folderId: string) => void;
   onChatClick: (folderId: string, chatId: string) => void;
-  onEditFolder: (folderId: string, currentName: string) => void;
-  onDeleteFolder: (folderId: string) => void;
+  onEditFolder?: (folderId: string, currentName: string) => void;
+  onDeleteFolder?: (folderId: string) => void;
   onEditChat?: (conversationId: string, currentTitle: string) => void;
   onDeleteChat?: (conversationId: string) => void;
   onMoveToFolder?: (conversationId: string, folderId: string | null) => void;
@@ -92,27 +92,33 @@ export const FoldersList: React.FC<FoldersListProps> = ({
                 <span className="text-xs text-gray-500">({folder.chatsCount})</span>
               </button>
 
-              {/* Folder Actions Menu */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button className="opacity-0 group-hover:opacity-100 p-1 hover:bg-gray-200 rounded transition-all">
-                    <MoreHorizontal className="w-4 h-4 text-gray-600" />
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48">
-                  <DropdownMenuItem onClick={() => onEditFolder(folder.id, folder.name)}>
-                    <Pencil className="w-4 h-4 mr-2" />
-                    Rename
-                  </DropdownMenuItem>
-                  <DropdownMenuItem 
-                    onClick={() => onDeleteFolder(folder.id)}
-                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                  >
-                    <Trash2 className="w-4 h-4 mr-2" />
-                    Delete
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              {/* Folder Actions Menu - only show for authenticated users */}
+              {(onEditFolder || onDeleteFolder) && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button className="opacity-0 group-hover:opacity-100 p-1 hover:bg-gray-200 rounded transition-all">
+                      <MoreHorizontal className="w-4 h-4 text-gray-600" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-48">
+                    {onEditFolder && (
+                      <DropdownMenuItem onClick={() => onEditFolder(folder.id, folder.name)}>
+                        <Pencil className="w-4 h-4 mr-2" />
+                        Rename
+                      </DropdownMenuItem>
+                    )}
+                    {onDeleteFolder && (
+                      <DropdownMenuItem 
+                        onClick={() => onDeleteFolder(folder.id)}
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                      >
+                        <Trash2 className="w-4 h-4 mr-2" />
+                        Delete
+                      </DropdownMenuItem>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
             </div>
 
             {/* Expanded Chats */}
@@ -139,25 +145,27 @@ export const FoldersList: React.FC<FoldersListProps> = ({
                           <span className="text-sm font-medium text-gray-900 truncate">{chat.title}</span>
                         </div>
                         
-                        {/* Three dots menu */}
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <button className="p-1 hover:bg-gray-200 rounded transition-colors">
-                              <MoreHorizontal className="w-4 h-4 text-gray-600" />
-                            </button>
-                          </DropdownMenuTrigger>
-                          <ConversationActionsMenuContent
-                            conversationId={chat.id}
-                            currentTitle={chat.title}
-                            onEdit={onEditChat}
-                            onDelete={onDeleteChat}
-                            onMoveToFolder={onMoveToFolder}
-                            onCreateFolder={onCreateFolder}
-                            folders={allFolders}
-                            currentFolderId={folder.id}
-                            align="end"
-                          />
-                        </DropdownMenu>
+                        {/* Three dots menu - only show if any actions are available */}
+                        {(onEditChat || onDeleteChat || onMoveToFolder || onCreateFolder) && (
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <button className="p-1 hover:bg-gray-200 rounded transition-colors">
+                                <MoreHorizontal className="w-4 h-4 text-gray-600" />
+                              </button>
+                            </DropdownMenuTrigger>
+                            <ConversationActionsMenuContent
+                              conversationId={chat.id}
+                              currentTitle={chat.title}
+                              onEdit={onEditChat}
+                              onDelete={onDeleteChat}
+                              onMoveToFolder={onMoveToFolder}
+                              onCreateFolder={onCreateFolder}
+                              folders={allFolders}
+                              currentFolderId={folder.id}
+                              align="end"
+                            />
+                          </DropdownMenu>
+                        )}
                       </div>
                     </div>
                   );
