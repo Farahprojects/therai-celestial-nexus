@@ -134,8 +134,6 @@ if (role === "user" && user_id) {
   }
 }
 
-const role = rawRole === "assistant" ? "assistant" : "user";
-
 // Only check subscription for user messages (assistant messages are responses)
 const message = {
 chat_id,
