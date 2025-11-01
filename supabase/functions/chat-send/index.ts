@@ -173,8 +173,7 @@ getLLMHandler(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY).then((llmHandler) => {
     event: "chat_send_llm_payload",
     llm_handler: llmHandler,
     payload_keys: Object.keys(payload),
-    has_chattype: "chattype" in payload,
-    chattype_in_payload: payload.chattype
+    note: "chat-send does NOT pass chattype to LLM handler for regular text chat"
   }));
   
   return fetch(`${SUPABASE_URL}/functions/v1/${llmHandler}`, {
