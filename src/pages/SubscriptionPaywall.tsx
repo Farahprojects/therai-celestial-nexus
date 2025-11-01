@@ -50,33 +50,12 @@ const SubscriptionPaywall: React.FC = () => {
     try {
       setLoadingPlanId(planId);
       
-      // Check if user came from signup and needs verification email
-      const pendingEmail = localStorage.getItem('pendingVerificationEmail');
-      
-      const { data, error } = await supabase.functions.invoke('create-subscription', {
-        body: {
-          planId: planId,
-          successUrl: `${window.location.origin}/success`,
-          cancelUrl: `${window.location.origin}/subscription-paywall`,
-          pendingVerificationEmail: pendingEmail // Pass email for verification after payment
-        }
-      });
-
-      if (error) {
-        console.error('Checkout error:', error);
-        toast.error('Failed to create checkout session. Please try again.');
-        setLoadingPlanId(null);
-        return;
-      }
-
-      if (data?.url) {
-        window.location.href = data.url;
-      } else {
-        toast.error('No checkout URL received. Please try again.');
-        setLoadingPlanId(null);
-      }
+      // Navigate to embedded checkout page
+      const url = new URL(window.location.origin + '/stripe');
+      url.searchParams.set('planId', planId);
+      window.location.href = url.toString();
     } catch (error) {
-      console.error('Error creating checkout:', error);
+      console.error('Error navigating to checkout:', error);
       toast.error('Something went wrong. Please try again.');
       setLoadingPlanId(null);
     }
