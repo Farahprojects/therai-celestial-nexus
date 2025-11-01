@@ -157,9 +157,11 @@ if (chattype === "voice") {
   }
 
   if (authenticatedUserId) {
-    // Estimate audio duration in seconds (rough estimate: audio buffer size / sample rate)
-    // Using 16kHz sample rate for estimate (typical for voice)
-    const estimatedSeconds = Math.ceil(audioBuffer.length / 16000);
+    // Calculate audio duration in seconds from WAV buffer
+    // WAV format: 44-byte header + PCM data (16-bit samples = 2 bytes per sample)
+    // Duration = (buffer_size - 44) / 2 / sample_rate
+    // We know the client sends 16kHz mono WAV
+    const estimatedSeconds = Math.ceil((audioBuffer.length - 44) / 2 / 16000);
     
     // Check if user has enough voice seconds remaining
     const accessCheck = await checkFeatureAccess(
@@ -178,7 +180,7 @@ if (chattype === "voice") {
       });
     }
 
-    console.log(`[google-whisper] Voice access granted. Remaining: ${accessCheck.remaining}`);
+    console.log(`[google-whisper] Voice access granted. Remaining: ${accessCheck.remaining}, estimated seconds: ${estimatedSeconds}`);
   }
 }
 
@@ -218,12 +220,15 @@ if (chattype === "voice" && user_id) {
   }
 
   if (authenticatedUserId) {
-    // Calculate actual audio duration (more accurate post-transcription)
-    const estimatedSeconds = Math.ceil(audioBuffer.length / 16000);
+    // Calculate actual audio duration from WAV buffer
+    // WAV format: 44-byte header + PCM data (16-bit samples = 2 bytes per sample)
+    const actualSeconds = Math.ceil((audioBuffer.length - 44) / 2 / 16000);
     
     // Increment usage counter (fire-and-forget, don't block response)
-    incrementFeatureUsage(supabase, authenticatedUserId, 'voice_seconds', estimatedSeconds)
+    incrementFeatureUsage(supabase, authenticatedUserId, 'voice_seconds', actualSeconds)
       .catch(err => console.error("[google-whisper] Failed to track usage:", err));
+    
+    console.log(`[google-whisper] Tracked ${actualSeconds}s of voice usage for user ${authenticatedUserId}`);
   }
 }
 
