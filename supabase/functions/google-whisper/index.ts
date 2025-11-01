@@ -183,12 +183,28 @@ const { transcript, durationSeconds } = await transcribeWithGoogle({
   languageCode
 });
 
+console.info(JSON.stringify({
+  event: "transcription_complete",
+  transcript_length: transcript.length,
+  duration_seconds: durationSeconds,
+  user_id: authenticatedUserId,
+  chattype
+}));
+
 if (!transcript.trim()) {
+  console.info(JSON.stringify({ event: "empty_transcript_returning" }));
+  await new Promise(r => setTimeout(r, 50)); // Allow logs to flush
   return json(200, { transcript: "" });
 }
 
 // Track voice usage after successful transcription using Google's duration (source of truth)
 if (chattype === "voice" && authenticatedUserId && durationSeconds > 0) {
+  console.info(JSON.stringify({
+    event: "tracking_voice_usage",
+    user_id: authenticatedUserId,
+    duration_seconds: durationSeconds
+  }));
+
   // Check if user has access (post-transcription, using actual duration)
   const accessCheck = await checkFeatureAccess(
     supabase,
@@ -198,12 +214,21 @@ if (chattype === "voice" && authenticatedUserId && durationSeconds > 0) {
   );
 
   if (!accessCheck.allowed) {
-    console.warn(`[google-whisper] Usage limit exceeded after transcription: ${accessCheck.reason}`);
-    // Note: transcription already happened, so we still track it but warn user
+    console.warn(JSON.stringify({
+      event: "usage_limit_exceeded",
+      reason: accessCheck.reason,
+      user_id: authenticatedUserId
+    }));
   }
 
   // Call increment-feature-usage edge function (await response for debugging)
-  console.log(`[google-whisper] 🚀 Calling increment-feature-usage with ${durationSeconds}s for user ${authenticatedUserId}`);
+  console.info(JSON.stringify({
+    event: "calling_increment_feature_usage",
+    user_id: authenticatedUserId,
+    feature_type: "voice_seconds",
+    amount: durationSeconds
+  }));
+
   try {
     const response = await fetch(`${SUPABASE_URL}/functions/v1/increment-feature-usage`, {
       method: "POST",
@@ -222,18 +247,34 @@ if (chattype === "voice" && authenticatedUserId && durationSeconds > 0) {
     const result = await response.json().catch(() => ({ error: 'Failed to parse response' }));
     
     if (response.ok && result.success) {
-      console.log(`[google-whisper] ✅ increment-feature-usage succeeded:`, result);
+      console.info(JSON.stringify({
+        event: "increment_feature_usage_success",
+        user_id: authenticatedUserId,
+        duration_seconds: durationSeconds,
+        result
+      }));
     } else {
-      console.error(`[google-whisper] ❌ increment-feature-usage failed:`, {
+      console.error(JSON.stringify({
+        event: "increment_feature_usage_failed",
+        user_id: authenticatedUserId,
         status: response.status,
         statusText: response.statusText,
         result
-      });
+      }));
     }
   } catch (err) {
-    console.error(`[google-whisper] ❌ Exception calling increment-feature-usage:`, err);
+    console.error(JSON.stringify({
+      event: "increment_feature_usage_exception",
+      user_id: authenticatedUserId,
+      error: err instanceof Error ? err.message : String(err)
+    }));
   }
 }
+
+// Flush logs before returning response
+await new Promise(r => setTimeout(r, 50));
+
+return json(200, { transcript });
 
 // Voice flow: optionally save user message, call LLM, and broadcast
 if (chattype === "voice" && chat_id) {
