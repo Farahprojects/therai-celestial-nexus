@@ -254,6 +254,12 @@ export const ChatInput = () => {
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && !e.shiftKey && !isAssistantGenerating) {
                   e.preventDefault();
+                  // Gate: Check subscription before sending
+                  if (billingMode === 'SUBSCRIPTION' && isAuthenticated && !isSubscriptionActive) {
+                    toast.error('Subscription required to send messages');
+                    navigate('/subscription-paywall');
+                    return;
+                  }
                   handleSend();
                 }
               }}
