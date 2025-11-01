@@ -4,8 +4,11 @@
 // - Minimal helpers, clear flow
 // - Fire-and-forget internal calls guarded by env checks
 // - Dynamically routes to correct LLM handler based on system config
+// - Feature gating for voice usage limits
 
 import { getLLMHandler } from "../_shared/llmConfig.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { checkFeatureAccess, incrementFeatureUsage } from "../_shared/featureGating.ts";
 
 const corsHeaders = {
 "Access-Control-Allow-Origin": "*",
@@ -130,6 +133,55 @@ const mimeType = file.type || "audio/webm";
 
 if (!audioBuffer.length) return json(400, { error: "Empty audio data" });
 
+// Feature gating: Check voice usage limits for voice chattype
+if (chattype === "voice") {
+  // Create Supabase client for feature checks
+  const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+    auth: { persistSession: false }
+  });
+
+  // Get authenticated user ID from JWT (more secure than form data)
+  const authHeader = req.headers.get("Authorization");
+  let authenticatedUserId = user_id;
+  
+  if (authHeader) {
+    try {
+      const token = authHeader.replace("Bearer ", "");
+      const { data: userData, error: authError } = await supabase.auth.getUser(token);
+      if (!authError && userData?.user) {
+        authenticatedUserId = userData.user.id;
+      }
+    } catch (authErr) {
+      console.error("[google-whisper] Auth verification failed:", authErr);
+    }
+  }
+
+  if (authenticatedUserId) {
+    // Estimate audio duration in seconds (rough estimate: audio buffer size / sample rate)
+    // Using 16kHz sample rate for estimate (typical for voice)
+    const estimatedSeconds = Math.ceil(audioBuffer.length / 16000);
+    
+    // Check if user has enough voice seconds remaining
+    const accessCheck = await checkFeatureAccess(
+      supabase,
+      authenticatedUserId,
+      'voice_seconds',
+      estimatedSeconds
+    );
+
+    if (!accessCheck.allowed) {
+      return json(403, {
+        error: accessCheck.reason || "Voice usage limit reached",
+        remaining: accessCheck.remaining,
+        limit: accessCheck.limit,
+        feature: "voice_seconds"
+      });
+    }
+
+    console.log(`[google-whisper] Voice access granted. Remaining: ${accessCheck.remaining}`);
+  }
+}
+
 const languageCode = normalizeLanguageCode(String(language));
 const transcript = await transcribeWithGoogle({
   apiKey: GOOGLE_STT,
@@ -140,6 +192,39 @@ const transcript = await transcribeWithGoogle({
 
 if (!transcript.trim()) {
   return json(200, { transcript: "" });
+}
+
+// Track voice usage after successful transcription
+if (chattype === "voice" && user_id) {
+  // Create Supabase client for usage tracking
+  const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+    auth: { persistSession: false }
+  });
+
+  // Get authenticated user ID
+  const authHeader = req.headers.get("Authorization");
+  let authenticatedUserId = user_id;
+  
+  if (authHeader) {
+    try {
+      const token = authHeader.replace("Bearer ", "");
+      const { data: userData, error: authError } = await supabase.auth.getUser(token);
+      if (!authError && userData?.user) {
+        authenticatedUserId = userData.user.id;
+      }
+    } catch (authErr) {
+      console.error("[google-whisper] Auth verification failed for tracking:", authErr);
+    }
+  }
+
+  if (authenticatedUserId) {
+    // Calculate actual audio duration (more accurate post-transcription)
+    const estimatedSeconds = Math.ceil(audioBuffer.length / 16000);
+    
+    // Increment usage counter (fire-and-forget, don't block response)
+    incrementFeatureUsage(supabase, authenticatedUserId, 'voice_seconds', estimatedSeconds)
+      .catch(err => console.error("[google-whisper] Failed to track usage:", err));
+  }
 }
 
 // Voice flow: optionally save user message, call LLM, and broadcast

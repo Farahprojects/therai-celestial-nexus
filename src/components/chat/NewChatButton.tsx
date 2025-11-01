@@ -9,6 +9,7 @@ import { useMessageStore } from '@/stores/messageStore';
 import { InsightsModal } from '@/components/insights/InsightsModal';
 import { AstroDataForm } from '@/components/chat/AstroDataForm';
 import { AstroChartSelector } from '@/components/chat/AstroChartSelector';
+import { useFeatureUsage } from '@/hooks/useFeatureUsage';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -26,6 +27,7 @@ export const NewChatButton: React.FC<NewChatButtonProps> = ({ className = "" }) 
   const { isSubscriptionActive } = useSubscription();
   const billingMode = getBillingMode();
   const navigate = useNavigate();
+  const { usage } = useFeatureUsage();
   const [showInsightsModal, setShowInsightsModal] = useState(false);
   const [showAstroChartSelector, setShowAstroChartSelector] = useState(false);
   const [showAstroModal, setShowAstroModal] = useState(false);
@@ -171,9 +173,19 @@ export const NewChatButton: React.FC<NewChatButtonProps> = ({ className = "" }) 
             onClick={handleOpenInsights}
             className="cursor-pointer"
           >
-            <div className="flex items-center gap-2">
-              <Sparkles className="w-4 h-4" />
-              <span>Generate Insight</span>
+            <div className="flex items-center justify-between w-full gap-2">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-4 h-4" />
+                <span>Generate Insight</span>
+              </div>
+              {usage && usage.insights_count.limit !== null && (
+                <span className="text-xs text-gray-500">
+                  {usage.insights_count.remaining}/{usage.insights_count.limit}
+                </span>
+              )}
+              {usage && usage.insights_count.limit === null && (
+                <span className="text-xs text-gray-500">∞</span>
+              )}
             </div>
           </DropdownMenuItem>
         </DropdownMenuContent>

@@ -8,6 +8,7 @@ import { getBillingMode } from '@/utils/billingMode';
 import { useSubscriptionStatus } from '@/hooks/useSubscriptionStatus';
 import { useUserData } from '@/hooks/useUserData';
 import { useThreads } from '@/contexts/ThreadsContext';
+import { useFeatureUsage } from '@/hooks/useFeatureUsage';
 import { Trash2, Sparkles, AlertTriangle, MoreHorizontal, UserPlus, Plus, Search, User, Settings, Bell, CreditCard, LifeBuoy, LogOut, BarChart3, ChevronDown, MessageCircle, Orbit } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useReportModal } from '@/contexts/ReportModalContext';
@@ -62,6 +63,7 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
   const billingMode = getBillingMode(); // Get billing mode
   const userPermissions = useUserPermissions();
   const uiConfig = getUserTypeConfig(isAuthenticated ? 'authenticated' : 'unauthenticated');
+  const { usage } = useFeatureUsage();
   
   // Credit balance state
   const [credits, setCredits] = useState<number>(0);
@@ -1021,6 +1023,31 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
 
       {/* Clean Footer - Sticky at bottom */}
       <div className="mt-auto pt-4 shrink-0">
+        {/* Usage Stats - Only show if authenticated and has usage data */}
+        {isAuthenticated && usage && (
+          <div className="px-3 py-2 mb-2 bg-gray-50 rounded-lg mx-3">
+            <div className="text-xs text-gray-500 mb-2 font-medium">Monthly Usage</div>
+            <div className="space-y-1.5">
+              <div className="flex justify-between items-center text-xs">
+                <span className="text-gray-600">Voice</span>
+                <span className="text-gray-900 font-medium">
+                  {usage.voice_seconds.limit === null 
+                    ? '∞' 
+                    : `${usage.voice_seconds.remaining}/${usage.voice_seconds.limit}s`}
+                </span>
+              </div>
+              <div className="flex justify-between items-center text-xs">
+                <span className="text-gray-600">Insights</span>
+                <span className="text-gray-900 font-medium">
+                  {usage.insights_count.limit === null 
+                    ? '∞' 
+                    : `${usage.insights_count.remaining}/${usage.insights_count.limit}`}
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
+
         {isAuthenticated ? (
           /* Authenticated User - Settings Menu */
           <div className="space-y-2">
@@ -1043,7 +1070,7 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
                         onClick={(e) => {
                           e.stopPropagation();
                           if (billingMode === 'CREDIT') {
-                            setShowCreditPurchaseModal(true);
+                          setShowCreditPurchaseModal(true);
                           } else {
                             navigate('/subscription-paywall');
                           }
@@ -1077,7 +1104,7 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
                       onClick={(e) => {
                         e.stopPropagation();
                         if (billingMode === 'CREDIT') {
-                          setShowCreditPurchaseModal(true);
+                        setShowCreditPurchaseModal(true);
                         } else {
                           navigate('/subscription-paywall');
                         }

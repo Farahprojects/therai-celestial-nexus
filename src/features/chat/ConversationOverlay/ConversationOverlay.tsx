@@ -6,6 +6,7 @@ import { useAudioStore } from '@/stores/audioStore';
 import { useMode } from '@/contexts/ModeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserData } from '@/hooks/useUserData';
+import { useFeatureUsage } from '@/hooks/useFeatureUsage';
 // Old audio level hook removed - using AudioWorklet + WebWorker pipeline
 import { VoiceBubble } from './VoiceBubble';
 // Universal audio pipeline
@@ -26,6 +27,7 @@ export const ConversationOverlay: React.FC = () => {
   const { mode } = useMode();
   const { user } = useAuth();
   const { displayName } = useUserData();
+  const { usage } = useFeatureUsage();
   const [state, setState] = useState<ConversationState>('connecting');
   
   // Audio context management
@@ -480,13 +482,22 @@ export const ConversationOverlay: React.FC = () => {
               </motion.div>
             </AnimatePresence>
 
-            <p className="text-gray-500 font-light">
-              {state === 'listening'
-                ? 'Listening…'
-                : state === 'thinking'
-                ? 'Thinking…'
-                : 'Speaking…'}
-            </p>
+            <div className="flex flex-col items-center gap-2">
+              <p className="text-gray-500 font-light">
+                {state === 'listening'
+                  ? 'Listening…'
+                  : state === 'thinking'
+                  ? 'Thinking…'
+                  : 'Speaking…'}
+              </p>
+              {usage && (
+                <p className="text-xs text-gray-400">
+                  {usage.voice_seconds.limit === null 
+                    ? 'Unlimited voice time' 
+                    : `${usage.voice_seconds.remaining}s remaining this month`}
+                </p>
+              )}
+            </div>
 
             <button
               onClick={handleModalClose}

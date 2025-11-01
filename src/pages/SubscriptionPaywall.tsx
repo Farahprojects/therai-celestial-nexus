@@ -148,11 +148,11 @@ const SubscriptionPaywall: React.FC = () => {
                         <div className="text-2xl font-light text-gray-900">
                           {getPlanTier(plan.id)}
                         </div>
-                        
+
                         {/* Price - Bigger */}
                         <div className="space-y-1">
                           <div className="text-4xl font-light text-gray-900">
-                            ${plan.unit_price_usd}
+                          ${plan.unit_price_usd}
                           </div>
                           {plan.id === 'subscription_onetime' ? '' : 
                            plan.id.includes('yearly') || plan.id.includes('astro') ? (

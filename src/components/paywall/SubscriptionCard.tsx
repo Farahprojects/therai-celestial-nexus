@@ -50,8 +50,8 @@ const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
   const getPlanFeatures = (planId: string, planName: string) => {
     // Default features based on plan tier
     const growthFeatures = [
-      'Unlimited messages per thread',
-      'Priority support',
+        'Unlimited messages per thread',
+        'Priority support',
       'Advanced chart features',
       'AI insights and guidance'
     ];
@@ -129,7 +129,7 @@ const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
             {/* Price - Bigger */}
             <div className="space-y-1">
               <div className="text-4xl font-light text-gray-900">
-                {formatPrice(plan.unit_price_usd)}
+              {formatPrice(plan.unit_price_usd)}
               </div>
               {plan.product_code === 'subscription' && (
                 <div className="text-sm font-light text-gray-500">per month</div>

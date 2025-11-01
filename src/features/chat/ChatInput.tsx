@@ -98,10 +98,10 @@ export const ChatInput = () => {
       return;
     }
 
-    let currentChatId = chat_id;
-    
-    // For authenticated users: create conversation if no chat_id exists
-    if (isAuthenticated && !chat_id && user) {
+      let currentChatId = chat_id;
+      
+      // For authenticated users: create conversation if no chat_id exists
+      if (isAuthenticated && !chat_id && user) {
       // Gate: Check subscription before creating new thread
       if (billingMode === 'SUBSCRIPTION' && !isSubscriptionActive) {
         toast.error('Subscription required to create new conversations');
@@ -109,62 +109,62 @@ export const ChatInput = () => {
         return;
       }
 
-      try {
-        console.log('[ChatInput] Creating new conversation for authenticated user');
-        const newChatId = await addThread(user.id, 'chat', 'New Chat');
-        
-        // Initialize the conversation in chatController (store will handle state)
-        await chatController.initializeConversation(newChatId);
-        
-        // Use the newly created chat_id for this message
-        currentChatId = newChatId;
-        
-        console.log('[ChatInput] New conversation created and initialized:', newChatId);
-      } catch (error) {
-        console.error('[ChatInput] Failed to create conversation:', error);
-        return; // Don't send message if conversation creation failed
-      }
-    }
-    
-    const messageText = text.trim();
-    const client_msg_id = crypto.randomUUID();
-    
-    // INSTANT UI UPDATES (no delays)
-    setText(''); // Clear input instantly
-    setAssistantTyping(true); // Show stop icon
-    
-    // Show optimistic message immediately in UI
-    const optimisticMessage: Message = {
-      id: client_msg_id,
-      chat_id: currentChatId!,
-      role: 'user',
-      text: messageText,
-      createdAt: new Date().toISOString(),
-      status: 'thinking',
-      client_msg_id,
-      mode: mode,
-      user_id: user?.id,
-      user_name: displayName || 'User'
-    };
-    
-    const { addOptimisticMessage } = useMessageStore.getState();
-    addOptimisticMessage(optimisticMessage);
-    
-    // Fire-and-forget invoke (truly non-blocking via queueMicrotask)
-    queueMicrotask(() => {
-      supabase.functions.invoke('chat-send', {
-        body: {
-          chat_id: currentChatId!,
-          text: messageText,
-          client_msg_id,
-          mode: mode,
-          user_id: user?.id,
-          user_name: displayName || 'User'
+        try {
+          console.log('[ChatInput] Creating new conversation for authenticated user');
+          const newChatId = await addThread(user.id, 'chat', 'New Chat');
+          
+          // Initialize the conversation in chatController (store will handle state)
+          await chatController.initializeConversation(newChatId);
+          
+          // Use the newly created chat_id for this message
+          currentChatId = newChatId;
+          
+          console.log('[ChatInput] New conversation created and initialized:', newChatId);
+        } catch (error) {
+          console.error('[ChatInput] Failed to create conversation:', error);
+          return; // Don't send message if conversation creation failed
         }
-      }).catch((error) => {
-        console.error('[ChatInput] Message send failed:', error);
+      }
+      
+      const messageText = text.trim();
+      const client_msg_id = crypto.randomUUID();
+      
+      // INSTANT UI UPDATES (no delays)
+      setText(''); // Clear input instantly
+      setAssistantTyping(true); // Show stop icon
+      
+      // Show optimistic message immediately in UI
+      const optimisticMessage: Message = {
+        id: client_msg_id,
+        chat_id: currentChatId!,
+        role: 'user',
+        text: messageText,
+        createdAt: new Date().toISOString(),
+        status: 'thinking',
+        client_msg_id,
+        mode: mode,
+        user_id: user?.id,
+        user_name: displayName || 'User'
+      };
+      
+      const { addOptimisticMessage } = useMessageStore.getState();
+      addOptimisticMessage(optimisticMessage);
+      
+      // Fire-and-forget invoke (truly non-blocking via queueMicrotask)
+      queueMicrotask(() => {
+        supabase.functions.invoke('chat-send', {
+          body: {
+            chat_id: currentChatId!,
+            text: messageText,
+            client_msg_id,
+            mode: mode,
+            user_id: user?.id,
+            user_name: displayName || 'User'
+          }
+        }).catch((error) => {
+          console.error('[ChatInput] Message send failed:', error);
+        });
       });
-    });
   };
 
   const handleSpeakerClick = () => {
