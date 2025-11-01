@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Menu, X, Settings, User, Bell, LifeBuoy, LogOut, CreditCard, Eye, Globe, Calendar, Home } from 'lucide-react';
+import { Menu, X, Settings, User, Bell, LifeBuoy, LogOut, CreditCard, Eye, Globe, Calendar, Home, BookOpen } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { UserAvatar } from '@/components/settings/UserAvatar';
 import Logo from '@/components/Logo';
@@ -238,6 +238,15 @@ const UnifiedNavigation = ({
                     </span>
                   </Link>
                   <Link 
+                    to="/blog" 
+                    className="text-gray-700 hover:text-gray-900 transition-all duration-300 ease-out hover:translate-y-[-1px] transform text-sm font-medium group relative"
+                  >
+                    <span className="relative">
+                      Blog
+                      <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gray-900 transition-all duration-300 ease-out group-hover:w-full"></span>
+                    </span>
+                  </Link>
+                  <Link 
                     to="/about" 
                     className="text-gray-700 hover:text-gray-900 transition-all duration-300 ease-out hover:translate-y-[-1px] transform text-sm font-medium group relative"
                   >
@@ -335,6 +344,10 @@ const UnifiedNavigation = ({
                       <DropdownMenuItem onClick={() => navigate('/calendar')}>
                         <Calendar className="mr-2 h-4 w-4" />
                         Calendar
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => window.open('/blog', '_blank')}>
+                        <BookOpen className="mr-2 h-4 w-4" />
+                        Blog & Guides
                       </DropdownMenuItem>
                       
                       <DropdownMenuSeparator />

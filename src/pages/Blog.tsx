@@ -1,13 +1,16 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
 import UnifiedNavigation from '@/components/UnifiedNavigation';
 import Footer from '@/components/Footer';
 import { BlogGrid } from '@/components/blog/BlogGrid';
+import { BlogContentFilter } from '@/components/blog/BlogContentFilter';
 import { TheraLoader } from '@/components/ui/TheraLoader';
 
 const Blog = () => {
+  const [activeFilter, setActiveFilter] = useState('all');
+
   const { data: posts, isLoading, error } = useQuery({
     queryKey: ['blog-posts'],
     queryFn: async () => {
@@ -39,6 +42,15 @@ const Blog = () => {
     );
   }
 
+  // Calculate post counts by content type for filter tabs
+  const postCounts = {
+    all: posts?.length || 0,
+    tutorial: posts?.filter(p => p.content_type === 'tutorial').length || 0,
+    guide: posts?.filter(p => p.content_type === 'guide').length || 0,
+    blog: posts?.filter(p => p.content_type === 'blog').length || 0,
+    news: posts?.filter(p => p.content_type === 'news').length || 0,
+  };
+
   return (
     <div className="flex min-h-screen flex-col bg-white">
       <UnifiedNavigation />
@@ -54,19 +66,28 @@ const Blog = () => {
               className="text-center mb-16 space-y-6"
             >
               <h1 className="text-5xl md:text-6xl lg:text-7xl font-light text-gray-900 leading-tight">
-                Insights & <span className="italic font-medium">Stories</span>
+                Learn & <span className="italic font-medium">Explore</span>
               </h1>
               <p className="text-xl text-gray-600 font-light max-w-2xl mx-auto leading-relaxed">
-                Discover the latest thoughts, insights, and stories from our community of professionals
+                Discover astrological insights, app tutorials, and guides to deepen your understanding
               </p>
             </motion.div>
           </div>
         </section>
 
+        {/* Filter Tabs */}
+        {posts && posts.length > 0 && (
+          <BlogContentFilter 
+            activeFilter={activeFilter} 
+            onFilterChange={setActiveFilter}
+            postCounts={postCounts}
+          />
+        )}
+
         {/* Blog Grid */}
         <section className="py-16 bg-gradient-to-b from-white to-gray-50/30">
           <div className="max-w-7xl mx-auto px-4">
-            <BlogGrid posts={posts || []} />
+            <BlogGrid posts={posts || []} filter={activeFilter} />
           </div>
         </section>
       </main>

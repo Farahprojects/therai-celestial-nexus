@@ -1095,6 +1095,9 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
                       Help
                     </DropdownMenuSubTrigger>
                     <DropdownMenuSubContent>
+                      <DropdownMenuItem onClick={() => window.open('/blog', '_blank')}>
+                        Blog & Guides
+                      </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => window.open('/legal', '_blank')}>
                         Legal & Terms
                       </DropdownMenuItem>

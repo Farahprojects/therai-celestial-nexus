@@ -5,6 +5,8 @@ import { formatDistanceToNow } from 'date-fns';
 import { LikeButton } from './LikeButton';
 import { ShareButton } from './ShareButton';
 import { TagPill } from './TagPill';
+import { ContentTypeBadge } from './ContentTypeBadge';
+import { Badge } from '@/components/ui/badge';
 
 interface BlogPost {
   id: string;
@@ -16,6 +18,8 @@ interface BlogPost {
   like_count: number;
   share_count: number;
   tags?: string[];
+  content_type?: string | null;
+  featured?: boolean;
 }
 
 interface BlogCardProps {
@@ -42,6 +46,22 @@ export const BlogCard: React.FC<BlogCardProps> = ({ post, index }) => {
             className="w-full h-64 object-cover transition-transform duration-500 group-hover:scale-105"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent" />
+          
+          {/* Content Type Badge */}
+          {post.content_type && (
+            <div className="absolute top-4 left-4 z-10">
+              <ContentTypeBadge type={post.content_type} />
+            </div>
+          )}
+          
+          {/* Featured Badge */}
+          {post.featured && (
+            <div className="absolute top-4 right-4 z-10">
+              <Badge className="bg-amber-50 text-amber-900 border-amber-200 font-light">
+                Featured
+              </Badge>
+            </div>
+          )}
         </div>
       </Link>
 

@@ -29,6 +29,15 @@ const PublicHeader = () => {
               </span>
             </Link>
             <Link 
+              to="/blog" 
+              className="text-gray-700 hover:text-gray-900 transition-all duration-300 ease-out hover:translate-y-[-1px] transform text-sm font-medium group relative"
+            >
+              <span className="relative">
+                Blog
+                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gray-900 transition-all duration-300 ease-out group-hover:w-full"></span>
+              </span>
+            </Link>
+            <Link 
               to="/about" 
               className="text-gray-700 hover:text-gray-900 transition-all duration-300 ease-out hover:translate-y-[-1px] transform text-sm font-medium group relative"
             >
@@ -38,7 +47,7 @@ const PublicHeader = () => {
               </span>
             </Link>
             <Link 
-              to="/contact" 
+              to="/contact"
               className="text-gray-700 hover:text-gray-900 transition-all duration-300 ease-out hover:translate-y-[-1px] transform text-sm font-medium group relative"
             >
               <span className="relative">
