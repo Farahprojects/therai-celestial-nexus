@@ -12,7 +12,7 @@ import { FEATURE_LIMITS, FeatureCheckResult } from "./featureLimits.ts";
  * @returns FeatureCheckResult with allowed status and usage info
  */
 export async function checkFeatureAccess(
-  supabase: SupabaseClient,
+  supabase: SupabaseClient<any>,
   userId: string,
   featureType: 'voice_seconds' | 'insights_count',
   requestedAmount: number = 1
@@ -98,7 +98,7 @@ export async function checkFeatureAccess(
  * @param amount - Amount to increment
  */
 export async function incrementFeatureUsage(
-  supabase: SupabaseClient,
+  supabase: SupabaseClient<any>,
   userId: string,
   featureType: 'voice_seconds' | 'insights_count',
   amount: number

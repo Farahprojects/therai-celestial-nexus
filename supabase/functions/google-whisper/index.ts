@@ -115,14 +115,17 @@ return json(200, { status: "warmed up" });
 const form = await req.formData().catch(() => null);
 if (!form) return json(400, { error: "Expected multipart/form-data" });
 
-const file = form.get("file");
-const chat_id = form.get("chat_id") || undefined;
-const chattype = form.get("chattype") || undefined;
-const mode = form.get("mode");
-const language = form.get("language") || "en";
-const voice = form.get("voice") || undefined;
-const user_id = form.get("user_id") || undefined;
-const user_name = form.get("user_name") || undefined;
+    const file = form.get("file");
+    const chat_id = form.get("chat_id") || undefined;
+    const chattype = form.get("chattype") || undefined;
+    const mode = form.get("mode");
+    const language = form.get("language") || "en";
+    const voice = form.get("voice") || undefined;
+    const user_id = form.get("user_id");
+    const user_name = form.get("user_name") || undefined;
+    
+    // Type-safe user_id extraction
+    const authenticatedUserId = typeof user_id === 'string' ? user_id : undefined;
 
 if (!(file instanceof File)) return json(400, { error: "Missing file in form-data" });
 if (!mode || typeof mode !== "string") return json(400, { error: "Missing or invalid field: mode" });
@@ -142,7 +145,6 @@ if (chattype === "voice") {
 
   // Get authenticated user ID from JWT (more secure than form data)
   const authHeader = req.headers.get("Authorization");
-  let authenticatedUserId = user_id;
   
   if (authHeader) {
     try {
@@ -197,7 +199,7 @@ if (!transcript.trim()) {
 }
 
 // Track voice usage after successful transcription
-if (chattype === "voice" && user_id) {
+if (chattype === "voice" && authenticatedUserId) {
   // Create Supabase client for usage tracking
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
     auth: { persistSession: false }
@@ -205,7 +207,6 @@ if (chattype === "voice" && user_id) {
 
   // Get authenticated user ID
   const authHeader = req.headers.get("Authorization");
-  let authenticatedUserId = user_id;
   
   if (authHeader) {
     try {

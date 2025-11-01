@@ -77,7 +77,7 @@ Deno.serve(async (req) => {
     
     // Get current subscription item (future-proof for multiple items)
     const currentItem = subscription.items.data.find(
-      (item) => item.price.id !== newPriceId
+      (item: { price: { id: string } }) => item.price.id !== newPriceId
     );
     
     if (!currentItem) {

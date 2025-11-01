@@ -489,8 +489,13 @@ Deno.serve(async (req) => {
     .from("conversations")
     .update({ turn_count: newTurnCount })
     .eq("id", chat_id)
-    .then(() => console.log(`[llm-handler-gemini] 📊 Turn count updated: ${newTurnCount}`))
-    .catch((e) => console.error("[llm-handler-gemini] ❌ Failed to update turn count:", e));
+    .then(({ error }) => {
+      if (error) {
+        console.error("[llm-handler-gemini] ❌ Failed to update turn count:", error);
+      } else {
+        console.log(`[llm-handler-gemini] 📊 Turn count updated: ${newTurnCount}`);
+      }
+    });
 
   // Check if summary should be generated
   if (newTurnCount > 0 && newTurnCount % SUMMARY_INTERVAL === 0 && newTurnCount > lastSummaryTurn) {
@@ -502,7 +507,9 @@ Deno.serve(async (req) => {
       .from("conversations")
       .update({ last_summary_at_turn: newTurnCount })
       .eq("id", chat_id)
-      .catch((e) => console.error("[llm-handler-gemini] ❌ Failed to update last_summary_at_turn:", e));
+      .then(({ error }) => {
+        if (error) console.error("[llm-handler-gemini] ❌ Failed to update last_summary_at_turn:", error);
+      });
   }
 
   // Fire-and-forget: TTS (voice only) and save assistant message via chat-send
