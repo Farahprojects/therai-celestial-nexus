@@ -224,6 +224,16 @@ Deno.serve(async (req) => {
 
   const { chat_id, text, mode, chattype, voice, user_id, user_name } = body || {};
 
+  console.info(JSON.stringify({
+    event: "llm_handler_request_received",
+    chat_id,
+    chattype,
+    chattype_type: typeof chattype,
+    chattype_is_voice: chattype === "voice",
+    mode,
+    text_length: text?.length || 0
+  }));
+
   if (!chat_id || typeof chat_id !== "string") return json(400, { error: "Missing or invalid field: chat_id" });
   if (!text || typeof text !== "string") return json(400, { error: "Missing or invalid field: text" });
 
@@ -537,7 +547,23 @@ Deno.serve(async (req) => {
     })
   ];
 
+  console.info(JSON.stringify({
+    event: "checking_tts_trigger",
+    chattype,
+    chattype_type: typeof chattype,
+    chattype_is_voice: chattype === "voice",
+    will_call_tts: chattype === "voice"
+  }));
+
   if (chattype === "voice") {
+    console.info(JSON.stringify({
+      event: "calling_tts",
+      chattype,
+      voice,
+      chat_id,
+      text_length: sanitizedTextForTTS.length
+    }));
+
     const selectedVoice = typeof voice === "string" && voice.trim() ? voice : "Puck";
     tasks.push(
       fetch(`${SUPABASE_URL}/functions/v1/google-text-to-speech`, {
@@ -546,6 +572,12 @@ Deno.serve(async (req) => {
         body: JSON.stringify({ text: sanitizedTextForTTS, voice: selectedVoice, chat_id, user_id })
       })
     );
+  } else {
+    console.info(JSON.stringify({
+      event: "tts_skipped",
+      chattype,
+      reason: chattype === "voice" ? "unknown" : "chattype_not_voice"
+    }));
   }
 
   Promise.allSettled(tasks).catch(() => { });
