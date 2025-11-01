@@ -80,23 +80,23 @@ export const SwissSubscriptionGuard: React.FC<SwissSubscriptionGuardProps> = ({ 
 
             {billingMode === 'CREDIT' ? (
               <>
-                <div className="bg-gray-50 rounded-2xl p-8 space-y-3">
-                  <div className="text-5xl font-light text-gray-900">$5</div>
-                  <div className="text-sm text-gray-500">
-                    50 credits • Everything unlocked • Never expires
-                  </div>
-                </div>
+            <div className="bg-gray-50 rounded-2xl p-8 space-y-3">
+              <div className="text-5xl font-light text-gray-900">$5</div>
+              <div className="text-sm text-gray-500">
+                50 credits • Everything unlocked • Never expires
+              </div>
+            </div>
 
-                <Button
-                  onClick={() => setShowCreditModal(true)}
-                  className="w-full bg-gray-900 text-white hover:bg-gray-800 rounded-full font-light py-6 text-lg shadow-lg"
-                >
-                  Get Started - $5
-                </Button>
+            <Button
+              onClick={() => setShowCreditModal(true)}
+              className="w-full bg-gray-900 text-white hover:bg-gray-800 rounded-full font-light py-6 text-lg shadow-lg"
+            >
+              Get Started - $5
+            </Button>
 
-                <p className="text-xs text-gray-500 font-light">
-                  No subscription • Top up anytime • Credits never expire
-                </p>
+            <p className="text-xs text-gray-500 font-light">
+              No subscription • Top up anytime • Credits never expire
+            </p>
               </>
             ) : (
               <>
@@ -123,10 +123,10 @@ export const SwissSubscriptionGuard: React.FC<SwissSubscriptionGuardProps> = ({ 
         </div>
 
         {billingMode === 'CREDIT' && (
-          <CreditPurchaseModal
-            isOpen={showCreditModal}
-            onClose={() => setShowCreditModal(false)}
-          />
+        <CreditPurchaseModal
+          isOpen={showCreditModal}
+          onClose={() => setShowCreditModal(false)}
+        />
         )}
       </>
     );

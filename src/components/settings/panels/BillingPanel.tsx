@@ -59,34 +59,34 @@ export const BillingPanel: React.FC = () => {
     setLoading(true);
     try {
       if (billingMode === 'CREDIT') {
-        // Fetch credit balance and auto top-up settings
-        const { data: creditsData, error: creditsError } = await supabase
-          .from('user_credits')
-          .select('credits, auto_topup_enabled, auto_topup_threshold, auto_topup_amount')
-          .eq('user_id', user.id)
-          .maybeSingle();
+      // Fetch credit balance and auto top-up settings
+      const { data: creditsData, error: creditsError } = await supabase
+        .from('user_credits')
+        .select('credits, auto_topup_enabled, auto_topup_threshold, auto_topup_amount')
+        .eq('user_id', user.id)
+        .maybeSingle();
 
-        if (creditsError && creditsError.code !== 'PGRST116') {
-          throw creditsError;
-        }
+      if (creditsError && creditsError.code !== 'PGRST116') {
+        throw creditsError;
+      }
 
-        setCreditData(creditsData || {
-          credits: 0,
-          auto_topup_enabled: false,
-          auto_topup_threshold: 7,
-          auto_topup_amount: 34,
-        });
+      setCreditData(creditsData || {
+        credits: 0,
+        auto_topup_enabled: false,
+        auto_topup_threshold: 7,
+        auto_topup_amount: 34,
+      });
 
-        // Fetch transaction history
-        const { data: transactionsData, error: transactionsError } = await supabase
-          .from('credit_transactions')
-          .select('*')
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false })
-          .limit(20);
+      // Fetch transaction history
+      const { data: transactionsData, error: transactionsError } = await supabase
+        .from('credit_transactions')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(20);
 
-        if (!transactionsError && transactionsData) {
-          setTransactions(transactionsData);
+      if (!transactionsError && transactionsData) {
+        setTransactions(transactionsData);
         }
       } else {
         // Fetch subscription data

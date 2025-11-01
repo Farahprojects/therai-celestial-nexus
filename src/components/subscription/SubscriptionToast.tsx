@@ -24,7 +24,7 @@ export const SubscriptionToast: React.FC<SubscriptionToastProps> = ({
 
   const handleUpgrade = () => {
     if (billingMode === 'CREDIT') {
-      setShowCreditModal(true);
+    setShowCreditModal(true);
     } else {
       // Navigate to subscription plans
       navigate('/subscription-paywall');
@@ -55,13 +55,13 @@ export const SubscriptionToast: React.FC<SubscriptionToastProps> = ({
       </div>
 
       {billingMode === 'CREDIT' && (
-        <CreditPurchaseModal
-          isOpen={showCreditModal}
-          onClose={() => {
-            setShowCreditModal(false);
-            onDismiss();
-          }}
-        />
+      <CreditPurchaseModal
+        isOpen={showCreditModal}
+        onClose={() => {
+          setShowCreditModal(false);
+          onDismiss();
+        }}
+      />
       )}
     </>
   );
