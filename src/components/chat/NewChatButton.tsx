@@ -3,6 +3,7 @@ import { SquarePen, Sparkles, MessageCircle, Orbit } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSubscription } from '@/contexts/SubscriptionContext';
+import { getBillingMode } from '@/utils/billingMode';
 import { useChatStore } from '@/core/store';
 import { useMessageStore } from '@/stores/messageStore';
 import { InsightsModal } from '@/components/insights/InsightsModal';
@@ -23,6 +24,7 @@ interface NewChatButtonProps {
 export const NewChatButton: React.FC<NewChatButtonProps> = ({ className = "" }) => {
   const { user } = useAuth();
   const { isSubscriptionActive } = useSubscription();
+  const billingMode = getBillingMode();
   const navigate = useNavigate();
   const [showInsightsModal, setShowInsightsModal] = useState(false);
   const [showAstroChartSelector, setShowAstroChartSelector] = useState(false);
@@ -36,9 +38,9 @@ export const NewChatButton: React.FC<NewChatButtonProps> = ({ className = "" }) 
       return;
     }
 
-    // Check subscription status
-    if (!isSubscriptionActive) {
-      navigate('/subscription');
+    // Gate: Check subscription in subscription mode
+    if (billingMode === 'SUBSCRIPTION' && !isSubscriptionActive) {
+      navigate('/subscription-paywall');
       return;
     }
 
@@ -68,9 +70,9 @@ export const NewChatButton: React.FC<NewChatButtonProps> = ({ className = "" }) 
 
   // Shared handleOpenInsights function
   const handleOpenInsights = () => {
-    // Check subscription status
-    if (!isSubscriptionActive) {
-      navigate('/subscription');
+    // Gate: Check subscription in subscription mode
+    if (billingMode === 'SUBSCRIPTION' && !isSubscriptionActive) {
+      navigate('/subscription-paywall');
       return;
     }
     setShowInsightsModal(true);
@@ -78,9 +80,9 @@ export const NewChatButton: React.FC<NewChatButtonProps> = ({ className = "" }) 
 
   // Shared handleOpenAstro function
   const handleOpenAstro = () => {
-    // Check subscription status
-    if (!isSubscriptionActive) {
-      navigate('/subscription');
+    // Gate: Check subscription in subscription mode
+    if (billingMode === 'SUBSCRIPTION' && !isSubscriptionActive) {
+      navigate('/subscription-paywall');
       return;
     }
     setShowAstroChartSelector(true);

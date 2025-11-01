@@ -1,14 +1,19 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { useSubscription } from '@/contexts/SubscriptionContext';
+import { getBillingMode } from '@/utils/billingMode';
 import { useChatStore } from '@/core/store';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Plus, MessageSquare, Clock } from 'lucide-react';
 import Logo from '@/components/Logo';
+import { toast } from 'sonner';
 
 const ThreadSelectionPage: React.FC = () => {
   const { user } = useAuth();
+  const { isSubscriptionActive } = useSubscription();
+  const billingMode = getBillingMode();
   const navigate = useNavigate();
   const { threads, loadThreads, addThread, isLoadingThreads } = useChatStore();
   const [isCreating, setIsCreating] = useState(false);
@@ -17,6 +22,13 @@ const ThreadSelectionPage: React.FC = () => {
 
   const handleCreateNewThread = async () => {
     if (!user) return;
+    
+    // Gate: Check subscription in subscription mode
+    if (billingMode === 'SUBSCRIPTION' && !isSubscriptionActive) {
+      toast.error('Subscription required to create new conversations');
+      navigate('/subscription-paywall');
+      return;
+    }
     
     setIsCreating(true);
     try {

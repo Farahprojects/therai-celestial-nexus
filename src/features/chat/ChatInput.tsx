@@ -15,6 +15,10 @@ import { useMessageStore } from '@/stores/messageStore';
 import { unifiedWebSocketService } from '@/services/websocket/UnifiedWebSocketService';
 import { supabase } from '@/integrations/supabase/client';
 import { Message } from '@/core/types';
+import { useSubscription } from '@/contexts/SubscriptionContext';
+import { getBillingMode } from '@/utils/billingMode';
+import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 // Using unified message store for all message management
 
 // Stop icon component
@@ -58,6 +62,9 @@ export const ChatInput = () => {
   // Auth detection (still needed for user-specific logic)
   const { user } = useAuth();
   const { displayName } = useUserData();
+  const { isSubscriptionActive } = useSubscription();
+  const billingMode = getBillingMode();
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const userId = searchParams.get('user_id');
   const isAuthenticated = !!user;
@@ -80,68 +87,82 @@ export const ChatInput = () => {
   });
 
   const handleSend = async () => {
-    if (text.trim()) {
-      let currentChatId = chat_id;
-      
-      // For authenticated users: create conversation if no chat_id exists
-      if (isAuthenticated && !chat_id && user) {
-        try {
-          console.log('[ChatInput] Creating new conversation for authenticated user');
-          const newChatId = await addThread(user.id, 'chat', 'New Chat');
-          
-          // Initialize the conversation in chatController (store will handle state)
-          await chatController.initializeConversation(newChatId);
-          
-          // Use the newly created chat_id for this message
-          currentChatId = newChatId;
-          
-          console.log('[ChatInput] New conversation created and initialized:', newChatId);
-        } catch (error) {
-          console.error('[ChatInput] Failed to create conversation:', error);
-          return; // Don't send message if conversation creation failed
-        }
-      }
-      
-      const messageText = text.trim();
-      const client_msg_id = crypto.randomUUID();
-      
-      // INSTANT UI UPDATES (no delays)
-      setText(''); // Clear input instantly
-      setAssistantTyping(true); // Show stop icon
-      
-      // Show optimistic message immediately in UI
-      const optimisticMessage: Message = {
-        id: client_msg_id,
-        chat_id: currentChatId!,
-        role: 'user',
-        text: messageText,
-        createdAt: new Date().toISOString(),
-        status: 'thinking',
-        client_msg_id,
-        mode: mode,
-        user_id: user?.id,
-        user_name: displayName || 'User'
-      };
-      
-      const { addOptimisticMessage } = useMessageStore.getState();
-      addOptimisticMessage(optimisticMessage);
-      
-      // Fire-and-forget invoke (truly non-blocking via queueMicrotask)
-      queueMicrotask(() => {
-        supabase.functions.invoke('chat-send', {
-          body: {
-            chat_id: currentChatId!,
-            text: messageText,
-            client_msg_id,
-            mode: mode,
-            user_id: user?.id,
-            user_name: displayName || 'User'
-          }
-        }).catch((error) => {
-          console.error('[ChatInput] Message send failed:', error);
-        });
-      });
+    if (!text.trim()) return;
+
+    // Gate: Check subscription in subscription mode
+    if (billingMode === 'SUBSCRIPTION' && isAuthenticated && !isSubscriptionActive) {
+      toast.error('Subscription required to send messages');
+      navigate('/subscription-paywall');
+      return;
     }
+
+    let currentChatId = chat_id;
+    
+    // For authenticated users: create conversation if no chat_id exists
+    if (isAuthenticated && !chat_id && user) {
+      // Gate: Check subscription before creating new thread
+      if (billingMode === 'SUBSCRIPTION' && !isSubscriptionActive) {
+        toast.error('Subscription required to create new conversations');
+        navigate('/subscription-paywall');
+        return;
+      }
+
+      try {
+        console.log('[ChatInput] Creating new conversation for authenticated user');
+        const newChatId = await addThread(user.id, 'chat', 'New Chat');
+        
+        // Initialize the conversation in chatController (store will handle state)
+        await chatController.initializeConversation(newChatId);
+        
+        // Use the newly created chat_id for this message
+        currentChatId = newChatId;
+        
+        console.log('[ChatInput] New conversation created and initialized:', newChatId);
+      } catch (error) {
+        console.error('[ChatInput] Failed to create conversation:', error);
+        return; // Don't send message if conversation creation failed
+      }
+    }
+    
+    const messageText = text.trim();
+    const client_msg_id = crypto.randomUUID();
+    
+    // INSTANT UI UPDATES (no delays)
+    setText(''); // Clear input instantly
+    setAssistantTyping(true); // Show stop icon
+    
+    // Show optimistic message immediately in UI
+    const optimisticMessage: Message = {
+      id: client_msg_id,
+      chat_id: currentChatId!,
+      role: 'user',
+      text: messageText,
+      createdAt: new Date().toISOString(),
+      status: 'thinking',
+      client_msg_id,
+      mode: mode,
+      user_id: user?.id,
+      user_name: displayName || 'User'
+    };
+    
+    const { addOptimisticMessage } = useMessageStore.getState();
+    addOptimisticMessage(optimisticMessage);
+    
+    // Fire-and-forget invoke (truly non-blocking via queueMicrotask)
+    queueMicrotask(() => {
+      supabase.functions.invoke('chat-send', {
+        body: {
+          chat_id: currentChatId!,
+          text: messageText,
+          client_msg_id,
+          mode: mode,
+          user_id: user?.id,
+          user_name: displayName || 'User'
+        }
+      }).catch((error) => {
+        console.error('[ChatInput] Message send failed:', error);
+      });
+    });
   };
 
   const handleSpeakerClick = () => {
@@ -221,10 +242,10 @@ export const ChatInput = () => {
               value={text}
               onChange={(e) => setText(e.target.value)}
               onFocus={handleFocus}
-              placeholder={isAssistantGenerating ? "Setting up your space..." : "Share your thoughts..."}
-              disabled={isAssistantGenerating}
+              placeholder={isAssistantGenerating ? "Setting up your space..." : billingMode === 'SUBSCRIPTION' && isAuthenticated && !isSubscriptionActive ? "Subscription required to send messages" : "Share your thoughts..."}
+              disabled={isAssistantGenerating || (billingMode === 'SUBSCRIPTION' && isAuthenticated && !isSubscriptionActive)}
               className={`w-full px-4 py-2.5 pr-24 text-base font-light bg-white border-2 rounded-3xl focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-400 resize-none text-black placeholder-gray-500 overflow-y-auto ${
-                isAssistantGenerating 
+                isAssistantGenerating || (billingMode === 'SUBSCRIPTION' && isAuthenticated && !isSubscriptionActive)
                   ? 'border-gray-200 bg-gray-50 cursor-not-allowed' 
                   : 'border-gray-300'
               }`}
