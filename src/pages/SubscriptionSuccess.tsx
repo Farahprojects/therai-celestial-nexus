@@ -14,8 +14,18 @@ const SubscriptionSuccess: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [retryLoading, setRetryLoading] = useState(false);
+  const [planName, setPlanName] = useState<string>('Premium'); // Default fallback
 
   const sessionId = searchParams.get('session_id');
+
+  // Determine plan tier from plan ID
+  const getPlanTier = (planId: string | null): 'Growth' | 'Premium' => {
+    if (!planId) return 'Premium';
+    if (planId === '10_monthly' || planId === '15_monthly' || planId.includes('growth') || planId.includes('starter')) {
+      return 'Growth';
+    }
+    return 'Premium';
+  };
 
   const checkSubscription = async () => {
     try {
@@ -26,6 +36,11 @@ const SubscriptionSuccess: React.FC = () => {
       }
 
       if (data?.subscription_active) {
+        // Determine plan name from subscription_plan
+        const planId = data?.subscription_plan || null;
+        const tier = getPlanTier(planId);
+        setPlanName(tier);
+        
         // Success! Redirect to main page after a brief moment
         setTimeout(() => {
           navigate('/therai?payment_status=success', { replace: true });
@@ -198,7 +213,7 @@ const SubscriptionSuccess: React.FC = () => {
               
               <div className="space-y-3">
                 <h1 className="text-2xl font-light text-gray-900">
-                  Welcome to <span className="italic">Premium</span>!
+                  Welcome to <span className="italic">{planName}</span>!
                 </h1>
                 <p className="text-gray-600 font-light">
                   Your subscription is active. Redirecting you to your dashboard...
