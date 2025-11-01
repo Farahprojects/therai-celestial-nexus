@@ -213,7 +213,9 @@ if (!transcript.trim()) {
 }
 
 // Track voice usage after successful transcription using Google's duration (source of truth)
-if (chattype === "voice" && authenticatedUserId && durationSeconds > 0) {
+// NOTE: google-whisper is ONLY used for voice transcription, so if audio is sent here, it's voice
+// We track usage regardless of chattype field since the frontend may not always send it
+if (authenticatedUserId && durationSeconds > 0) {
   console.info(JSON.stringify({
     event: "tracking_voice_usage",
     user_id: authenticatedUserId,
