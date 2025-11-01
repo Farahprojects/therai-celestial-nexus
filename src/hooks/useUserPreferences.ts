@@ -84,7 +84,7 @@ export function useUserPreferences() {
         const { data, error: fetchError } = await supabase
           .from("user_preferences")
           .select("*")
-          .eq("user_id", user.id)
+          .eq("user_id", user.id as any)
           .single();
 
         clearTimeout(loadTimeout);

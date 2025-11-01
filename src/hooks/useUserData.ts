@@ -136,20 +136,20 @@ export function useUserData() {
         supabase
           .from('profiles')
           .select('*')
-          .eq('id', user.id)
+          .eq('id', user.id as any)
           .single(),
         
         // Fetch user preferences
         supabase
           .from('user_preferences')
           .select('*')
-          .eq('user_id', user.id)
+          .eq('user_id', user.id as any)
           .single(),
       ]);
 
       setData({
-        profile: (profileResult.data as UserProfile) || getDefaultProfile(user.id, user.email || ''),
-        preferences: (preferencesResult.data as UserPreferences) || getDefaultPreferences(user.id),
+        profile: (profileResult.data as any) || getDefaultProfile(user.id, user.email || ''),
+        preferences: (preferencesResult.data as any) || getDefaultPreferences(user.id),
         loading: false,
         saving: false,
         error: null,
@@ -185,7 +185,7 @@ export function useUserData() {
       const { error } = await supabase
         .from('profiles')
         .update({ display_name: newDisplayName } as any) // Type assertion until DB schema is updated
-        .eq('id', user.id);
+        .eq('id', user.id as any);
 
       if (error) {
         console.error('Error updating display name:', error);
@@ -223,8 +223,8 @@ export function useUserData() {
     try {
       const { error } = await supabase
         .from('user_preferences')
-        .update({ email_notifications_enabled: enabled })
-        .eq('user_id', user.id);
+        .update({ email_notifications_enabled: enabled } as any)
+        .eq('user_id', user.id as any);
 
       if (error) {
         console.error('Error updating notifications:', error);
@@ -262,8 +262,8 @@ export function useUserData() {
     try {
       const { error } = await supabase
         .from('user_preferences')
-        .update({ client_view_mode: mode })
-        .eq('user_id', user.id);
+        .update({ client_view_mode: mode } as any)
+        .eq('user_id', user.id as any);
 
       if (error) {
         console.error('Error updating view mode:', error);
@@ -302,7 +302,7 @@ export function useUserData() {
       const { error } = await supabase
         .from('user_preferences')
         .update({ tts_voice: voice } as any) // Type assertion until DB schema is updated
-        .eq('user_id', user.id);
+        .eq('user_id', user.id as any);
 
       if (error) {
         console.error('Error updating TTS voice:', error);
