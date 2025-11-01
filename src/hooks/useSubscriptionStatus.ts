@@ -49,7 +49,7 @@ export function useSubscriptionStatus() {
       const { data, error } = await supabase
         .from('profiles')
         .select('subscription_active, subscription_status, subscription_plan, last_payment_status, subscription_next_charge')
-        .eq('id', user.id as any)
+        .eq('id', user.id)
         .single();
 
       if (error) {
@@ -68,15 +68,15 @@ export function useSubscriptionStatus() {
         return;
       }
 
-      const isActive = (data as any)?.subscription_active && 
-                      ['active', 'trialing'].includes((data as any)?.subscription_status || '');
+      const isActive = data?.subscription_active && 
+                      ['active', 'trialing'].includes(data?.subscription_status || '');
       
-      const isPastDue = (data as any)?.subscription_status === 'past_due';
+      const isPastDue = data?.subscription_status === 'past_due';
       
       // Calculate days until cancellation (1 day grace period)
       let daysUntilCancellation: number | null = null;
-      if (isPastDue && (data as any)?.subscription_next_charge) {
-        const nextChargeDate = new Date((data as any).subscription_next_charge);
+      if (isPastDue && data?.subscription_next_charge) {
+        const nextChargeDate = new Date(data.subscription_next_charge);
         const cancellationDate = new Date(nextChargeDate.getTime() + 1 * 24 * 60 * 60 * 1000);
         const now = new Date();
         const diffTime = cancellationDate.getTime() - now.getTime();
@@ -86,12 +86,12 @@ export function useSubscriptionStatus() {
 
       setSubscriptionStatus({
         isActive,
-        plan: (data as any)?.subscription_plan || null,
-        status: (data as any)?.subscription_status || null,
+        plan: data?.subscription_plan || null,
+        status: data?.subscription_status || null,
         loading: false,
         error: null,
-        lastPaymentStatus: (data as any)?.last_payment_status as 'succeeded' | 'failed' | null || null,
-        nextChargeDate: (data as any)?.subscription_next_charge || null,
+        lastPaymentStatus: data?.last_payment_status as 'succeeded' | 'failed' | null || null,
+        nextChargeDate: data?.subscription_next_charge || null,
         isPastDue,
         daysUntilCancellation
       });

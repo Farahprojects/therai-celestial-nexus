@@ -163,7 +163,7 @@ export const AstroDataForm: React.FC<AstroDataFormProps> = ({
       // Always create new conversation for astro, insight, and swiss modes
       const payload = buildReportPayload(data, selectedAstroType);
       // Determine the conversation mode and title using explicitMode to include 'swiss'
-      let conversationMode: 'astro' | 'chat' | 'insight' = 'astro';
+      let conversationMode: 'astro' | 'insight' | 'swiss' = 'astro';
       let title = data.name;
       
       if (explicitMode === 'insight' || mode === 'insight') {
@@ -171,7 +171,7 @@ export const AstroDataForm: React.FC<AstroDataFormProps> = ({
         // Use insight type name (Personal, Professional, Compatibility, etc.)
         title = getInsightTitle(data.name, reportType || '', data.secondPersonName);
       } else if (explicitMode === 'swiss') {
-        conversationMode = 'chat'; // Swiss mode uses 'chat' for conversation type
+        conversationMode = 'swiss';
         const chartTypeName = getSwissChartDisplayName(selectedAstroType || '');
         title = `${data.name} - ${chartTypeName}`;
       } else {

@@ -19,7 +19,7 @@ export function buildLogQuery(userId: string, filters: ActivityLogsFilterState) 
       api_usage!translator_log_id(total_cost_usd),
       insights!chat_id(user_id)
     `)
-    .eq('insights.user_id', userId as any)
+    .eq('insights.user_id', userId)
     .order('created_at', { ascending: false });
   
   // Apply filters
@@ -35,7 +35,7 @@ export function buildLogQuery(userId: string, filters: ActivityLogsFilterState) 
   }
   
   if (filters.reportType) {
-    query = query.eq('report_tier', filters.reportType as any);
+    query = query.eq('report_tier', filters.reportType);
   }
   
   if (filters.status) {

@@ -79,6 +79,7 @@ export const ProgressionsFormatter: React.FC<ProgressionsFormatterProps> = ({
                 <PlanetaryPositions 
                   planets={progressed_planets} 
                   title="Progressed Planets"
+                  showRetrograde={true}
                 />
               </div>
             )}

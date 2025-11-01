@@ -54,7 +54,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
       const { data, error } = await supabase
         .from('conversations')
         .select('id, title, created_at')
-        .eq('user_id', user.id as any)
+        .eq('user_id', user.id)
         .order('created_at', { ascending: false })
         .limit(20); // Show last 20 conversations
 
@@ -108,7 +108,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
       const { data: conversations, error: convError } = await supabase
         .from('conversations')
         .select('id, title, created_at')
-        .eq('user_id', user?.id as any)
+        .eq('user_id', user?.id)
         .order('created_at', { ascending: false });
 
       if (convError) {
@@ -122,7 +122,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
       }
 
       // Get conversation IDs
-      const conversationIds = (conversations as any[]).map((conv: any) => conv.id);
+      const conversationIds = conversations.map(conv => conv.id);
       
       // Search messages in those conversations
       const { data: messages, error: msgError } = await supabase
@@ -142,7 +142,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
       const groupedResults = new Map<string, ConversationGroup>();
 
       // Create a map of conversations for quick lookup
-      const conversationMap = new Map((conversations as any[]).map((conv: any) => [conv.id, conv]));
+      const conversationMap = new Map(conversations.map(conv => [conv.id, conv]));
 
       messages?.forEach((msg: any) => {
         const chatId = msg.chat_id;
@@ -152,9 +152,9 @@ export const SearchModal: React.FC<SearchModalProps> = ({
           if (!groupedResults.has(chatId)) {
             groupedResults.set(chatId, {
               chat_id: chatId,
-              title: (conversation as any).title,
+              title: conversation.title,
               messages: [],
-              latest_message: (conversation as any).created_at
+              latest_message: conversation.created_at
             });
           }
 

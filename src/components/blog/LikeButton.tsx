@@ -35,8 +35,8 @@ export const LikeButton: React.FC<LikeButtonProps> = ({ postId, initialLikes }) 
     try {
       await supabase
         .from('blog_posts')
-        .update({ like_count: likes + 1 } as any)
-        .eq('id', postId as any);
+        .update({ like_count: likes + 1 })
+        .eq('id', postId);
     } catch (error) {
       console.error('Error updating like count:', error);
       // Rollback optimistic update

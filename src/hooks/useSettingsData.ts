@@ -76,15 +76,15 @@ export function useSettingsData() {
         supabase
           .from('profiles')
           .select('*')
-          .eq('id', user.id as any)
+          .eq('id', user.id)
           .single(),
         
         // Fetch payment method
         supabase
           .from('payment_method')
           .select('*')
-          .eq('user_id', user.id as any)
-          .eq('active', true as any)
+          .eq('user_id', user.id)
+          .eq('active', true)
           .maybeSingle(),
         
         // Skip user credits as it's no longer used
@@ -92,12 +92,12 @@ export function useSettingsData() {
       ])
 
       setData({
-        profile: (profileResult.data as any),
+        profile: profileResult.data,
         paymentMethod: paymentResult.data ? {
-          ...(paymentResult.data as any),
-          id: String((paymentResult.data as any).id), // Convert number to string
-          invoice_history: Array.isArray((paymentResult.data as any).invoice_history) ? 
-            (paymentResult.data as any).invoice_history as PaymentMethod['invoice_history'] : 
+          ...paymentResult.data,
+          id: String(paymentResult.data.id), // Convert number to string
+          invoice_history: Array.isArray(paymentResult.data.invoice_history) ? 
+            paymentResult.data.invoice_history as PaymentMethod['invoice_history'] : 
             []
         } : null,
         credits: null, // No longer using user credits

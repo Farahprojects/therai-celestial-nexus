@@ -74,14 +74,14 @@ export const BillingPanel: React.FC = () => {
       const { data: creditsData, error: creditsError } = await supabase
         .from('user_credits')
         .select('credits, auto_topup_enabled, auto_topup_threshold, auto_topup_amount')
-        .eq('user_id', user.id as any)
+        .eq('user_id', user.id)
         .maybeSingle();
 
       if (creditsError && creditsError.code !== 'PGRST116') {
         throw creditsError;
       }
 
-      setCreditData((creditsData as any) || {
+      setCreditData(creditsData || {
         credits: 0,
         auto_topup_enabled: false,
         auto_topup_threshold: 7,
@@ -92,46 +92,46 @@ export const BillingPanel: React.FC = () => {
       const { data: transactionsData, error: transactionsError } = await supabase
         .from('credit_transactions')
         .select('*')
-        .eq('user_id', user.id as any)
+        .eq('user_id', user.id)
         .order('created_at', { ascending: false })
         .limit(20);
 
       if (!transactionsError && transactionsData) {
-        setTransactions(transactionsData as any);
+        setTransactions(transactionsData);
         }
       } else {
         // Fetch subscription data
         const { data: subData, error: subError } = await supabase
           .from('profiles')
           .select('subscription_active, subscription_status, subscription_plan, subscription_next_charge')
-          .eq('id', user.id as any)
+          .eq('id', user.id)
           .single();
 
         if (subError) {
           throw subError;
         }
 
-        setSubscriptionData((subData || {
+        setSubscriptionData(subData || {
           subscription_active: false,
           subscription_status: null,
           subscription_plan: null,
           subscription_next_charge: null,
-        }) as SubscriptionData);
+        });
 
         // Fetch all subscription plans
         const { data: plansData, error: plansError } = await supabase
           .from('price_list')
           .select('id, name, description, unit_price_usd, stripe_price_id')
-          .eq('endpoint', 'subscription' as any)
+          .eq('endpoint', 'subscription')
           .order('unit_price_usd', { ascending: true });
 
         if (!plansError && plansData) {
-          setAllPlans(plansData as PlanData[]);
+          setAllPlans(plansData);
           
           // Find current plan details
-          if ((subData as any)?.subscription_plan) {
-            const currentPlan = (plansData as any[]).find((p: any) => p.id === (subData as any).subscription_plan);
-            setCurrentPlanData((currentPlan as any) || null);
+          if (subData?.subscription_plan) {
+            const currentPlan = plansData.find(p => p.id === subData.subscription_plan);
+            setCurrentPlanData(currentPlan || null);
           }
         }
       }
@@ -163,7 +163,7 @@ export const BillingPanel: React.FC = () => {
           console.log('Credit balance updated:', payload);
           // Update credit data with new balance
           if (payload.new && 'credits' in payload.new) {
-            setCreditData((prev) => prev ? { ...prev, credits: (payload.new as any).credits } : null);
+            setCreditData((prev) => prev ? { ...prev, credits: payload.new.credits } : null);
           }
         }
       )

@@ -28,7 +28,7 @@ export function useSystemPrompts() {
       const { data, error } = await supabase
         .from('system_prompts')
         .select('id, category, subcategory, prompt_text, display_order')
-        .eq('is_active', true as any)
+        .eq('is_active', true)
         .order('category')
         .order('display_order');
 
@@ -36,11 +36,11 @@ export function useSystemPrompts() {
 
       // Group prompts by category
       const grouped: GroupedPrompts = {};
-      (data as any)?.forEach((prompt: any) => {
+      data?.forEach((prompt) => {
         if (!grouped[prompt.category]) {
           grouped[prompt.category] = [];
         }
-        grouped[prompt.category].push(prompt as SystemPrompt);
+        grouped[prompt.category].push(prompt);
       });
 
       setPrompts(grouped);

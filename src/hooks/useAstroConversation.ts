@@ -11,7 +11,7 @@ export const useAstroConversation = () => {
 
   const createConversation = useCallback(
     async (
-      mode: 'astro' | 'chat' | 'insight',
+      mode: 'astro' | 'insight' | 'swiss',
       title: string,
       reportData: {
         reportType?: string;
@@ -49,7 +49,7 @@ export const useAstroConversation = () => {
         const { count, error: countError } = await supabase
           .from('messages')
           .select('id', { count: 'exact', head: true })
-          .eq('chat_id', chatId as any);
+          .eq('chat_id', chatId);
 
         if (countError || (count ?? 0) > 0) return;
 
@@ -57,8 +57,8 @@ export const useAstroConversation = () => {
         await supabase
           .from('conversations')
           .delete()
-          .eq('id', chatId as any)
-          .eq('user_id', user.id as any);
+          .eq('id', chatId)
+          .eq('user_id', user.id);
 
         const { removeThread, clearChat } = useChatStore.getState();
         removeThread(chatId);

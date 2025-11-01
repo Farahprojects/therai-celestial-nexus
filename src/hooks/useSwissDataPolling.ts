@@ -32,7 +32,7 @@ export const useSwissDataPolling = (chatId: string | null, enabled: boolean = tr
         const { data, error: fetchError } = await supabase
           .from('translator_logs')
           .select('swiss_data, request_type, swiss_error, error_message, created_at')
-          .eq('chat_id', chatId as any)
+          .eq('chat_id', chatId)
           .order('created_at', { ascending: false })
           .limit(1)
           .maybeSingle();
@@ -47,16 +47,16 @@ export const useSwissDataPolling = (chatId: string | null, enabled: boolean = tr
         if (data) {
           
           // Check if there was an error
-          if ((data as any).swiss_error) {
-            setError((data as any).error_message || 'Astro data generation failed');
+          if (data.swiss_error) {
+            setError(data.error_message || 'Astro data generation failed');
             setIsLoading(false);
             if (pollInterval) clearInterval(pollInterval);
             return;
           }
 
           // Success - data is ready
-          setSwissData((data as any).swiss_data);
-          setRequestType((data as any).request_type || null);
+          setSwissData(data.swiss_data);
+          setRequestType(data.request_type || null);
           setIsLoading(false);
           if (pollInterval) clearInterval(pollInterval);
         } else {

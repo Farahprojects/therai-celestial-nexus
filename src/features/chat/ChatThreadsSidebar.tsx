@@ -74,11 +74,11 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
     if (!user?.id) return;
     
     try {
-        const { data, error } = await supabase
-          .from('user_credits')
-          .select('credits')
-          .eq('user_id', user.id as any)
-          .maybeSingle();
+      const { data, error } = await supabase
+        .from('user_credits')
+        .select('credits')
+        .eq('user_id', user.id)
+        .maybeSingle();
 
       if (error && error.code !== 'PGRST116') {
         console.error('[ChatThreadsSidebar] Failed to refresh credits:', error);
@@ -147,7 +147,7 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
         const { data, error } = await supabase
           .from('user_credits')
           .select('credits')
-          .eq('user_id', user.id as any)
+          .eq('user_id', user.id)
           .maybeSingle();
 
         if (error && error.code !== 'PGRST116') {
@@ -228,8 +228,8 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
                 const { data: participant } = await supabase
                   .from('chat_folder_participants')
                   .select('folder_id')
-                  .eq('folder_id', folderId as any)
-                  .eq('user_id', user.id as any)
+                  .eq('folder_id', folderId)
+                  .eq('user_id', user.id)
                   .maybeSingle();
                 canView = !!participant;
               }
@@ -590,8 +590,8 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
       const { data: existingChat } = await supabase
         .from('conversations')
         .select('id')
-        .eq('id', reportId as any) // Use reportId as chat_id
-        .eq('user_id', user.id as any)
+        .eq('id', reportId) // Use reportId as chat_id
+        .eq('user_id', user.id)
         .maybeSingle();
 
       if (existingChat) {
@@ -613,7 +613,7 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
             },
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
-          } as any);
+          });
 
         if (error) {
           console.error('[ChatThreadsSidebar] Failed to create insight chat thread:', error);
@@ -642,16 +642,16 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
         const { data: conversation } = await supabase
           .from('conversations')
           .select('meta')
-          .eq('id', conversationToDelete as any)
+          .eq('id', conversationToDelete)
           .maybeSingle();
 
-        const isInsightChat = ((conversation as any)?.meta as any)?.type === 'insight_chat';
+        const isInsightChat = (conversation?.meta as any)?.type === 'insight_chat';
 
         // Delete from conversations table (cascades to messages)
         const { error: convDeleteError } = await supabase
           .from('conversations')
           .delete()
-          .eq('id', conversationToDelete as any);
+          .eq('id', conversationToDelete);
         
         if (convDeleteError) {
           console.error('[ChatThreadsSidebar] Failed to delete chat thread:', convDeleteError);
@@ -661,11 +661,11 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
         // If it's an insight chat, also delete from insights, report_logs, translator_logs
         if (isInsightChat) {
           // Delete from insights table
-          await supabase.from('insights').delete().eq('id', conversationToDelete as any);
+          await supabase.from('insights').delete().eq('id', conversationToDelete);
           // Delete from report_logs - uses chat_id not user_id
-          await supabase.from('report_logs').delete().eq('chat_id', conversationToDelete as any);
+          await supabase.from('report_logs').delete().eq('chat_id', conversationToDelete);
           // Delete from translator_logs - uses chat_id not user_id  
-          await supabase.from('translator_logs').delete().eq('chat_id', conversationToDelete as any);
+          await supabase.from('translator_logs').delete().eq('chat_id', conversationToDelete);
         }
 
         // Update UI immediately - remove from local threads state

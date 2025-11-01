@@ -172,14 +172,14 @@ export const FolderView: React.FC<FolderViewProps> = ({ folderId, onChatClick })
       await supabase
         .from('messages')
         .delete()
-        .eq('chat_id', editingConversationId as any);
+        .eq('chat_id', editingConversationId);
 
       // Delete conversation
       await supabase
         .from('conversations')
         .delete()
-        .eq('id', editingConversationId as any)
-        .eq('user_id', user.id as any);
+        .eq('id', editingConversationId)
+        .eq('user_id', user.id);
 
       // Update local state
       removeThread(editingConversationId);
@@ -420,12 +420,11 @@ export const FolderView: React.FC<FolderViewProps> = ({ folderId, onChatClick })
       {/* Folder Modal for Create New Folder */}
       {showFolderModal && (
         <FolderModal
-          isOpen={showFolderModal}
           onClose={() => {
             setShowFolderModal(false);
             setConversationToMoveToNewFolder(null);
           }}
-          onCreateFolder={handleCreateFolder}
+          onSubmit={handleCreateFolder}
         />
       )}
     </div>

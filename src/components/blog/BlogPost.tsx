@@ -43,7 +43,8 @@ export const BlogPost: React.FC<BlogPostProps> = ({ post }) => {
         SANITIZE_DOM: true,
         SANITIZE_NAMED_PROPS: true,
         RETURN_DOM: false,
-        RETURN_DOM_FRAGMENT: false
+        RETURN_DOM_FRAGMENT: false,
+        RETURN_DOM_IMPORT: false
       });
     } catch (error) {
       console.error('Content sanitization failed:', error);

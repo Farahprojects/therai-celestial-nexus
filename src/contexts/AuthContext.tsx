@@ -213,8 +213,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             const { data: existingParticipant } = await supabase
               .from('conversations_participants')
               .select('conversation_id')
-              .eq('conversation_id', pendingChatId as any)
-              .eq('user_id', supaSession.user.id as any)
+              .eq('conversation_id', pendingChatId)
+              .eq('user_id', supaSession.user.id)
               .maybeSingle();
 
             if (!existingParticipant) {
@@ -222,8 +222,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               const { data: source } = await supabase
                 .from('conversations')
                 .select('title, is_public')
-                .eq('id', pendingChatId as any)
-                .eq('is_public', true as any)
+                .eq('id', pendingChatId)
+                .eq('is_public', true)
                 .maybeSingle();
 
               if (!source) {
@@ -238,7 +238,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                   conversation_id: pendingChatId,
                   user_id: supaSession.user.id,
                   role: 'member', // Default to member role
-                } as any);
+                });
 
               if (insertError) {
                 console.error('[AuthContext] Error adding user as participant:', insertError);
@@ -348,7 +348,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const { data, error } = await supabase
         .from('profiles')
         .select('id')
-        .eq('id', userId as any)
+        .eq('id', userId)
         .single();
       
       if (error || !data) {

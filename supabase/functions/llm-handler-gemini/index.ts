@@ -1,5 +1,5 @@
 // Production-ready llm-handler-gemini with Gemini Context Caching
-// - Caches system messages (7K tokens) for 1 hour
+// - Caches system messages (7K tokens) for 1 hour → 90% cost reduction
 // - Generates conversation summaries every 10-15 turns
 // - Fetches only recent 6-8 messages for context
 // - Tracks turn count for summary generation.
