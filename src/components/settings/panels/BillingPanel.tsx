@@ -74,7 +74,7 @@ export const BillingPanel: React.FC = () => {
       const { data: creditsData, error: creditsError } = await supabase
         .from('user_credits')
         .select('credits, auto_topup_enabled, auto_topup_threshold, auto_topup_amount')
-        .eq('user_id', user.id)
+        .eq('user_id', user.id as any)
         .maybeSingle();
 
       if (creditsError && creditsError.code !== 'PGRST116') {
@@ -92,7 +92,7 @@ export const BillingPanel: React.FC = () => {
       const { data: transactionsData, error: transactionsError } = await supabase
         .from('credit_transactions')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('user_id', user.id as any)
         .order('created_at', { ascending: false })
         .limit(20);
 
@@ -104,29 +104,29 @@ export const BillingPanel: React.FC = () => {
         const { data: subData, error: subError } = await supabase
           .from('profiles')
           .select('subscription_active, subscription_status, subscription_plan, subscription_next_charge')
-          .eq('id', user.id)
+          .eq('id', user.id as any)
           .single();
 
         if (subError) {
           throw subError;
         }
 
-        setSubscriptionData(subData || {
+        setSubscriptionData((subData || {
           subscription_active: false,
           subscription_status: null,
           subscription_plan: null,
           subscription_next_charge: null,
-        });
+        }) as SubscriptionData);
 
         // Fetch all subscription plans
         const { data: plansData, error: plansError } = await supabase
           .from('price_list')
           .select('id, name, description, unit_price_usd, stripe_price_id')
-          .eq('endpoint', 'subscription')
+          .eq('endpoint', 'subscription' as any)
           .order('unit_price_usd', { ascending: true });
 
         if (!plansError && plansData) {
-          setAllPlans(plansData);
+          setAllPlans(plansData as PlanData[]);
           
           // Find current plan details
           if (subData?.subscription_plan) {

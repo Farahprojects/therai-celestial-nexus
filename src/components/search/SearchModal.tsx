@@ -54,7 +54,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
       const { data, error } = await supabase
         .from('conversations')
         .select('id, title, created_at')
-        .eq('user_id', user.id)
+        .eq('user_id', user.id as any)
         .order('created_at', { ascending: false })
         .limit(20); // Show last 20 conversations
 
@@ -108,7 +108,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
       const { data: conversations, error: convError } = await supabase
         .from('conversations')
         .select('id, title, created_at')
-        .eq('user_id', user?.id)
+        .eq('user_id', user?.id as any)
         .order('created_at', { ascending: false });
 
       if (convError) {
