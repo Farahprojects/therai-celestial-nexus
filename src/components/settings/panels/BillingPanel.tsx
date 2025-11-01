@@ -40,6 +40,14 @@ interface SubscriptionData {
   subscription_next_charge: string | null;
 }
 
+interface PlanData {
+  id: string;
+  name: string;
+  description: string;
+  unit_price_usd: number;
+  stripe_price_id: string;
+}
+
 export const BillingPanel: React.FC = () => {
   const { user } = useAuth();
   const { closeSettings } = useSettingsModal();
@@ -47,11 +55,14 @@ export const BillingPanel: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [creditData, setCreditData] = useState<CreditData | null>(null);
   const [subscriptionData, setSubscriptionData] = useState<SubscriptionData | null>(null);
+  const [allPlans, setAllPlans] = useState<PlanData[]>([]);
+  const [currentPlanData, setCurrentPlanData] = useState<PlanData | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [showPurchaseModal, setShowPurchaseModal] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [showTransactions, setShowTransactions] = useState(false);
   const [showPricing, setShowPricing] = useState(false);
+  const [upgradingToPlan, setUpgradingToPlan] = useState<string | null>(null);
 
   const fetchBillingData = async () => {
     if (!user) return;
@@ -106,6 +117,23 @@ export const BillingPanel: React.FC = () => {
           subscription_plan: null,
           subscription_next_charge: null,
         });
+
+        // Fetch all subscription plans
+        const { data: plansData, error: plansError } = await supabase
+          .from('price_list')
+          .select('id, name, description, unit_price_usd, stripe_price_id')
+          .eq('endpoint', 'subscription')
+          .order('unit_price_usd', { ascending: true });
+
+        if (!plansError && plansData) {
+          setAllPlans(plansData);
+          
+          // Find current plan details
+          if (subData?.subscription_plan) {
+            const currentPlan = plansData.find(p => p.id === subData.subscription_plan);
+            setCurrentPlanData(currentPlan || null);
+          }
+        }
       }
     } catch (error) {
       console.error('Error fetching billing data:', error);
@@ -194,6 +222,37 @@ export const BillingPanel: React.FC = () => {
     }
   };
 
+  const handleUpgrade = async (newPlanId: string, newStripePriceId: string) => {
+    setUpgradingToPlan(newPlanId);
+    try {
+      const { data, error } = await supabase.functions.invoke('update-subscription', {
+        body: { newPriceId: newStripePriceId }
+      });
+
+      if (error) {
+        toast.error('Failed to upgrade subscription');
+        return;
+      }
+
+      toast.success('Subscription upgraded successfully!');
+      // Refresh billing data
+      await fetchBillingData();
+    } catch (err) {
+      console.error('Upgrade error:', err);
+      toast.error('Failed to upgrade subscription');
+    } finally {
+      setUpgradingToPlan(null);
+    }
+  };
+
+  // Get upgrade options (plans more expensive than current)
+  const getUpgradeOptions = () => {
+    if (!currentPlanData || allPlans.length === 0) return [];
+    return allPlans.filter(plan => 
+      plan.unit_price_usd > currentPlanData.unit_price_usd
+    );
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -206,65 +265,121 @@ export const BillingPanel: React.FC = () => {
   if (billingMode === 'SUBSCRIPTION') {
     const isActive = subscriptionData?.subscription_active && 
                      ['active', 'trialing'].includes(subscriptionData?.subscription_status || '');
+    const upgradeOptions = getUpgradeOptions();
     
     return (
       <div className="space-y-8">
-        {/* Subscription Status */}
-        <div className="text-center py-8 border-b">
-          <h3 className="text-sm font-normal text-gray-600 mb-2">Subscription Status</h3>
-          <div className="text-3xl font-light text-gray-900 mb-2">
-            {isActive ? 'Active' : 'Inactive'}
-          </div>
-          {subscriptionData?.subscription_plan && (
-            <div className="text-sm text-gray-600 mb-4">
-              Plan: {subscriptionData.subscription_plan}
-            </div>
-          )}
-          {subscriptionData?.subscription_next_charge && isActive && (
-            <div className="text-sm text-gray-500">
-              Next billing: {formatDate(subscriptionData.subscription_next_charge)}
-            </div>
-          )}
-          
-          <div className="mt-6 space-y-3">
-            {isActive ? (
-              <>
-                <Button
-                  onClick={handleManageSubscription}
-                  className="bg-gray-900 hover:bg-gray-800 text-white rounded-full font-light px-8"
-                >
-                  <ExternalLink className="w-4 h-4 mr-2" />
-                  Manage Subscription
-                </Button>
-                <div>
-                  <Button
-                    onClick={() => setShowCancelModal(true)}
-                    variant="ghost"
-                    className="text-gray-600 hover:text-gray-900 text-sm font-light"
-                  >
-                    Cancel Subscription
-                  </Button>
+        {/* Current Plan */}
+        <div className="border-b pb-6">
+          <h3 className="text-sm font-normal text-gray-600 mb-4">Current Plan</h3>
+          {isActive && currentPlanData ? (
+            <div className="bg-gray-50 rounded-xl p-6 space-y-3">
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <div className="text-xl font-light text-gray-900 mb-1">
+                    {currentPlanData.name}
+                  </div>
+                  <div className="text-sm text-gray-600 font-light">
+                    {currentPlanData.description}
+                  </div>
                 </div>
-              </>
-            ) : (
+                <div className="text-right">
+                  <div className="text-2xl font-light text-gray-900">
+                    ${currentPlanData.unit_price_usd}
+                  </div>
+                  <div className="text-xs text-gray-500">per month</div>
+                </div>
+              </div>
+              {subscriptionData?.subscription_next_charge && (
+                <div className="text-xs text-gray-500 pt-2 border-t border-gray-200">
+                  Next billing: {formatDate(subscriptionData.subscription_next_charge)}
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <div className="text-gray-600 font-light mb-4">No active subscription</div>
               <Button
                 onClick={() => window.location.href = '/subscription-paywall'}
                 className="bg-gray-900 hover:bg-gray-800 text-white rounded-full font-light px-8"
               >
                 View Plans
               </Button>
-            )}
-          </div>
+            </div>
+          )}
         </div>
 
-        {/* Subscription Info */}
-        <div className="text-center py-4">
-          <p className="text-sm text-gray-600 font-light leading-relaxed">
-            {isActive 
-              ? 'Your subscription gives you unlimited access to all features.'
-              : 'Subscribe to get unlimited access to charts, reports, and conversations.'}
-          </p>
-        </div>
+        {/* Upgrade Options */}
+        {isActive && upgradeOptions.length > 0 && (
+          <div className="border-b pb-6">
+            <h3 className="text-sm font-normal text-gray-600 mb-4">Upgrade Your Plan</h3>
+            <div className="space-y-3">
+              {upgradeOptions.map((plan) => (
+                <div
+                  key={plan.id}
+                  className="border border-gray-200 rounded-xl p-4 hover:border-gray-300 transition-colors"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <div className="text-base font-medium text-gray-900 mb-1">
+                        {plan.name}
+                      </div>
+                      <div className="text-sm text-gray-600 font-light">
+                        {plan.description}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <div className="text-right">
+                        <div className="text-xl font-light text-gray-900">
+                          ${plan.unit_price_usd}
+                        </div>
+                        <div className="text-xs text-gray-500">per month</div>
+                      </div>
+                      <Button
+                        onClick={() => handleUpgrade(plan.id, plan.stripe_price_id)}
+                        disabled={upgradingToPlan === plan.id}
+                        className="bg-gray-900 hover:bg-gray-800 text-white rounded-full font-light px-6"
+                      >
+                        {upgradingToPlan === plan.id ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Upgrading...
+                          </>
+                        ) : (
+                          'Upgrade'
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <p className="text-xs text-gray-500 font-light mt-4">
+              Upgrades are prorated. You'll be charged the difference for the remainder of your billing period.
+            </p>
+          </div>
+        )}
+
+        {/* Management Options */}
+        {isActive && (
+          <div className="flex items-center justify-between">
+            <Button
+              onClick={handleManageSubscription}
+              variant="ghost"
+              className="text-gray-600 hover:text-gray-900 font-light"
+            >
+              <ExternalLink className="w-4 h-4 mr-2" />
+              Manage Payment Methods
+            </Button>
+            <Button
+              onClick={() => setShowCancelModal(true)}
+              variant="ghost"
+              className="text-gray-600 hover:text-gray-900 font-light"
+            >
+              Cancel Subscription
+            </Button>
+          </div>
+        )}
 
         {/* Cancel Modal */}
         <CancelSubscriptionModal
