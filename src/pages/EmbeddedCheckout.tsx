@@ -20,22 +20,12 @@ const EmbeddedCheckoutPage: React.FC = () => {
       const planId = searchParams.get('planId');
       if (!planId || !user?.id) return;
       
-      // Look up the Stripe price ID from the database
-      const { data: priceData, error: priceError } = await supabase
-        .from('price_list')
-        .select('stripe_price_id')
-        .eq('id', planId)
-        .single();
-      
-      if (priceError || !priceData?.stripe_price_id) {
-        console.error('Failed to fetch Stripe price ID:', priceError);
-        return;
-      }
-      
+      // planId is the internal price_list.id (e.g., "10_monthly")
+      // Edge function will look it up and get the stripe_price_id
       const returnUrl = `${window.location.origin}/success`;
       const { data, error } = await supabase.functions.invoke('create-subscription-checkout', {
         body: {
-          priceId: priceData.stripe_price_id,  // Use actual Stripe price ID
+          priceId: planId,  // Internal ID - edge function will look up stripe_price_id
           embedded: true,
           returnUrl
         }
