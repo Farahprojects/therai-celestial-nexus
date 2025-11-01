@@ -202,32 +202,37 @@ if (chattype === "voice" && authenticatedUserId && durationSeconds > 0) {
     // Note: transcription already happened, so we still track it but warn user
   }
 
-  // Fire-and-forget: Call increment-feature-usage edge function
-  console.log(`[google-whisper] 🚀 Fire-and-forget: Calling increment-feature-usage with ${durationSeconds}s for user ${authenticatedUserId}`);
-  fetch(`${SUPABASE_URL}/functions/v1/increment-feature-usage`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`
-    },
-    body: JSON.stringify({
-      user_id: authenticatedUserId,
-      feature_type: 'voice_seconds',
-      amount: durationSeconds,
-      source: 'google-whisper'
-    })
-  })
-    .then(async (response) => {
-      const result = await response.json().catch(() => ({}));
-      if (response.ok && result.success) {
-        console.log(`[google-whisper] ✅ increment-feature-usage succeeded: ${durationSeconds}s tracked`);
-      } else {
-        console.error(`[google-whisper] ❌ increment-feature-usage failed:`, result);
-      }
-    })
-    .catch(err => {
-      console.error(`[google-whisper] ❌ Failed to call increment-feature-usage:`, err);
+  // Call increment-feature-usage edge function (await response for debugging)
+  console.log(`[google-whisper] 🚀 Calling increment-feature-usage with ${durationSeconds}s for user ${authenticatedUserId}`);
+  try {
+    const response = await fetch(`${SUPABASE_URL}/functions/v1/increment-feature-usage`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`
+      },
+      body: JSON.stringify({
+        user_id: authenticatedUserId,
+        feature_type: 'voice_seconds',
+        amount: durationSeconds,
+        source: 'google-whisper'
+      })
     });
+
+    const result = await response.json().catch(() => ({ error: 'Failed to parse response' }));
+    
+    if (response.ok && result.success) {
+      console.log(`[google-whisper] ✅ increment-feature-usage succeeded:`, result);
+    } else {
+      console.error(`[google-whisper] ❌ increment-feature-usage failed:`, {
+        status: response.status,
+        statusText: response.statusText,
+        result
+      });
+    }
+  } catch (err) {
+    console.error(`[google-whisper] ❌ Exception calling increment-feature-usage:`, err);
+  }
 }
 
 // Voice flow: optionally save user message, call LLM, and broadcast
