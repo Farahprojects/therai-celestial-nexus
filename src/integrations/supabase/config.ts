@@ -20,3 +20,8 @@ export const debugSupabaseConfig = () => {
     keyLength: SUPABASE_ANON_KEY?.length || 0,
   });
 };
+
+// Billing mode configuration
+// Toggle between 'CREDIT' (pay-per-use) and 'SUBSCRIPTION' (recurring billing)
+// Change this value to switch the entire app's billing behavior
+export const BILLING_MODE: 'CREDIT' | 'SUBSCRIPTION' = 'SUBSCRIPTION';

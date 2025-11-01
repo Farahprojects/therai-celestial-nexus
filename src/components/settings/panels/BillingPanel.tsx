@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Loader2, Plus, Clock } from 'lucide-react';
+import { Loader2, Plus, Clock, ExternalLink } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { CreditPurchaseModal } from '@/components/billing/CreditPurchaseModal';
+import { CancelSubscriptionModal } from '@/components/billing/CancelSubscriptionModal';
 import { AutoTopUpSettings } from '@/components/billing/AutoTopUpSettings';
 import { useSettingsModal } from '@/contexts/SettingsModalContext';
+import { getBillingMode } from '@/utils/billingMode';
 import {
   Collapsible,
   CollapsibleContent,
@@ -31,13 +33,23 @@ interface Transaction {
   created_at: string;
 }
 
+interface SubscriptionData {
+  subscription_active: boolean;
+  subscription_status: string | null;
+  subscription_plan: string | null;
+  subscription_next_charge: string | null;
+}
+
 export const BillingPanel: React.FC = () => {
   const { user } = useAuth();
   const { closeSettings } = useSettingsModal();
+  const billingMode = getBillingMode();
   const [loading, setLoading] = useState(true);
   const [creditData, setCreditData] = useState<CreditData | null>(null);
+  const [subscriptionData, setSubscriptionData] = useState<SubscriptionData | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [showPurchaseModal, setShowPurchaseModal] = useState(false);
+  const [showCancelModal, setShowCancelModal] = useState(false);
   const [showTransactions, setShowTransactions] = useState(false);
   const [showPricing, setShowPricing] = useState(false);
 
@@ -46,34 +58,54 @@ export const BillingPanel: React.FC = () => {
 
     setLoading(true);
     try {
-      // Fetch credit balance and auto top-up settings
-      const { data: creditsData, error: creditsError } = await supabase
-        .from('user_credits')
-        .select('credits, auto_topup_enabled, auto_topup_threshold, auto_topup_amount')
-        .eq('user_id', user.id)
-        .maybeSingle();
+      if (billingMode === 'CREDIT') {
+        // Fetch credit balance and auto top-up settings
+        const { data: creditsData, error: creditsError } = await supabase
+          .from('user_credits')
+          .select('credits, auto_topup_enabled, auto_topup_threshold, auto_topup_amount')
+          .eq('user_id', user.id)
+          .maybeSingle();
 
-      if (creditsError && creditsError.code !== 'PGRST116') {
-        throw creditsError;
-      }
+        if (creditsError && creditsError.code !== 'PGRST116') {
+          throw creditsError;
+        }
 
-      setCreditData(creditsData || {
-        credits: 0,
-        auto_topup_enabled: false,
-        auto_topup_threshold: 7,
-        auto_topup_amount: 34,
-      });
+        setCreditData(creditsData || {
+          credits: 0,
+          auto_topup_enabled: false,
+          auto_topup_threshold: 7,
+          auto_topup_amount: 34,
+        });
 
-      // Fetch transaction history
-      const { data: transactionsData, error: transactionsError } = await supabase
-        .from('credit_transactions')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(20);
+        // Fetch transaction history
+        const { data: transactionsData, error: transactionsError } = await supabase
+          .from('credit_transactions')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(20);
 
-      if (!transactionsError && transactionsData) {
-        setTransactions(transactionsData);
+        if (!transactionsError && transactionsData) {
+          setTransactions(transactionsData);
+        }
+      } else {
+        // Fetch subscription data
+        const { data: subData, error: subError } = await supabase
+          .from('profiles')
+          .select('subscription_active, subscription_status, subscription_plan, subscription_next_charge')
+          .eq('id', user.id)
+          .single();
+
+        if (subError) {
+          throw subError;
+        }
+
+        setSubscriptionData(subData || {
+          subscription_active: false,
+          subscription_status: null,
+          subscription_plan: null,
+          subscription_next_charge: null,
+        });
       }
     } catch (error) {
       console.error('Error fetching billing data:', error);
@@ -86,8 +118,8 @@ export const BillingPanel: React.FC = () => {
   useEffect(() => {
     fetchBillingData();
 
-    // Set up real-time subscription for credit balance updates
-    if (!user) return;
+    // Set up real-time subscription for credit balance updates (credit mode only)
+    if (!user || billingMode !== 'CREDIT') return;
 
     const channel = supabase
       .channel('user_credits_realtime')
@@ -112,7 +144,7 @@ export const BillingPanel: React.FC = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user]);
+  }, [user, billingMode]);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -144,6 +176,24 @@ export const BillingPanel: React.FC = () => {
     return ['purchase', 'auto_topup', 'refund'].includes(transaction.type) ? '+' : '-';
   };
 
+  const handleManageSubscription = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke('customer-portal');
+      
+      if (error) {
+        toast.error('Failed to open customer portal');
+        return;
+      }
+
+      if (data?.url) {
+        window.location.href = data.url;
+      }
+    } catch (err) {
+      console.error('Customer portal error:', err);
+      toast.error('Failed to open customer portal');
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -152,6 +202,85 @@ export const BillingPanel: React.FC = () => {
     );
   }
 
+  // Render subscription management UI
+  if (billingMode === 'SUBSCRIPTION') {
+    const isActive = subscriptionData?.subscription_active && 
+                     ['active', 'trialing'].includes(subscriptionData?.subscription_status || '');
+    
+    return (
+      <div className="space-y-8">
+        {/* Subscription Status */}
+        <div className="text-center py-8 border-b">
+          <h3 className="text-sm font-normal text-gray-600 mb-2">Subscription Status</h3>
+          <div className="text-3xl font-light text-gray-900 mb-2">
+            {isActive ? 'Active' : 'Inactive'}
+          </div>
+          {subscriptionData?.subscription_plan && (
+            <div className="text-sm text-gray-600 mb-4">
+              Plan: {subscriptionData.subscription_plan}
+            </div>
+          )}
+          {subscriptionData?.subscription_next_charge && isActive && (
+            <div className="text-sm text-gray-500">
+              Next billing: {formatDate(subscriptionData.subscription_next_charge)}
+            </div>
+          )}
+          
+          <div className="mt-6 space-y-3">
+            {isActive ? (
+              <>
+                <Button
+                  onClick={handleManageSubscription}
+                  className="bg-gray-900 hover:bg-gray-800 text-white rounded-full font-light px-8"
+                >
+                  <ExternalLink className="w-4 h-4 mr-2" />
+                  Manage Subscription
+                </Button>
+                <div>
+                  <Button
+                    onClick={() => setShowCancelModal(true)}
+                    variant="ghost"
+                    className="text-gray-600 hover:text-gray-900 text-sm font-light"
+                  >
+                    Cancel Subscription
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <Button
+                onClick={() => window.location.href = '/subscription-paywall'}
+                className="bg-gray-900 hover:bg-gray-800 text-white rounded-full font-light px-8"
+              >
+                View Plans
+              </Button>
+            )}
+          </div>
+        </div>
+
+        {/* Subscription Info */}
+        <div className="text-center py-4">
+          <p className="text-sm text-gray-600 font-light leading-relaxed">
+            {isActive 
+              ? 'Your subscription gives you unlimited access to all features.'
+              : 'Subscribe to get unlimited access to charts, reports, and conversations.'}
+          </p>
+        </div>
+
+        {/* Cancel Modal */}
+        <CancelSubscriptionModal
+          isOpen={showCancelModal}
+          onClose={() => setShowCancelModal(false)}
+          onSuccess={() => {
+            fetchBillingData();
+            toast.success('Subscription cancelled');
+          }}
+          currentPeriodEnd={subscriptionData?.subscription_next_charge}
+        />
+      </div>
+    );
+  }
+
+  // Render credit-based UI (existing)
   return (
     <div className="space-y-8">
       {/* Credit Balance */}
