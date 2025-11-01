@@ -1,5 +1,6 @@
 // @ts-nocheck - Deno runtime, types checked at deployment
 import { createClient, type SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2?target=deno&deno-std=0.224.0';
+import { checkSubscriptionAccess, checkPremiumAccess } from '../_shared/subscriptionCheck.ts';
 
 type Json = Record<string, unknown> | Array<unknown> | string | number | boolean | null;
 
@@ -81,6 +82,25 @@ async create_conversation({ req, admin, body, userId }: HandlerCtx) {
 const { title, mode, report_data, email, name } = body;
 if (!mode) return errorJson('mode is required for conversation creation');
 
+// 🔒 SECURITY: Verify subscription before creating conversation
+try {
+  const subscriptionCheck = await checkSubscriptionAccess(admin, userId);
+  if (!subscriptionCheck.hasAccess) {
+    return errorJson('Subscription required to create conversations', 403);
+  }
+
+  // Voice conversations require premium plan
+  if (mode === 'voice' || mode === 'conversation') {
+    const premiumCheck = await checkPremiumAccess(admin, userId);
+    if (!premiumCheck.hasAccess) {
+      return errorJson('Premium plan required for voice conversations', 403);
+    }
+  }
+} catch (err) {
+  console.error('[conversation-manager] Subscription check failed:', err);
+  return errorJson('Subscription verification failed', 500);
+}
+
 const id = crypto.randomUUID();
 
 const meta: Record<string, unknown> = {};
@@ -155,6 +175,25 @@ if (conversation_id) {
 }
 
 if (!mode) return errorJson('mode is required for conversation creation');
+
+// 🔒 SECURITY: Verify subscription before creating conversation
+try {
+  const subscriptionCheck = await checkSubscriptionAccess(admin, userId);
+  if (!subscriptionCheck.hasAccess) {
+    return errorJson('Subscription required to create conversations', 403);
+  }
+
+  // Voice conversations require premium plan
+  if (mode === 'voice' || mode === 'conversation') {
+    const premiumCheck = await checkPremiumAccess(admin, userId);
+    if (!premiumCheck.hasAccess) {
+      return errorJson('Premium plan required for voice conversations', 403);
+    }
+  }
+} catch (err) {
+  console.error('[conversation-manager] Subscription check failed:', err);
+  return errorJson('Subscription verification failed', 500);
+}
 
 const meta: Record<string, unknown> = {};
 if (report_data) {

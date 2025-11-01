@@ -1,43 +1,48 @@
 import React, { useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { X } from 'lucide-react';
 import { CreditPurchaseModal } from '@/components/billing/CreditPurchaseModal';
-import { getBillingMode, getLowBalanceMessage, getUpgradeButtonText } from '@/utils/billingMode';
+import { getBillingMode } from '@/utils/billingMode';
+import { useSubscription } from '@/contexts/SubscriptionContext';
 
-interface SubscriptionToastProps {
+interface UpgradeNotificationProps {
   isVisible: boolean;
   onDismiss: () => void;
   message?: string;
 }
 
-export const SubscriptionToast: React.FC<SubscriptionToastProps> = ({ 
+const isPremiumPlan = (planId: string | null): boolean => {
+  if (!planId) return false;
+  return planId === '25_monthly' || 
+         planId === 'subscription_professional' || 
+         planId.toLowerCase().includes('premium');
+};
+
+export const UpgradeNotification: React.FC<UpgradeNotificationProps> = ({ 
   isVisible,
   onDismiss,
   message
 }) => {
-  const location = useLocation();
   const navigate = useNavigate();
+  const { isSubscriptionActive, subscriptionPlan } = useSubscription();
   const [showCreditModal, setShowCreditModal] = useState(false);
   const billingMode = getBillingMode();
 
-  // Use mode-aware message if not provided
-  const displayMessage = message || getLowBalanceMessage();
-
   const handleUpgrade = () => {
     if (billingMode === 'CREDIT') {
-    setShowCreditModal(true);
+      setShowCreditModal(true);
     } else {
-      // Navigate to subscription plans
       navigate('/subscription-paywall');
       onDismiss();
     }
   };
 
-  // Only show on /therai route - not on public pages
-  const isTheraiRoute = location.pathname.startsWith('/therai');
-  const isCheckoutPage = location.pathname.startsWith('/checkout');
-  
-  if (!isVisible || !isTheraiRoute || isCheckoutPage) {
+  // Determine message based on subscription status
+  const displayMessage = message || (isSubscriptionActive && !isPremiumPlan(subscriptionPlan) 
+    ? 'Upgrade to unlock' 
+    : 'Subscription required');
+
+  if (!isVisible) {
     return null;
   }
 
@@ -50,7 +55,7 @@ export const SubscriptionToast: React.FC<SubscriptionToastProps> = ({
             onClick={handleUpgrade}
             className="px-4 py-1.5 bg-white text-gray-900 text-sm font-light rounded-full hover:bg-gray-100 transition-colors"
           >
-            {getUpgradeButtonText()}
+            Upgrade
           </button>
           <button
             onClick={onDismiss}
@@ -63,14 +68,15 @@ export const SubscriptionToast: React.FC<SubscriptionToastProps> = ({
       </div>
 
       {billingMode === 'CREDIT' && (
-      <CreditPurchaseModal
-        isOpen={showCreditModal}
-        onClose={() => {
-          setShowCreditModal(false);
-          onDismiss();
-        }}
-      />
+        <CreditPurchaseModal
+          isOpen={showCreditModal}
+          onClose={() => {
+            setShowCreditModal(false);
+            onDismiss();
+          }}
+        />
       )}
     </>
   );
 };
+

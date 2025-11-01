@@ -19,6 +19,7 @@ import { useSubscription } from '@/contexts/SubscriptionContext';
 import { getBillingMode } from '@/utils/billingMode';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import { UpgradeNotification } from '@/components/subscription/UpgradeNotification';
 // Using unified message store for all message management
 
 // Stop icon component
@@ -29,6 +30,7 @@ const StopIcon = () => (
 export const ChatInput = () => {
   const [text, setText] = useState('');
   const [isMuted, setIsMuted] = useState(false);
+  const [showUpgradeNotification, setShowUpgradeNotification] = useState(false);
   const { mode } = useMode();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   
@@ -171,6 +173,11 @@ export const ChatInput = () => {
         console.error('[ChatInput] Cannot open conversation - no chat_id available');
         return;
       }
+      // Gate: Check subscription in subscription mode
+      if (billingMode === 'SUBSCRIPTION' && isAuthenticated && !isSubscriptionActive) {
+        setShowUpgradeNotification(true);
+        return;
+      }
       // Opening conversation
       openConversation();
       return;
@@ -183,6 +190,15 @@ export const ChatInput = () => {
     }
   };
 
+  const handleMicClick = () => {
+    // Gate: Check subscription in subscription mode
+    if (billingMode === 'SUBSCRIPTION' && isAuthenticated && !isSubscriptionActive) {
+      setShowUpgradeNotification(true);
+      return;
+    }
+    toggleMicRecording();
+  };
+
   const handleRightButtonClick = () => {
     if (isAssistantTyping) {
       // Stop the typing animation
@@ -191,6 +207,11 @@ export const ChatInput = () => {
       handleSend();
     } else {
       // Open conversation mode when no text is entered
+      // Gate: Check subscription in subscription mode
+      if (billingMode === 'SUBSCRIPTION' && isAuthenticated && !isSubscriptionActive) {
+        setShowUpgradeNotification(true);
+        return;
+      }
       handleSpeakerClick();
     }
   };
@@ -272,7 +293,7 @@ export const ChatInput = () => {
                   ? 'text-gray-300 cursor-not-allowed' 
                   : 'text-gray-500 hover:text-gray-900'
               }`}
-              onClick={toggleMicRecording}
+              onClick={handleMicClick}
               disabled={isMicProcessing || isAssistantGenerating}
               title={isAssistantGenerating ? "Setting up your space..." : getMicButtonTitle()}
             >
@@ -307,6 +328,11 @@ export const ChatInput = () => {
           Therai can make mistakes. Check important info.
         </p>
       </div>
+      <UpgradeNotification
+        isVisible={showUpgradeNotification}
+        onDismiss={() => setShowUpgradeNotification(false)}
+        message="Subscription required"
+      />
     </div>
   );
 };

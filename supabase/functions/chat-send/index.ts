@@ -8,6 +8,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getLLMHandler } from "../_shared/llmConfig.ts";
+import { checkSubscriptionAccess, checkPremiumAccess } from "../_shared/subscriptionCheck.ts";
 
 const corsHeaders = {
 "Access-Control-Allow-Origin": "*",
@@ -76,6 +77,66 @@ return json(400, { error: "Missing or invalid field: mode" });
 }
 
 const role = rawRole === "assistant" ? "assistant" : "user";
+
+// 🔒 SECURITY: Verify user authentication and subscription for user messages
+if (role === "user" && user_id) {
+  // Verify JWT token from Authorization header
+  const authHeader = req.headers.get("Authorization");
+  if (!authHeader) {
+    return json(401, { error: "Missing Authorization header" });
+  }
+
+  try {
+    // Create authenticated client to verify user
+    const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") || "";
+    if (!ANON_KEY) {
+      console.error("[chat-send] Missing SUPABASE_ANON_KEY for auth verification");
+      return json(500, { error: "Server configuration error" });
+    }
+    
+    const authClient = createClient(SUPABASE_URL, ANON_KEY, {
+      global: { headers: { Authorization: authHeader } },
+      auth: { persistSession: false }
+    });
+
+    const { data: userData, error: authError } = await authClient.auth.getUser();
+    if (authError || !userData?.user) {
+      return json(401, { error: "Invalid or expired token" });
+    }
+
+    // Verify user_id matches authenticated user
+    if (userData.user.id !== user_id) {
+      return json(403, { error: "user_id mismatch" });
+    }
+
+    // Check subscription access
+    const subscriptionCheck = await checkSubscriptionAccess(supabase, user_id);
+    if (!subscriptionCheck.hasAccess) {
+      return json(403, { 
+        error: "Subscription required",
+        subscription_required: true 
+      });
+    }
+
+    // For voice chat, require premium plan
+    if (chattype === "voice") {
+      const premiumCheck = await checkPremiumAccess(supabase, user_id);
+      if (!premiumCheck.hasAccess) {
+        return json(403, { 
+          error: "Premium plan required for voice features",
+          premium_required: true 
+        });
+      }
+    }
+  } catch (err) {
+    console.error("[chat-send] Auth/subscription check failed:", err);
+    return json(500, { error: "Authentication check failed" });
+  }
+}
+
+const role = rawRole === "assistant" ? "assistant" : "user";
+
+// Only check subscription for user messages (assistant messages are responses)
 const message = {
 chat_id,
 role,
