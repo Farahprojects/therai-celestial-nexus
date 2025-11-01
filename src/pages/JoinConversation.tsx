@@ -127,6 +127,15 @@ const JoinConversation: React.FC = () => {
               setLoading(false);
               return;
             }
+            
+            // Clear pending keys immediately after successful join
+            try {
+              localStorage.removeItem('pending_join_chat_id');
+              localStorage.removeItem('pending_redirect_path');
+              console.log('[JoinConversation] Cleared pending chat persistence');
+            } catch (e) {
+              console.warn('[JoinConversation] Could not clear pending keys:', e);
+            }
           }
 
           setIsJoined(true);

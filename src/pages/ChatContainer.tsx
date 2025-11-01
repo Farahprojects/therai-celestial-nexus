@@ -5,7 +5,7 @@ import { useChatInitialization } from '@/hooks/useChatInitialization';
 import { AuthModal } from '@/components/auth/AuthModal';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useSearchParams, useNavigate, useLocation } from 'react-router-dom';
 import { getRedirectPath, clearRedirectPath, extractIdFromPath } from '@/utils/redirectUtils';
 
 /**
@@ -21,9 +21,46 @@ const ChatContainerContent: React.FC = () => {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
+  const location = useLocation();
 
   // Single responsibility: Initialize chat when threadId changes
   useChatInitialization();
+  
+  // Clear redirect persistence after successful navigation
+  useEffect(() => {
+    const currentPath = location.pathname;
+    
+    // If we're on a folder or chat route, check if we just completed a redirect
+    if (currentPath.startsWith('/folders/') || currentPath.startsWith('/c/')) {
+      const pendingFolderId = localStorage.getItem('pending_join_folder_id');
+      const pendingChatId = localStorage.getItem('pending_join_chat_id');
+      const pendingRedirect = localStorage.getItem('pending_redirect_path');
+      
+      // Only clear if we're actually on the pending route (confirms success)
+      // Use exact path matching for safety
+      const onPendingFolder = pendingFolderId && currentPath === `/folders/${pendingFolderId}`;
+      const onPendingChat = pendingChatId && currentPath === `/c/${pendingChatId}`;
+      let onRedirectPath = false;
+      if (pendingRedirect) {
+        try {
+          const redirectPath = new URL(pendingRedirect, window.location.origin).pathname;
+          onRedirectPath = currentPath === redirectPath;
+        } catch {
+          // Invalid URL, skip
+        }
+      }
+      
+      if (onPendingFolder || onPendingChat || onRedirectPath) {
+        console.log('[ChatContainer] Successfully redirected - clearing persistence', {
+          currentPath,
+          onPendingFolder,
+          onPendingChat,
+          onRedirectPath
+        });
+        clearRedirectPath();
+      }
+    }
+  }, [location.pathname]);
   
   // Check for pending join token/folder/chat and open auth modal
   useEffect(() => {

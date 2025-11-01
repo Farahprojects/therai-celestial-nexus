@@ -74,6 +74,15 @@ const JoinFolder: React.FC = () => {
             await addFolderParticipant(folderId, user.id, 'member');
             console.log('[JoinFolder] Successfully added as participant');
             
+            // Clear pending keys immediately after successful join
+            try {
+              localStorage.removeItem('pending_join_folder_id');
+              localStorage.removeItem('pending_redirect_path');
+              console.log('[JoinFolder] Cleared pending folder persistence');
+            } catch (e) {
+              console.warn('[JoinFolder] Could not clear pending keys:', e);
+            }
+            
             // Small delay to ensure participant record is committed
             await new Promise(resolve => setTimeout(resolve, 100));
             console.log('[JoinFolder] Delay completed, participant should be committed');
