@@ -72,14 +72,14 @@ export const checkUserAccess = async (userId: string): Promise<UserAccessResult>
         };
       }
 
-      const isActive = data?.subscription_active && 
-                      ['active', 'trialing'].includes(data?.subscription_status || '');
+      // Only check subscription_status - ignore subscription_active field
+      const isActive = ['active', 'trialing'].includes(data?.subscription_status || '');
 
       return {
         hasAccess: isActive,
         loading: false,
         error: null,
-        subscriptionActive: data?.subscription_active || false,
+        subscriptionActive: isActive, // Use status-based check
         subscriptionStatus: data?.subscription_status || null,
         subscriptionPlan: data?.subscription_plan || null,
       };
