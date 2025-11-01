@@ -88,15 +88,6 @@ throw new Error(`Google STT error: ${resp.status} - ${errorText}`);
 
 const result = await resp.json();
 
-// Log Google API response for debugging
-console.log(`[google-whisper] Google STT API response keys:`, Object.keys(result));
-if (result.totalBilledTime) {
-  console.log(`[google-whisper] Google totalBilledTime:`, result.totalBilledTime);
-}
-if (Array.isArray(result.results) && result.results[0]?.resultEndTime) {
-  console.log(`[google-whisper] Google resultEndTime:`, result.results[0].resultEndTime);
-}
-
 const transcript = Array.isArray(result.results)
 ? result.results
 .flatMap((r: any) => (Array.isArray(r.alternatives) ? r.alternatives : []))
@@ -188,7 +179,6 @@ if (chattype === "voice") {
   if (authenticatedUserId) {
     // For voice chattype, we'll check limits after getting actual duration from Google
     // This prevents rejecting valid requests due to inaccurate pre-flight estimates
-    console.log(`[google-whisper] Voice user authenticated: ${authenticatedUserId}`);
   }
 }
 
@@ -209,8 +199,6 @@ if (!transcript.trim()) {
 
 // Track voice usage after successful transcription using Google's duration (source of truth)
 if (chattype === "voice" && authenticatedUserId && durationSeconds > 0) {
-  console.log(`[google-whisper] Preparing to track ${durationSeconds}s for user ${authenticatedUserId}`);
-
   // Check if user has access (post-transcription, using actual duration)
   const accessCheck = await checkFeatureAccess(
     supabase,
@@ -219,20 +207,13 @@ if (chattype === "voice" && authenticatedUserId && durationSeconds > 0) {
     durationSeconds
   );
 
-  console.log(`[google-whisper] Feature access check:`, {
-    allowed: accessCheck.allowed,
-    remaining: accessCheck.remaining,
-    limit: accessCheck.limit,
-    reason: accessCheck.reason
-  });
-
   if (!accessCheck.allowed) {
     console.warn(`[google-whisper] Usage limit exceeded after transcription: ${accessCheck.reason}`);
     // Note: transcription already happened, so we still track it but warn user
   }
 
   // Fire-and-forget: Call increment-feature-usage edge function
-  console.log(`[google-whisper] Calling increment-feature-usage edge function (fire-and-forget)`);
+  console.log(`[google-whisper] 🚀 Fire-and-forget: Calling increment-feature-usage with ${durationSeconds}s for user ${authenticatedUserId}`);
   fetch(`${SUPABASE_URL}/functions/v1/increment-feature-usage`, {
     method: "POST",
     headers: {
@@ -249,7 +230,7 @@ if (chattype === "voice" && authenticatedUserId && durationSeconds > 0) {
     .then(async (response) => {
       const result = await response.json().catch(() => ({}));
       if (response.ok && result.success) {
-        console.log(`[google-whisper] ✅ Successfully tracked ${durationSeconds}s via increment-feature-usage`);
+        console.log(`[google-whisper] ✅ increment-feature-usage succeeded: ${durationSeconds}s tracked`);
       } else {
         console.error(`[google-whisper] ❌ increment-feature-usage failed:`, result);
       }
@@ -257,8 +238,6 @@ if (chattype === "voice" && authenticatedUserId && durationSeconds > 0) {
     .catch(err => {
       console.error(`[google-whisper] ❌ Failed to call increment-feature-usage:`, err);
     });
-  
-  console.log(`[google-whisper] Tracked ${durationSeconds}s from Google STT API for user ${authenticatedUserId}`);
 }
 
 // Voice flow: optionally save user message, call LLM, and broadcast
