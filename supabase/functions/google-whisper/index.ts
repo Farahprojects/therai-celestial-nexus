@@ -294,6 +294,7 @@ await new Promise(r => setTimeout(r, 50));
 return json(200, { transcript });
 
 // Voice flow: optionally save user message, call LLM, and broadcast
+// Only trigger when chattype is "voice" (from conversation mode) AND chat_id exists
 if (chattype === "voice" && chat_id) {
   if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
     console.warn("[google-stt] Voice actions skipped: missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY");
@@ -315,7 +316,7 @@ if (chattype === "voice" && chat_id) {
             chat_id,
             text: transcript,
             client_msg_id: crypto.randomUUID(),
-            chattype: "voice",
+            chattype: chattype, // Use actual chattype from form data (not hardcoded)
             mode,
             user_id,
             user_name
@@ -327,7 +328,7 @@ if (chattype === "voice" && chat_id) {
           body: JSON.stringify({
             chat_id,
             text: transcript,
-            chattype: "voice",
+            chattype: chattype, // Use actual chattype from form data (not hardcoded)
             mode,
             voice,
             user_id,
