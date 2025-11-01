@@ -185,27 +185,6 @@ console.log(`[chat-send] ⏱️  DB insert complete (+${Date.now() - startTime}m
 }
 });
 
-// ⚡ FIRE-AND-FORGET: Deduct credits for assistant messages
-if (role === "assistant" && user_id) {
-const creditsToDeduct = chattype === "voice" ? 2 : 1;
-console.log(`[chat-send] ⏱️  Deducting ${creditsToDeduct} credits for ${chattype || 'text'} message`);
-supabase.rpc('deduct_credits', {
-_user_id: user_id,
-_credits: creditsToDeduct,
-_endpoint: 'chat-send',
-_reference_id: message.client_msg_id,
-_description: chattype === 'voice' 
-  ? 'Voice conversation message' 
-  : 'Chat message'
-}).then(({ error: creditError }) => {
-if (creditError) {
-  console.error('[chat-send] Credit deduction failed:', creditError);
-} else {
-  console.log(`[chat-send] ⏱️  Credits deducted successfully`);
-}
-});
-}
-
 // Return immediately (no await, both operations already non-blocking)
 console.log(`[chat-send] ⏱️  Returning response (+${Date.now() - startTime}ms) TOTAL`);
 return json(200, {

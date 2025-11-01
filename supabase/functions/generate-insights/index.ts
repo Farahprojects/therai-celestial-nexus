@@ -57,27 +57,6 @@ async function validateApiKey(apiKey: string, requestId: string): Promise<string
   }
 }
 
-async function checkUserCredits(userId: string, requestId: string): Promise<{ hasCredits: boolean; balance: number }> {
-  try {
-    const { data, error } = await supabase
-      .from("v_api_key_balance")
-      .select("balance_usd")
-      .eq("user_id", userId)
-      .maybeSingle();
-
-    if (error) {
-      console.error(`[${requestId}] Credits check failed:`, error);
-      return { hasCredits: false, balance: 0 };
-    }
-
-    const balance = data?.balance_usd || 0;
-    return { hasCredits: balance > 0, balance };
-  } catch (err) {
-    console.error(`[${requestId}] Credits check error:`, err);
-    return { hasCredits: false, balance: 0 };
-  }
-}
-
 async function retryWithBackoff<T>(
   fn: () => Promise<T>,
   logPrefix: string,
@@ -317,16 +296,6 @@ Deno.serve(async (req) => {
       return jsonResponse(
         { error: "Invalid API key", requestId },
         { status: 401 },
-        requestId
-      );
-    }
-
-    // Check user credits
-    const { hasCredits, balance } = await checkUserCredits(userId, requestId);
-    if (!hasCredits) {
-      return jsonResponse(
-        { error: "Insufficient credits", balance, requestId },
-        { status: 402 },
         requestId
       );
     }
