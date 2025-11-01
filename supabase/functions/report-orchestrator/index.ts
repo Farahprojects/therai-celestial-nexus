@@ -16,10 +16,9 @@ const sb = createClient(supabaseUrl, supabaseServiceKey, { auth: { persistSessio
 interface ReportPayload {
   endpoint: string;
   report_type: string;
-  chat_id?: string;  // Changed from user_id to chat_id
-  user_id?: string;  // Keep for backward compatibility
+  chat_id?: string;
+  user_id?: string;
   chartData: any;
-  is_guest?: boolean;
   [k: string]: any;
 }
 
@@ -62,14 +61,12 @@ function callEngineFireAndForget(engine: string, payload: ReportPayload): void {
   const edgeUrl = `${supabaseUrl}/functions/v1/${engine}`;
   // Explicitly build the payload to prevent passing through an api_key
   const requestPayload = { 
-    chat_id: payload.chat_id || payload.user_id,  // Use chat_id first, fallback to user_id
-    user_id: payload.chat_id || payload.user_id,  // Keep user_id for backward compatibility
+    chat_id: payload.chat_id || payload.user_id,
+    user_id: payload.chat_id || payload.user_id,
     endpoint: payload.endpoint,
     report_type: payload.report_type,
     chartData: payload.chartData,
-    is_guest: payload.is_guest,
-    mode: payload.mode,  // Required for context-injector
-    // Add any other fields that are explicitly needed by the engines
+    mode: payload.mode,
     system_prompt_type: payload.system_prompt_type,
     selectedEngine: engine,
     engine_used: engine,
@@ -122,31 +119,20 @@ Deno.serve(async (req) => {
     // Default system prompt type
     let systemPromptType = 'adult';
 
-    // Age check for child-specific prompt
-    const targetId = payload.chat_id || payload.user_id;
-    if (payload.is_guest && targetId) {
+    // Age check for child-specific prompt (from chartData if available)
+    if (payload.chartData?.birthDate) {
       try {
-        const { data: guestReport, error: guestError } = await sb
-          .from('guest_reports')
-          .select('report_data')
-          .eq('id', targetId)
-          .single();
-
-        if (guestError) {
-          console.warn(`[report-orchestrator] Could not fetch guest report for age check:`, guestError.message);
-        } else if (guestReport?.report_data?.birthDate) {
-          const birthDate = new Date(guestReport.report_data.birthDate);
-          const today = new Date();
-          let age = today.getFullYear() - birthDate.getFullYear();
-          const m = today.getMonth() - birthDate.getMonth();
-          if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
-            age--;
-          }
-          
-          if (age < 12) {
-            systemPromptType = 'child';
-            console.log(`[report-orchestrator] Child under 12 detected (age: ${age}). Using child prompt.`);
-          }
+        const birthDate = new Date(payload.chartData.birthDate);
+        const today = new Date();
+        let age = today.getFullYear() - birthDate.getFullYear();
+        const m = today.getMonth() - birthDate.getMonth();
+        if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+          age--;
+        }
+        
+        if (age < 12) {
+          systemPromptType = 'child';
+          console.log(`[report-orchestrator] Child under 12 detected (age: ${age}). Using child prompt.`);
         }
       } catch (e) {
         console.error(`[report-orchestrator] Error during age check:`, (e as any).message);

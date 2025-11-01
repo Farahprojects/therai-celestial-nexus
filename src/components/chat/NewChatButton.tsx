@@ -178,14 +178,6 @@ export const NewChatButton: React.FC<NewChatButtonProps> = ({ className = "" }) 
                 <Sparkles className="w-4 h-4" />
                 <span>Generate Insight</span>
               </div>
-              {usage && usage.insights_count.limit !== null && (
-                <span className="text-xs text-gray-500">
-                  {usage.insights_count.remaining}/{usage.insights_count.limit}
-                </span>
-              )}
-              {usage && usage.insights_count.limit === null && (
-                <span className="text-xs text-gray-500">∞</span>
-              )}
             </div>
           </DropdownMenuItem>
         </DropdownMenuContent>

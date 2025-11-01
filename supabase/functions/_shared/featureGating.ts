@@ -53,12 +53,11 @@ export async function checkFeatureAccess(
   const limit = limits[featureType] as number;
   const currentPeriod = new Date().toISOString().slice(0, 7); // 'YYYY-MM'
 
-  // 4. Get current usage for this period
+  // 4. Get current usage for this period (modular table: one row per user per period)
   const { data: usageData, error: usageError } = await supabase
     .from('feature_usage')
-    .select('usage_amount')
+    .select('voice_seconds, insights_count')
     .eq('user_id', userId)
-    .eq('feature_type', featureType)
     .eq('period', currentPeriod)
     .maybeSingle();
 
@@ -67,7 +66,10 @@ export async function checkFeatureAccess(
     return { allowed: false, reason: 'Unable to verify usage' };
   }
 
-  const currentUsage = usageData?.usage_amount || 0;
+  // Extract usage for the specific feature type from the row
+  const currentUsage = featureType === 'voice_seconds' 
+    ? (usageData?.voice_seconds || 0)
+    : (usageData?.insights_count || 0);
   const remaining = limit - currentUsage;
 
   // 5. Check if requested amount would exceed limit
@@ -91,6 +93,7 @@ export async function checkFeatureAccess(
 /**
  * Increment feature usage atomically after successful operation.
  * This should be called AFTER the feature has been successfully used.
+ * Uses the modular table structure with specific increment functions.
  * 
  * @param supabase - Supabase client (service role)
  * @param userId - User ID
@@ -105,15 +108,19 @@ export async function incrementFeatureUsage(
 ): Promise<void> {
   const currentPeriod = new Date().toISOString().slice(0, 7);
 
-  const { error } = await supabase.rpc('increment_feature_usage', {
-    p_user_id: userId,
-    p_feature_type: featureType,
-    p_amount: amount,
-    p_period: currentPeriod
-  });
+  // Call the specific increment function based on feature type
+  const rpcFunction = featureType === 'voice_seconds' 
+    ? 'increment_voice_seconds'
+    : 'increment_insights_count';
+
+  const rpcParams = featureType === 'voice_seconds'
+    ? { p_user_id: userId, p_seconds: amount, p_period: currentPeriod }
+    : { p_user_id: userId, p_count: amount, p_period: currentPeriod };
+
+  const { error } = await supabase.rpc(rpcFunction, rpcParams);
 
   if (error) {
-    console.error('[featureGating] Failed to increment usage:', error);
+    console.error(`[featureGating] Failed to increment ${featureType}:`, error);
     // Don't throw - we don't want to fail the operation just because tracking failed
   }
 }

@@ -1,7 +1,6 @@
 
 
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { checkFeatureAccess, incrementFeatureUsage } from "../_shared/featureGating.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SUPABASE_SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
@@ -332,32 +331,6 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Feature gating: Check insights usage limit
-    console.log(`[${requestId}] Checking insights feature access for user ${userId}`);
-    const accessCheck = await checkFeatureAccess(
-      supabase,
-      userId,
-      'insights_count',
-      1
-    );
-
-    if (!accessCheck.allowed) {
-      console.log(`[${requestId}] Insights access denied:`, accessCheck.reason);
-      return jsonResponse(
-        { 
-          error: accessCheck.reason || "Monthly insights limit reached",
-          remaining: accessCheck.remaining,
-          limit: accessCheck.limit,
-          feature: "insights_count",
-          requestId 
-        },
-        { status: 403 },
-        requestId
-      );
-    }
-
-    console.log(`[${requestId}] Insights access granted. Remaining: ${accessCheck.remaining}`);
-
     // Parse request body
     let payload;
     try {
@@ -435,11 +408,6 @@ Deno.serve(async (req) => {
     } catch (usageErr) {
       console.error(`[${requestId}] API usage recording error:`, usageErr);
     }
-
-    // Track insights usage after successful generation
-    console.log(`[${requestId}] Tracking insights usage for user ${userId}`);
-    await incrementFeatureUsage(supabase, userId, 'insights_count', 1)
-      .catch(err => console.error(`[${requestId}] Failed to track insights usage:`, err));
 
     console.log(`[${requestId}] Insight generated successfully in ${Date.now() - startTime}ms`);
     return jsonResponse({

@@ -1036,14 +1036,6 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
                     : `${usage.voice_seconds.remaining}/${usage.voice_seconds.limit}s`}
                 </span>
               </div>
-              <div className="flex justify-between items-center text-xs">
-                <span className="text-gray-600">Insights</span>
-                <span className="text-gray-900 font-medium">
-                  {usage.insights_count.limit === null 
-                    ? '∞' 
-                    : `${usage.insights_count.remaining}/${usage.insights_count.limit}`}
-                </span>
-              </div>
             </div>
           </div>
         )}

@@ -64,7 +64,7 @@ async function transcribeWithGoogle({ apiKey, audioBytes, mimeType, languageCode
   audioBytes: Uint8Array; 
   mimeType: string; 
   languageCode: string 
-}) {
+}): Promise<{ transcript: string; durationSeconds: number }> {
 const encodingInfo = mapMimeToGoogleEncoding(mimeType) as { encoding: string; sampleRateHertz?: number };
 const audioContent = base64EncodeUint8(audioBytes);
 
@@ -95,7 +95,20 @@ const transcript = Array.isArray(result.results)
 .join(" ")
 : "";
 
-return transcript || "";
+// Extract duration from Google's response (source of truth)
+// Duration is in the result metadata as seconds string (e.g., "3.500s")
+let durationSeconds = 0;
+if (result.totalBilledTime) {
+  // Parse duration string like "3s" or "3.500s"
+  const match = result.totalBilledTime.match(/(\d+(?:\.\d+)?)/);
+  durationSeconds = match ? Math.ceil(parseFloat(match[1])) : 0;
+} else if (Array.isArray(result.results) && result.results[0]?.resultEndTime) {
+  // Fallback: use resultEndTime from first result
+  const match = result.results[0].resultEndTime.match(/(\d+(?:\.\d+)?)/);
+  durationSeconds = match ? Math.ceil(parseFloat(match[1])) : 0;
+}
+
+return { transcript: transcript || "", durationSeconds };
 }
 
 Deno.serve(async (req) => {
@@ -159,35 +172,14 @@ if (chattype === "voice") {
   }
 
   if (authenticatedUserId) {
-    // Calculate audio duration in seconds from WAV buffer
-    // WAV format: 44-byte header + PCM data (16-bit samples = 2 bytes per sample)
-    // Duration = (buffer_size - 44) / 2 / sample_rate
-    // We know the client sends 16kHz mono WAV
-    const estimatedSeconds = Math.ceil((audioBuffer.length - 44) / 2 / 16000);
-    
-    // Check if user has enough voice seconds remaining
-    const accessCheck = await checkFeatureAccess(
-      supabase,
-      authenticatedUserId,
-      'voice_seconds',
-      estimatedSeconds
-    );
-
-    if (!accessCheck.allowed) {
-      return json(403, {
-        error: accessCheck.reason || "Voice usage limit reached",
-        remaining: accessCheck.remaining,
-        limit: accessCheck.limit,
-        feature: "voice_seconds"
-      });
-    }
-
-    console.log(`[google-whisper] Voice access granted. Remaining: ${accessCheck.remaining}, estimated seconds: ${estimatedSeconds}`);
+    // For voice chattype, we'll check limits after getting actual duration from Google
+    // This prevents rejecting valid requests due to inaccurate pre-flight estimates
+    console.log(`[google-whisper] Voice user authenticated: ${authenticatedUserId}`);
   }
 }
 
 const languageCode = normalizeLanguageCode(String(language));
-const transcript = await transcribeWithGoogle({
+const { transcript, durationSeconds } = await transcribeWithGoogle({
   apiKey: GOOGLE_STT,
   audioBytes: audioBuffer,
   mimeType,
@@ -198,39 +190,31 @@ if (!transcript.trim()) {
   return json(200, { transcript: "" });
 }
 
-// Track voice usage after successful transcription
-if (chattype === "voice" && authenticatedUserId) {
+// Track voice usage after successful transcription using Google's duration (source of truth)
+if (chattype === "voice" && authenticatedUserId && durationSeconds > 0) {
   // Create Supabase client for usage tracking
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
     auth: { persistSession: false }
   });
 
-  // Get authenticated user ID
-  const authHeader = req.headers.get("Authorization");
-  
-  if (authHeader) {
-    try {
-      const token = authHeader.replace("Bearer ", "");
-      const { data: userData, error: authError } = await supabase.auth.getUser(token);
-      if (!authError && userData?.user) {
-        authenticatedUserId = userData.user.id;
-      }
-    } catch (authErr) {
-      console.error("[google-whisper] Auth verification failed for tracking:", authErr);
-    }
+  // Check if user has access (post-transcription, using actual duration)
+  const accessCheck = await checkFeatureAccess(
+    supabase,
+    authenticatedUserId,
+    'voice_seconds',
+    durationSeconds
+  );
+
+  if (!accessCheck.allowed) {
+    console.warn(`[google-whisper] Usage limit exceeded after transcription: ${accessCheck.reason}`);
+    // Note: transcription already happened, so we still track it but warn user
   }
 
-  if (authenticatedUserId) {
-    // Calculate actual audio duration from WAV buffer
-    // WAV format: 44-byte header + PCM data (16-bit samples = 2 bytes per sample)
-    const actualSeconds = Math.ceil((audioBuffer.length - 44) / 2 / 16000);
-    
-    // Increment usage counter (fire-and-forget, don't block response)
-    incrementFeatureUsage(supabase, authenticatedUserId, 'voice_seconds', actualSeconds)
-      .catch(err => console.error("[google-whisper] Failed to track usage:", err));
-    
-    console.log(`[google-whisper] Tracked ${actualSeconds}s of voice usage for user ${authenticatedUserId}`);
-  }
+  // Increment usage counter using Google's reported duration (fire-and-forget)
+  incrementFeatureUsage(supabase, authenticatedUserId, 'voice_seconds', durationSeconds)
+    .catch(err => console.error("[google-whisper] Failed to track usage:", err));
+  
+  console.log(`[google-whisper] Tracked ${durationSeconds}s from Google STT API for user ${authenticatedUserId}`);
 }
 
 // Voice flow: optionally save user message, call LLM, and broadcast

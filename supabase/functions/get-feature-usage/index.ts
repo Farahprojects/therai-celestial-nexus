@@ -56,21 +56,22 @@ Deno.serve(async (req) => {
     const isActive = profile.subscription_active && 
                      ['active', 'trialing'].includes(profile.subscription_status || '');
 
-    // Get current usage for this period
+    // Get current usage for this period (modular table: one row per user per period)
     const { data: usageData, error: usageError } = await supabaseClient
       .from('feature_usage')
-      .select('feature_type, usage_amount')
+      .select('voice_seconds, insights_count')
       .eq('user_id', user.id)
-      .eq('period', currentPeriod);
+      .eq('period', currentPeriod)
+      .maybeSingle();
 
     if (usageError) {
       console.error('Error fetching usage:', usageError);
       return jsonResponse({ error: "Failed to fetch usage data" }, 500);
     }
 
-    // Find usage for each feature type
-    const voiceUsage = usageData?.find(u => u.feature_type === 'voice_seconds');
-    const insightsUsage = usageData?.find(u => u.feature_type === 'insights_count');
+    // Extract usage from the single row
+    const voiceUsed = usageData?.voice_seconds || 0;
+    const insightsUsed = usageData?.insights_count || 0;
 
     // Return usage data with limits
     return jsonResponse({
@@ -78,18 +79,18 @@ Deno.serve(async (req) => {
       subscription_active: isActive,
       subscription_plan: plan,
       voice_seconds: {
-        used: voiceUsage?.usage_amount || 0,
+        used: voiceUsed,
         limit: limits.voice_seconds, // null = unlimited
         remaining: limits.voice_seconds === null 
           ? null 
-          : Math.max(0, limits.voice_seconds - (voiceUsage?.usage_amount || 0))
+          : Math.max(0, limits.voice_seconds - voiceUsed)
       },
       insights_count: {
-        used: insightsUsage?.usage_amount || 0,
+        used: insightsUsed,
         limit: limits.insights_count, // null = unlimited
         remaining: limits.insights_count === null 
           ? null 
-          : Math.max(0, limits.insights_count - (insightsUsage?.usage_amount || 0))
+          : Math.max(0, limits.insights_count - insightsUsed)
       }
     });
 

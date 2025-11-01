@@ -7,6 +7,7 @@
   Enhanced for production readiness with retries, timeouts, and structured logging.
 ────────────────────────────────────────────────────────────────────────────────*/
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { incrementFeatureUsage } from "../_shared/featureGating.ts";
 
 /*───────────────────────────────────────────────────────────────────────────────
   CONFIG & SINGLETONS
@@ -342,8 +343,7 @@ Deno.serve(async (req) => {
     console.log(`${logPrefix} Request received:`, {
       report_type: reportType,
       user_id: reportData.user_id,
-      endpoint: reportData.endpoint,
-      is_guest: reportData.is_guest
+      endpoint: reportData.endpoint
     });
 
     // Validate required fields
@@ -363,6 +363,13 @@ Deno.serve(async (req) => {
 
     // Generate the report
     const { report, metadata } = await generateReport(systemPrompt, reportData, requestId);
+    
+    // Track insights usage after successful report generation (fire-and-forget)
+    if (reportData.user_id) {
+      incrementFeatureUsage(supabase, reportData.user_id, 'insights_count', 1)
+        .catch(err => console.error(`${logPrefix} Failed to track insights usage:`, err));
+      console.log(`${logPrefix} Tracked insights usage for user ${reportData.user_id}`);
+    }
     
     // Log successful report generation (fire-and-forget)
     const durationMs = Date.now() - startTime;

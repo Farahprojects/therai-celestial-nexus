@@ -285,7 +285,7 @@ tasks.push(
 fetch(`${SUPABASE_URL}/functions/v1/google-text-to-speech`, {
 method: "POST",
 headers,
-body: JSON.stringify({ text: sanitizedTextForTTS, voice: selectedVoice, chat_id }) // Sanitized for TTS
+body: JSON.stringify({ text: sanitizedTextForTTS, voice: selectedVoice, chat_id, user_id }) // Sanitized for TTS
 })
 );
 }
