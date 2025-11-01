@@ -8,7 +8,7 @@
 
 import { getLLMHandler } from "../_shared/llmConfig.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-import { checkFeatureAccess, incrementFeatureUsage } from "../_shared/featureGating.ts";
+import { checkFeatureAccess } from "../_shared/featureGating.ts";
 
 const corsHeaders = {
 "Access-Control-Allow-Origin": "*",
@@ -209,11 +209,6 @@ if (!transcript.trim()) {
 
 // Track voice usage after successful transcription using Google's duration (source of truth)
 if (chattype === "voice" && authenticatedUserId && durationSeconds > 0) {
-  // Create Supabase client for usage tracking
-  const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
-    auth: { persistSession: false }
-  });
-
   console.log(`[google-whisper] Preparing to track ${durationSeconds}s for user ${authenticatedUserId}`);
 
   // Check if user has access (post-transcription, using actual duration)
@@ -236,14 +231,31 @@ if (chattype === "voice" && authenticatedUserId && durationSeconds > 0) {
     // Note: transcription already happened, so we still track it but warn user
   }
 
-  // Increment usage counter using Google's reported duration (fire-and-forget)
-  console.log(`[google-whisper] Calling incrementFeatureUsage(${authenticatedUserId}, 'voice_seconds', ${durationSeconds})`);
-  incrementFeatureUsage(supabase, authenticatedUserId, 'voice_seconds', durationSeconds)
-    .then(() => {
-      console.log(`[google-whisper] ✅ Successfully incremented ${durationSeconds}s for user ${authenticatedUserId}`);
+  // Fire-and-forget: Call increment-feature-usage edge function
+  console.log(`[google-whisper] Calling increment-feature-usage edge function (fire-and-forget)`);
+  fetch(`${SUPABASE_URL}/functions/v1/increment-feature-usage`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`
+    },
+    body: JSON.stringify({
+      user_id: authenticatedUserId,
+      feature_type: 'voice_seconds',
+      amount: durationSeconds,
+      source: 'google-whisper'
+    })
+  })
+    .then(async (response) => {
+      const result = await response.json().catch(() => ({}));
+      if (response.ok && result.success) {
+        console.log(`[google-whisper] ✅ Successfully tracked ${durationSeconds}s via increment-feature-usage`);
+      } else {
+        console.error(`[google-whisper] ❌ increment-feature-usage failed:`, result);
+      }
     })
     .catch(err => {
-      console.error(`[google-whisper] ❌ Failed to track usage:`, err);
+      console.error(`[google-whisper] ❌ Failed to call increment-feature-usage:`, err);
     });
   
   console.log(`[google-whisper] Tracked ${durationSeconds}s from Google STT API for user ${authenticatedUserId}`);
