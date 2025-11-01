@@ -271,7 +271,8 @@ export const BillingPanel: React.FC = () => {
 
   // Render subscription management UI
   if (billingMode === 'SUBSCRIPTION') {
-    const isActive = ['active', 'trialing'].includes(subscriptionData?.subscription_status || '');
+    const isActive = subscriptionData?.subscription_active && 
+                     ['active', 'trialing'].includes(subscriptionData?.subscription_status || '');
     const upgradeOptions = getUpgradeOptions();
     
     return (

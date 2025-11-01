@@ -126,11 +126,11 @@ Deno.serve(async (req) => {
     console.log(`Updated subscription ${profile.stripe_subscription_id} to price ${newPriceId}`);
 
     return jsonResponse({
-        success: true,
-        subscription: {
-          id: updatedSubscription.id,
-          status: updatedSubscription.status,
-          current_period_end: updatedSubscription.current_period_end,
+      success: true,
+      subscription: {
+        id: updatedSubscription.id,
+        status: updatedSubscription.status,
+        current_period_end: updatedSubscription.current_period_end,
         currency: updatedSubscription.currency,
       },
     });
