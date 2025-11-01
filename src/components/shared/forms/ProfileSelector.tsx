@@ -58,13 +58,13 @@ export const ProfileSelector: React.FC<ProfileSelectorProps> = ({
       const { data, error } = await supabase
         .from('user_profile_list')
         .select('id, profile_name, name, birth_date, birth_time, birth_location, birth_latitude, birth_longitude, birth_place_id')
-        .eq('user_id', user.id)
+        .eq('user_id', user.id as any)
         .order('created_at', { ascending: false });
 
       if (error) {
         console.error('[ProfileSelector] Failed to load profiles:', error);
       } else {
-        setProfiles(data || []);
+        setProfiles((data as any) || []);
       }
     } catch (err) {
       console.error('[ProfileSelector] Error loading profiles:', err);
@@ -87,8 +87,8 @@ export const ProfileSelector: React.FC<ProfileSelectorProps> = ({
       const { error } = await supabase
         .from('user_profile_list')
         .delete()
-        .eq('id', profileId)
-        .eq('user_id', user.id); // Extra safety check
+        .eq('id', profileId as any)
+        .eq('user_id', user.id as any); // Extra safety check
 
       if (error) {
         console.error('[ProfileSelector] Failed to delete profile:', error);

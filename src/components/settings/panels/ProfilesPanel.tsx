@@ -70,13 +70,13 @@ export const ProfilesPanel = () => {
       const { data, error } = await supabase
         .from('user_profile_list')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('user_id', user.id as any)
         .order('created_at', { ascending: false });
 
       if (error) {
         console.error('[ProfilesPanel] Failed to load profiles:', error);
       } else {
-        setProfiles(data || []);
+        setProfiles((data as any) || []);
       }
     } catch (err) {
       console.error('[ProfilesPanel] Error loading profiles:', err);
@@ -137,7 +137,7 @@ export const ProfilesPanel = () => {
           birth_longitude: birthLongitude,
           birth_place_id: birthPlaceId || null,
           notes: notes || null,
-        })
+        } as any)
         .select()
         .single();
 
@@ -145,7 +145,7 @@ export const ProfilesPanel = () => {
         console.error('[ProfilesPanel] Failed to save profile:', error);
         alert('Failed to save profile');
       } else {
-        setProfiles([data, ...profiles]);
+        setProfiles([data as any, ...profiles]);
         setShowForm(false);
         resetForm();
       }
@@ -170,8 +170,8 @@ export const ProfilesPanel = () => {
       const { error } = await supabase
         .from('user_profile_list')
         .delete()
-        .eq('id', profileToDelete)
-        .eq('user_id', user?.id);
+        .eq('id', profileToDelete as any)
+        .eq('user_id', user?.id as any);
 
       if (error) {
         console.error('[ProfilesPanel] Failed to delete profile:', error);

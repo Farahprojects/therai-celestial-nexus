@@ -81,7 +81,7 @@ export const BillingPanel: React.FC = () => {
         throw creditsError;
       }
 
-      setCreditData(creditsData || {
+      setCreditData((creditsData as any) || {
         credits: 0,
         auto_topup_enabled: false,
         auto_topup_threshold: 7,
@@ -97,7 +97,7 @@ export const BillingPanel: React.FC = () => {
         .limit(20);
 
       if (!transactionsError && transactionsData) {
-        setTransactions(transactionsData);
+        setTransactions(transactionsData as any);
         }
       } else {
         // Fetch subscription data
@@ -129,9 +129,9 @@ export const BillingPanel: React.FC = () => {
           setAllPlans(plansData as PlanData[]);
           
           // Find current plan details
-          if (subData?.subscription_plan) {
-            const currentPlan = plansData.find(p => p.id === subData.subscription_plan);
-            setCurrentPlanData(currentPlan || null);
+          if ((subData as any)?.subscription_plan) {
+            const currentPlan = (plansData as any[]).find((p: any) => p.id === (subData as any).subscription_plan);
+            setCurrentPlanData((currentPlan as any) || null);
           }
         }
       }
@@ -163,7 +163,7 @@ export const BillingPanel: React.FC = () => {
           console.log('Credit balance updated:', payload);
           // Update credit data with new balance
           if (payload.new && 'credits' in payload.new) {
-            setCreditData((prev) => prev ? { ...prev, credits: payload.new.credits } : null);
+            setCreditData((prev) => prev ? { ...prev, credits: (payload.new as any).credits } : null);
           }
         }
       )

@@ -122,7 +122,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
       }
 
       // Get conversation IDs
-      const conversationIds = conversations.map(conv => conv.id);
+      const conversationIds = (conversations as any[]).map((conv: any) => conv.id);
       
       // Search messages in those conversations
       const { data: messages, error: msgError } = await supabase
@@ -142,7 +142,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
       const groupedResults = new Map<string, ConversationGroup>();
 
       // Create a map of conversations for quick lookup
-      const conversationMap = new Map(conversations.map(conv => [conv.id, conv]));
+      const conversationMap = new Map((conversations as any[]).map((conv: any) => [conv.id, conv]));
 
       messages?.forEach((msg: any) => {
         const chatId = msg.chat_id;
@@ -152,9 +152,9 @@ export const SearchModal: React.FC<SearchModalProps> = ({
           if (!groupedResults.has(chatId)) {
             groupedResults.set(chatId, {
               chat_id: chatId,
-              title: conversation.title,
+              title: (conversation as any).title,
               messages: [],
-              latest_message: conversation.created_at
+              latest_message: (conversation as any).created_at
             });
           }
 
