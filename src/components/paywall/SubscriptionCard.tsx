@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Sparkles } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
@@ -31,6 +30,7 @@ const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
 }) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const { user } = useAuth();
+  
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -38,53 +38,47 @@ const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
     }).format(price);
   };
 
-  const getPlanFeatures = (planName: string) => {
-    const features = {
-      '10_monthly': [
-        '10 threads per month',
-        'Unlimited messages per thread',
-        'Priority support',
-        'Advanced features'
-      ],
-      '25_monthly': [
-        '25 threads per month',
-        'Unlimited messages per thread',
-        'Priority support',
-        'Advanced features',
-        'Early access to new features'
-      ],
-      'one_shot': [
-        'One-time payment',
-        '10 threads total',
-        'Unlimited messages per thread',
-        'Lifetime access'
-      ]
-    };
-    return features[planName as keyof typeof features] || [];
-  };
-
-  const getButtonText = (planId: string) => {
-    if (planId === 'starter-plan') {
-      return 'Try Now';
-    } else if (planId === 'subscription_professional' || planId === '25_monthly') {
-      return 'Subscribe';
-    } else {
-      return 'Get Started';
+  // Determine plan tier label (Growth or Premium)
+  const getPlanTier = (planId: string): 'Growth' | 'Premium' => {
+    // Lower tier plans = Growth, Higher tier plans = Premium
+    if (planId === '10_monthly' || planId.includes('growth') || planId.includes('starter')) {
+      return 'Growth';
     }
+    return 'Premium'; // Default to Premium for higher tier plans
   };
 
-  const getPlanTypeLabel = (planId: string, planName: string) => {
-    if (planId === 'subscription_professional' || planName.toLowerCase().includes('professional')) {
-      return <span className="text-xl font-bold text-gray-900">Business</span>;
-    } else if (planId === '25_monthly' || planName.toLowerCase().includes('personal growth')) {
-      return <span className="text-xl font-bold text-gray-900">Premium</span>;
-    } else if (planId === 'starter-plan') {
-      return <span className="text-xl font-bold text-gray-900">Starter</span>;
+  const getPlanFeatures = (planId: string, planName: string) => {
+    // Default features based on plan tier
+    const growthFeatures = [
+      'Unlimited messages per thread',
+      'Priority support',
+      'Advanced chart features',
+      'AI insights and guidance'
+    ];
+    
+    const premiumFeatures = [
+      'Everything in Growth',
+      '25+ threads per month',
+      'Early access to new features',
+      'Premium support',
+      'Advanced analytics'
+    ];
+
+    // Check if it's a premium plan
+    if (planId === '25_monthly' || planId === 'subscription_professional' || planName.toLowerCase().includes('premium')) {
+      return premiumFeatures;
     }
-    return null;
+    
+    return growthFeatures;
   };
 
-  const isPopular = plan.id === '25_monthly' || plan.name.toLowerCase().includes('personal growth');
+  const getButtonText = (planId: string): string => {
+    const tier = getPlanTier(planId);
+    return `Get ${tier}`;
+  };
+
+  const planTier = getPlanTier(plan.id);
+  const isPopular = plan.id === '25_monthly' || plan.id === 'subscription_professional' || plan.name.toLowerCase().includes('premium');
 
   const handleCheckout = async () => {
     setIsProcessing(true);
@@ -124,37 +118,32 @@ const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
         } ${isPopular ? 'ring-2 ring-gray-900' : ''}`}
         onClick={() => onSelect(plan.id)}
       >
-        <CardContent className="p-8 text-center space-y-6 h-full flex flex-col">
-
-          {/* Header */}
-          <div className="space-y-2">
-            {/* Plan Type Label */}
-            <div className="text-left">
-              {getPlanTypeLabel(plan.id, plan.name)}
+        <CardContent className="p-8 text-left space-y-6 h-full flex flex-col">
+          {/* Header - Plan Tier and Price */}
+          <div className="space-y-3">
+            {/* Plan Tier Label (Growth/Premium) */}
+            <div className="text-2xl font-light text-gray-900">
+              {planTier}
             </div>
-            <h3 className="text-xl font-light text-gray-900 leading-tight">
-              {plan.name}
-            </h3>
-            <p className="text-2xl font-light text-gray-600">
-              {formatPrice(plan.unit_price_usd)}
+            
+            {/* Price - Bigger */}
+            <div className="space-y-1">
+              <div className="text-4xl font-light text-gray-900">
+                {formatPrice(plan.unit_price_usd)}
+              </div>
               {plan.product_code === 'subscription' && (
-                <span className="text-sm font-normal text-gray-500">/month</span>
+                <div className="text-sm font-light text-gray-500">per month</div>
               )}
-            </p>
+            </div>
           </div>
 
-          {/* Description */}
+          {/* Features - Bullet Points */}
           <div className="flex-grow">
-            <p className="text-sm font-light text-gray-600 leading-relaxed mb-4">
-              {plan.description}
-            </p>
-            
-            {/* Features */}
-            <ul className="text-left space-y-2">
-              {getPlanFeatures(plan.name).map((feature, featureIndex) => (
-                <li key={featureIndex} className="flex items-center text-sm text-gray-600">
-                  <div className="w-1.5 h-1.5 bg-gray-400 rounded-full mr-3 flex-shrink-0"></div>
-                  {feature}
+            <ul className="space-y-3">
+              {getPlanFeatures(plan.id, plan.name).map((feature, featureIndex) => (
+                <li key={featureIndex} className="flex items-start text-sm text-gray-600">
+                  <div className="w-1.5 h-1.5 bg-gray-400 rounded-full mr-3 mt-1.5 flex-shrink-0"></div>
+                  <span className="font-light">{feature}</span>
                 </li>
               ))}
             </ul>
@@ -173,11 +162,7 @@ const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
                 handleCheckout();
               }}
               disabled={loading || isProcessing}
-              className={`w-full font-light py-3 rounded-xl text-base transition-all duration-200 shadow-sm hover:shadow-md disabled:opacity-50 ${
-                isPopular 
-                  ? 'bg-gray-900 hover:bg-gray-800 text-white' 
-                  : 'bg-white hover:bg-gray-50 text-gray-900 border border-gray-300'
-              }`}
+              className="w-full bg-gray-900 hover:bg-gray-800 text-white font-light py-3 rounded-full text-base transition-all duration-200 shadow-sm hover:shadow-md disabled:opacity-50"
             >
               {isProcessing ? 'Processing...' : getButtonText(plan.id)}
             </Button>

@@ -4,7 +4,6 @@ import { motion } from 'framer-motion';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Logo from '@/components/Logo';
-import { Sparkles, XCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -22,6 +21,42 @@ const SubscriptionPaywall: React.FC = () => {
   const [pricingPlans, setPricingPlans] = useState<PricingData[]>([]);
   
   const isCancelled = searchParams.get('subscription') === 'cancelled';
+
+  // Determine plan tier label (Growth or Premium)
+  const getPlanTier = (planId: string): 'Growth' | 'Premium' => {
+    if (planId === '10_monthly' || planId.includes('growth') || planId.includes('starter')) {
+      return 'Growth';
+    }
+    return 'Premium';
+  };
+
+  const getPlanFeatures = (planId: string, planName: string) => {
+    const growthFeatures = [
+      'Unlimited messages per thread',
+      'Priority support',
+      'Advanced chart features',
+      'AI insights and guidance'
+    ];
+    
+    const premiumFeatures = [
+      'Everything in Growth',
+      '25+ threads per month',
+      'Early access to new features',
+      'Premium support',
+      'Advanced analytics'
+    ];
+
+    if (planId === '25_monthly' || planId === 'subscription_professional' || planName.toLowerCase().includes('premium')) {
+      return premiumFeatures;
+    }
+    
+    return growthFeatures;
+  };
+
+  const getButtonText = (planId: string): string => {
+    const tier = getPlanTier(planId);
+    return `Get ${tier}`;
+  };
 
   // Fetch all subscription plans
   useEffect(() => {
@@ -94,7 +129,7 @@ const SubscriptionPaywall: React.FC = () => {
           </div>
 
           {/* Pricing Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+          <div className="flex justify-center gap-8 max-w-6xl mx-auto">
               {pricingPlans.map((plan, index) => (
                 <motion.div
                   key={plan.id}
@@ -106,34 +141,38 @@ const SubscriptionPaywall: React.FC = () => {
                   <Card className={`border-0 shadow-lg bg-white rounded-3xl overflow-hidden h-full ${
                     plan.id === 'subscription_professional' ? 'ring-2 ring-gray-900' : ''
                   }`}>
-                    <CardContent className="p-8 text-center space-y-6 h-full flex flex-col">
-                      {/* Icon */}
-                      <motion.div
-                        initial={{ scale: 0.8 }}
-                        animate={{ scale: 1 }}
-                        transition={{ delay: 0.2 + index * 0.1, duration: 0.5 }}
-                        className="flex items-center justify-center h-12 w-12 mx-auto rounded-full bg-gray-900"
-                      >
-                        <Sparkles className="h-6 w-6 text-white" />
-                      </motion.div>
-
-                      {/* Header */}
-                      <div className="space-y-2">
-                        <h3 className="text-xl font-light text-gray-900 leading-tight">
-                          {plan.name}
-                        </h3>
-                        <p className="text-2xl font-light text-gray-600">
-                          ${plan.unit_price_usd}
+                    <CardContent className="p-8 text-left space-y-6 h-full flex flex-col">
+                      {/* Header - Plan Tier and Price */}
+                      <div className="space-y-3">
+                        {/* Plan Tier Label (Growth/Premium) */}
+                        <div className="text-2xl font-light text-gray-900">
+                          {getPlanTier(plan.id)}
+                        </div>
+                        
+                        {/* Price - Bigger */}
+                        <div className="space-y-1">
+                          <div className="text-4xl font-light text-gray-900">
+                            ${plan.unit_price_usd}
+                          </div>
                           {plan.id === 'subscription_onetime' ? '' : 
-                           plan.id.includes('yearly') || plan.id.includes('astro') ? '/year' : '/month'}
-                        </p>
+                           plan.id.includes('yearly') || plan.id.includes('astro') ? (
+                            <div className="text-sm font-light text-gray-500">per year</div>
+                          ) : (
+                            <div className="text-sm font-light text-gray-500">per month</div>
+                          )}
+                        </div>
                       </div>
 
-                      {/* Description */}
+                      {/* Features - Bullet Points */}
                       <div className="flex-grow">
-                        <p className="text-sm font-light text-gray-600 leading-relaxed">
-                          {plan.description}
-                        </p>
+                        <ul className="space-y-3">
+                          {getPlanFeatures(plan.id, plan.name).map((feature, featureIndex) => (
+                            <li key={featureIndex} className="flex items-start text-sm text-gray-600">
+                              <div className="w-1.5 h-1.5 bg-gray-400 rounded-full mr-3 mt-1.5 flex-shrink-0"></div>
+                              <span className="font-light">{feature}</span>
+                            </li>
+                          ))}
+                        </ul>
                       </div>
 
                       {/* CTA Button */}
@@ -146,13 +185,9 @@ const SubscriptionPaywall: React.FC = () => {
                         <Button
                           onClick={() => handleUnlock(plan.id)}
                           disabled={loadingPlanId === plan.id}
-                          className={`w-full font-light py-3 rounded-xl text-base transition-all duration-200 shadow-sm hover:shadow-md disabled:opacity-50 ${
-                            plan.id === 'subscription_professional' 
-                              ? 'bg-gray-900 hover:bg-gray-800 text-white' 
-                              : 'bg-white hover:bg-gray-50 text-gray-900 border border-gray-300'
-                          }`}
+                          className="w-full bg-gray-900 hover:bg-gray-800 text-white font-light py-3 rounded-full text-base transition-all duration-200 shadow-sm hover:shadow-md disabled:opacity-50"
                         >
-                          {loadingPlanId === plan.id ? 'Processing...' : isCancelled ? 'Try Again' : 'Get Started'}
+                          {loadingPlanId === plan.id ? 'Processing...' : getButtonText(plan.id)}
                         </Button>
                       </motion.div>
 
