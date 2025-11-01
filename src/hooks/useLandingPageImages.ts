@@ -43,7 +43,7 @@ export const useLandingPageImages = () => {
         } as LandingPageConfig;
       }
 
-      return data as LandingPageConfig;
+      return (data as any) as LandingPageConfig;
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
   });

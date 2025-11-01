@@ -34,7 +34,7 @@ export function useClientViewMode(): UseClientViewModeReturn {
       const { data, error: fetchError } = await supabase
         .from("user_preferences")
         .select("client_view_mode")
-        .eq("user_id", user.id)
+        .eq("user_id", user.id as any)
         .single();
 
       if (fetchError) {
@@ -46,7 +46,7 @@ export function useClientViewMode(): UseClientViewModeReturn {
         }
       } else {
         // Properly type the client_view_mode value
-        const savedMode = data?.client_view_mode as ViewMode | null;
+        const savedMode = (data as any)?.client_view_mode as ViewMode | null;
         setViewMode(savedMode);
       }
     } catch (err: any) {
@@ -72,7 +72,7 @@ export function useClientViewMode(): UseClientViewModeReturn {
             user_id: user.id,
             client_view_mode: newMode,
             updated_at: new Date().toISOString(),
-          },
+          } as any,
           { onConflict: "user_id" }
         );
 

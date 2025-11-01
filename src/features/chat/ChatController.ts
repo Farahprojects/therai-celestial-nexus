@@ -102,7 +102,7 @@ class ChatController {
       const { data, error } = await supabase
         .from('conversations')
         .select('id')
-        .eq('id', chat_id)
+        .eq('id', chat_id as any)
         .maybeSingle();
       
       if (error || !data) {
@@ -134,7 +134,7 @@ class ChatController {
       await supabase
         .from('messages')
         .select('id', { head: true, count: 'exact' })
-        .eq('chat_id', chat_id);
+        .eq('chat_id', chat_id as any);
     } catch (error) {
       console.warn('[ChatController] ensureRealtimeReady ping failed (continuing):', error);
     }

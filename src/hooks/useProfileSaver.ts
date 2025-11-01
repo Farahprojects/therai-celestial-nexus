@@ -49,7 +49,7 @@ export const useProfileSaver = () => {
           birth_latitude: data.birthLatitude,
           birth_longitude: data.birthLongitude,
           birth_place_id: data.birthPlaceId || null,
-        });
+        } as any);
 
       if (error) {
         console.error('[useProfileSaver] Failed to save profile:', error);

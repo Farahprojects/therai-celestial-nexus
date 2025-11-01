@@ -64,7 +64,7 @@ export const useConversationSearch = () => {
             created_at
           )
         `)
-        .eq('user_id', user.id)
+        .eq('user_id', user.id as any)
         .ilike('messages.text', `%${query}%`)
         .order('created_at', { ascending: false })
         .limit(100); // Increased limit for better results

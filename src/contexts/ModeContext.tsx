@@ -45,11 +45,11 @@ export const ModeProvider: React.FC<ModeProviderProps> = ({ children }) => {
           const { data } = await supabase
             .from('conversations')
             .select('mode')
-            .eq('id', chat_id)
+            .eq('id', chat_id as any)
             .maybeSingle();
           
           // Mode must exist on conversation - no defaults
-          setMode((data?.mode as ChatMode) || null);
+          setMode(((data as any)?.mode as ChatMode) || null);
         } catch {
           // On any error, set to null (no mode selected)
           setMode(null);
