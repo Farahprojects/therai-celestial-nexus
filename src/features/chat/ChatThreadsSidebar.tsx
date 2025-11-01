@@ -40,7 +40,6 @@ import { FolderModal } from '@/components/folders/FolderModal';
 import { ConversationActionsMenuContent } from '@/components/chat/ConversationActionsMenu';
 import { getUserFolders, createFolder, updateFolderName, deleteFolder, getFolderConversations, moveConversationToFolder, getSharedFolder } from '@/services/folders';
 import { getConversation } from '@/services/conversations';
-import { CreditPurchaseModal } from '@/components/billing/CreditPurchaseModal';
 
 
 interface ChatThreadsSidebarProps {
@@ -65,36 +64,8 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
   const uiConfig = getUserTypeConfig(isAuthenticated ? 'authenticated' : 'unauthenticated');
   const { usage } = useFeatureUsage();
   
-  // Credit balance state
-  const [credits, setCredits] = useState<number>(0);
-  const [creditsLoading, setCreditsLoading] = useState(true);
-
-  // Function to refresh credit balance
-  const refreshCredits = async () => {
-    if (!user?.id) return;
-    
-    try {
-      const { data, error } = await supabase
-        .from('user_credits')
-        .select('credits')
-        .eq('user_id', user.id)
-        .maybeSingle();
-
-      if (error && error.code !== 'PGRST116') {
-        console.error('[ChatThreadsSidebar] Failed to refresh credits:', error);
-      } else {
-        setCredits((data as any)?.credits || 0);
-      }
-    } catch (error) {
-      console.error('[ChatThreadsSidebar] Failed to refresh credits:', error);
-    }
-  };
-  
-  // Determine if upgrade button should show based on billing mode
-  // Uses same logic as toast: subscription_active AND subscription_status for subscription mode
-  const shouldShowUpgrade = billingMode === 'CREDIT' 
-    ? (!creditsLoading && credits === 0)  // Credit mode: check credits
-    : !subscriptionIsActive;  // Subscription mode: check subscription status (same as toast)
+  // Determine if upgrade button should show (subscription mode only)
+  const shouldShowUpgrade = !subscriptionIsActive;
   
   // Get chat_id and folderId directly from URL (most reliable source)
   const { threadId, folderId } = useParams<{ threadId?: string; folderId?: string }>();
@@ -135,33 +106,8 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
     openSettings(panel as "general" | "account" | "notifications" | "support" | "billing");
   };
 
-  // Load credits and folders on mount
+  // Load folders on mount
   useEffect(() => {
-    const loadCredits = async () => {
-      if (!user?.id) {
-        setCreditsLoading(false);
-        return;
-      }
-      
-      try {
-        const { data, error } = await supabase
-          .from('user_credits')
-          .select('credits')
-          .eq('user_id', user.id)
-          .maybeSingle();
-
-        if (error && error.code !== 'PGRST116') {
-          console.error('[ChatThreadsSidebar] Failed to load credits:', error);
-        } else {
-          setCredits((data as any)?.credits || 0);
-        }
-      } catch (error) {
-        console.error('[ChatThreadsSidebar] Failed to load credits:', error);
-      } finally {
-        setCreditsLoading(false);
-      }
-    };
-
     const loadFolders = async () => {
       try {
         let foldersList: Array<{ id: string; name: string; chatsCount: number; chats: Array<{ id: string; title: string }> }> = [];
@@ -299,38 +245,9 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
       }
     };
     
-    loadCredits();
     loadFolders();
     loadCurrentConversation();
   }, [user?.id, folderId, chat_id]);
-
-  // Set up real-time subscription for credit balance updates
-  useEffect(() => {
-    if (!user?.id) return;
-
-    const channel = supabase
-      .channel('user_credits_realtime')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'user_credits',
-          filter: `user_id=eq.${user.id}`,
-        },
-        (payload) => {
-          console.log('[ChatThreadsSidebar] Credit balance updated:', payload);
-          if (payload.new && 'credits' in payload.new) {
-            setCredits((payload.new as any).credits);
-          }
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [user?.id]);
 
   // Folder handlers
   const handleCreateFolder = async (name: string) => {
@@ -475,7 +392,6 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
   const [editTitle, setEditTitle] = useState('');
   const [isSavingTitle, setIsSavingTitle] = useState(false);
   const [showSearchModal, setShowSearchModal] = useState(false);
-  const [showCreditPurchaseModal, setShowCreditPurchaseModal] = useState(false);
   
   // Folders state (dev-only UI while building)
   const [showFolderModal, setShowFolderModal] = useState(false);
@@ -1061,11 +977,7 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
                       <div 
                         onClick={(e) => {
                           e.stopPropagation();
-                          if (billingMode === 'CREDIT') {
-                          setShowCreditPurchaseModal(true);
-                          } else {
-                            navigate('/subscription-paywall');
-                          }
+                          navigate('/subscription-paywall');
                         }}
                         className="flex-shrink-0 px-3 py-1 text-xs font-light bg-gray-900 text-white rounded-full hover:bg-gray-800 transition-colors cursor-pointer"
                       >
@@ -1095,11 +1007,7 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        if (billingMode === 'CREDIT') {
-                        setShowCreditPurchaseModal(true);
-                        } else {
-                          navigate('/subscription-paywall');
-                        }
+                        navigate('/subscription-paywall');
                       }}
                       className="flex-shrink-0 px-3 py-1 text-xs font-light bg-gray-900 text-white rounded-full hover:bg-gray-800 transition-colors"
                     >
@@ -1301,18 +1209,6 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
         editingFolder={editingFolder}
       />
 
-      {/* Credit Purchase Modal */}
-      <CreditPurchaseModal
-        isOpen={showCreditPurchaseModal}
-        onClose={() => {
-          setShowCreditPurchaseModal(false);
-          refreshCredits(); // Refresh credit balance after purchase
-        }}
-        onNavigateToCheckout={() => {
-          // Close any open modals when navigating to checkout
-          setShowCreditPurchaseModal(false);
-        }}
-      />
     </div>
   );
 };
