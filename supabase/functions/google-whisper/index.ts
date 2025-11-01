@@ -296,6 +296,14 @@ return json(200, { transcript });
 // Voice flow: optionally save user message, call LLM, and broadcast
 // Only trigger when chattype is "voice" (from conversation mode) AND chat_id exists
 if (chattype === "voice" && chat_id) {
+  console.info(JSON.stringify({
+    event: "voice_flow_triggered",
+    chattype,
+    chattype_type: typeof chattype,
+    chat_id,
+    transcript_length: transcript.length
+  }));
+
   if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
     console.warn("[google-stt] Voice actions skipped: missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY");
   } else {
@@ -308,6 +316,16 @@ if (chattype === "voice" && chat_id) {
     getLLMHandler(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY).then((llmHandler) => {
       console.log(`[google-stt] Using ${llmHandler} for voice mode`);
       
+      // Capture chattype in closure to ensure it's passed correctly
+      const chattypeToPass = chattype;
+      
+      console.info(JSON.stringify({
+        event: "preparing_to_call_llm_handler",
+        chattype: chattypeToPass,
+        chattype_type: typeof chattypeToPass,
+        llm_handler: llmHandler
+      }));
+      
       const tasks = [
         fetch(`${SUPABASE_URL}/functions/v1/chat-send`, {
           method: "POST",
@@ -316,7 +334,7 @@ if (chattype === "voice" && chat_id) {
             chat_id,
             text: transcript,
             client_msg_id: crypto.randomUUID(),
-            chattype: chattype, // Use actual chattype from form data (not hardcoded)
+            chattype: chattypeToPass, // Use captured chattype value
             mode,
             user_id,
             user_name
@@ -328,7 +346,7 @@ if (chattype === "voice" && chat_id) {
           body: JSON.stringify({
             chat_id,
             text: transcript,
-            chattype: chattype, // Use actual chattype from form data (not hardcoded)
+            chattype: chattypeToPass, // Use captured chattype value
             mode,
             voice,
             user_id,
@@ -346,12 +364,27 @@ if (chattype === "voice" && chat_id) {
         })
       ];
 
+      console.info(JSON.stringify({
+        event: "calling_llm_handler_with_payload",
+        chattype_in_payload: chattypeToPass,
+        chat_id,
+        text_length: transcript.length
+      }));
+
       // Start without awaiting to keep response snappy
       Promise.allSettled(tasks).catch(() => {});
     }).catch((err) => {
       console.error("[google-stt] Failed to determine LLM handler:", err);
     });
   }
+} else {
+  console.info(JSON.stringify({
+    event: "voice_flow_skipped",
+    chattype,
+    chattype_type: typeof chattype,
+    chat_id: chat_id || "missing",
+    reason: !chattype ? "no_chattype" : chattype !== "voice" ? "chattype_not_voice" : "no_chat_id"
+  }));
 }
 
 return json(200, { transcript });
