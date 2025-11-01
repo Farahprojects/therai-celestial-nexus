@@ -153,9 +153,29 @@ if (shouldStartLLM) {
 const llmStartTime = Date.now();
 console.log(`[chat-send] ⏱️  Determining LLM handler (+${Date.now() - startTime}ms)`);
 
+console.info(JSON.stringify({
+  event: "chat_send_calling_llm",
+  chattype,
+  chattype_type: typeof chattype,
+  chattype_is_voice: chattype === "voice",
+  should_start_llm: shouldStartLLM,
+  role,
+  mode
+}));
+
 // Get configured LLM handler
 getLLMHandler(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY).then((llmHandler) => {
   console.log(`[chat-send] ⏱️  Firing ${llmHandler} (+${Date.now() - startTime}ms)`);
+  
+  const payload = { chat_id, text, mode, user_id, user_name };
+  
+  console.info(JSON.stringify({
+    event: "chat_send_llm_payload",
+    llm_handler: llmHandler,
+    payload_keys: Object.keys(payload),
+    has_chattype: "chattype" in payload,
+    chattype_in_payload: payload.chattype
+  }));
   
   return fetch(`${SUPABASE_URL}/functions/v1/${llmHandler}`, {
     method: "POST",
@@ -163,7 +183,7 @@ getLLMHandler(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY).then((llmHandler) => {
       "Content-Type": "application/json",
       "Authorization": `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`
     },
-    body: JSON.stringify({ chat_id, text, mode, user_id, user_name })
+    body: JSON.stringify(payload)
   });
 }).then(() => {
   console.log(`[chat-send] ⏱️  LLM handler fetch completed (+${Date.now() - llmStartTime}ms from fire)`);
