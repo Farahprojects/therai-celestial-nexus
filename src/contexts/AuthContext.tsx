@@ -497,12 +497,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.warn('Additional cleanup failed:', cleanupError);
       }
 
-      // No navigation - let user stay on current page
-      // AuthGuard will show auth modal if needed
+      // Step 5: Force navigation to /therai to clear URL (security fix)
+      // This ensures chat/folder IDs don't persist in URL after logout
+      if (typeof window !== 'undefined') {
+        const currentPath = window.location.pathname;
+        // Only navigate if we're not already on /therai
+        if (currentPath !== '/therai') {
+          console.log('[AuthContext] Forcing navigation to /therai after logout');
+          window.location.replace('/therai');
+          return; // Exit early since we're doing a hard navigation
+        }
+      }
       
     } catch (error) {
       console.error('Sign out error:', error);
-      // Continue with cleanup even on error - auth state change will handle the rest
+      // Continue with cleanup even on error
+      // Still force navigation to /therai for security
+      if (typeof window !== 'undefined' && window.location.pathname !== '/therai') {
+        window.location.replace('/therai');
+      }
     } finally {
       setLoading(false);
     }
