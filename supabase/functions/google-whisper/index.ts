@@ -97,20 +97,13 @@ const transcript = Array.isArray(result.results)
 : "";
 
 // Extract duration from Google's response (source of truth)
-// Duration is in the result metadata as seconds string (e.g., "3.500s")
 let durationSeconds = 0;
 if (result.totalBilledTime) {
-  // Parse duration string like "3s" or "3.500s"
   const match = result.totalBilledTime.match(/(\d+(?:\.\d+)?)/);
   durationSeconds = match ? Math.ceil(parseFloat(match[1])) : 0;
-  console.log(`[google-whisper] Parsed duration from totalBilledTime: ${result.totalBilledTime} -> ${durationSeconds}s`);
 } else if (Array.isArray(result.results) && result.results[0]?.resultEndTime) {
-  // Fallback: use resultEndTime from first result
   const match = result.results[0].resultEndTime.match(/(\d+(?:\.\d+)?)/);
   durationSeconds = match ? Math.ceil(parseFloat(match[1])) : 0;
-  console.log(`[google-whisper] Parsed duration from resultEndTime: ${result.results[0].resultEndTime} -> ${durationSeconds}s`);
-} else {
-  console.warn(`[google-whisper] No duration found in Google API response. Available keys:`, Object.keys(result));
 }
 
 return { transcript: transcript || "", durationSeconds };
@@ -183,15 +176,12 @@ if (chattype === "voice") {
 }
 
 const languageCode = normalizeLanguageCode(String(language));
-console.log(`[google-whisper] Calling Google STT API for user ${authenticatedUserId || 'unknown'}, audio size: ${audioBuffer.length} bytes`);
 const { transcript, durationSeconds } = await transcribeWithGoogle({
   apiKey: GOOGLE_STT,
   audioBytes: audioBuffer,
   mimeType,
   languageCode
 });
-
-console.log(`[google-whisper] Google STT API returned: transcript length=${transcript.length}, duration=${durationSeconds}s`);
 
 if (!transcript.trim()) {
   return json(200, { transcript: "" });
