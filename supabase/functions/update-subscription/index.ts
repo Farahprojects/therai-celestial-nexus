@@ -6,6 +6,13 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Helper function for consistent JSON responses
+const jsonResponse = (body: any, status = 200) =>
+  new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -19,17 +26,34 @@ Deno.serve(async (req) => {
     );
 
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) throw new Error("No authorization header");
+    if (!authHeader) {
+      return jsonResponse({ error: { message: "No authorization header", type: "AuthError" } }, 401);
+    }
 
     const token = authHeader.replace("Bearer ", "");
     const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
-    if (userError) throw new Error(`Authentication error: ${userError.message}`);
+    if (userError) {
+      return jsonResponse({ 
+        error: { 
+          message: `Authentication error: ${userError.message}`, 
+          type: "AuthError" 
+        } 
+      }, 401);
+    }
     
     const user = userData.user;
-    if (!user?.email) throw new Error("User not authenticated");
+    if (!user?.email) {
+      return jsonResponse({ 
+        error: { message: "User not authenticated", type: "AuthError" } 
+      }, 401);
+    }
 
     const { newPriceId } = await req.json();
-    if (!newPriceId) throw new Error("Missing newPriceId parameter");
+    if (!newPriceId) {
+      return jsonResponse({ 
+        error: { message: "Missing newPriceId parameter", type: "ValidationError" } 
+      }, 400);
+    }
 
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
       apiVersion: "2023-10-16",
@@ -43,11 +67,46 @@ Deno.serve(async (req) => {
       .single();
 
     if (profileError || !profile?.stripe_subscription_id) {
-      throw new Error("No active subscription found");
+      return jsonResponse({ 
+        error: { message: "No active subscription found", type: "NotFoundError" } 
+      }, 404);
     }
 
     // Retrieve current subscription from Stripe
     const subscription = await stripe.subscriptions.retrieve(profile.stripe_subscription_id);
+    
+    // Get current subscription item (future-proof for multiple items)
+    const currentItem = subscription.items.data.find(
+      (item) => item.price.id !== newPriceId
+    );
+    
+    if (!currentItem) {
+      return jsonResponse({ 
+        error: { 
+          message: "Already subscribed to this plan", 
+          type: "ValidationError" 
+        } 
+      }, 400);
+    }
+
+    // Get current subscription currency
+    const currentCurrency = currentItem.price.currency;
+
+    // Fetch the new price to check its currency
+    const newPrice = await stripe.prices.retrieve(newPriceId);
+    
+    // Verify currency matches
+    if (newPrice.currency !== currentCurrency) {
+      return jsonResponse({ 
+        error: { 
+          message: `Cannot upgrade: Current subscription is in ${currentCurrency.toUpperCase()}, but selected plan is in ${newPrice.currency.toUpperCase()}. Currency must match.`,
+          type: "CurrencyMismatchError",
+          code: "currency_mismatch",
+          currentCurrency,
+          newCurrency: newPrice.currency
+        } 
+      }, 400);
+    }
 
     // Update subscription with new price
     const updatedSubscription = await stripe.subscriptions.update(
@@ -55,40 +114,48 @@ Deno.serve(async (req) => {
       {
         items: [
           {
-            id: subscription.items.data[0].id,
+            id: currentItem.id,
             price: newPriceId,
           },
         ],
         proration_behavior: "create_prorations", // Credit unused time and charge difference
+        invoice_now: true, // Immediately generate invoice for prorated difference
       }
     );
 
     console.log(`Updated subscription ${profile.stripe_subscription_id} to price ${newPriceId}`);
 
-    return new Response(
-      JSON.stringify({
-        success: true,
-        subscription: {
-          id: updatedSubscription.id,
-          status: updatedSubscription.status,
-          current_period_end: updatedSubscription.current_period_end,
-        },
-      }),
-      {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 200,
-      }
-    );
+    return jsonResponse({
+      success: true,
+      subscription: {
+        id: updatedSubscription.id,
+        status: updatedSubscription.status,
+        current_period_end: updatedSubscription.current_period_end,
+        currency: updatedSubscription.currency,
+      },
+    });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error updating subscription:", error);
-    return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
-      {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 500,
+    
+    // Handle Stripe errors with better structure
+    if (error.type === "StripeInvalidRequestError") {
+      return jsonResponse({
+        error: {
+          message: error.message,
+          type: error.type || "StripeError",
+          code: error.code || null,
+          param: error.param || null,
+        }
+      }, 400);
+    }
+    
+    return jsonResponse({
+      error: {
+        message: error instanceof Error ? error.message : "Unknown error",
+        type: "InternalError",
       }
-    );
+    }, 500);
   }
 });
 

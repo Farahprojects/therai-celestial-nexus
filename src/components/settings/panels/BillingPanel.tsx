@@ -230,7 +230,15 @@ export const BillingPanel: React.FC = () => {
       });
 
       if (error) {
-        toast.error('Failed to upgrade subscription');
+        // Handle structured error responses
+        const errorMessage = error.error?.message || error.message || 'Failed to upgrade subscription';
+        const errorType = error.error?.type || error.type;
+        
+        if (errorType === 'CurrencyMismatchError') {
+          toast.error('Currency mismatch: Cannot upgrade to a plan with a different currency. Please contact support.');
+        } else {
+          toast.error(errorMessage);
+        }
         return;
       }
 
