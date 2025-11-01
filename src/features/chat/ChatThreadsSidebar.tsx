@@ -4,6 +4,8 @@ import { useChatStore } from '@/core/store';
 import { useMessageStore } from '@/stores/messageStore';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSubscription } from '@/contexts/SubscriptionContext';
+import { getBillingMode } from '@/utils/billingMode';
+import { useSubscriptionStatus } from '@/hooks/useSubscriptionStatus';
 import { useUserData } from '@/hooks/useUserData';
 import { useThreads } from '@/contexts/ThreadsContext';
 import { Trash2, Sparkles, AlertTriangle, MoreHorizontal, UserPlus, Plus, Search, User, Settings, Bell, CreditCard, LifeBuoy, LogOut, BarChart3, ChevronDown, MessageCircle, Orbit } from 'lucide-react';
@@ -56,6 +58,8 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
   // Use single source of truth for auth state
   const { isAuthenticated } = useAuth();
   const { isSubscriptionActive } = useSubscription();
+  const { isActive: subscriptionIsActive } = useSubscriptionStatus(); // For subscription mode detection
+  const billingMode = getBillingMode(); // Get billing mode
   const userPermissions = useUserPermissions();
   const uiConfig = getUserTypeConfig(isAuthenticated ? 'authenticated' : 'unauthenticated');
   
@@ -83,6 +87,12 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
       console.error('[ChatThreadsSidebar] Failed to refresh credits:', error);
     }
   };
+  
+  // Determine if upgrade button should show based on billing mode
+  // Uses same logic as toast: subscription_active AND subscription_status for subscription mode
+  const shouldShowUpgrade = billingMode === 'CREDIT' 
+    ? (!creditsLoading && credits === 0)  // Credit mode: check credits
+    : !subscriptionIsActive;  // Subscription mode: check subscription status (same as toast)
   
   // Get chat_id and folderId directly from URL (most reliable source)
   const { threadId, folderId } = useParams<{ threadId?: string; folderId?: string }>();
@@ -1028,11 +1038,15 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
                         {displayName}
                       </div>
                     </div>
-                    {!creditsLoading && credits === 0 && (
+                    {shouldShowUpgrade && (
                       <div 
                         onClick={(e) => {
                           e.stopPropagation();
-                          setShowCreditPurchaseModal(true);
+                          if (billingMode === 'CREDIT') {
+                            setShowCreditPurchaseModal(true);
+                          } else {
+                            navigate('/subscription-paywall');
+                          }
                         }}
                         className="flex-shrink-0 px-3 py-1 text-xs font-light bg-gray-900 text-white rounded-full hover:bg-gray-800 transition-colors cursor-pointer"
                       >
@@ -1058,11 +1072,15 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
                     </button>
                   </DropdownMenuTrigger>
                   
-                  {!creditsLoading && credits === 0 && (
+                  {shouldShowUpgrade && (
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        setShowCreditPurchaseModal(true);
+                        if (billingMode === 'CREDIT') {
+                          setShowCreditPurchaseModal(true);
+                        } else {
+                          navigate('/subscription-paywall');
+                        }
                       }}
                       className="flex-shrink-0 px-3 py-1 text-xs font-light bg-gray-900 text-white rounded-full hover:bg-gray-800 transition-colors"
                     >
