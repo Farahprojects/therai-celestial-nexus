@@ -59,7 +59,7 @@ Deno.serve(async (req) => {
             price: newPriceId,
           },
         ],
-        proration_behavior: "always_invoice", // Prorate the difference
+        proration_behavior: "create_prorations", // Credit unused time and charge difference
       }
     );
 
