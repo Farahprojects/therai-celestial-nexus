@@ -7,7 +7,7 @@
   Enhanced for production readiness with retries, timeouts, and structured logging.
 ────────────────────────────────────────────────────────────────────────────────*/
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { incrementFeatureUsage } from "../_shared/featureGating.ts";
+import { atomicCheckAndIncrement } from "../_shared/featureGating.ts";
 
 /*───────────────────────────────────────────────────────────────────────────────
   CONFIG & SINGLETONS
@@ -361,15 +361,40 @@ Deno.serve(async (req) => {
     // Fetch the system prompt using the dynamic report type
     const systemPrompt = await getSystemPrompt(promptName, requestId);
 
+    // PRO-LEVEL: Atomically check limit and increment before generating report
+    // This prevents race conditions and ensures limits are never exceeded
+    if (reportData.user_id) {
+      console.log(`${logPrefix} Checking insights limit before report generation for user ${reportData.user_id}`);
+      const incrementResult = await atomicCheckAndIncrement(
+        supabase,
+        reportData.user_id,
+        'insights_count',
+        1
+      );
+
+      if (!incrementResult.success) {
+        console.warn(`${logPrefix} Insights limit check failed:`, incrementResult);
+        return jsonResponse(
+          {
+            error: incrementResult.reason || 'Monthly insights limit reached',
+            remaining: incrementResult.remaining,
+            limit: incrementResult.limit,
+            requestId
+          },
+          { status: 403 },
+          requestId
+        );
+      }
+
+      console.log(`${logPrefix} ✅ Insights limit check passed:`, {
+        previousUsage: incrementResult.previousUsage,
+        newUsage: incrementResult.newUsage,
+        remaining: incrementResult.remaining
+      });
+    }
+
     // Generate the report
     const { report, metadata } = await generateReport(systemPrompt, reportData, requestId);
-    
-    // Track insights usage after successful report generation (fire-and-forget)
-    if (reportData.user_id) {
-      incrementFeatureUsage(supabase, reportData.user_id, 'insights_count', 1)
-        .catch(err => console.error(`${logPrefix} Failed to track insights usage:`, err));
-      console.log(`${logPrefix} Tracked insights usage for user ${reportData.user_id}`);
-    }
     
     // Log successful report generation (fire-and-forget)
     const durationMs = Date.now() - startTime;

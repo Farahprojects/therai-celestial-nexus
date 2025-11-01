@@ -91,6 +91,170 @@ export async function checkFeatureAccess(
 }
 
 /**
+ * PRO-LEVEL: Atomically check limit and increment usage in a single transaction.
+ * This prevents race conditions and ensures limits are never exceeded.
+ * 
+ * @param supabase - Supabase client (service role)
+ * @param userId - User ID
+ * @param featureType - Type of feature used
+ * @param amount - Amount to increment
+ * @returns Result with success status and usage details
+ */
+export async function atomicCheckAndIncrement(
+  supabase: SupabaseClient<any>,
+  userId: string,
+  featureType: 'voice_seconds' | 'insights_count',
+  amount: number
+): Promise<{
+  success: boolean;
+  previousUsage?: number;
+  newUsage?: number;
+  remaining?: number;
+  limit?: number;
+  reason?: string;
+  errorCode?: string;
+}> {
+  // Input validation
+  if (!userId || typeof userId !== 'string') {
+    return {
+      success: false,
+      reason: 'Invalid user ID',
+      errorCode: 'INVALID_USER_ID'
+    };
+  }
+
+  if (!amount || amount <= 0 || !Number.isInteger(amount)) {
+    return {
+      success: false,
+      reason: 'Invalid amount: must be a positive integer',
+      errorCode: 'INVALID_AMOUNT'
+    };
+  }
+
+  // Get user's subscription plan to determine limit
+  const { data: profile, error: profileError } = await supabase
+    .from('profiles')
+    .select('subscription_plan, subscription_active, subscription_status')
+    .eq('id', userId)
+    .single();
+
+  if (profileError || !profile) {
+    console.error('[featureGating] Failed to fetch profile:', profileError);
+    return {
+      success: false,
+      reason: 'Unable to verify subscription',
+      errorCode: 'PROFILE_ERROR'
+    };
+  }
+
+  // Check if user has active subscription
+  if (!profile.subscription_active || 
+      !['active', 'trialing'].includes(profile.subscription_status || '')) {
+    return {
+      success: false,
+      reason: 'No active subscription',
+      errorCode: 'NO_SUBSCRIPTION'
+    };
+  }
+
+  const plan = profile.subscription_plan;
+  const limits = FEATURE_LIMITS[plan];
+  
+  if (!limits) {
+    console.warn(`[featureGating] Unknown plan: ${plan}`);
+    return {
+      success: false,
+      reason: 'Unknown subscription plan',
+      errorCode: 'UNKNOWN_PLAN'
+    };
+  }
+
+  // Check if unlimited
+  const limit = limits[featureType];
+  if (limit === null) {
+    // Unlimited - just increment without checking
+    const currentPeriod = new Date().toISOString().slice(0, 7);
+    const rpcFunction = featureType === 'voice_seconds' 
+      ? 'increment_voice_seconds'
+      : 'increment_insights_count';
+    const rpcParams = featureType === 'voice_seconds'
+      ? { p_user_id: userId, p_seconds: amount, p_period: currentPeriod }
+      : { p_user_id: userId, p_count: amount, p_period: currentPeriod };
+
+    const { error } = await supabase.rpc(rpcFunction, rpcParams);
+    
+    if (error) {
+      return {
+        success: false,
+        reason: `Failed to increment: ${error.message}`,
+        errorCode: 'INCREMENT_ERROR'
+      };
+    }
+
+    return {
+      success: true,
+      limit: null,
+      remaining: null
+    };
+  }
+
+  // Use atomic check-and-increment function
+  const currentPeriod = new Date().toISOString().slice(0, 7);
+  const rpcFunction = featureType === 'voice_seconds' 
+    ? 'check_and_increment_voice_seconds'
+    : 'check_and_increment_insights_count';
+  
+  const rpcParams = featureType === 'voice_seconds'
+    ? { p_user_id: userId, p_seconds: amount, p_period: currentPeriod, p_limit: limit }
+    : { p_user_id: userId, p_count: amount, p_period: currentPeriod, p_limit: limit };
+
+  console.log(`[featureGating] Atomic check-and-increment:`, {
+    function: rpcFunction,
+    params: rpcParams
+  });
+
+  const { data, error } = await supabase.rpc(rpcFunction, rpcParams);
+
+  if (error) {
+    console.error(`[featureGating] RPC error:`, error);
+    return {
+      success: false,
+      reason: `Database error: ${error.message}`,
+      errorCode: 'RPC_ERROR'
+    };
+  }
+
+  // Parse JSONB response
+  const result = data as any;
+  
+  if (!result.success) {
+    console.warn(`[featureGating] Limit check failed:`, result);
+    return {
+      success: false,
+      reason: result.reason || 'Limit exceeded',
+      errorCode: result.error_code || 'LIMIT_EXCEEDED',
+      limit: result.limit,
+      remaining: result.remaining
+    };
+  }
+
+  console.log(`[featureGating] ✅ Atomic increment successful:`, {
+    previousUsage: result.previous_usage,
+    incrementedBy: result.incremented_by,
+    newUsage: result.new_usage,
+    remaining: result.remaining
+  });
+
+  return {
+    success: true,
+    previousUsage: result.previous_usage,
+    newUsage: result.new_usage,
+    remaining: result.remaining,
+    limit: result.limit
+  };
+}
+
+/**
  * Increment feature usage atomically after successful operation.
  * This should be called AFTER the feature has been successfully used.
  * Uses the modular table structure with specific increment functions.
@@ -104,24 +268,88 @@ export async function incrementFeatureUsage(
   supabase: SupabaseClient<any>,
   userId: string,
   featureType: 'voice_seconds' | 'insights_count',
-  amount: number
+  amount: number,
+  retryAttempts: number = 3
 ): Promise<void> {
-  const currentPeriod = new Date().toISOString().slice(0, 7);
-
-  // Call the specific increment function based on feature type
-  const rpcFunction = featureType === 'voice_seconds' 
-    ? 'increment_voice_seconds'
-    : 'increment_insights_count';
-
-  const rpcParams = featureType === 'voice_seconds'
-    ? { p_user_id: userId, p_seconds: amount, p_period: currentPeriod }
-    : { p_user_id: userId, p_count: amount, p_period: currentPeriod };
-
-  const { error } = await supabase.rpc(rpcFunction, rpcParams);
-
-  if (error) {
-    console.error(`[featureGating] Failed to increment ${featureType}:`, error);
-    // Don't throw - we don't want to fail the operation just because tracking failed
+  // Input validation
+  if (!userId || typeof userId !== 'string') {
+    console.error('[featureGating] Invalid user ID');
+    return;
   }
+
+  if (!amount || amount <= 0 || !Number.isInteger(amount)) {
+    console.error('[featureGating] Invalid amount:', amount);
+    return;
+  }
+
+  const currentPeriod = new Date().toISOString().slice(0, 7);
+  
+  console.log(`[featureGating] incrementFeatureUsage called:`, {
+    userId,
+    featureType,
+    amount,
+    period: currentPeriod
+  });
+
+  // Retry logic for transient failures
+  let lastError: any = null;
+  for (let attempt = 1; attempt <= retryAttempts; attempt++) {
+    try {
+      // Call the specific increment function based on feature type
+      const rpcFunction = featureType === 'voice_seconds' 
+        ? 'increment_voice_seconds'
+        : 'increment_insights_count';
+
+      const rpcParams = featureType === 'voice_seconds'
+        ? { p_user_id: userId, p_seconds: amount, p_period: currentPeriod }
+        : { p_user_id: userId, p_count: amount, p_period: currentPeriod };
+
+      console.log(`[featureGating] Attempt ${attempt}/${retryAttempts}: Calling RPC ${rpcFunction} with params:`, rpcParams);
+      
+      const { error, data } = await supabase.rpc(rpcFunction, rpcParams);
+
+      if (error) {
+        lastError = error;
+        
+        // Check if it's a retryable error (network/timeout issues)
+        const isRetryable = error.code === 'PGRST116' || // Connection error
+                           error.message?.includes('timeout') ||
+                           error.message?.includes('network');
+        
+        if (!isRetryable || attempt === retryAttempts) {
+          console.error(`[featureGating] ❌ Failed to increment ${featureType}:`, {
+            error: error.message,
+            code: error.code,
+            details: error.details,
+            hint: error.hint,
+            attempt
+          });
+          return;
+        }
+        
+        // Wait before retry (exponential backoff)
+        const delayMs = Math.min(1000 * Math.pow(2, attempt - 1), 5000);
+        console.warn(`[featureGating] Retryable error, retrying in ${delayMs}ms...`);
+        await new Promise(resolve => setTimeout(resolve, delayMs));
+        continue;
+      }
+
+      // Success!
+      console.log(`[featureGating] ✅ Successfully incremented ${featureType} by ${amount} for user ${userId} in period ${currentPeriod}`);
+      return;
+      
+    } catch (err) {
+      lastError = err;
+      if (attempt === retryAttempts) {
+        console.error(`[featureGating] ❌ Exception after ${retryAttempts} attempts:`, err);
+        return;
+      }
+      const delayMs = Math.min(1000 * Math.pow(2, attempt - 1), 5000);
+      await new Promise(resolve => setTimeout(resolve, delayMs));
+    }
+  }
+
+  // If we get here, all retries failed
+  console.error(`[featureGating] ❌ All ${retryAttempts} attempts failed. Last error:`, lastError);
 }
 

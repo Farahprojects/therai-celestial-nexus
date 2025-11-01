@@ -87,6 +87,16 @@ throw new Error(`Google STT error: ${resp.status} - ${errorText}`);
 }
 
 const result = await resp.json();
+
+// Log Google API response for debugging
+console.log(`[google-whisper] Google STT API response keys:`, Object.keys(result));
+if (result.totalBilledTime) {
+  console.log(`[google-whisper] Google totalBilledTime:`, result.totalBilledTime);
+}
+if (Array.isArray(result.results) && result.results[0]?.resultEndTime) {
+  console.log(`[google-whisper] Google resultEndTime:`, result.results[0].resultEndTime);
+}
+
 const transcript = Array.isArray(result.results)
 ? result.results
 .flatMap((r: any) => (Array.isArray(r.alternatives) ? r.alternatives : []))
@@ -102,10 +112,14 @@ if (result.totalBilledTime) {
   // Parse duration string like "3s" or "3.500s"
   const match = result.totalBilledTime.match(/(\d+(?:\.\d+)?)/);
   durationSeconds = match ? Math.ceil(parseFloat(match[1])) : 0;
+  console.log(`[google-whisper] Parsed duration from totalBilledTime: ${result.totalBilledTime} -> ${durationSeconds}s`);
 } else if (Array.isArray(result.results) && result.results[0]?.resultEndTime) {
   // Fallback: use resultEndTime from first result
   const match = result.results[0].resultEndTime.match(/(\d+(?:\.\d+)?)/);
   durationSeconds = match ? Math.ceil(parseFloat(match[1])) : 0;
+  console.log(`[google-whisper] Parsed duration from resultEndTime: ${result.results[0].resultEndTime} -> ${durationSeconds}s`);
+} else {
+  console.warn(`[google-whisper] No duration found in Google API response. Available keys:`, Object.keys(result));
 }
 
 return { transcript: transcript || "", durationSeconds };
@@ -179,12 +193,15 @@ if (chattype === "voice") {
 }
 
 const languageCode = normalizeLanguageCode(String(language));
+console.log(`[google-whisper] Calling Google STT API for user ${authenticatedUserId || 'unknown'}, audio size: ${audioBuffer.length} bytes`);
 const { transcript, durationSeconds } = await transcribeWithGoogle({
   apiKey: GOOGLE_STT,
   audioBytes: audioBuffer,
   mimeType,
   languageCode
 });
+
+console.log(`[google-whisper] Google STT API returned: transcript length=${transcript.length}, duration=${durationSeconds}s`);
 
 if (!transcript.trim()) {
   return json(200, { transcript: "" });
@@ -197,6 +214,8 @@ if (chattype === "voice" && authenticatedUserId && durationSeconds > 0) {
     auth: { persistSession: false }
   });
 
+  console.log(`[google-whisper] Preparing to track ${durationSeconds}s for user ${authenticatedUserId}`);
+
   // Check if user has access (post-transcription, using actual duration)
   const accessCheck = await checkFeatureAccess(
     supabase,
@@ -205,14 +224,27 @@ if (chattype === "voice" && authenticatedUserId && durationSeconds > 0) {
     durationSeconds
   );
 
+  console.log(`[google-whisper] Feature access check:`, {
+    allowed: accessCheck.allowed,
+    remaining: accessCheck.remaining,
+    limit: accessCheck.limit,
+    reason: accessCheck.reason
+  });
+
   if (!accessCheck.allowed) {
     console.warn(`[google-whisper] Usage limit exceeded after transcription: ${accessCheck.reason}`);
     // Note: transcription already happened, so we still track it but warn user
   }
 
   // Increment usage counter using Google's reported duration (fire-and-forget)
+  console.log(`[google-whisper] Calling incrementFeatureUsage(${authenticatedUserId}, 'voice_seconds', ${durationSeconds})`);
   incrementFeatureUsage(supabase, authenticatedUserId, 'voice_seconds', durationSeconds)
-    .catch(err => console.error("[google-whisper] Failed to track usage:", err));
+    .then(() => {
+      console.log(`[google-whisper] ✅ Successfully incremented ${durationSeconds}s for user ${authenticatedUserId}`);
+    })
+    .catch(err => {
+      console.error(`[google-whisper] ❌ Failed to track usage:`, err);
+    });
   
   console.log(`[google-whisper] Tracked ${durationSeconds}s from Google STT API for user ${authenticatedUserId}`);
 }
