@@ -38,11 +38,11 @@ const PaywallModal: React.FC<PaywallModalProps> = ({ isOpen, onClose, onSuccess 
           const { data, error } = await supabase
             .from('price_list')
             .select('id, name, description, unit_price_usd, product_code, stripe_price_id')
-            .eq('endpoint', 'subscription' as any)
+            .eq('endpoint' as any, 'subscription')
             .order('unit_price_usd', { ascending: true });
 
           if (!error && data) {
-            setSubscriptionPlans(data);
+            setSubscriptionPlans(data as any);
           }
         } catch (err) {
           console.error('Error fetching plans:', err);

@@ -172,14 +172,14 @@ export const FolderView: React.FC<FolderViewProps> = ({ folderId, onChatClick })
       await supabase
         .from('messages')
         .delete()
-        .eq('chat_id', editingConversationId as any);
+        .eq('chat_id' as any, editingConversationId);
 
       // Delete conversation
       await supabase
         .from('conversations')
         .delete()
-        .eq('id', editingConversationId as any)
-        .eq('user_id', user.id as any);
+        .eq('id' as any, editingConversationId)
+        .eq('user_id' as any, user.id);
 
       // Update local state
       removeThread(editingConversationId);

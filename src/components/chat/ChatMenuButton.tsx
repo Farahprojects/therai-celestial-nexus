@@ -101,14 +101,14 @@ export const ChatMenuButton: React.FC<ChatMenuButtonProps> = ({
       await supabase
         .from('messages')
         .delete()
-        .eq('chat_id', chat_id as any);
+        .eq('chat_id' as any, chat_id);
 
       // Delete conversation
       await supabase
         .from('conversations')
         .delete()
-        .eq('id', chat_id as any)
-        .eq('user_id', user.id as any);
+        .eq('id' as any, chat_id)
+        .eq('user_id' as any, user.id);
 
       // Update local state
       removeThread(chat_id);
