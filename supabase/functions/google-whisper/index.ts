@@ -135,6 +135,15 @@ if (!form) return json(400, { error: "Expected multipart/form-data" });
     const user_id = form.get("user_id");
     const user_name = form.get("user_name") || undefined;
     
+    console.info(JSON.stringify({
+      event: "form_data_received",
+      chattype: chattype,
+      chattype_type: typeof chattype,
+      user_id: user_id,
+      user_id_type: typeof user_id,
+      mode: mode
+    }));
+    
     // Type-safe user_id extraction
     let authenticatedUserId = typeof user_id === 'string' ? user_id : undefined;
 
@@ -188,7 +197,13 @@ console.info(JSON.stringify({
   transcript_length: transcript.length,
   duration_seconds: durationSeconds,
   user_id: authenticatedUserId,
-  chattype
+  chattype,
+  condition_check: {
+    chattype_is_voice: chattype === "voice",
+    has_authenticatedUserId: !!authenticatedUserId,
+    duration_seconds_gt_zero: durationSeconds > 0,
+    will_track: chattype === "voice" && authenticatedUserId && durationSeconds > 0
+  }
 }));
 
 if (!transcript.trim()) {
