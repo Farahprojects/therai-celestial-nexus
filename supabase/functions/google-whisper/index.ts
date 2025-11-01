@@ -136,7 +136,7 @@ if (!form) return json(400, { error: "Expected multipart/form-data" });
     const user_name = form.get("user_name") || undefined;
     
     // Type-safe user_id extraction
-    const authenticatedUserId = typeof user_id === 'string' ? user_id : undefined;
+    let authenticatedUserId = typeof user_id === 'string' ? user_id : undefined;
 
 if (!(file instanceof File)) return json(400, { error: "Missing file in form-data" });
 if (!mode || typeof mode !== "string") return json(400, { error: "Missing or invalid field: mode" });
@@ -147,13 +147,13 @@ const mimeType = file.type || "audio/webm";
 
 if (!audioBuffer.length) return json(400, { error: "Empty audio data" });
 
+// Create Supabase client at request level (needed for feature checks and JWT verification)
+const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+  auth: { persistSession: false }
+});
+
 // Feature gating: Check voice usage limits for voice chattype
 if (chattype === "voice") {
-  // Create Supabase client for feature checks
-  const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
-    auth: { persistSession: false }
-  });
-
   // Get authenticated user ID from JWT (more secure than form data)
   const authHeader = req.headers.get("Authorization");
   
