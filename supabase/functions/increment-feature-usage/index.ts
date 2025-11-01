@@ -148,6 +148,9 @@ Deno.serve(async (req) => {
       duration_ms: duration
     }));
 
+    // Flush logs before returning response
+    await new Promise(r => setTimeout(r, 50));
+
     return jsonResponse({
       success: true,
       feature_type,
