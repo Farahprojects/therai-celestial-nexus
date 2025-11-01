@@ -31,7 +31,11 @@ Deno.serve(async (req) => {
   const requestId = crypto.randomUUID().substring(0, 8);
   const startTime = Date.now();
 
-  console.log(`[increment-feature-usage][${requestId}] Request received`);
+  console.info(JSON.stringify({
+    event: "increment_feature_usage_request",
+    request_id: requestId,
+    method: req.method
+  }));
 
   if (req.method === "OPTIONS") {
     return new Response(null, { status: 204, headers: corsHeaders });
@@ -46,12 +50,14 @@ Deno.serve(async (req) => {
     const body = await req.json();
     const { user_id, feature_type, amount, source } = body;
 
-    console.log(`[increment-feature-usage][${requestId}] Request:`, {
+    console.info(JSON.stringify({
+      event: "increment_feature_usage_params",
+      request_id: requestId,
       user_id,
       feature_type,
       amount,
       source
-    });
+    }));
 
     // Input validation
     if (!user_id || typeof user_id !== 'string') {
@@ -83,13 +89,15 @@ Deno.serve(async (req) => {
 
     const currentPeriod = new Date().toISOString().slice(0, 7); // 'YYYY-MM'
     
-    console.log(`[increment-feature-usage][${requestId}] Incrementing:`, {
+    console.info(JSON.stringify({
+      event: "increment_feature_usage_start",
+      request_id: requestId,
       user_id,
       feature_type,
       amount,
       period: currentPeriod,
       source: source || 'unknown'
-    });
+    }));
 
     // Call the specific increment function based on feature type
     const rpcFunction = feature_type === 'voice_seconds' 
@@ -100,19 +108,26 @@ Deno.serve(async (req) => {
       ? { p_user_id: user_id, p_seconds: amount, p_period: currentPeriod }
       : { p_user_id: user_id, p_count: amount, p_period: currentPeriod };
 
-    console.log(`[increment-feature-usage][${requestId}] Calling RPC ${rpcFunction} with params:`, rpcParams);
+    console.info(JSON.stringify({
+      event: "calling_rpc",
+      request_id: requestId,
+      rpc_function: rpcFunction,
+      params: rpcParams
+    }));
     
     const { error, data } = await supabase.rpc(rpcFunction, rpcParams);
 
     if (error) {
-      console.error(`[increment-feature-usage][${requestId}] ❌ RPC call failed:`, {
+      console.error(JSON.stringify({
+        event: "rpc_call_failed",
+        request_id: requestId,
         error: error.message,
         code: error.code,
         details: error.details,
         hint: error.hint,
         function: rpcFunction,
         params: rpcParams
-      });
+      }));
       
       return jsonResponse({
         success: false,
@@ -123,7 +138,15 @@ Deno.serve(async (req) => {
     }
 
     const duration = Date.now() - startTime;
-    console.log(`[increment-feature-usage][${requestId}] ✅ Successfully incremented ${feature_type} by ${amount} for user ${user_id} in period ${currentPeriod} (${duration}ms)`);
+    console.info(JSON.stringify({
+      event: "increment_feature_usage_success",
+      request_id: requestId,
+      user_id,
+      feature_type,
+      amount,
+      period: currentPeriod,
+      duration_ms: duration
+    }));
 
     return jsonResponse({
       success: true,
@@ -136,7 +159,11 @@ Deno.serve(async (req) => {
 
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : "Unknown error";
-    console.error(`[increment-feature-usage][${requestId}] Exception:`, err);
+    console.error(JSON.stringify({
+      event: "increment_feature_usage_exception",
+      request_id: requestId,
+      error: errorMessage
+    }));
     
     return jsonResponse({
       success: false,
