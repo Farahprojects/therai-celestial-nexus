@@ -313,7 +313,7 @@ if (chattype === "voice" && chat_id) {
     };
 
     // Get configured LLM handler, then fire-and-forget tasks
-    getLLMHandler(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY).then((llmHandler) => {
+    getLLMHandler(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY).then(async (llmHandler) => {
       console.log(`[google-stt] Using ${llmHandler} for voice mode`);
       
       // Capture chattype in closure to ensure it's passed correctly
@@ -381,10 +381,66 @@ if (chattype === "voice" && chat_id) {
         }
       }));
 
-      // Start without awaiting to keep response snappy
-      Promise.allSettled(tasks).catch(() => {});
+      // AWAIT to see errors (not fire-and-forget)
+      try {
+        const results = await Promise.allSettled(tasks);
+        
+        results.forEach((result, index) => {
+          const taskName = index === 0 ? "chat-send" : index === 1 ? "llm-handler" : "broadcast";
+          
+          if (result.status === "fulfilled") {
+            const response = result.value;
+            console.info(JSON.stringify({
+              event: `${taskName}_succeeded`,
+              status: response.status,
+              statusText: response.statusText
+            }));
+            
+            // Try to read response body for errors
+            response.text().then(text => {
+              try {
+                const body = JSON.parse(text);
+                if (!response.ok) {
+                  console.error(JSON.stringify({
+                    event: `${taskName}_failed`,
+                    status: response.status,
+                    error: body
+                  }));
+                }
+              } catch {
+                // Response wasn't JSON, log raw text if error
+                if (!response.ok) {
+                  console.error(JSON.stringify({
+                    event: `${taskName}_failed`,
+                    status: response.status,
+                    error_text: text.substring(0, 200)
+                  }));
+                }
+              }
+            }).catch(err => {
+              console.error(JSON.stringify({
+                event: `${taskName}_response_read_error`,
+                error: err instanceof Error ? err.message : String(err)
+              }));
+            });
+          } else {
+            console.error(JSON.stringify({
+              event: `${taskName}_rejected`,
+              error: result.reason instanceof Error ? result.reason.message : String(result.reason)
+            }));
+          }
+        });
+      } catch (err) {
+        console.error(JSON.stringify({
+          event: "voice_flow_tasks_error",
+          error: err instanceof Error ? err.message : String(err)
+        }));
+      }
     }).catch((err) => {
-      console.error("[google-stt] Failed to determine LLM handler:", err);
+      console.error(JSON.stringify({
+        event: "failed_to_get_llm_handler",
+        error: err instanceof Error ? err.message : String(err)
+      }));
     });
   }
 } else {
