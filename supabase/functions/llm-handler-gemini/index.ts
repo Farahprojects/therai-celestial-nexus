@@ -543,6 +543,7 @@ Deno.serve(async (req) => {
         headers,
         body: JSON.stringify({
           chat_id,
+          mode,
           messages: [
             {
               text,
