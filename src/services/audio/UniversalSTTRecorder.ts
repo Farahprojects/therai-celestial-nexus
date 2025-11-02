@@ -6,14 +6,14 @@ export interface STTRecorderOptions {
   onTranscriptReady?: (transcript: string) => void;
   onError?: (error: Error) => void;
   onLevel?: (level: number) => void;
-  baselineCaptureDuration?: number; // ms to capture baseline energy (default: 1000)
+  baselineCaptureDuration?: number; // ms to capture baseline energy (default: 600)
   silenceMargin?: number; // percentage below baseline to trigger silence (default: 0.15)
   silenceHangover?: number; // ms before triggering silence (default: 300)
   chattype?: string; // e.g., 'voice' or 'text'
   mode?: string; // e.g., 'chat' or 'astro'
   onProcessingStart?: () => void; // fired when recording stops and processing begins
   triggerPercent?: number; // percentage above baseline to start capture (default: 0.2)
-  preRollMs?: number; // how much audio before trigger to include (default: 300)
+  preRollMs?: number; // how much audio before trigger to include (default: 800)
   user_id?: string; // user ID for message attribution
   user_name?: string; // user name for message attribution
 }
@@ -46,14 +46,15 @@ export class UniversalSTTRecorder {
   private baselineEnergySum = 0;
   private baselineEnergyCount = 0;
   private vadArmUntilTs: number = 0; // time after which VAD can arm (post-baseline guard)
+  private earlyVoiceDetected: boolean = false; // flag if voice detected during baseline
   private currentGain: number = 1; // smoothed adaptive gain (desktop)
   private desktopTargetRMS: number = 0.12; // desktop loudness target
   // Persistent baseline adaptation
   private ambientEma: number = 0;
   private ambientStableSince: number = 0;
   private baselineLastUpdated: number = 0;
-  private readonly desktopBaselineTrigger = 0.25; // 25%
-  private readonly mobileBaselineTrigger = 0.30; // 30%
+  private readonly desktopBaselineTrigger = 0.18; // 18% - more sensitive to catch early speech
+  private readonly mobileBaselineTrigger = 0.22; // 22% - more sensitive to catch early speech
   private readonly desktopAmbientStableMs = 600; // faster adaptation for desktop
   private readonly mobileAmbientStableMs = 700; // faster adaptation for mobile
   private readonly desktopBaselineFloor = 0.002;
@@ -73,11 +74,11 @@ export class UniversalSTTRecorder {
 
   constructor(options: STTRecorderOptions = {}) {
     this.options = {
-      baselineCaptureDuration: 1000, // 1 second to capture baseline
+      baselineCaptureDuration: 600, // 600ms baseline - shorter for faster start
       silenceMargin: 0.15, // 15% below baseline
       silenceHangover: 300, // 300ms before triggering silence
       triggerPercent: 0.2, // 20% above baseline to start
-      preRollMs: 300,
+      preRollMs: 800, // 800ms pre-roll to capture early speech
       ...options
     };
 
@@ -90,7 +91,7 @@ export class UniversalSTTRecorder {
         this.options.silenceHangover = 500; // slightly longer to avoid premature stops
       }
       if (options.baselineCaptureDuration === undefined) {
-        this.options.baselineCaptureDuration = 1500; // longer baseline capture on mobile
+        this.options.baselineCaptureDuration = 700; // 700ms baseline on mobile
       }
     }
   }
@@ -229,7 +230,7 @@ export class UniversalSTTRecorder {
       this.silentGain.connect(this.audioContext.destination);
 
       // Compute pre-roll capacity in samples
-      this.preRollMaxSamples = Math.max(1, Math.floor((this.options.preRollMs || 300) * (this.audioContext.sampleRate / 1000)));
+      this.preRollMaxSamples = Math.max(1, Math.floor((this.options.preRollMs || 800) * (this.audioContext.sampleRate / 1000)));
       this.preRollSampleChunks = [];
       this.preRollTotalSamples = 0;
       this.activeSampleChunks = [];
@@ -265,7 +266,7 @@ export class UniversalSTTRecorder {
     // Initialize or reuse baseline
     if (this.baselineEnergy > 0) {
       this.baselineCapturing = false;
-      this.vadArmUntilTs = Date.now() + 250; // guard clicks
+      this.vadArmUntilTs = Date.now() + 150; // shorter guard for reused baseline
     } else {
       this.resetBaselineCapture();
     }
@@ -278,6 +279,8 @@ export class UniversalSTTRecorder {
     this.baselineCapturing = true;
     this.baselineEnergySum = 0;
     this.baselineEnergyCount = 0;
+    // Track if we detect immediate speech during baseline
+    this.earlyVoiceDetected = false;
   }
 
   private startEnergyMonitoring(): void {
@@ -323,11 +326,35 @@ export class UniversalSTTRecorder {
         this.baselineEnergySum += rms;
         this.baselineEnergyCount++;
         
-        if (now - this.baselineStartTime >= this.options.baselineCaptureDuration!) {
+        // EARLY VOICE DETECTION: If we detect high energy early, skip baseline and start recording immediately
+        // This prevents cutting off the first words when user starts speaking right away
+        const elapsedMs = now - this.baselineStartTime;
+        const conservativeBaseline = this.isMobileDevice() ? 0.008 : 0.006; // fallback baseline
+        const earlyVoiceThreshold = conservativeBaseline * 3.5; // 3.5x above conservative baseline
+        
+        // Only check after first 200ms to avoid button click noise
+        if (elapsedMs >= 200 && elapsedMs < 500 && rms > earlyVoiceThreshold && !this.earlyVoiceDetected) {
+          console.log(`[VAD] Early voice detected (${rms.toFixed(4)} > ${earlyVoiceThreshold.toFixed(4)}), skipping baseline`);
+          this.earlyVoiceDetected = true;
+          // Use conservative baseline and immediately arm VAD
+          this.baselineEnergy = conservativeBaseline;
+          this.baselineCapturing = false;
+          this.vadArmUntilTs = 0; // No guard - arm immediately
+          // Trigger VAD immediately since we detected voice
+          this.beginActiveSegment();
+          // Desktop-only: initialize adaptive gain
+          if (!this.isMobileDevice() && this.adaptiveGain) {
+            const target = this.desktopTargetRMS;
+            const rawGain = target / Math.max(1e-6, this.baselineEnergy);
+            this.currentGain = Math.max(0.5, Math.min(6, rawGain));
+            this.adaptiveGain.gain.value = this.currentGain;
+          }
+        } else if (now - this.baselineStartTime >= this.options.baselineCaptureDuration!) {
+          // Normal baseline completion
           this.baselineEnergy = this.baselineEnergySum / this.baselineEnergyCount;
           this.baselineCapturing = false;
-          // Arm VAD slightly after baseline to avoid UI click/glitch triggers
-          this.vadArmUntilTs = now + 250;
+          // Arm VAD after baseline to avoid UI click/glitch triggers (reduced delay)
+          this.vadArmUntilTs = now + 150;
           // Desktop-only: initialize adaptive gain from baseline
           if (!this.isMobileDevice() && this.adaptiveGain) {
             const target = this.desktopTargetRMS;

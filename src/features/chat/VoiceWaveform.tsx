@@ -39,12 +39,16 @@ export const VoiceWaveform: React.FC<VoiceWaveformProps> = ({ audioLevelRef }) =
       // Clear canvas
       ctx.clearRect(0, 0, width, height);
       
-      // Calculate available space for waveform
-      // Mic button: 32px (w-8) + 4px (right-1) + 4px (gap) + 4px (padding) = 44px from right
-      // Left padding: same 44px from left
-      const padding = 44; // 32px button + 12px spacing
-      const availableWidth = width - (padding * 2);
-      const startX = padding;
+      // Calculate available space for waveform - more padding to avoid buttons
+      // Left: 16px breathing room
+      // Right: 72px to clear both buttons (2 × 32px buttons + 4px gap + 4px margin)
+      const leftPadding = 16;
+      const rightPadding = 72;
+      const availableWidth = width - leftPadding - rightPadding;
+      
+      // Constrain waveform to center 85% of available space for elegance
+      const constrainedWidth = Math.min(availableWidth * 0.85, 500); // max 500px wide
+      const startX = leftPadding + (availableWidth - constrainedWidth) / 2;
       
       // Get current audio level
       const level = audioLevelRef.current || 0;
@@ -52,7 +56,7 @@ export const VoiceWaveform: React.FC<VoiceWaveformProps> = ({ audioLevelRef }) =
       // Only add new bars when there's significant audio energy
       const now = Date.now();
       const energyThreshold = 0.01;
-      const minTimeBetweenBars = 100; // 100ms minimum between bars
+      const minTimeBetweenBars = 80; // Slightly faster for smoother flow
       
       // Check if we should add a new bar based on energy and timing
       const hasSignificantEnergy = level > energyThreshold;
@@ -63,10 +67,10 @@ export const VoiceWaveform: React.FC<VoiceWaveformProps> = ({ audioLevelRef }) =
         barsRef.current.push(level);
         lastAddTimeRef.current = now;
         
-        // Keep only bars that fit in available space
+        // Keep only bars that fit in constrained space
         const barWidth = 3;
-        const barGap = 1;
-        const maxBars = Math.floor(availableWidth / (barWidth + barGap));
+        const barGap = 2; // Slightly more spacing for breathing room
+        const maxBars = Math.floor(constrainedWidth / (barWidth + barGap));
         if (barsRef.current.length > maxBars) {
           barsRef.current.shift();
         }
@@ -74,20 +78,25 @@ export const VoiceWaveform: React.FC<VoiceWaveformProps> = ({ audioLevelRef }) =
       
       lastLevelRef.current = level;
       
-      // Draw bars within the defined space
+      // Draw bars within the constrained space with smooth animation
       const barWidth = 3;
-      const barGap = 1;
-      const maxHeight = height * 0.8;
+      const barGap = 2;
+      const maxHeight = height * 0.7; // Reduced from 0.8 for subtlety
       
       barsRef.current.forEach((barLevel, index) => {
         const x = startX + (index * (barWidth + barGap));
-        const barHeight = Math.max(2, barLevel * maxHeight);
+        const barHeight = Math.max(3, barLevel * maxHeight);
         const y = (height - barHeight) / 2;
         
-        // Only draw if within bounds
-        if (x + barWidth <= width - padding) {
-          // Use gray color for all bars
-          ctx.fillStyle = '#6b7280';
+        // Only draw if within constrained bounds
+        const maxX = startX + constrainedWidth;
+        if (x + barWidth <= maxX) {
+          // Fade out bars as they get older (left side)
+          const fadeProgress = index / barsRef.current.length;
+          const opacity = 0.3 + (fadeProgress * 0.7); // 0.3 to 1.0
+          
+          // Use gray color with fade effect
+          ctx.fillStyle = `rgba(107, 114, 128, ${opacity})`;
           ctx.fillRect(x, y, barWidth, barHeight);
         }
       });

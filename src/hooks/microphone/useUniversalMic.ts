@@ -120,7 +120,7 @@ export const useUniversalMic = (options: UseUniversalMicOptions = {}) => {
           setIsRecording(false);
           setIsProcessing(true);
         },
-        baselineCaptureDuration: 1000, // 1 second baseline capture
+        // Use smart defaults from recorder (600ms baseline with early voice detection)
         silenceMargin: 0.15, // 15% below baseline
         silenceHangover: 600, // 600ms silence detection (slight hang)
         user_id: user?.id, // Add user_id for message attribution

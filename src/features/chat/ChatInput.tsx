@@ -283,8 +283,8 @@ export const ChatInput = () => {
   };
 
   return (
-    <div className="bg-white backdrop-blur-lg border-t border-gray-100 p-2 relative mobile-input-container" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0.5rem)' }}>
-      <div className="flex items-end gap-2 max-w-4xl mx-auto">
+    <div className="bg-white backdrop-blur-lg p-2 relative mobile-input-container" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0.5rem)' }}>
+      <div className="flex items-end gap-2 max-w-3xl mx-auto">
         <div className="flex-1 relative">
           {isMicRecording ? (
             <div className="w-full h-[46px] flex items-center justify-center bg-white border-2 border-gray-300 rounded-3xl overflow-hidden">
@@ -356,7 +356,7 @@ export const ChatInput = () => {
           </div>
         </div>
       </div>
-      <div className="max-w-4xl mx-auto mt-2">
+      <div className="max-w-3xl mx-auto mt-2">
         <p className="text-xs text-gray-600 font-light text-center">
           Therai can make mistakes. Check important info.
         </p>
