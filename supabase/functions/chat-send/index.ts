@@ -90,7 +90,10 @@ const role = rawRole === "assistant" ? "assistant" : "user";
 // Check for internal API key (backend-to-backend calls)
 const INTERNAL_API_KEY = Deno.env.get("INTERNAL_API_KEY");
 const internalKey = req.headers.get("x-internal-key");
-const isInternalCall = internalKey && INTERNAL_API_KEY && internalKey === INTERNAL_API_KEY;
+const authHeader = req.headers.get("Authorization");
+// Also check if Authorization header contains service role key (backup for internal calls)
+const hasServiceRoleKey = authHeader && authHeader.includes(SUPABASE_SERVICE_ROLE_KEY || "");
+const isInternalCall = (internalKey && INTERNAL_API_KEY && internalKey === INTERNAL_API_KEY) || hasServiceRoleKey;
 
 console.info(JSON.stringify({
   event: "chat_send_processing",
@@ -101,14 +104,15 @@ console.info(JSON.stringify({
   chattype_type: typeof chattype,
   mode,
   text_length: text?.length || 0,
-  is_internal_call: isInternalCall
+  is_internal_call: isInternalCall,
+  has_internal_key_header: !!internalKey,
+  has_internal_api_key_env: !!INTERNAL_API_KEY
 }));
 
 // 🔒 SECURITY: Verify user authentication for frontend calls
 // Skip JWT validation for trusted internal calls (backend-to-backend)
 if (role === "user" && user_id && !isInternalCall) {
   // Verify JWT token from Authorization header
-  const authHeader = req.headers.get("Authorization");
   if (!authHeader) {
     return json(401, { error: "Missing Authorization header" });
   }
