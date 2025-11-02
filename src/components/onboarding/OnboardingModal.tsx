@@ -117,7 +117,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="bg-white rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-hidden shadow-2xl"
+        className="bg-white rounded-3xl w-full max-w-md max-h-[90vh] overflow-hidden shadow-2xl"
       >
         <AnimatePresence mode="wait">
           {currentStep === 'name' && (
@@ -126,23 +126,21 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
-              className="p-12"
+              className="p-8"
             >
               {/* Header */}
-              <div className="flex items-center gap-3 mb-8">
-                <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center">
+              <div className="flex flex-col items-center text-center mb-8">
+                <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mb-3">
                   <User size={20} className="text-gray-600" />
                 </div>
-                <div>
-                  <h2 className="text-2xl font-light text-gray-900">Welcome to Therai</h2>
-                  <p className="text-sm font-light text-gray-600 mt-1">Let's get to know you</p>
-                </div>
+                <h2 className="text-2xl font-light text-gray-900">Welcome to Therai</h2>
+                <p className="text-sm font-light text-gray-600 mt-1">Let's get to know you</p>
               </div>
 
               {/* Form */}
-              <form onSubmit={handleDisplayNameSubmit} className="space-y-6">
+              <form onSubmit={handleDisplayNameSubmit} className="space-y-4">
                 <div>
-                  <label htmlFor="displayName" className="block text-sm font-light text-gray-700 mb-2">
+                  <label htmlFor="displayName" className="block text-sm font-light text-gray-700 mb-2 text-center">
                     What should we call you?
                   </label>
                   <input
@@ -151,7 +149,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
                     value={displayName}
                     onChange={(e) => setDisplayName(e.target.value)}
                     placeholder="Your name"
-                    className="w-full px-6 py-4 rounded-xl border border-gray-200 text-base font-light focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent"
+                    className="w-full px-6 py-3 rounded-full border border-gray-200 text-base font-light focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent text-center"
                     autoFocus
                     disabled={isLoading}
                   />
@@ -160,7 +158,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
                 <Button
                   type="submit"
                   disabled={isLoading || !displayName.trim()}
-                  className="w-full py-6 bg-gray-900 hover:bg-gray-800 text-white rounded-xl text-base font-light transition-colors"
+                  className="w-full py-3 bg-gray-900 hover:bg-gray-800 text-white rounded-full text-base font-light transition-colors"
                 >
                   {isLoading ? 'Saving...' : 'Continue'}
                 </Button>
@@ -174,23 +172,21 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
-              className="p-12"
+              className="p-8"
             >
               {/* Header */}
-              <div className="flex items-center gap-3 mb-8">
-                <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center">
+              <div className="flex flex-col items-center text-center mb-8">
+                <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mb-3">
                   <Sparkles size={20} className="text-gray-600" />
                 </div>
-                <div>
-                  <h2 className="text-2xl font-light text-gray-900">Create Your Main Profile</h2>
-                  <p className="text-sm font-light text-gray-600 mt-1">
-                    This will be used for personalized insights and Together Mode
-                  </p>
-                </div>
+                <h2 className="text-xl font-light text-gray-900">Create Your Main Profile</h2>
+                <p className="text-sm font-light text-gray-600 mt-1">
+                  For personalized insights and Together Mode
+                </p>
               </div>
 
               {/* Astro Form */}
-              <div className="-mx-12">
+              <div className="-mx-8">
                 <AstroDataForm
                   onClose={() => {}} // Can't close during onboarding
                   onSubmit={handleAstroFormSubmit}
@@ -209,25 +205,23 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
-              className="p-12"
+              className="p-8"
             >
               {/* Header */}
-              <div className="flex items-center gap-3 mb-8">
-                <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center">
+              <div className="flex flex-col items-center text-center mb-8">
+                <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mb-3">
                   <CreditCard size={20} className="text-gray-600" />
                 </div>
-                <div>
-                  <h2 className="text-2xl font-light text-gray-900">Unlock Full Access</h2>
-                  <p className="text-sm font-light text-gray-600 mt-1">
-                    Get unlimited access to all features
-                  </p>
-                </div>
+                <h2 className="text-xl font-light text-gray-900">Unlock Full Access</h2>
+                <p className="text-sm font-light text-gray-600 mt-1">
+                  Get unlimited access to all features
+                </p>
               </div>
 
               {/* Content */}
               <div className="space-y-6">
-                <div className="bg-gray-50 rounded-xl p-6 space-y-3">
-                  <h3 className="text-lg font-light text-gray-900">With a subscription, you get:</h3>
+                <div className="bg-gray-50 rounded-2xl p-5 space-y-3">
+                  <h3 className="text-base font-light text-gray-900 text-center">With a subscription:</h3>
                   <ul className="space-y-2 text-sm font-light text-gray-700">
                     <li className="flex items-start gap-2">
                       <span className="text-gray-400 mt-0.5">•</span>
@@ -252,14 +246,14 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
                 <div className="space-y-3">
                   <Button
                     onClick={handleSubscribe}
-                    className="w-full py-6 bg-gray-900 hover:bg-gray-800 text-white rounded-xl text-base font-light transition-colors"
+                    className="w-full py-3 bg-gray-900 hover:bg-gray-800 text-white rounded-full text-base font-light transition-colors"
                   >
                     View Plans
                   </Button>
                   <Button
                     onClick={handleSkipSubscription}
                     variant="ghost"
-                    className="w-full py-6 text-gray-600 hover:bg-gray-50 rounded-xl text-base font-light transition-colors"
+                    className="w-full py-3 text-gray-600 hover:bg-gray-50 rounded-full text-base font-light transition-colors"
                   >
                     Skip for Now
                   </Button>
