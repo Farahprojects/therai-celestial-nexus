@@ -65,3 +65,6 @@ verify_jwt = false
 
 [functions.generate-insights]
 verify_jwt = false
+
+[functions.verify-token]
+verify_jwt = false
