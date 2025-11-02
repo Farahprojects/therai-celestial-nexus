@@ -90,15 +90,16 @@ if (messages && Array.isArray(messages) && messages.length > 0) {
   }));
 
   // Validate all messages
+  if (!mode || typeof mode !== "string") {
+    return json(400, { error: "Missing or invalid field: mode" });
+  }
+
   for (const msg of messages) {
     if (!msg.text || typeof msg.text !== "string") {
       return json(400, { error: `Invalid message in batch: missing or invalid text` });
     }
     if (!msg.role || !["user", "assistant"].includes(msg.role)) {
       return json(400, { error: `Invalid message in batch: invalid role` });
-    }
-    if (!mode || typeof mode !== "string") {
-      return json(400, { error: "Missing or invalid field: mode" });
     }
   }
 
