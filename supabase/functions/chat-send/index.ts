@@ -8,7 +8,6 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getLLMHandler } from "../_shared/llmConfig.ts";
-import { checkSubscriptionAccess, checkPremiumAccess } from "../_shared/subscriptionCheck.ts";
 
 const corsHeaders = {
 "Access-Control-Allow-Origin": "*",
@@ -149,30 +148,6 @@ if (role === "user" && user_id && !isInternalCall) {
   }
 }
 
-// 🔒 SECURITY: Verify subscription for ALL user messages (both internal and frontend)
-if (role === "user" && user_id) {
-  // Check subscription access (trust user_id for internal calls)
-  const subscriptionCheck = await checkSubscriptionAccess(supabase, user_id);
-  if (!subscriptionCheck.hasAccess) {
-    return json(403, { 
-      error: "Subscription required",
-      subscription_required: true 
-    });
-  }
-
-  // For voice chat, require premium plan
-  if (chattype === "voice") {
-    const premiumCheck = await checkPremiumAccess(supabase, user_id);
-    if (!premiumCheck.hasAccess) {
-      return json(403, { 
-        error: "Premium plan required for voice features",
-        premium_required: true 
-      });
-    }
-  }
-}
-
-// Only check subscription for user messages (assistant messages are responses)
 const message = {
 chat_id,
 role,
