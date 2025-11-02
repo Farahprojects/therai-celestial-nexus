@@ -42,6 +42,9 @@ if (!GOOGLE_API_KEY) {
   throw new Error("Missing env: GOOGLE-LLM-NEW");
 }
 
+console.log("[llm-handler-gemini] ✅ API Key loaded:", GOOGLE_API_KEY.substring(0, 4) + "..." + GOOGLE_API_KEY.substring(GOOGLE_API_KEY.length - 4));
+console.log("[llm-handler-gemini] 📊 Using model:", GEMINI_MODEL);
+
 // Supabase client (module scope)
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
   auth: { persistSession: false }
@@ -117,13 +120,15 @@ async function getOrCreateCache(
     .single();
 
   // If cache exists, is valid, and system data hasn't changed
-    if (existingCache &&
+  if (existingCache &&
     new Date(existingCache.expires_at) > new Date() &&
     existingCache.system_data_hash === systemDataHash) {
+    console.log(`[cache] ✅ Using existing cache: ${existingCache.cache_name}`);
     return existingCache.cache_name;
   }
 
   // Create new cache
+  console.log(`[cache] 🔄 Creating new cache for chat_id: ${chat_id}`);
 
   // Bookend astro data with system prompt for better attention
   const combinedSystemInstruction = systemText
@@ -171,6 +176,7 @@ async function getOrCreateCache(
         expires_at: expiresAt.toISOString()
       });
 
+    console.log(`[cache] ✅ Cache created: ${cacheName}`);
     return cacheName;
 
   } catch (error) {
@@ -195,6 +201,7 @@ function triggerSummaryGeneration(
     headers,
     body: JSON.stringify({ chat_id, from_turn: fromTurn, to_turn: toTurn })
   })
+    .then(() => console.log(`[summary] 📝 Summary generation triggered for turns ${fromTurn}-${toTurn}`))
     .catch((e) => console.error("[summary] ❌ Failed to trigger summary:", e));
 }
 
@@ -216,6 +223,18 @@ Deno.serve(async (req) => {
 
   const { chat_id, text, mode, chattype, voice, user_id, user_name, source } = body || {};
 
+  console.info(JSON.stringify({
+    event: "llm_handler_request_received",
+    request_id: requestId,
+    caller: source || "unknown",
+    chat_id,
+    chattype,
+    chattype_type: typeof chattype,
+    chattype_is_voice: chattype === "voice",
+    mode,
+    text_length: text?.length || 0
+  }));
+
   if (!chat_id || typeof chat_id !== "string") return json(400, { error: "Missing or invalid field: chat_id" });
   if (!text || typeof text !== "string") return json(400, { error: "Missing or invalid field: text" });
 
@@ -236,6 +255,8 @@ Deno.serve(async (req) => {
   let lastSummaryTurn = 0;
 
   try {
+    console.log(`[llm-handler-gemini] ⏱️  Starting context fetch (+${Date.now() - totalStartTime}ms)`);
+
     // Parallel fetch: cache status, system message, conversation metadata, summary, and history
     const [cacheResult, systemMessageResult, conversationResult, summaryResult, historyResult] = await Promise.all([
       // Check if cache exists (include hash for validation)
@@ -300,8 +321,10 @@ Deno.serve(async (req) => {
     if (cacheExists && hashMatches) {
       // Cache is valid and matches current system message
       cacheName = cacheResult.data.cache_name;
+      console.log(`[llm-handler-gemini] ✅ Cache valid and hash matches, using cache`);
     } else {
       if (cacheExists && !hashMatches) {
+        console.log(`[llm-handler-gemini] ⚠️  Cache exists but hash mismatch! Invalidating and recreating cache`);
         // Delete stale cache
         await supabase
           .from("conversation_caches")
@@ -330,6 +353,7 @@ Deno.serve(async (req) => {
     // Process summary
     if (summaryResult.data) {
       conversationSummary = String(summaryResult.data.summary_text || "");
+      console.log(`[llm-handler-gemini] 📝 Found summary: ${conversationSummary.substring(0, 50)}...`);
     }
 
     // Process history
@@ -337,6 +361,7 @@ Deno.serve(async (req) => {
       history = historyResult.data as MessageRow[];
     }
 
+    console.log(`[llm-handler-gemini] ⏱️  Context fetch complete (+${Date.now() - totalStartTime}ms)`);
   } catch (e: any) {
     console.warn("[llm-handler-gemini] Context fetch exception:", e?.message || String(e));
   }
@@ -406,6 +431,12 @@ Deno.serve(async (req) => {
   let llmStartedAt = Date.now();
   let data;
   try {
+    console.log(`[llm-handler-gemini] ⏱️  Starting Gemini API call (+${Date.now() - totalStartTime}ms)`, {
+      model: GEMINI_MODEL,
+      cached: !!cacheName,
+      chat_id: chat_id
+    });
+
     const resp = await fetch(geminiUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json", "x-goog-api-key": GOOGLE_API_KEY },
@@ -413,6 +444,9 @@ Deno.serve(async (req) => {
       signal: controller.signal
     });
     clearTimeout(timeout);
+
+    const geminiLatency = Date.now() - llmStartedAt;
+    console.log(`[llm-handler-gemini] ⏱️  Gemini API responded (+${Date.now() - totalStartTime}ms) - Gemini took ${geminiLatency}ms - Status: ${resp.status}`);
 
     if (!resp.ok) {
       const errText = await resp.text().catch(() => "");
@@ -425,6 +459,7 @@ Deno.serve(async (req) => {
     }
 
     data = await resp.json();
+    console.log("[llm-handler-gemini] ✅ Gemini API success, response time:", Date.now() - llmStartedAt, "ms");
   } catch (e) {
     clearTimeout(timeout);
     console.error("[llm-handler-gemini] ❌ Gemini request exception:", {
@@ -468,11 +503,14 @@ Deno.serve(async (req) => {
     .then(({ error }) => {
       if (error) {
         console.error("[llm-handler-gemini] ❌ Failed to update turn count:", error);
+      } else {
+        console.log(`[llm-handler-gemini] 📊 Turn count updated: ${newTurnCount}`);
       }
     });
 
   // Check if summary should be generated
   if (newTurnCount > 0 && newTurnCount % SUMMARY_INTERVAL === 0 && newTurnCount > lastSummaryTurn) {
+    console.log(`[llm-handler-gemini] 📝 Triggering summary at turn ${newTurnCount}`);
     triggerSummaryGeneration(chat_id, lastSummaryTurn + 1, newTurnCount);
 
     // Update last_summary_at_turn (fire-and-forget)
@@ -485,30 +523,67 @@ Deno.serve(async (req) => {
       });
   }
 
-  // Fire-and-forget: TTS (voice only) and save assistant message via chat-send
+  // Fire-and-forget: TTS (voice only) and save messages via chat-send
   const headers = {
     "Content-Type": "application/json",
-    "Authorization": `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`
+    "Authorization": `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+    "x-internal-key": Deno.env.get("INTERNAL_API_KEY") || ""
   };
 
   const assistantClientId = crypto.randomUUID();
+  const userClientId = crypto.randomUUID();
 
-  const tasks = [
-    fetch(`${SUPABASE_URL}/functions/v1/chat-send`, {
-      method: "POST",
-      headers,
-      body: JSON.stringify({
-        chat_id,
-        text: assistantText,
-        client_msg_id: assistantClientId,
-        role: "assistant",
-        mode,
-        user_id,
-        user_name,
-        chattype
+  const tasks = [];
+
+  // For voice mode: send both user and assistant messages together
+  if (chattype === "voice") {
+    tasks.push(
+      fetch(`${SUPABASE_URL}/functions/v1/chat-send`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          chat_id,
+          messages: [
+            {
+              text,
+              role: "user",
+              client_msg_id: userClientId,
+              mode,
+              user_id,
+              user_name
+            },
+            {
+              text: assistantText,
+              role: "assistant",
+              client_msg_id: assistantClientId,
+              mode,
+              user_id,
+              user_name
+            }
+          ],
+          chattype
+        })
       })
-    })
-  ];
+    );
+  } else {
+    // For regular text: only send assistant message
+    tasks.push(
+      fetch(`${SUPABASE_URL}/functions/v1/chat-send`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          chat_id,
+          text: assistantText,
+          client_msg_id: assistantClientId,
+          role: "assistant",
+          mode,
+          user_id,
+          user_name,
+          chattype
+        })
+      })
+    );
+  }
 
   console.info(JSON.stringify({
     event: "checking_tts_trigger",
@@ -535,11 +610,18 @@ Deno.serve(async (req) => {
         body: JSON.stringify({ text: sanitizedTextForTTS, voice: selectedVoice, chat_id, user_id })
       })
     );
+  } else {
+    console.info(JSON.stringify({
+      event: "tts_skipped",
+      chattype,
+      reason: chattype === "voice" ? "unknown" : "chattype_not_voice"
+    }));
   }
 
   Promise.allSettled(tasks).catch(() => { });
 
   const totalLatencyMs = Date.now() - startedAt;
+  console.log(`[llm-handler-gemini] ⏱️  Returning response (+${Date.now() - totalStartTime}ms) TOTAL - LLM: ${llmLatencyMs}ms`);
 
   return json(200, {
     text: assistantText,

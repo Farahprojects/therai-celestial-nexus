@@ -135,6 +135,15 @@ if (!form) return json(400, { error: "Expected multipart/form-data" });
     const user_id = form.get("user_id");
     const user_name = form.get("user_name") || undefined;
     
+    console.info(JSON.stringify({
+      event: "form_data_received",
+      chattype: chattype,
+      chattype_type: typeof chattype,
+      user_id: user_id,
+      user_id_type: typeof user_id,
+      mode: mode
+    }));
+    
     // Type-safe user_id extraction
     let authenticatedUserId = typeof user_id === 'string' ? user_id : undefined;
 
@@ -183,6 +192,20 @@ const { transcript, durationSeconds } = await transcribeWithGoogle({
   languageCode
 });
 
+console.info(JSON.stringify({
+  event: "transcription_complete",
+  transcript_length: transcript.length,
+  duration_seconds: durationSeconds,
+  user_id: authenticatedUserId,
+  chattype,
+  condition_check: {
+    chattype_is_voice: chattype === "voice",
+    has_authenticatedUserId: !!authenticatedUserId,
+    duration_seconds_gt_zero: durationSeconds > 0,
+    will_track: chattype === "voice" && authenticatedUserId && durationSeconds > 0
+  }
+}));
+
 if (!transcript.trim()) {
   console.info(JSON.stringify({ event: "empty_transcript_returning" }));
   await new Promise(r => setTimeout(r, 50)); // Allow logs to flush
@@ -193,6 +216,11 @@ if (!transcript.trim()) {
 // NOTE: google-whisper is ONLY used for voice transcription, so if audio is sent here, it's voice
 // We track usage regardless of chattype field since the frontend may not always send it
 if (authenticatedUserId && durationSeconds > 0) {
+  console.info(JSON.stringify({
+    event: "tracking_voice_usage",
+    user_id: authenticatedUserId,
+    duration_seconds: durationSeconds
+  }));
 
   // Check if user has access (post-transcription, using actual duration)
   const accessCheck = await checkFeatureAccess(
@@ -210,7 +238,13 @@ if (authenticatedUserId && durationSeconds > 0) {
     }));
   }
 
-  // Call increment-feature-usage edge function (fire-and-forget)
+  // Call increment-feature-usage edge function (await response for debugging)
+  console.info(JSON.stringify({
+    event: "calling_increment_feature_usage",
+    user_id: authenticatedUserId,
+    feature_type: "voice_seconds",
+    amount: durationSeconds
+  }));
 
   try {
     const response = await fetch(`${SUPABASE_URL}/functions/v1/increment-feature-usage`, {
@@ -229,12 +263,20 @@ if (authenticatedUserId && durationSeconds > 0) {
 
     const result = await response.json().catch(() => ({ error: 'Failed to parse response' }));
     
-    if (!response.ok || !result.success) {
+    if (response.ok && result.success) {
+      console.info(JSON.stringify({
+        event: "increment_feature_usage_success",
+        user_id: authenticatedUserId,
+        duration_seconds: durationSeconds,
+        result
+      }));
+    } else {
       console.error(JSON.stringify({
         event: "increment_feature_usage_failed",
         user_id: authenticatedUserId,
-        duration_seconds: durationSeconds,
-        error: result
+        status: response.status,
+        statusText: response.statusText,
+        result
       }));
     }
   } catch (err) {
@@ -249,9 +291,16 @@ if (authenticatedUserId && durationSeconds > 0) {
 // Flush logs before returning response
 await new Promise(r => setTimeout(r, 50));
 
-// Voice flow: call LLM handler
+// Voice flow: optionally save user message, call LLM, and broadcast
 // Only trigger when chattype is "voice" (from conversation mode) AND chat_id exists
 if (chattype === "voice" && chat_id) {
+  console.info(JSON.stringify({
+    event: "voice_flow_triggered",
+    chattype,
+    chattype_type: typeof chattype,
+    chat_id,
+    transcript_length: transcript.length
+  }));
 
   if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
     console.warn("[google-stt] Voice actions skipped: missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY");
@@ -262,10 +311,25 @@ if (chattype === "voice" && chat_id) {
       "x-internal-key": Deno.env.get("INTERNAL_API_KEY") || "" // Internal API key for backend-to-backend calls
     };
 
+    console.info(JSON.stringify({
+      event: "preparing_internal_calls",
+      has_internal_api_key: !!Deno.env.get("INTERNAL_API_KEY"),
+      internal_key_length: Deno.env.get("INTERNAL_API_KEY")?.length || 0
+    }));
+
     // Get configured LLM handler, then fire-and-forget tasks
     getLLMHandler(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY).then(async (llmHandler) => {
+      console.log(`[google-stt] Using ${llmHandler} for voice mode`);
+      
       // Capture chattype in closure to ensure it's passed correctly
       const chattypeToPass = chattype;
+      
+      console.info(JSON.stringify({
+        event: "preparing_to_call_llm_handler",
+        chattype: chattypeToPass,
+        chattype_type: typeof chattypeToPass,
+        llm_handler: llmHandler
+      }));
       
       const tasks = [
         fetch(`${SUPABASE_URL}/functions/v1/${llmHandler}`, {
@@ -283,6 +347,22 @@ if (chattype === "voice" && chat_id) {
           })
         })
       ];
+
+      console.info(JSON.stringify({
+        event: "calling_llm_handler_with_payload",
+        chattype_in_payload: chattypeToPass,
+        chat_id,
+        text_length: transcript.length,
+        full_payload: {
+          chat_id,
+          text: transcript.substring(0, 50) + "...", // First 50 chars
+          chattype: chattypeToPass,
+          mode,
+          voice,
+          user_id,
+          user_name
+        }
+      }));
 
       // Fire-and-forget: Start tasks without awaiting (non-blocking)
       Promise.allSettled(tasks).then((results) => {
@@ -325,6 +405,14 @@ if (chattype === "voice" && chat_id) {
       }));
     });
   }
+} else {
+  console.info(JSON.stringify({
+    event: "voice_flow_skipped",
+    chattype,
+    chattype_type: typeof chattype,
+    chat_id: chat_id || "missing",
+    reason: !chattype ? "no_chattype" : chattype !== "voice" ? "chattype_not_voice" : "no_chat_id"
+  }));
 }
 
 return json(200, { transcript });
