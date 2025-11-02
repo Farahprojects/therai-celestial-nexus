@@ -110,8 +110,8 @@ if (messages && Array.isArray(messages) && messages.length > 0) {
     client_msg_id: msg.client_msg_id ?? crypto.randomUUID(),
     status: "complete",
     mode: msg.mode || mode,
-    user_id: msg.user_id || user_id ?? null,
-    user_name: msg.user_name || user_name ?? null,
+    user_id: (msg.user_id || user_id) ?? null,
+    user_name: (msg.user_name || user_name) ?? null,
     meta: {}
   }));
 
