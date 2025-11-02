@@ -10,6 +10,7 @@ import { useMode } from '@/contexts/ModeContext';
 
 interface UseUniversalMicOptions {
   onTranscriptReady?: (transcript: string) => void;
+  onError?: (error: Error) => void;
   silenceThreshold?: number;
   silenceDuration?: number;
 }
@@ -74,10 +75,21 @@ export const useUniversalMic = (options: UseUniversalMicOptions = {}) => {
           options.onTranscriptReady?.(transcript);
         },
         onError: (error) => {
-          // Don't log STTLimitExceededError - it's handled gracefully by ConversationOverlay
+          // Handle STTLimitExceededError specially
           if (error instanceof STTLimitExceededError) {
+            // 1. Dispose recorder (turn off mic)
+            if (recorderRef.current) {
+              recorderRef.current.dispose();
+              recorderRef.current = null;
+            }
+            
+            // 2. Reset state
             setIsRecording(false);
             setIsProcessing(false);
+            levelRef.current = 0;
+            
+            // 3. Pass error to parent component (ChatInput) to show upgrade modal
+            options.onError?.(error);
             return;
           }
           
@@ -144,7 +156,7 @@ export const useUniversalMic = (options: UseUniversalMicOptions = {}) => {
       setIsProcessing(false);
       return false;
     }
-  }, [isRecording, isProcessing, options, toast]);
+  }, [isRecording, isProcessing, options, toast, user?.id, displayName, mode]);
 
   const stopRecording = useCallback(() => {
     if (recorderRef.current) {
