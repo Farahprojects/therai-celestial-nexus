@@ -84,7 +84,13 @@ export const useUniversalMic = (options: UseUniversalMicOptions = {}) => {
           setIsProcessing(false);
           levelRef.current = 0;
           
-          // Determine error message
+          // Pass error to parent - parent decides whether to show toast or notification pill
+          if (options.onError) {
+            options.onError(error);
+            return;
+          }
+          
+          // Fallback: Show toast for microphone errors (when not handled by parent)
           let errorMessage = error.message;
           if (error.message.includes('Permission denied') || error.message.includes('NotAllowedError')) {
             errorMessage = 'Microphone permission denied. Please allow microphone access in your browser settings.';
@@ -97,8 +103,6 @@ export const useUniversalMic = (options: UseUniversalMicOptions = {}) => {
           }
           
           toast.error(errorMessage);
-          
-          options.onError?.(error);
         },
         onLevel: (level) => {
           levelRef.current = level;

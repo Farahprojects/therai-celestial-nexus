@@ -18,6 +18,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY } from '@/integrations/supabase/config'
 import { motion, AnimatePresence } from 'framer-motion';
 import { Mic } from 'lucide-react';
 import { toast } from 'sonner';
+import { UpgradeNotification } from '@/components/subscription/UpgradeNotification';
 
 type ConversationState = 'listening' | 'thinking' | 'replying' | 'connecting' | 'establishing';
 
@@ -28,6 +29,7 @@ export const ConversationOverlay: React.FC = () => {
   const { user } = useAuth();
   const { displayName } = useUserData();
   const [state, setState] = useState<ConversationState>('connecting');
+  const [showSTTLimitNotification, setShowSTTLimitNotification] = useState(false);
   
   // Audio context management
   const { audioContext, isAudioUnlocked, initializeAudioContext, resumeAudioContext } = useAudioStore();
@@ -311,7 +313,16 @@ export const ConversationOverlay: React.FC = () => {
         onError: (error: Error) => {
           console.error('[ConversationOverlay] Audio recorder error:', error);
           
-          // Show toast with error message
+          // Check if STT limit exceeded - show notification pill
+          if (error.message.includes('Voice limit reached') || error.message.includes('voice transcription')) {
+            closeConversation();
+            setShouldKeepClosed(true);
+            setShowSTTLimitNotification(true);
+            resetToTapToStart('STT limit exceeded');
+            return;
+          }
+          
+          // Other errors - show toast
           toast.error(error.message || 'Audio recorder error');
           
           // Close overlay and reset
@@ -513,6 +524,15 @@ export const ConversationOverlay: React.FC = () => {
     </div>,
     document.body
       )}
+      
+      <UpgradeNotification
+        isVisible={showSTTLimitNotification}
+        onDismiss={() => {
+          setShowSTTLimitNotification(false);
+          setShouldKeepClosed(false);
+        }}
+        message="Voice limit reached. Upgrade for unlimited."
+      />
     </>
   );
 };

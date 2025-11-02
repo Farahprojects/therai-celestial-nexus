@@ -31,6 +31,7 @@ export const ChatInput = () => {
   const [text, setText] = useState('');
   const [isMuted, setIsMuted] = useState(false);
   const [showUpgradeNotification, setShowUpgradeNotification] = useState(false);
+  const [showSTTLimitNotification, setShowSTTLimitNotification] = useState(false);
   const { mode } = useMode();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   
@@ -78,6 +79,13 @@ export const ChatInput = () => {
     setText(newText);
   };
 
+  // Handle STT errors (limit exceeded)
+  const handleMicError = (error: Error) => {
+    if (error.message.includes('Voice limit reached') || error.message.includes('voice transcription')) {
+      setShowSTTLimitNotification(true);
+    }
+  };
+
   // Universal microphone pipeline
   const { 
     isRecording: isMicRecording, 
@@ -86,6 +94,7 @@ export const ChatInput = () => {
     audioLevelRef
   } = useUniversalMic({
     onTranscriptReady: handleTranscriptReady,
+    onError: handleMicError,
   });
 
   const handleSend = async () => {
@@ -333,6 +342,11 @@ export const ChatInput = () => {
         isVisible={showUpgradeNotification}
         onDismiss={() => setShowUpgradeNotification(false)}
         message="Subscription required"
+      />
+      <UpgradeNotification
+        isVisible={showSTTLimitNotification}
+        onDismiss={() => setShowSTTLimitNotification(false)}
+        message="Voice limit reached. Upgrade for unlimited."
       />
     </div>
   );
