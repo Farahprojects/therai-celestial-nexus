@@ -527,6 +527,7 @@ Deno.serve(async (req) => {
       text_length: sanitizedTextForTTS.length
     }));
 
+    const selectedVoice = typeof voice === "string" && voice.trim() ? voice : "Puck";
     tasks.push(
       fetch(`${SUPABASE_URL}/functions/v1/google-text-to-speech`, {
         method: "POST",
