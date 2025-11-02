@@ -9,7 +9,7 @@ export const UserAvatar = ({ size = "default" }: { size?: "xs" | "sm" | "default
   
   const getInitial = () => {
     // Try display_name first, then email
-    const displayName = data.profile?.display_name;
+    const displayName = data?.profile?.display_name;
     if (displayName) {
       return displayName.charAt(0).toUpperCase();
     }
