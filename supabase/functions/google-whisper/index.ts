@@ -368,7 +368,16 @@ if (chattype === "voice" && chat_id) {
         event: "calling_llm_handler_with_payload",
         chattype_in_payload: chattypeToPass,
         chat_id,
-        text_length: transcript.length
+        text_length: transcript.length,
+        full_payload: {
+          chat_id,
+          text: transcript.substring(0, 50) + "...", // First 50 chars
+          chattype: chattypeToPass,
+          mode,
+          voice,
+          user_id,
+          user_name
+        }
       }));
 
       // Start without awaiting to keep response snappy
