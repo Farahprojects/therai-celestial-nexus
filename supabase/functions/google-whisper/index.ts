@@ -350,7 +350,8 @@ if (chattype === "voice" && chat_id) {
             mode,
             voice,
             user_id,
-            user_name
+            user_name,
+            source: "google-whisper" // Identify caller
           })
         }),
         fetch(`${SUPABASE_URL}/functions/v1/broadcast`, {

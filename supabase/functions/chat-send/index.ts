@@ -37,7 +37,13 @@ headers: { ...corsHeaders, "Content-Type": "application/json" }
 
 Deno.serve(async (req) => {
 const startTime = Date.now();
-console.log("[chat-send] ⏱️  Request received");
+const requestId = crypto.randomUUID().substring(0, 8);
+
+console.info(JSON.stringify({
+  event: "chat_send_request_received",
+  request_id: requestId,
+  method: req.method
+}));
 
 if (req.method === "OPTIONS") {
 return new Response("ok", { headers: corsHeaders });
@@ -50,7 +56,11 @@ return json(405, { error: "Method not allowed" });
 let body;
 try {
 body = await req.json();
-console.log(`[chat-send] ⏱️  JSON parsed (+${Date.now() - startTime}ms)`);
+console.info(JSON.stringify({
+  event: "chat_send_json_parsed",
+  request_id: requestId,
+  duration_ms: Date.now() - startTime
+}));
 } catch {
 return json(400, { error: "Invalid JSON body" });
 }
@@ -76,7 +86,16 @@ if (!mode || typeof mode !== "string") {
 return json(400, { error: "Missing or invalid field: mode" });
 }
 
-const role = rawRole === "assistant" ? "assistant" : "user";
+console.info(JSON.stringify({
+  event: "chat_send_processing",
+  request_id: requestId,
+  chat_id,
+  role,
+  chattype,
+  chattype_type: typeof chattype,
+  mode,
+  text_length: text?.length || 0
+}));
 
 // 🔒 SECURITY: Verify user authentication and subscription for user messages
 if (role === "user" && user_id) {
@@ -90,7 +109,10 @@ if (role === "user" && user_id) {
     // Create authenticated client to verify user
     const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") || "";
     if (!ANON_KEY) {
-      console.error("[chat-send] Missing SUPABASE_ANON_KEY for auth verification");
+      console.error(JSON.stringify({
+        event: "chat_send_missing_anon_key",
+        request_id: requestId
+      }));
       return json(500, { error: "Server configuration error" });
     }
     
@@ -129,7 +151,11 @@ if (role === "user" && user_id) {
       }
     }
   } catch (err) {
-    console.error("[chat-send] Auth/subscription check failed:", err);
+    console.error(JSON.stringify({
+      event: "chat_send_auth_check_failed",
+      request_id: requestId,
+      error: err instanceof Error ? err.message : String(err)
+    }));
     return json(500, { error: "Authentication check failed" });
   }
 }
@@ -151,10 +177,10 @@ meta: {}
 const shouldStartLLM = role === "user" && chattype !== "voice";
 if (shouldStartLLM) {
 const llmStartTime = Date.now();
-console.log(`[chat-send] ⏱️  Determining LLM handler (+${Date.now() - startTime}ms)`);
 
 console.info(JSON.stringify({
   event: "chat_send_calling_llm",
+  request_id: requestId,
   chattype,
   chattype_type: typeof chattype,
   chattype_is_voice: chattype === "voice",
@@ -165,12 +191,11 @@ console.info(JSON.stringify({
 
 // Get configured LLM handler
 getLLMHandler(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY).then((llmHandler) => {
-  console.log(`[chat-send] ⏱️  Firing ${llmHandler} (+${Date.now() - startTime}ms)`);
-  
-  const payload = { chat_id, text, mode, user_id, user_name };
+  const payload = { chat_id, text, mode, user_id, user_name, source: "chat-send" };
   
   console.info(JSON.stringify({
     event: "chat_send_llm_payload",
+    request_id: requestId,
     llm_handler: llmHandler,
     payload_keys: Object.keys(payload),
     note: "chat-send does NOT pass chattype to LLM handler for regular text chat"
@@ -185,27 +210,57 @@ getLLMHandler(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY).then((llmHandler) => {
     body: JSON.stringify(payload)
   });
 }).then(() => {
-  console.log(`[chat-send] ⏱️  LLM handler fetch completed (+${Date.now() - llmStartTime}ms from fire)`);
+  console.info(JSON.stringify({
+    event: "chat_send_llm_completed",
+    request_id: requestId,
+    duration_ms: Date.now() - llmStartTime
+  }));
 }).catch((err) => {
-  console.error("[chat-send] LLM call failed:", err);
+  console.error(JSON.stringify({
+    event: "chat_send_llm_failed",
+    request_id: requestId,
+    error: err instanceof Error ? err.message : String(err)
+  }));
 });
 }
 
 // ⚡ FIRE-AND-FORGET: DB insert (WebSocket + optimistic UI handle sync)
-console.log(`[chat-send] ⏱️  Starting DB insert (+${Date.now() - startTime}ms)`);
+console.info(JSON.stringify({
+  event: "chat_send_db_insert_start",
+  request_id: requestId
+}));
+
 supabase
 .from("messages")
 .insert(message)
 .then(({ error }) => {
 if (error) {
-console.error("[chat-send] DB insert failed:", error);
+console.error(JSON.stringify({
+  event: "chat_send_db_insert_failed",
+  request_id: requestId,
+  error: error.message
+}));
 } else {
-console.log(`[chat-send] ⏱️  DB insert complete (+${Date.now() - startTime}ms)`);
+console.info(JSON.stringify({
+  event: "chat_send_db_insert_complete",
+  request_id: requestId,
+  duration_ms: Date.now() - startTime
+}));
 }
 });
 
+// Flush logs before returning response
+await new Promise(r => setTimeout(r, 50));
+
 // Return immediately (no await, both operations already non-blocking)
-console.log(`[chat-send] ⏱️  Returning response (+${Date.now() - startTime}ms) TOTAL`);
+console.info(JSON.stringify({
+  event: "chat_send_response_returned",
+  request_id: requestId,
+  total_duration_ms: Date.now() - startTime,
+  role,
+  llm_started: shouldStartLLM
+}));
+
 return json(200, {
 message: role === "assistant" ? "Assistant message saved" : "User message saved",
 saved: message,
