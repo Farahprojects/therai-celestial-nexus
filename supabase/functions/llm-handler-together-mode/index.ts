@@ -77,31 +77,46 @@ Deno.serve(async (req) => {
     const participantIds = participants?.map(p => p.user_id) || [];
     console.log(`[together-mode] Found ${participantIds.length} participants`);
     
-    // Try to fetch primary profiles first (new onboarding flow)
-    const { data: primaryProfiles } = await supabase
-      .from('user_profile_list')
-      .select('user_id, name, birth_date, birth_time, birth_location, birth_latitude, birth_longitude, notes')
+    // Find profile conversations for each participant (mode='profile')
+    const { data: profileConversations } = await supabase
+      .from('conversations')
+      .select('id, user_id')
       .in('user_id', participantIds)
-      .eq('is_primary', true);
+      .eq('mode', 'profile');
     
+    console.log(`[together-mode] Found ${profileConversations?.length || 0} profile conversations`);
+    
+    // Get swiss data from translator_logs using profile conversation chat_ids
+    const profileChatIds = profileConversations?.map(c => c.id) || [];
+    const { data: translatorLogs } = await supabase
+      .from('translator_logs')
+      .select('chat_id, swiss_data, request_type')
+      .in('chat_id', profileChatIds)
+      .order('created_at', { ascending: false }); // Get most recent if multiple
+    
+    console.log(`[together-mode] Found ${translatorLogs?.length || 0} translator_logs entries`);
+    
+    // Build participant contexts from swiss_data
     let participantContexts: string[] = [];
     
-    if (primaryProfiles && primaryProfiles.length > 0) {
-      console.log(`[together-mode] Using ${primaryProfiles.length} primary profiles`);
+    if (translatorLogs && translatorLogs.length > 0) {
+      // Group by chat_id to get unique entries (most recent)
+      const uniqueLogs = new Map();
+      translatorLogs.forEach(log => {
+        if (!uniqueLogs.has(log.chat_id)) {
+          uniqueLogs.set(log.chat_id, log);
+        }
+      });
       
-      // Build context from primary profiles
-      participantContexts = primaryProfiles.map((profile) => {
-        return `\n\n=== AstroData for ${profile.name} ===
-Birth Date: ${profile.birth_date}
-Birth Time: ${profile.birth_time}
-Birth Location: ${profile.birth_location}
-Coordinates: ${profile.birth_latitude}, ${profile.birth_longitude}
-${profile.notes ? `Notes: ${profile.notes}` : ''}`;
+      participantContexts = Array.from(uniqueLogs.values()).map((log, idx) => {
+        const profileConv = profileConversations?.find(c => c.id === log.chat_id);
+        const participantName = profileConv ? `Participant ${idx + 1}` : `Participant ${idx + 1}`;
+        return `\n\n=== AstroData for ${participantName} ===\n${JSON.stringify(log.swiss_data, null, 2)}`;
       });
     } else {
-      console.log("[together-mode] No primary profiles found, falling back to system messages");
+      console.log("[together-mode] No translator_logs found, falling back to system messages");
       
-      // Fallback: Fetch system messages (backward compatibility)
+      // Fallback: Fetch system messages (backward compatibility for old conversations)
       const { data: systemMessages } = await supabase
         .from('messages')
         .select('text, user_name')
@@ -229,7 +244,7 @@ ${profile.notes ? `Notes: ${profile.notes}` : ''}`;
         analyzed_participants: participantContexts.length,
         trigger_type: 'manual',
         latency_ms: Date.now() - startTime,
-        used_primary_profiles: !!(primaryProfiles && primaryProfiles.length > 0)
+        used_translator_logs: translatorLogs && translatorLogs.length > 0
       }
     });
     

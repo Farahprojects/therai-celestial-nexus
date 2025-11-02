@@ -168,50 +168,6 @@ if (isProfileMode) {
   });
 }
 
-// For Together Mode: auto-generate astro data from primary profile
-if (mode === 'together') {
-  try {
-    console.log('[conversation-manager] Together Mode - fetching primary profile');
-    
-    const { data: primaryProfile } = await admin
-      .from('user_profile_list')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('is_primary', true)
-      .single();
-    
-    if (primaryProfile) {
-      console.log('[conversation-manager] Found primary profile, creating astro data');
-      
-      // Create system message with astro data
-      const astroDataText = `Birth Date: ${primaryProfile.birth_date}
-Birth Time: ${primaryProfile.birth_time}
-Birth Location: ${primaryProfile.birth_location}
-Coordinates: ${primaryProfile.birth_latitude}, ${primaryProfile.birth_longitude}`;
-      
-      await admin.from('messages').insert({
-        chat_id: id,
-        role: 'system',
-        text: astroDataText,
-        user_name: primaryProfile.name,
-        status: 'complete',
-        meta: { 
-          has_swiss_data: true,
-          from_primary_profile: true,
-          profile_id: primaryProfile.id
-        }
-      });
-      
-      console.log('[conversation-manager] Astro data created for Together Mode');
-    } else {
-      console.log('[conversation-manager] No primary profile found - Together Mode will require manual astro data');
-    }
-  } catch (err) {
-    console.error('[conversation-manager] Failed to create astro data for Together Mode:', err);
-    // Non-fatal - conversation still created, just without astro data
-  }
-}
-
 // Fire-and-forget report generation if report_data provided
 let is_generating_report = false;
 if (report_data) {
@@ -302,50 +258,6 @@ const { data, error } = await admin
   .single();
 
 if (error) return errorJson('Failed to create conversation', 500);
-
-// For Together Mode: auto-generate astro data from primary profile
-if (mode === 'together') {
-  try {
-    console.log('[conversation-manager] Together Mode - fetching primary profile');
-    
-    const { data: primaryProfile } = await admin
-      .from('user_profile_list')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('is_primary', true)
-      .single();
-    
-    if (primaryProfile) {
-      console.log('[conversation-manager] Found primary profile, creating astro data');
-      
-      // Create system message with astro data
-      const astroDataText = `Birth Date: ${primaryProfile.birth_date}
-Birth Time: ${primaryProfile.birth_time}
-Birth Location: ${primaryProfile.birth_location}
-Coordinates: ${primaryProfile.birth_latitude}, ${primaryProfile.birth_longitude}`;
-      
-      await admin.from('messages').insert({
-        chat_id: id,
-        role: 'system',
-        text: astroDataText,
-        user_name: primaryProfile.name,
-        status: 'complete',
-        meta: { 
-          has_swiss_data: true,
-          from_primary_profile: true,
-          profile_id: primaryProfile.id
-        }
-      });
-      
-      console.log('[conversation-manager] Astro data created for Together Mode');
-    } else {
-      console.log('[conversation-manager] No primary profile found');
-    }
-  } catch (err) {
-    console.error('[conversation-manager] Failed to create astro data:', err);
-    // Non-fatal
-  }
-}
 
 return json(data);
 },

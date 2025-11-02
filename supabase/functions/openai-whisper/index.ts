@@ -2,6 +2,7 @@
 // Dynamically routes to correct LLM handler based on system config
 
 import { getLLMHandler } from "../_shared/llmConfig.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -157,27 +158,45 @@ Deno.serve(async (req) => {
         console.error('[openai-whisper] ❌ User message save failed:', error);
       });
 
-      // Get configured LLM handler and call it
-      getLLMHandler(supabaseUrl, supabaseKey).then((llmHandler) => {
-        console.log(`[openai-whisper] Using ${llmHandler} for voice mode`);
-        
-        return fetch(`${supabaseUrl}/functions/v1/${llmHandler}`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${supabaseKey}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            chat_id,
-            text: transcript,
-            chattype: 'voice',
-            mode: mode,
-            voice
-          })
-        });
-      }).catch((error) => {
-        console.error('[openai-whisper] ❌ LLM call failed:', error);
+      // Check conversation mode - skip LLM handler for together mode (peer-to-peer chat)
+      const supabaseClient = createClient(supabaseUrl!, supabaseKey!, {
+        auth: { persistSession: false }
       });
+      
+      const { data: conv } = await supabaseClient
+        .from('conversations')
+        .select('mode')
+        .eq('id', chat_id)
+        .single();
+      
+      const conversationMode = conv?.mode || 'chat';
+      
+      if (conversationMode === 'together') {
+        console.log('[openai-whisper] Together mode - skipping LLM handler for peer-to-peer chat');
+        // Skip LLM handler call - transcript already saved
+      } else {
+        // Normal flow: call LLM handler
+        getLLMHandler(supabaseUrl, supabaseKey).then((llmHandler) => {
+          console.log(`[openai-whisper] Using ${llmHandler} for voice mode`);
+          
+          return fetch(`${supabaseUrl}/functions/v1/${llmHandler}`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${supabaseKey}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              chat_id,
+              text: transcript,
+              chattype: 'voice',
+              mode: mode,
+              voice
+            })
+          });
+        }).catch((error) => {
+          console.error('[openai-whisper] ❌ LLM call failed:', error);
+        });
+      }
 
       // Broadcast thinking-mode to WebSocket
       fetch(`${supabaseUrl}/functions/v1/broadcast`, {

@@ -483,105 +483,129 @@ if (chattype === "voice" && chat_id) {
   if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
     console.warn("[google-stt] Voice actions skipped: missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY");
   } else {
-    const headers = {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-      "x-internal-key": Deno.env.get("INTERNAL_API_KEY") || "" // Internal API key for backend-to-backend calls
-    };
-
-    console.info(JSON.stringify({
-      event: "preparing_internal_calls",
-      has_internal_api_key: !!Deno.env.get("INTERNAL_API_KEY"),
-      internal_key_length: Deno.env.get("INTERNAL_API_KEY")?.length || 0
-    }));
-
-    // Get configured LLM handler, then fire-and-forget tasks
-    getLLMHandler(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY).then(async (llmHandler) => {
-      console.log(`[google-stt] Using ${llmHandler} for voice mode`);
-      
-      // Capture chattype in closure to ensure it's passed correctly
-      const chattypeToPass = chattype;
-      
+    // Check conversation mode - skip LLM handler for together mode (peer-to-peer chat)
+    const supabaseClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+      auth: { persistSession: false }
+    });
+    
+    const { data: conv } = await supabaseClient
+      .from('conversations')
+      .select('mode')
+      .eq('id', chat_id)
+      .single();
+    
+    const conversationMode = conv?.mode || 'chat';
+    
+    if (conversationMode === 'together') {
       console.info(JSON.stringify({
-        event: "preparing_to_call_llm_handler",
-        chattype: chattypeToPass,
-        chattype_type: typeof chattypeToPass,
-        llm_handler: llmHandler
+        event: "stt_together_mode_skip_llm",
+        chat_id,
+        conversation_mode: conversationMode,
+        note: "Together mode - skipping LLM handler for peer-to-peer chat"
       }));
-      
-      const tasks = [
-        fetch(`${SUPABASE_URL}/functions/v1/${llmHandler}`, {
-          method: "POST",
-          headers,
-          body: JSON.stringify({
+      // Skip LLM handler call - transcript already saved, just exit
+    } else {
+      // Normal flow: call LLM handler
+      const headers = {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+        "x-internal-key": Deno.env.get("INTERNAL_API_KEY") || "" // Internal API key for backend-to-backend calls
+      };
+
+      console.info(JSON.stringify({
+        event: "preparing_internal_calls",
+        has_internal_api_key: !!Deno.env.get("INTERNAL_API_KEY"),
+        internal_key_length: Deno.env.get("INTERNAL_API_KEY")?.length || 0
+      }));
+
+      // Get configured LLM handler, then fire-and-forget tasks
+      getLLMHandler(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY).then(async (llmHandler) => {
+        console.log(`[google-stt] Using ${llmHandler} for voice mode`);
+        
+        // Capture chattype in closure to ensure it's passed correctly
+        const chattypeToPass = chattype;
+        
+        console.info(JSON.stringify({
+          event: "preparing_to_call_llm_handler",
+          chattype: chattypeToPass,
+          chattype_type: typeof chattypeToPass,
+          llm_handler: llmHandler
+        }));
+        
+        const tasks = [
+          fetch(`${SUPABASE_URL}/functions/v1/${llmHandler}`, {
+            method: "POST",
+            headers,
+            body: JSON.stringify({
+              chat_id,
+              text: transcript,
+              chattype: chattypeToPass, // Use captured chattype value
+              mode,
+              voice,
+              user_id,
+              user_name,
+              source: "google-whisper" // Identify caller
+            })
+          })
+        ];
+
+        console.info(JSON.stringify({
+          event: "calling_llm_handler_with_payload",
+          chattype_in_payload: chattypeToPass,
+          chat_id,
+          text_length: transcript.length,
+          full_payload: {
             chat_id,
-            text: transcript,
-            chattype: chattypeToPass, // Use captured chattype value
+            text: transcript.substring(0, 50) + "...", // First 50 chars
+            chattype: chattypeToPass,
             mode,
             voice,
             user_id,
-            user_name,
-            source: "google-whisper" // Identify caller
-          })
-        })
-      ];
-
-      console.info(JSON.stringify({
-        event: "calling_llm_handler_with_payload",
-        chattype_in_payload: chattypeToPass,
-        chat_id,
-        text_length: transcript.length,
-        full_payload: {
-          chat_id,
-          text: transcript.substring(0, 50) + "...", // First 50 chars
-          chattype: chattypeToPass,
-          mode,
-          voice,
-          user_id,
-          user_name
-        }
-      }));
-
-      // Fire-and-forget: Start tasks without awaiting (non-blocking)
-      Promise.allSettled(tasks).then((results) => {
-        results.forEach((result, index) => {
-          const taskName = "llm-handler";
-          
-          if (result.status === "fulfilled") {
-            const response = result.value;
-            if (!response.ok) {
-              // Only log errors, not successes (to reduce log noise)
-              response.text().then(text => {
-                try {
-                  const body = JSON.parse(text);
-                  console.error(JSON.stringify({
-                    event: `${taskName}_failed`,
-                    status: response.status,
-                    error: body
-                  }));
-                } catch {
-                  console.error(JSON.stringify({
-                    event: `${taskName}_failed`,
-                    status: response.status,
-                    error_text: text.substring(0, 200)
-                  }));
-                }
-              }).catch(() => {});
-            }
-          } else {
-            console.error(JSON.stringify({
-              event: `${taskName}_rejected`,
-              error: result.reason instanceof Error ? result.reason.message : String(result.reason)
-            }));
+            user_name
           }
-        });
-      }).catch(() => {});
-    }).catch((err) => {
-      console.error(JSON.stringify({
-        event: "failed_to_get_llm_handler",
-        error: err instanceof Error ? err.message : String(err)
-      }));
-    });
+        }));
+
+        // Fire-and-forget: Start tasks without awaiting (non-blocking)
+        Promise.allSettled(tasks).then((results) => {
+          results.forEach((result, index) => {
+            const taskName = "llm-handler";
+            
+            if (result.status === "fulfilled") {
+              const response = result.value;
+              if (!response.ok) {
+                // Only log errors, not successes (to reduce log noise)
+                response.text().then(text => {
+                  try {
+                    const body = JSON.parse(text);
+                    console.error(JSON.stringify({
+                      event: `${taskName}_failed`,
+                      status: response.status,
+                      error: body
+                    }));
+                  } catch {
+                    console.error(JSON.stringify({
+                      event: `${taskName}_failed`,
+                      status: response.status,
+                      error_text: text.substring(0, 200)
+                    }));
+                  }
+                }).catch(() => {});
+              }
+            } else {
+              console.error(JSON.stringify({
+                event: `${taskName}_rejected`,
+                error: result.reason instanceof Error ? result.reason.message : String(result.reason)
+              }));
+            }
+          });
+        }).catch(() => {});
+      }).catch((err) => {
+        console.error(JSON.stringify({
+          event: "failed_to_get_llm_handler",
+          error: err instanceof Error ? err.message : String(err)
+        }));
+      });
+    }
   }
 } else {
   console.info(JSON.stringify({
