@@ -66,20 +66,61 @@ Deno.serve(async (req) => {
   }
   
   try {
-    console.log("[together-mode] Fetching system messages (astro data)");
+    console.log("[together-mode] Fetching participant data");
     
-    // Fetch ALL system messages (both participants' astro data)
-    const { data: systemMessages } = await supabase
-      .from('messages')
-      .select('text, user_name')
-      .eq('chat_id', chat_id)
-      .eq('role', 'system')
-      .eq('status', 'complete')
-      .not('text', 'is', null)
-      .neq('text', '')
-      .order('created_at', { ascending: true });
+    // Get all participants in this conversation
+    const { data: participants } = await supabase
+      .from('conversations_participants')
+      .select('user_id')
+      .eq('conversation_id', chat_id);
     
-    if (!systemMessages || systemMessages.length === 0) {
+    const participantIds = participants?.map(p => p.user_id) || [];
+    console.log(`[together-mode] Found ${participantIds.length} participants`);
+    
+    // Try to fetch primary profiles first (new onboarding flow)
+    const { data: primaryProfiles } = await supabase
+      .from('user_profile_list')
+      .select('user_id, name, birth_date, birth_time, birth_location, birth_latitude, birth_longitude, notes')
+      .in('user_id', participantIds)
+      .eq('is_primary', true);
+    
+    let participantContexts: string[] = [];
+    
+    if (primaryProfiles && primaryProfiles.length > 0) {
+      console.log(`[together-mode] Using ${primaryProfiles.length} primary profiles`);
+      
+      // Build context from primary profiles
+      participantContexts = primaryProfiles.map((profile) => {
+        return `\n\n=== AstroData for ${profile.name} ===
+Birth Date: ${profile.birth_date}
+Birth Time: ${profile.birth_time}
+Birth Location: ${profile.birth_location}
+Coordinates: ${profile.birth_latitude}, ${profile.birth_longitude}
+${profile.notes ? `Notes: ${profile.notes}` : ''}`;
+      });
+    } else {
+      console.log("[together-mode] No primary profiles found, falling back to system messages");
+      
+      // Fallback: Fetch system messages (backward compatibility)
+      const { data: systemMessages } = await supabase
+        .from('messages')
+        .select('text, user_name')
+        .eq('chat_id', chat_id)
+        .eq('role', 'system')
+        .eq('status', 'complete')
+        .not('text', 'is', null)
+        .neq('text', '')
+        .order('created_at', { ascending: true });
+      
+      if (systemMessages && systemMessages.length > 0) {
+        participantContexts = systemMessages.map((msg, idx) => {
+          const name = msg.user_name || `Participant ${idx + 1}`;
+          return `\n\n=== AstroData for ${name} ===\n${msg.text}`;
+        });
+      }
+    }
+    
+    if (participantContexts.length === 0) {
       console.log("[together-mode] No astro data found");
       // Insert graceful response
       await supabase.from('messages').insert({
@@ -92,14 +133,8 @@ Deno.serve(async (req) => {
       return json(200, { success: true, no_data: true });
     }
     
-    // Build multi-participant context
-    const participantContexts = systemMessages.map((msg, idx) => {
-      const name = msg.user_name || `Participant ${idx + 1}`;
-      return `\n\n=== AstroData for ${name} ===\n${msg.text}`;
-    });
     const systemText = participantContexts.join('\n\n');
-    
-    console.log(`[together-mode] Loaded ${systemMessages.length} participant contexts`);
+    console.log(`[together-mode] Loaded ${participantContexts.length} participant contexts`);
     
     // Fetch conversation history (last 15 messages for relationship context)
     const { data: history } = await supabase
@@ -191,9 +226,10 @@ Deno.serve(async (req) => {
       user_name: 'Therai',
       meta: {
         together_mode_analysis: true,
-        analyzed_participants: systemMessages.length,
+        analyzed_participants: participantContexts.length,
         trigger_type: 'manual',
-        latency_ms: Date.now() - startTime
+        latency_ms: Date.now() - startTime,
+        used_primary_profiles: !!(primaryProfiles && primaryProfiles.length > 0)
       }
     });
     

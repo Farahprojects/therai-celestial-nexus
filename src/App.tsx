@@ -13,6 +13,7 @@ import { SettingsModalProvider } from '@/contexts/SettingsModalContext'
 import { AuthModalProvider } from '@/contexts/AuthModalContext'
 import { PricingProvider } from '@/contexts/PricingContext'
 import { SubscriptionProvider } from '@/contexts/SubscriptionContext'
+import { OnboardingGuard } from '@/components/onboarding/OnboardingGuard'
 
 const queryClient = new QueryClient()
 
@@ -45,14 +46,16 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <Router>
         <AppProviders>
-          <Routes>
-            {/* Public routes - no auth required */}
-            <Route path="/join/:chatId" element={<JoinConversation />} />
-            <Route path="/folder/:folderId" element={<JoinFolder />} />
-            
-            {/* All other routes go through AuthedAppShell */}
-            <Route path="/*" element={<AuthedAppShell />} />
-          </Routes>
+          <OnboardingGuard>
+            <Routes>
+              {/* Public routes - no auth required */}
+              <Route path="/join/:chatId" element={<JoinConversation />} />
+              <Route path="/folder/:folderId" element={<JoinFolder />} />
+              
+              {/* All other routes go through AuthedAppShell */}
+              <Route path="/*" element={<AuthedAppShell />} />
+            </Routes>
+          </OnboardingGuard>
         </AppProviders>
         <Toaster />
       </Router>

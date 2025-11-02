@@ -1,0 +1,73 @@
+import React, { useState, useEffect } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { OnboardingModal } from './OnboardingModal';
+
+interface OnboardingGuardProps {
+  children: React.ReactNode;
+}
+
+export const OnboardingGuard: React.FC<OnboardingGuardProps> = ({ children }) => {
+  const { user } = useAuth();
+  const [needsOnboarding, setNeedsOnboarding] = useState<boolean | null>(null);
+  const [showModal, setShowModal] = useState(false);
+
+  useEffect(() => {
+    const checkOnboardingStatus = async () => {
+      if (!user) {
+        setNeedsOnboarding(false);
+        return;
+      }
+
+      try {
+        // Check has_profile_setup flag
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('has_profile_setup')
+          .eq('id', user.id)
+          .single();
+
+        if (error) {
+          console.error('Error checking onboarding status:', error);
+          // On error, assume onboarding not needed to avoid blocking user
+          setNeedsOnboarding(false);
+          return;
+        }
+
+        const needs = !data?.has_profile_setup;
+        setNeedsOnboarding(needs);
+        setShowModal(needs);
+      } catch (error) {
+        console.error('Error in onboarding check:', error);
+        setNeedsOnboarding(false);
+      }
+    };
+
+    checkOnboardingStatus();
+  }, [user]);
+
+  // Loading state - show nothing while checking
+  if (needsOnboarding === null) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <div className="w-12 h-12 border-2 border-gray-200 border-t-gray-900 rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  return (
+    <>
+      {needsOnboarding && (
+        <OnboardingModal
+          isOpen={showModal}
+          onComplete={() => {
+            setNeedsOnboarding(false);
+            setShowModal(false);
+          }}
+        />
+      )}
+      {children}
+    </>
+  );
+};
+
