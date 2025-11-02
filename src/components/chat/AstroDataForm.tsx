@@ -152,6 +152,22 @@ export const AstroDataForm: React.FC<AstroDataFormProps> = ({
 
   const handleFormSubmission = async (data: ReportFormData) => {
     if (!user) return;
+    
+    // Profile mode: skip conversation creation, just return the data
+    if (isProfileFlow) {
+      setIsProcessing(true);
+      try {
+        onSubmit(data);
+      } catch (error) {
+        console.error('[AstroDataForm] Profile submission error:', error);
+        toast.error('Failed to submit profile data. Please try again.');
+      } finally {
+        setIsProcessing(false);
+      }
+      return;
+    }
+    
+    // Regular mode: create conversation
     if (!mode || (mode !== 'astro' && mode !== 'insight' && mode !== 'swiss')) {
       toast.error('Please select a mode from the dropdown menu before submitting.');
       return;
