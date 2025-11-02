@@ -492,45 +492,6 @@ Deno.serve(async (req) => {
     cached_tokens: data?.usageMetadata?.cachedContentTokenCount ?? null
   };
 
-  // For voice mode: Save user message FIRST (if not already saved)
-  if (chattype === "voice") {
-    console.info(JSON.stringify({
-      event: "voice_mode_saving_user_message",
-      chat_id,
-      text_length: text.length
-    }));
-
-    const userMessage = {
-      chat_id,
-      role: "user",
-      text,
-      client_msg_id: crypto.randomUUID(),
-      status: "complete",
-      mode,
-      user_id: user_id ?? null,
-      user_name: user_name ?? null,
-      meta: {}
-    };
-
-    // Await user message save to ensure it's saved before assistant message
-    const { error: userMsgError } = await supabase
-      .from("messages")
-      .insert(userMessage);
-
-    if (userMsgError) {
-      console.error(JSON.stringify({
-        event: "voice_mode_user_message_save_failed",
-        error: userMsgError.message
-      }));
-      // Continue anyway - don't fail the whole request
-    } else {
-      console.info(JSON.stringify({
-        event: "voice_mode_user_message_saved",
-        chat_id
-      }));
-    }
-  }
-
   // Increment turn count
   const newTurnCount = currentTurnCount + 1;
 
@@ -562,30 +523,67 @@ Deno.serve(async (req) => {
       });
   }
 
-  // Fire-and-forget: TTS (voice only) and save assistant message via chat-send
+  // Fire-and-forget: TTS (voice only) and save messages via chat-send
   const headers = {
     "Content-Type": "application/json",
-    "Authorization": `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`
+    "Authorization": `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+    "x-internal-key": Deno.env.get("INTERNAL_API_KEY") || ""
   };
 
   const assistantClientId = crypto.randomUUID();
+  const userClientId = crypto.randomUUID();
 
-  const tasks = [
-    fetch(`${SUPABASE_URL}/functions/v1/chat-send`, {
-      method: "POST",
-      headers,
-      body: JSON.stringify({
-        chat_id,
-        text: assistantText,
-        client_msg_id: assistantClientId,
-        role: "assistant",
-        mode,
-        user_id,
-        user_name,
-        chattype
+  const tasks = [];
+
+  // For voice mode: send both user and assistant messages together
+  if (chattype === "voice") {
+    tasks.push(
+      fetch(`${SUPABASE_URL}/functions/v1/chat-send`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          chat_id,
+          messages: [
+            {
+              text,
+              role: "user",
+              client_msg_id: userClientId,
+              mode,
+              user_id,
+              user_name
+            },
+            {
+              text: assistantText,
+              role: "assistant",
+              client_msg_id: assistantClientId,
+              mode,
+              user_id,
+              user_name
+            }
+          ],
+          chattype
+        })
       })
-    })
-  ];
+    );
+  } else {
+    // For regular text: only send assistant message
+    tasks.push(
+      fetch(`${SUPABASE_URL}/functions/v1/chat-send`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          chat_id,
+          text: assistantText,
+          client_msg_id: assistantClientId,
+          role: "assistant",
+          mode,
+          user_id,
+          user_name,
+          chattype
+        })
+      })
+    );
+  }
 
   console.info(JSON.stringify({
     event: "checking_tts_trigger",

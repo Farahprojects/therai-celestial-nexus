@@ -67,6 +67,7 @@ return json(400, { error: "Invalid JSON body" });
 const {
 chat_id,
 text,
+messages, // For voice mode: array of [user, assistant] messages
 client_msg_id,
 mode,
 chattype,
@@ -78,6 +79,72 @@ user_name
 if (!chat_id || typeof chat_id !== "string") {
 return json(400, { error: "Missing or invalid field: chat_id" });
 }
+
+// Handle voice mode: multiple messages in one call
+if (messages && Array.isArray(messages) && messages.length > 0) {
+  console.info(JSON.stringify({
+    event: "chat_send_batch_mode",
+    request_id: requestId,
+    message_count: messages.length,
+    chattype
+  }));
+
+  // Validate all messages
+  for (const msg of messages) {
+    if (!msg.text || typeof msg.text !== "string") {
+      return json(400, { error: `Invalid message in batch: missing or invalid text` });
+    }
+    if (!msg.role || !["user", "assistant"].includes(msg.role)) {
+      return json(400, { error: `Invalid message in batch: invalid role` });
+    }
+    if (!mode || typeof mode !== "string") {
+      return json(400, { error: "Missing or invalid field: mode" });
+    }
+  }
+
+  // Save all messages in order (user first, then assistant)
+  const messagesToInsert = messages.map(msg => ({
+    chat_id,
+    role: msg.role,
+    text: msg.text,
+    client_msg_id: msg.client_msg_id ?? crypto.randomUUID(),
+    status: "complete",
+    mode: msg.mode || mode,
+    user_id: msg.user_id || user_id ?? null,
+    user_name: msg.user_name || user_name ?? null,
+    meta: {}
+  }));
+
+  const { error: dbError } = await supabase
+    .from("messages")
+    .insert(messagesToInsert);
+
+  if (dbError) {
+    console.error(JSON.stringify({
+      event: "chat_send_batch_insert_failed",
+      request_id: requestId,
+      error: dbError.message
+    }));
+    return json(500, { error: "Failed to save messages", details: dbError.message });
+  }
+
+  console.info(JSON.stringify({
+    event: "chat_send_batch_insert_complete",
+    request_id: requestId,
+    message_count: messagesToInsert.length,
+    duration_ms: Date.now() - startTime
+  }));
+
+  // Flush logs before returning response
+  await new Promise(r => setTimeout(r, 50));
+
+  return json(200, {
+    message: `Saved ${messagesToInsert.length} messages`,
+    saved: messagesToInsert
+  });
+}
+
+// Regular single message mode
 if (!text || typeof text !== "string") {
 return json(400, { error: "Missing or invalid field: text" });
 }
