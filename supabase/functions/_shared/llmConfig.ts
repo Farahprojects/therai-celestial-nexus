@@ -39,7 +39,6 @@ export async function getLLMHandler(supabaseUrl: string, supabaseKey: string): P
     const useGemini = data?.value?.use_gemini ?? true;
     cachedConfig = { use_gemini: useGemini, cached_at: now };
     
-    console.log(`[llmConfig] Using ${useGemini ? 'Gemini' : 'ChatGPT'} handler`);
     return useGemini ? "llm-handler-gemini" : "llm-handler-chatgpt";
 
   } catch (e) {
