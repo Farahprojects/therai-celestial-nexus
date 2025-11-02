@@ -58,20 +58,9 @@ class SttService {
       body: form
     });
 
+    // Handle network/HTTP errors (actual failures)
     if (error) {
-      console.error('[STT] Google Whisper error:', error);
-      
-      // Check if this is a limit exceeded error
-      if (error.error_code === 'STT_LIMIT_EXCEEDED' || error.code === 'STT_LIMIT_EXCEEDED') {
-        throw new STTLimitExceededError(
-          error.message || 'STT usage limit exceeded',
-          error.error_code || error.code || 'STT_LIMIT_EXCEEDED',
-          error.current_usage || 0,
-          error.limit || 120,
-          error.remaining || 0
-        );
-      }
-      
+      console.error('[STT] Google Whisper HTTP error:', error);
       throw new Error(`Error invoking google-whisper: ${error.message}`);
     }
 
@@ -80,18 +69,24 @@ class SttService {
       throw new Error('No data received from Google Whisper');
     }
 
-    // Check if response indicates limit exceeded (403 status with error_code)
-    if (data.error_code === 'STT_LIMIT_EXCEEDED') {
-      throw new STTLimitExceededError(
-        data.message || 'STT usage limit exceeded',
-        data.error_code,
-        data.current_usage || 0,
-        data.limit || 120,
-        data.remaining || 0
-      );
+    // Check structured response for success flag
+    if (data.success === false) {
+      // Handle limit exceeded error
+      if (data.code === 'STT_LIMIT_EXCEEDED') {
+        throw new STTLimitExceededError(
+          data.message || 'STT usage limit exceeded',
+          data.code,
+          data.current_usage || 0,
+          data.limit || 120,
+          data.remaining || 0
+        );
+      }
+      
+      // Handle other error codes
+      throw new Error(data.message || `STT error: ${data.code || 'UNKNOWN'}`);
     }
 
-    // Return the transcript
+    // Success - return transcript
     return {
       transcript: data.transcript || '',
     };

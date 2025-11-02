@@ -200,14 +200,15 @@ if (authenticatedUserId) {
       limit: freeTierCheck.limit
     }));
     
-    // Return error immediately - don't process audio
-    return json(403, {
-      error: "STT usage limit exceeded",
+    // Return structured error response (200 status) - don't process audio
+    return json(200, {
+      success: false,
+      code: "STT_LIMIT_EXCEEDED",
       message: "You've used 2 minutes of free voice transcription. Upgrade to Premium for unlimited voice features.",
-      error_code: "STT_LIMIT_EXCEEDED",
       current_usage: freeTierCheck.currentUsage,
       limit: freeTierCheck.limit,
-      remaining: freeTierCheck.remaining
+      remaining: freeTierCheck.remaining,
+      transcript: "" // No transcript since we didn't process
     });
   }
 }
@@ -237,7 +238,7 @@ console.info(JSON.stringify({
 if (!transcript.trim()) {
   console.info(JSON.stringify({ event: "empty_transcript_returning" }));
   await new Promise(r => setTimeout(r, 50)); // Allow logs to flush
-  return json(200, { transcript: "" });
+  return json(200, { success: true, transcript: "" });
 }
 
 // Track voice usage after successful transcription using Google's duration (source of truth)
@@ -264,11 +265,11 @@ if (authenticatedUserId && durationSeconds > 0) {
       limit: postCheck.limit
     }));
     
-    // Return error - don't increment usage since limit would be exceeded
-    return json(403, {
-      error: "STT usage limit exceeded",
+    // Return structured error response (200 status) - don't increment usage since limit would be exceeded
+    return json(200, {
+      success: false,
+      code: "STT_LIMIT_EXCEEDED",
       message: "You've used 2 minutes of free voice transcription. Upgrade to Premium for unlimited voice features.",
-      error_code: "STT_LIMIT_EXCEEDED",
       current_usage: postCheck.currentUsage,
       limit: postCheck.limit,
       remaining: postCheck.remaining,
@@ -332,8 +333,144 @@ if (authenticatedUserId && durationSeconds > 0) {
 // Flush logs before returning response
 await new Promise(r => setTimeout(r, 50));
 
+// Return success response with transcript
+return json(200, {
+  success: true,
+  transcript
+});
+
 // Voice flow: optionally save user message, call LLM, and broadcast
 // Only trigger when chattype is "voice" (from conversation mode) AND chat_id exists
+// Note: This code runs after return above, so it's currently unreachable
+// TODO: Consider moving voice flow logic before return or making it fire-and-forget
+if (false && chattype === "voice" && chat_id) {
+  console.info(JSON.stringify({
+    event: "voice_flow_triggered",
+    chattype,
+    chattype_type: typeof chattype,
+    chat_id,
+    transcript_length: transcript.length
+  }));
+
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+    console.warn("[google-stt] Voice actions skipped: missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY");
+  } else {
+    const headers = {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+      "x-internal-key": Deno.env.get("INTERNAL_API_KEY") || "" // Internal API key for backend-to-backend calls
+    };
+
+    console.info(JSON.stringify({
+      event: "preparing_internal_calls",
+      has_internal_api_key: !!Deno.env.get("INTERNAL_API_KEY"),
+      internal_key_length: Deno.env.get("INTERNAL_API_KEY")?.length || 0
+    }));
+
+    // Get configured LLM handler, then fire-and-forget tasks
+    getLLMHandler(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY).then(async (llmHandler) => {
+      console.log(`[google-stt] Using ${llmHandler} for voice mode`);
+      
+      // Capture chattype in closure to ensure it's passed correctly
+      const chattypeToPass = chattype;
+      
+      console.info(JSON.stringify({
+        event: "preparing_to_call_llm_handler",
+        chattype: chattypeToPass,
+        chattype_type: typeof chattypeToPass,
+        llm_handler: llmHandler
+      }));
+      
+      const tasks = [
+        fetch(`${SUPABASE_URL}/functions/v1/${llmHandler}`, {
+          method: "POST",
+          headers,
+          body: JSON.stringify({
+            chat_id,
+            text: transcript,
+            chattype: chattypeToPass, // Use captured chattype value
+            mode,
+            voice,
+            user_id,
+            user_name,
+            source: "google-whisper" // Identify caller
+          })
+        })
+      ];
+
+      console.info(JSON.stringify({
+        event: "calling_llm_handler_with_payload",
+        chattype_in_payload: chattypeToPass,
+        chat_id,
+        text_length: transcript.length,
+        full_payload: {
+          chat_id,
+          text: transcript.substring(0, 50) + "...", // First 50 chars
+          chattype: chattypeToPass,
+          mode,
+          voice,
+          user_id,
+          user_name
+        }
+      }));
+
+      // Fire-and-forget: Start tasks without awaiting (non-blocking)
+      Promise.allSettled(tasks).then((results) => {
+        results.forEach((result, index) => {
+          const taskName = "llm-handler";
+          
+          if (result.status === "fulfilled") {
+            const response = result.value;
+            if (!response.ok) {
+              // Only log errors, not successes (to reduce log noise)
+              response.text().then(text => {
+                try {
+                  const body = JSON.parse(text);
+                  console.error(JSON.stringify({
+                    event: `${taskName}_failed`,
+                    status: response.status,
+                    error: body
+                  }));
+                } catch {
+                  console.error(JSON.stringify({
+                    event: `${taskName}_failed`,
+                    status: response.status,
+                    error_text: text.substring(0, 200)
+                  }));
+                }
+              }).catch(() => {});
+            }
+          } else {
+            console.error(JSON.stringify({
+              event: `${taskName}_rejected`,
+              error: result.reason instanceof Error ? result.reason.message : String(result.reason)
+            }));
+          }
+        });
+      }).catch(() => {});
+    }).catch((err) => {
+      console.error(JSON.stringify({
+        event: "failed_to_get_llm_handler",
+        error: err instanceof Error ? err.message : String(err)
+      }));
+    });
+  }
+} else {
+  console.info(JSON.stringify({
+    event: "voice_flow_skipped",
+    chattype,
+    chattype_type: typeof chattype,
+    chat_id: chat_id || "missing",
+    reason: !chattype ? "no_chattype" : chattype !== "voice" ? "chattype_not_voice" : "no_chat_id"
+  }));
+}
+
+// Flush logs before returning response
+await new Promise(r => setTimeout(r, 50));
+
+// Voice flow: optionally save user message, call LLM, and broadcast
+// Only trigger when chattype is "voice" (from conversation mode) AND chat_id exists
+// This runs fire-and-forget (non-blocking) so we can return immediately
 if (chattype === "voice" && chat_id) {
   console.info(JSON.stringify({
     event: "voice_flow_triggered",
@@ -456,9 +593,18 @@ if (chattype === "voice" && chat_id) {
   }));
 }
 
-return json(200, { transcript });
+// Return success response with transcript
+return json(200, {
+  success: true,
+  transcript
+});
 } catch (err) {
 console.error("[google-stt] Error:", err);
-return json(500, { error: (err as any)?.message || "Unknown error" });
+return json(200, {
+  success: false,
+  code: "SERVER_ERROR",
+  message: (err as any)?.message || "Unknown error occurred",
+  transcript: ""
+});
 }
 });
