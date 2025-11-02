@@ -291,8 +291,6 @@ if (authenticatedUserId && durationSeconds > 0) {
 // Flush logs before returning response
 await new Promise(r => setTimeout(r, 50));
 
-return json(200, { transcript });
-
 // Voice flow: optionally save user message, call LLM, and broadcast
 // Only trigger when chattype is "voice" (from conversation mode) AND chat_id exists
 if (chattype === "voice" && chat_id) {
