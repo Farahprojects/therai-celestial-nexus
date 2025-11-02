@@ -206,25 +206,10 @@ export const updateConversationMode = async (
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('User not authenticated');
 
-  // Fetch existing meta
-  const { data: conversation, error: fetchError } = await supabase
-    .from('conversations')
-    .select('meta')
-    .eq('id', conversationId)
-    .single();
-
-  if (fetchError) throw new Error('Failed to fetch conversation');
-
-  // Update meta with new mode
-  const updatedMeta = {
-    ...(conversation.meta || {}),
-    conversation_mode: mode
-  };
-
   const { error } = await supabase
     .from('conversations')
     .update({ 
-      meta: updatedMeta,
+      mode: mode,
       updated_at: new Date().toISOString()
     })
     .eq('id', conversationId)

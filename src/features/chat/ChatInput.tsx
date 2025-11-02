@@ -66,11 +66,11 @@ export const ChatInput = () => {
     if (chat_id) {
       supabase
         .from('conversations')
-        .select('meta')
+        .select('mode')
         .eq('id', chat_id)
         .single()
         .then(({ data }) => {
-          setConversationMode(data?.meta?.conversation_mode || 'standard');
+          setConversationMode(data?.mode || 'chat');
         });
     }
   }, [chat_id]);

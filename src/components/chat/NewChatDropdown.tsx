@@ -33,7 +33,7 @@ export const NewChatDropdown: React.FC<NewChatDropdownProps> = ({ className = ""
   const [selectedChartType, setSelectedChartType] = useState<string | null>(null);
 
   // Shared handleNewChat function - all creation goes through conversation-manager
-  const handleNewChat = async (mode: 'chat' | 'astro' | 'insight' = 'chat') => {
+  const handleNewChat = async (mode: 'chat' | 'astro' | 'insight' | 'together' = 'chat') => {
     if (!user) {
       console.error('[NewChatDropdown] Cannot create new chat: user not authenticated');
       return;
@@ -46,7 +46,7 @@ export const NewChatDropdown: React.FC<NewChatDropdownProps> = ({ className = ""
     }
 
     try{
-      const title = mode === 'insight' ? 'New Insight Chat' : 'New Chat';
+      const title = mode === 'insight' ? 'New Insight Chat' : mode === 'together' ? 'Together Mode' : 'New Chat';
       
       // Create conversation through conversation-manager edge function
       const { addThread } = useChatStore.getState();
@@ -169,6 +169,15 @@ export const NewChatDropdown: React.FC<NewChatDropdownProps> = ({ className = ""
             <div className="flex items-center gap-2">
               <Orbit className="w-4 h-4" />
               <span>Astro</span>
+            </div>
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() => handleNewChat('together')}
+            className="cursor-pointer"
+          >
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-4 h-4" />
+              <span>Together Mode</span>
             </div>
           </DropdownMenuItem>
           <DropdownMenuSeparator />

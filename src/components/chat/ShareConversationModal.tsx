@@ -43,7 +43,7 @@ export const ShareConversationModal: React.FC<ShareConversationModalProps> = ({
     const loadConversation = async () => {
       const { data } = await supabase
         .from('conversations')
-        .select('meta')
+        .select('meta, mode')
         .eq('id', conversationId)
         .single();
       
@@ -51,8 +51,8 @@ export const ShareConversationModal: React.FC<ShareConversationModalProps> = ({
       const isCompat = !!data?.meta?.last_report_form?.person_b;
       setIsCompatibilityChat(isCompat);
       
-      // Load current mode
-      setSelectedMode(data?.meta?.conversation_mode || 'standard');
+      // Load current mode from mode column
+      setSelectedMode(data?.mode || 'standard');
     };
     
     loadConversation();

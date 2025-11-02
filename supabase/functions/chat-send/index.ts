@@ -235,7 +235,32 @@ meta: {}
 };
 
 // ⚡ FIRE-AND-FORGET: Start LLM immediately (non-blocking)
-const shouldStartLLM = role === "user" && chattype !== "voice";
+// For "together" mode, only trigger LLM if @therai is present (analyze = true)
+let shouldStartLLM = role === "user" && chattype !== "voice";
+
+if (shouldStartLLM) {
+  // Check conversation mode to determine if we should skip LLM
+  const { data: conv } = await supabase
+    .from('conversations')
+    .select('mode')
+    .eq('id', chat_id)
+    .single();
+  
+  const conversationMode = conv?.mode || 'chat';
+  
+  // Together mode: only trigger LLM if @therai is present
+  if (conversationMode === 'together' && analyze !== true) {
+    shouldStartLLM = false;
+    console.info(JSON.stringify({
+      event: "chat_send_together_mode_skip_llm",
+      request_id: requestId,
+      conversation_mode: conversationMode,
+      analyze: analyze,
+      note: "Together mode without @therai - skipping LLM for peer-to-peer chat"
+    }));
+  }
+}
+
 if (shouldStartLLM) {
 const llmStartTime = Date.now();
 
@@ -247,37 +272,28 @@ console.info(JSON.stringify({
   chattype_is_voice: chattype === "voice",
   should_start_llm: shouldStartLLM,
   role,
-  mode
+  mode,
+  analyze: analyze
 }));
 
 // Determine which LLM handler to use
 const determineLLMHandler = async () => {
-  if (analyze === true) {
-    // Check conversation mode for Together Mode routing
-    const { data: conv } = await supabase
-      .from('conversations')
-      .select('meta')
-      .eq('id', chat_id)
-      .single();
-    
-    const conversationMode = conv?.meta?.conversation_mode || 'standard';
-    
-    if (conversationMode === 'together') {
-      console.info(JSON.stringify({
-        event: "chat_send_together_mode_routing",
-        request_id: requestId,
-        conversation_mode: conversationMode
-      }));
-      return 'llm-handler-together-mode';
-    } else {
-      console.info(JSON.stringify({
-        event: "chat_send_analyze_mode_fallback",
-        request_id: requestId,
-        conversation_mode: conversationMode,
-        note: "Analyze requested but mode not together - using standard handler"
-      }));
-      return await getLLMHandler(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-    }
+  // Check conversation mode for Together Mode routing
+  const { data: conv } = await supabase
+    .from('conversations')
+    .select('mode')
+    .eq('id', chat_id)
+    .single();
+  
+  const conversationMode = conv?.mode || 'chat';
+  
+  if (conversationMode === 'together' && analyze === true) {
+    console.info(JSON.stringify({
+      event: "chat_send_together_mode_routing",
+      request_id: requestId,
+      conversation_mode: conversationMode
+    }));
+    return 'llm-handler-together-mode';
   } else {
     // Normal chat flow
     return await getLLMHandler(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
