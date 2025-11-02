@@ -42,9 +42,6 @@ if (!GOOGLE_API_KEY) {
   throw new Error("Missing env: GOOGLE-LLM-NEW");
 }
 
-console.log("[llm-handler-gemini] ✅ API Key loaded:", GOOGLE_API_KEY.substring(0, 4) + "..." + GOOGLE_API_KEY.substring(GOOGLE_API_KEY.length - 4));
-console.log("[llm-handler-gemini] 📊 Using model:", GEMINI_MODEL);
-
 // Supabase client (module scope)
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
   auth: { persistSession: false }
@@ -223,18 +220,6 @@ Deno.serve(async (req) => {
 
   const { chat_id, text, mode, chattype, voice, user_id, user_name, source } = body || {};
 
-  console.info(JSON.stringify({
-    event: "llm_handler_request_received",
-    request_id: requestId,
-    caller: source || "unknown",
-    chat_id,
-    chattype,
-    chattype_type: typeof chattype,
-    chattype_is_voice: chattype === "voice",
-    mode,
-    text_length: text?.length || 0
-  }));
-
   if (!chat_id || typeof chat_id !== "string") return json(400, { error: "Missing or invalid field: chat_id" });
   if (!text || typeof text !== "string") return json(400, { error: "Missing or invalid field: text" });
 
@@ -255,8 +240,6 @@ Deno.serve(async (req) => {
   let lastSummaryTurn = 0;
 
   try {
-    console.log(`[llm-handler-gemini] ⏱️  Starting context fetch (+${Date.now() - totalStartTime}ms)`);
-
     // Parallel fetch: cache status, system message, conversation metadata, summary, and history
     const [cacheResult, systemMessageResult, conversationResult, summaryResult, historyResult] = await Promise.all([
       // Check if cache exists (include hash for validation)
@@ -321,10 +304,8 @@ Deno.serve(async (req) => {
     if (cacheExists && hashMatches) {
       // Cache is valid and matches current system message
       cacheName = cacheResult.data.cache_name;
-      console.log(`[llm-handler-gemini] ✅ Cache valid and hash matches, using cache`);
     } else {
       if (cacheExists && !hashMatches) {
-        console.log(`[llm-handler-gemini] ⚠️  Cache exists but hash mismatch! Invalidating and recreating cache`);
         // Delete stale cache
         await supabase
           .from("conversation_caches")
@@ -353,7 +334,6 @@ Deno.serve(async (req) => {
     // Process summary
     if (summaryResult.data) {
       conversationSummary = String(summaryResult.data.summary_text || "");
-      console.log(`[llm-handler-gemini] 📝 Found summary: ${conversationSummary.substring(0, 50)}...`);
     }
 
     // Process history
@@ -361,7 +341,6 @@ Deno.serve(async (req) => {
       history = historyResult.data as MessageRow[];
     }
 
-    console.log(`[llm-handler-gemini] ⏱️  Context fetch complete (+${Date.now() - totalStartTime}ms)`);
   } catch (e: any) {
     console.warn("[llm-handler-gemini] Context fetch exception:", e?.message || String(e));
   }
@@ -431,12 +410,6 @@ Deno.serve(async (req) => {
   let llmStartedAt = Date.now();
   let data;
   try {
-    console.log(`[llm-handler-gemini] ⏱️  Starting Gemini API call (+${Date.now() - totalStartTime}ms)`, {
-      model: GEMINI_MODEL,
-      cached: !!cacheName,
-      chat_id: chat_id
-    });
-
     const resp = await fetch(geminiUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json", "x-goog-api-key": GOOGLE_API_KEY },
@@ -444,9 +417,6 @@ Deno.serve(async (req) => {
       signal: controller.signal
     });
     clearTimeout(timeout);
-
-    const geminiLatency = Date.now() - llmStartedAt;
-    console.log(`[llm-handler-gemini] ⏱️  Gemini API responded (+${Date.now() - totalStartTime}ms) - Gemini took ${geminiLatency}ms - Status: ${resp.status}`);
 
     if (!resp.ok) {
       const errText = await resp.text().catch(() => "");
@@ -459,7 +429,6 @@ Deno.serve(async (req) => {
     }
 
     data = await resp.json();
-    console.log("[llm-handler-gemini] ✅ Gemini API success, response time:", Date.now() - llmStartedAt, "ms");
   } catch (e) {
     clearTimeout(timeout);
     console.error("[llm-handler-gemini] ❌ Gemini request exception:", {
@@ -492,45 +461,6 @@ Deno.serve(async (req) => {
     cached_tokens: data?.usageMetadata?.cachedContentTokenCount ?? null
   };
 
-  // For voice mode: Save user message FIRST (if not already saved)
-  if (chattype === "voice") {
-    console.info(JSON.stringify({
-      event: "voice_mode_saving_user_message",
-      chat_id,
-      text_length: text.length
-    }));
-
-    const userMessage = {
-      chat_id,
-      role: "user",
-      text,
-      client_msg_id: crypto.randomUUID(),
-      status: "complete",
-      mode,
-      user_id: user_id ?? null,
-      user_name: user_name ?? null,
-      meta: {}
-    };
-
-    // Await user message save to ensure it's saved before assistant message
-    const { error: userMsgError } = await supabase
-      .from("messages")
-      .insert(userMessage);
-
-    if (userMsgError) {
-      console.error(JSON.stringify({
-        event: "voice_mode_user_message_save_failed",
-        error: userMsgError.message
-      }));
-      // Continue anyway - don't fail the whole request
-    } else {
-      console.info(JSON.stringify({
-        event: "voice_mode_user_message_saved",
-        chat_id
-      }));
-    }
-  }
-
   // Increment turn count
   const newTurnCount = currentTurnCount + 1;
 
@@ -542,14 +472,11 @@ Deno.serve(async (req) => {
     .then(({ error }) => {
       if (error) {
         console.error("[llm-handler-gemini] ❌ Failed to update turn count:", error);
-      } else {
-        console.log(`[llm-handler-gemini] 📊 Turn count updated: ${newTurnCount}`);
       }
     });
 
   // Check if summary should be generated
   if (newTurnCount > 0 && newTurnCount % SUMMARY_INTERVAL === 0 && newTurnCount > lastSummaryTurn) {
-    console.log(`[llm-handler-gemini] 📝 Triggering summary at turn ${newTurnCount}`);
     triggerSummaryGeneration(chat_id, lastSummaryTurn + 1, newTurnCount);
 
     // Update last_summary_at_turn (fire-and-forget)
@@ -604,7 +531,6 @@ Deno.serve(async (req) => {
       text_length: sanitizedTextForTTS.length
     }));
 
-    const selectedVoice = typeof voice === "string" && voice.trim() ? voice : "Puck";
     tasks.push(
       fetch(`${SUPABASE_URL}/functions/v1/google-text-to-speech`, {
         method: "POST",
@@ -612,18 +538,11 @@ Deno.serve(async (req) => {
         body: JSON.stringify({ text: sanitizedTextForTTS, voice: selectedVoice, chat_id, user_id })
       })
     );
-  } else {
-    console.info(JSON.stringify({
-      event: "tts_skipped",
-      chattype,
-      reason: chattype === "voice" ? "unknown" : "chattype_not_voice"
-    }));
   }
 
   Promise.allSettled(tasks).catch(() => { });
 
   const totalLatencyMs = Date.now() - startedAt;
-  console.log(`[llm-handler-gemini] ⏱️  Returning response (+${Date.now() - totalStartTime}ms) TOTAL - LLM: ${llmLatencyMs}ms`);
 
   return json(200, {
     text: assistantText,
