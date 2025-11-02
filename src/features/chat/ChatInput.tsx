@@ -21,7 +21,6 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { UpgradeNotification } from '@/components/subscription/UpgradeNotification';
 import { STTLimitExceededError } from '@/services/voice/stt';
-import PaywallModal from '@/components/paywall/PaywallModal';
 // Using unified message store for all message management
 
 // Stop icon component
@@ -33,7 +32,7 @@ export const ChatInput = () => {
   const [text, setText] = useState('');
   const [isMuted, setIsMuted] = useState(false);
   const [showUpgradeNotification, setShowUpgradeNotification] = useState(false);
-  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [showSTTLimitNotification, setShowSTTLimitNotification] = useState(false);
   const { mode } = useMode();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   
@@ -84,8 +83,8 @@ export const ChatInput = () => {
   // Handle STT errors (e.g., limit exceeded)
   const handleMicError = (error: Error) => {
     if (error instanceof STTLimitExceededError) {
-      console.log('[ChatInput] STT limit exceeded, showing upgrade modal');
-      setShowUpgradeModal(true);
+      console.log('[ChatInput] STT limit exceeded, showing upgrade notification');
+      setShowSTTLimitNotification(true);
     }
   };
 
@@ -346,11 +345,11 @@ export const ChatInput = () => {
         message="Subscription required"
       />
       
-      {/* Upgrade Modal - shown when STT limit is exceeded */}
-      <PaywallModal
-        isOpen={showUpgradeModal}
-        onClose={() => setShowUpgradeModal(false)}
-        onSuccess={() => setShowUpgradeModal(false)}
+      {/* STT Limit Notification - pill-shaped popup above chat bar */}
+      <UpgradeNotification
+        isVisible={showSTTLimitNotification}
+        onDismiss={() => setShowSTTLimitNotification(false)}
+        message="Voice limit reached. Upgrade for unlimited."
       />
     </div>
   );

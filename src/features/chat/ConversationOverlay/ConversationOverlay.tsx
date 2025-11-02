@@ -19,7 +19,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from '@/integrations/supabase/config';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Mic } from 'lucide-react';
-import PaywallModal from '@/components/paywall/PaywallModal';
+import { UpgradeNotification } from '@/components/subscription/UpgradeNotification';
 
 type ConversationState = 'listening' | 'thinking' | 'replying' | 'connecting' | 'establishing';
 
@@ -31,7 +31,7 @@ export const ConversationOverlay: React.FC = () => {
   const { displayName } = useUserData();
   const { usage } = useFeatureUsage();
   const [state, setState] = useState<ConversationState>('connecting');
-  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [showSTTLimitNotification, setShowSTTLimitNotification] = useState(false);
   
   // Audio context management
   const { audioContext, isAudioUnlocked, initializeAudioContext, resumeAudioContext } = useAudioStore();
@@ -315,7 +315,7 @@ export const ConversationOverlay: React.FC = () => {
         onError: (error: Error) => {
           // Check if this is an STT limit exceeded error FIRST - don't log it
           if (error instanceof STTLimitExceededError) {
-            console.log('[ConversationOverlay] STT limit exceeded, showing upgrade modal');
+            console.log('[ConversationOverlay] STT limit exceeded, showing upgrade notification');
             
             // Close overlay immediately
             closeConversation();
@@ -323,8 +323,8 @@ export const ConversationOverlay: React.FC = () => {
             // Set flag to keep overlay closed
             setShouldKeepClosed(true);
             
-            // Show upgrade modal
-            setShowUpgradeModal(true);
+            // Show upgrade notification
+            setShowSTTLimitNotification(true);
             
             // Reset state
             resetToTapToStart('STT limit exceeded');
@@ -530,20 +530,15 @@ export const ConversationOverlay: React.FC = () => {
     document.body
       )}
       
-      {/* Upgrade Modal - shown when STT limit is exceeded */}
-      <PaywallModal
-        isOpen={showUpgradeModal}
-        onClose={() => {
-          setShowUpgradeModal(false);
-          // Reset the flag when user dismisses modal (allows reopening)
+      {/* STT Limit Notification - pill-shaped popup above chat bar */}
+      <UpgradeNotification
+        isVisible={showSTTLimitNotification}
+        onDismiss={() => {
+          setShowSTTLimitNotification(false);
+          // Reset the flag when user dismisses notification (allows reopening)
           setShouldKeepClosed(false);
         }}
-        onSuccess={() => {
-          // User upgraded successfully
-          setShowUpgradeModal(false);
-          // Reset the flag to allow reopening
-          setShouldKeepClosed(false);
-        }}
+        message="Voice limit reached. Upgrade for unlimited."
       />
     </>
   );
