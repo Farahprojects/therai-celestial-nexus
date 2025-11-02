@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { UniversalSTTRecorder } from '@/services/audio/UniversalSTTRecorder';
+import { STTLimitExceededError } from '@/services/voice/stt';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserData } from '@/hooks/useUserData';
@@ -73,6 +74,13 @@ export const useUniversalMic = (options: UseUniversalMicOptions = {}) => {
           options.onTranscriptReady?.(transcript);
         },
         onError: (error) => {
+          // Don't log STTLimitExceededError - it's handled gracefully by ConversationOverlay
+          if (error instanceof STTLimitExceededError) {
+            setIsRecording(false);
+            setIsProcessing(false);
+            return;
+          }
+          
           console.error('[useUniversalMic] Recorder error:', error);
           
           let errorMessage = 'Could not access microphone.';

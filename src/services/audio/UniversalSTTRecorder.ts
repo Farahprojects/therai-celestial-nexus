@@ -1,5 +1,7 @@
 // Simple Universal STT Recorder - no chunks, no rolling buffer, just record and stop
 
+import { STTLimitExceededError } from '@/services/voice/stt';
+
 export interface STTRecorderOptions {
   onTranscriptReady?: (transcript: string) => void;
   onError?: (error: Error) => void;
@@ -538,7 +540,10 @@ export class UniversalSTTRecorder {
         
         // Fire-and-forget STT call - backend handles everything
         sttService.transcribe(audioBlob, chat_id, {}, this.options.chattype, this.options.mode, this.options.user_id, this.options.user_name).catch((error) => {
-          console.error('[UniversalSTTRecorder] STT fire-and-forget failed:', error);
+          // Don't log STTLimitExceededError - it's handled gracefully by UI
+          if (!(error instanceof STTLimitExceededError)) {
+            console.error('[UniversalSTTRecorder] STT fire-and-forget failed:', error);
+          }
           this.options.onError?.(error as Error);
         });
         return;
@@ -559,7 +564,10 @@ export class UniversalSTTRecorder {
         this.options.onTranscriptReady(transcript.trim());
       }
     } catch (error) {
-      console.error('[UniversalSTTRecorder] STT failed:', error);
+      // Don't log STTLimitExceededError - it's handled gracefully by UI
+      if (!(error instanceof STTLimitExceededError)) {
+        console.error('[UniversalSTTRecorder] STT failed:', error);
+      }
       this.options.onError?.(error as Error);
     }
   }

@@ -313,9 +313,7 @@ export const ConversationOverlay: React.FC = () => {
           if (!isShuttingDown.current) audioLevelRef.current = level;
         },
         onError: (error: Error) => {
-          console.error('[ConversationOverlay] Audio recorder error:', error);
-          
-          // Check if this is an STT limit exceeded error
+          // Check if this is an STT limit exceeded error FIRST - don't log it
           if (error instanceof STTLimitExceededError) {
             console.log('[ConversationOverlay] STT limit exceeded, showing upgrade modal');
             
@@ -333,7 +331,8 @@ export const ConversationOverlay: React.FC = () => {
             return;
           }
           
-          // Handle other errors normally
+          // Log other errors normally
+          console.error('[ConversationOverlay] Audio recorder error:', error);
           resetToTapToStart('Audio recorder error');
         }
       });
@@ -454,81 +453,81 @@ export const ConversationOverlay: React.FC = () => {
   return (
     <>
       {createPortal(
-        <div 
-          ref={overlayRef}
-          className="fixed inset-0 z-50 bg-white pt-safe pb-safe"
-          data-conversation-overlay
-        >
-          <div className="h-full w-full flex items-center justify-center px-6">
-            {state === 'connecting' ? (
-              <div className="text-center text-gray-800 flex flex-col items-center gap-4">
-                <div
-                  className="flex flex-col items-center gap-4 cursor-pointer"
-                  onClick={() => {
-                    handleStart();
-                  }}
-                >
-                  <div className="w-24 h-24 rounded-full bg-gray-100 flex items-center justify-center transition-colors hover:bg-gray-200 relative">
-                    <Mic className="w-10 h-10 text-gray-600" />
-                  </div>
-                  <h2 className="text-2xl font-light">
-                    Tap to Start
-                  </h2>
-                </div>
-                <button
-                  onClick={handleModalClose}
-                  aria-label="Close conversation"
-                  className="w-10 h-10 bg-black rounded-full flex items-center justify-center text-white hover:bg-gray-800 transition-colors"
-                >
-                  ✕
-                </button>
+    <div 
+      ref={overlayRef}
+      className="fixed inset-0 z-50 bg-white pt-safe pb-safe"
+      data-conversation-overlay
+    >
+      <div className="h-full w-full flex items-center justify-center px-6">
+        {state === 'connecting' ? (
+          <div className="text-center text-gray-800 flex flex-col items-center gap-4">
+            <div
+              className="flex flex-col items-center gap-4 cursor-pointer"
+              onClick={() => {
+                handleStart();
+              }}
+            >
+              <div className="w-24 h-24 rounded-full bg-gray-100 flex items-center justify-center transition-colors hover:bg-gray-200 relative">
+                <Mic className="w-10 h-10 text-gray-600" />
               </div>
-            ) : state === 'establishing' ? (
-              <div className="text-center text-gray-800 flex flex-col items-center gap-4">
-                <div className="relative flex items-center justify-center">
-                  {/* Slow single-rotation spinner ring around the grey circle */}
-                  <div className="absolute -inset-2 rounded-full border-2 border-gray-300 border-t-gray-600" style={{ animation: 'spin 2s linear 1' }}></div>
-                  <div className="w-24 h-24 rounded-full bg-gray-100 flex items-center justify-center relative z-10">
-                    <Mic className="w-10 h-10 text-gray-600" />
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center gap-6 relative">
-                <AnimatePresence mode="wait">
-                  <motion.div
-                    key={state}
-                    initial={{ opacity: 0, scale: 0.98 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.98 }}
-                    transition={{ duration: 0.2, ease: 'easeInOut' }}
-                  >
-                    <VoiceBubble state={state} audioLevelRef={audioLevelRef} />
-                  </motion.div>
-                </AnimatePresence>
-
-                <div className="flex flex-col items-center gap-2">
-                  <p className="text-gray-500 font-light">
-                    {state === 'listening'
-                      ? 'Listening…'
-                      : state === 'thinking'
-                      ? 'Thinking…'
-                      : 'Speaking…'}
-                  </p>
-                </div>
-
-                <button
-                  onClick={handleModalClose}
-                  aria-label="Close conversation"
-                  className="w-10 h-10 bg-black rounded-full flex items-center justify-center text-white hover:bg-gray-800 transition-colors"
-                >
-                  ✕
-                </button>
-              </div>
-            )}
+              <h2 className="text-2xl font-light">
+                Tap to Start
+              </h2>
+            </div>
+            <button
+              onClick={handleModalClose}
+              aria-label="Close conversation"
+              className="w-10 h-10 bg-black rounded-full flex items-center justify-center text-white hover:bg-gray-800 transition-colors"
+            >
+              ✕
+            </button>
           </div>
-        </div>,
-        document.body
+        ) : state === 'establishing' ? (
+          <div className="text-center text-gray-800 flex flex-col items-center gap-4">
+            <div className="relative flex items-center justify-center">
+              {/* Slow single-rotation spinner ring around the grey circle */}
+              <div className="absolute -inset-2 rounded-full border-2 border-gray-300 border-t-gray-600" style={{ animation: 'spin 2s linear 1' }}></div>
+              <div className="w-24 h-24 rounded-full bg-gray-100 flex items-center justify-center relative z-10">
+                <Mic className="w-10 h-10 text-gray-600" />
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center gap-6 relative">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={state}
+                initial={{ opacity: 0, scale: 0.98 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.98 }}
+                transition={{ duration: 0.2, ease: 'easeInOut' }}
+              >
+                <VoiceBubble state={state} audioLevelRef={audioLevelRef} />
+              </motion.div>
+            </AnimatePresence>
+
+            <div className="flex flex-col items-center gap-2">
+              <p className="text-gray-500 font-light">
+                {state === 'listening'
+                  ? 'Listening…'
+                  : state === 'thinking'
+                  ? 'Thinking…'
+                  : 'Speaking…'}
+              </p>
+            </div>
+
+            <button
+              onClick={handleModalClose}
+              aria-label="Close conversation"
+              className="w-10 h-10 bg-black rounded-full flex items-center justify-center text-white hover:bg-gray-800 transition-colors"
+            >
+              ✕
+            </button>
+          </div>
+        )}
+      </div>
+    </div>,
+    document.body
       )}
       
       {/* Upgrade Modal - shown when STT limit is exceeded */}
