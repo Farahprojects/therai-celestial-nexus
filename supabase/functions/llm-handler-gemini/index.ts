@@ -117,15 +117,13 @@ async function getOrCreateCache(
     .single();
 
   // If cache exists, is valid, and system data hasn't changed
-  if (existingCache &&
+    if (existingCache &&
     new Date(existingCache.expires_at) > new Date() &&
     existingCache.system_data_hash === systemDataHash) {
-    console.log(`[cache] ✅ Using existing cache: ${existingCache.cache_name}`);
     return existingCache.cache_name;
   }
 
   // Create new cache
-  console.log(`[cache] 🔄 Creating new cache for chat_id: ${chat_id}`);
 
   // Bookend astro data with system prompt for better attention
   const combinedSystemInstruction = systemText
@@ -173,7 +171,6 @@ async function getOrCreateCache(
         expires_at: expiresAt.toISOString()
       });
 
-    console.log(`[cache] ✅ Cache created: ${cacheName}`);
     return cacheName;
 
   } catch (error) {
@@ -198,7 +195,6 @@ function triggerSummaryGeneration(
     headers,
     body: JSON.stringify({ chat_id, from_turn: fromTurn, to_turn: toTurn })
   })
-    .then(() => console.log(`[summary] 📝 Summary generation triggered for turns ${fromTurn}-${toTurn}`))
     .catch((e) => console.error("[summary] ❌ Failed to trigger summary:", e));
 }
 
