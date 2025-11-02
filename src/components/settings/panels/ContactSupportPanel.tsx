@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Paperclip, X } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { showToast } from "@/utils/notifications";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -32,7 +32,7 @@ export const ContactSupportPanel = () => {
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [fileError, setFileError] = useState<string>("");
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { toast } = useToast();
+  
   const { user } = useAuth();
   const isMobile = useIsMobile();
 
@@ -99,7 +99,7 @@ export const ContactSupportPanel = () => {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!subject || !message.trim()) {
-      toast({
+      showToast({
         title: "Missing information",
         description: "Please select a subject and enter a message.",
         variant: "destructive"
@@ -108,7 +108,7 @@ export const ContactSupportPanel = () => {
     }
     
     if (!user?.email) {
-      toast({
+      showToast({
         title: "Authentication required",
         description: "Please sign in to contact support.",
         variant: "destructive"
@@ -133,7 +133,7 @@ export const ContactSupportPanel = () => {
       }
       
       // Success
-      toast({
+      showToast({
         title: "Message sent successfully!",
         description: "We'll get back to you soon.",
       });
@@ -153,7 +153,7 @@ export const ContactSupportPanel = () => {
       });
     } catch (error) {
       console.error('Contact form error:', error);
-      toast({
+      showToast({
         title: "Failed to send message",
         description: "Please try again later.",
         variant: "destructive"

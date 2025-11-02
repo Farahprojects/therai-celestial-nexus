@@ -3,7 +3,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { UniversalSTTRecorder } from '@/services/audio/UniversalSTTRecorder';
 import { STTLimitExceededError } from '@/services/voice/stt';
-import { useToast } from '@/hooks/use-toast';
+import { showToast } from '@/utils/notifications';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserData } from '@/hooks/useUserData';
 import { useMode } from '@/contexts/ModeContext';
@@ -24,7 +24,7 @@ export const useUniversalMic = (options: UseUniversalMicOptions = {}) => {
   const [audioLevel, setAudioLevel] = useState(0);
   const recorderRef = useRef<UniversalSTTRecorder | null>(null);
   const levelRef = useRef(0);
-  const { toast } = useToast();
+  
 
   // Smooth UI animations
   useEffect(() => {
@@ -104,7 +104,7 @@ export const useUniversalMic = (options: UseUniversalMicOptions = {}) => {
             errorMessage = 'Microphone is being used by another application.';
           }
           
-          toast({
+          showToast({
             title: 'Microphone Error',
             description: errorMessage,
             variant: 'destructive',
@@ -148,7 +148,7 @@ export const useUniversalMic = (options: UseUniversalMicOptions = {}) => {
         }
       }
       
-      toast({
+      showToast({
         title: 'Microphone Access Failed',
         description: errorMessage,
         variant: 'destructive',
@@ -156,7 +156,7 @@ export const useUniversalMic = (options: UseUniversalMicOptions = {}) => {
       setIsProcessing(false);
       return false;
     }
-  }, [isRecording, isProcessing, options, toast, user?.id, displayName, mode]);
+  }, [isRecording, isProcessing, options, user?.id, displayName, mode]);
 
   const stopRecording = useCallback(() => {
     if (recorderRef.current) {

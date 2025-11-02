@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
-import { useToast } from '@/hooks/use-toast';
+import { showToast } from '@/utils/notifications';
 import EmailInput from '@/components/auth/EmailInput';
 import PasswordInput from '@/components/auth/PasswordInput';
 import SocialLogin from '@/components/auth/SocialLogin';
@@ -20,7 +20,6 @@ interface LoginModalProps {
 }
 
 const LoginModal: React.FC<LoginModalProps> = ({ onSuccess, showAsPage = false }) => {
-  const { toast } = useToast();
   const isNativeApp = useIsNativeApp();
 
   // ————————————————————————————————————————————————
@@ -98,7 +97,7 @@ const LoginModal: React.FC<LoginModalProps> = ({ onSuccess, showAsPage = false }
     try {
       await signInWithGoogle();
     } catch (error) {
-      toast({
+      showToast({
         title: 'Sign in failed',
         description: 'Unable to sign in with Google. Please try again.',
         variant: 'destructive'
@@ -110,7 +109,7 @@ const LoginModal: React.FC<LoginModalProps> = ({ onSuccess, showAsPage = false }
     try {
       await signInWithApple();
     } catch (error) {
-      toast({
+      showToast({
         title: 'Sign in failed',
         description: 'Unable to sign in with Apple. Please try again.',
         variant: 'destructive'
@@ -135,16 +134,17 @@ const LoginModal: React.FC<LoginModalProps> = ({ onSuccess, showAsPage = false }
       }
 
       setResendState('sent');
-      toast({
+      showToast({
         title: 'Verification email sent',
         description: 'Please check your inbox (and spam folder).',
+        variant: 'success',
       });
       
       // Reset to idle after 3 seconds
       setTimeout(() => setResendState('idle'), 3000);
     } catch (error: any) {
       setResendState('idle');
-      toast({
+      showToast({
         title: 'Error',
         description: error.message ?? 'Failed to resend verification email. Please try again.',
         variant: 'destructive'

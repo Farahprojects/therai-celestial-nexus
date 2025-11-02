@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { showToast } from "@/utils/notifications";
 import { useAuth } from "@/contexts/AuthContext";
 import { useChatStore } from "@/core/store";
 
@@ -86,7 +86,6 @@ export function useUserData() {
   });
   
   const [retryCount, setRetryCount] = useState(0);
-  const { toast } = useToast();
   
   // Initialize with optimistic defaults
   useEffect(() => {
@@ -201,9 +200,10 @@ export function useUserData() {
       }));
 
       if (options.showToast !== false) {
-        toast({
+        showToast({
           title: "Success",
           description: "Display name updated successfully",
+          variant: "success",
         });
       }
 
@@ -213,7 +213,7 @@ export function useUserData() {
       setData(prev => ({ ...prev, saving: false, error: 'Failed to update display name' }));
       return { error: err };
     }
-  }, [user, toast]);
+  }, [user]);
 
   const updateMainNotificationsToggle = useCallback(async (enabled: boolean, options: UpdateOptions = {}) => {
     if (!user?.id || !data.preferences) return { error: 'No user or preferences' };
@@ -240,9 +240,10 @@ export function useUserData() {
       }));
 
       if (options.showToast !== false) {
-        toast({
+        showToast({
           title: "Success",
           description: `Email notifications ${enabled ? 'enabled' : 'disabled'}`,
+          variant: "success",
         });
       }
 
@@ -252,7 +253,7 @@ export function useUserData() {
       setData(prev => ({ ...prev, saving: false, error: 'Failed to update notifications' }));
       return { error: err };
     }
-  }, [user, data.preferences, toast]);
+  }, [user, data.preferences]);
 
   const updateClientViewMode = useCallback(async (mode: 'grid' | 'list', options: UpdateOptions = {}) => {
     if (!user?.id || !data.preferences) return { error: 'No user or preferences' };
@@ -279,9 +280,10 @@ export function useUserData() {
       }));
 
       if (options.showToast !== false) {
-        toast({
+        showToast({
           title: "Success",
           description: `View mode updated to ${mode}`,
+          variant: "success",
         });
       }
 
@@ -291,7 +293,7 @@ export function useUserData() {
       setData(prev => ({ ...prev, saving: false, error: 'Failed to update view mode' }));
       return { error: err };
     }
-  }, [user, data.preferences, toast]);
+  }, [user, data.preferences]);
 
   const updateTtsVoice = useCallback(async (voice: string, options: UpdateOptions = {}) => {
     if (!user?.id || !data.preferences) return { error: 'No user or preferences' };
@@ -321,9 +323,10 @@ export function useUserData() {
       try { useChatStore.getState().setTtsVoice(voice); } catch {}
 
       if (options.showToast !== false) {
-        toast({
+        showToast({
           title: "Success",
           description: `Voice updated to ${voice}`,
+          variant: "success",
         });
       }
 
@@ -333,7 +336,7 @@ export function useUserData() {
       setData(prev => ({ ...prev, saving: false, error: 'Failed to update voice' }));
       return { error: err };
     }
-  }, [user, data.preferences, toast]);
+  }, [user, data.preferences]);
 
   // ============================================================================
   // UTILITY FUNCTIONS

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { useToast } from "@/hooks/use-toast";
+import { showToast } from "@/utils/notifications";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Check, Loader, Eye, EyeOff, CheckCircle } from "lucide-react";
@@ -24,7 +24,7 @@ type PasswordFormValues = {
 };
 
 export const PasswordSettingsPanel = () => {
-  const { toast } = useToast();
+  
   const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
   const [passwordStep, setPasswordStep] = useState<'verify' | 'create' | 'confirm'>('verify');
   const [passwordValid, setPasswordValid] = useState({

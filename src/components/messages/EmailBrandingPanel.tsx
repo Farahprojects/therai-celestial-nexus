@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ArrowLeft, Upload, Eye, Save } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import { showToast } from '@/utils/notifications';
 
 interface EmailBrandingPanelProps {
   onBack: () => void;
@@ -17,12 +17,12 @@ export const EmailBrandingPanel = ({ onBack }: EmailBrandingPanelProps) => {
   const [signature, setSignature] = useState('');
   const [logoUrl, setLogoUrl] = useState('');
   const [companyName, setCompanyName] = useState('');
-  const { toast } = useToast();
 
   const handleSaveSignature = () => {
-    toast({
+    showToast({
       title: "Signature saved",
       description: "Your email signature has been saved successfully.",
+      variant: "success"
     });
   };
 
@@ -32,9 +32,10 @@ export const EmailBrandingPanel = ({ onBack }: EmailBrandingPanelProps) => {
       // Create a preview URL for the uploaded file
       const url = URL.createObjectURL(file);
       setLogoUrl(url);
-      toast({
+      showToast({
         title: "Logo uploaded",
         description: "Your logo has been uploaded successfully.",
+        variant: "success"
       });
     }
   };

@@ -1,7 +1,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { showToast } from "@/utils/notifications";
 import { useAuth } from "@/contexts/AuthContext";
 
 type ViewMode = 'grid' | 'list';
@@ -18,7 +18,7 @@ export function useClientViewMode(): UseClientViewModeReturn {
   const [viewMode, setViewMode] = useState<ViewMode | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { toast } = useToast();
+  
 
   // Load the current view mode from database
   const loadViewMode = useCallback(async () => {
@@ -87,7 +87,7 @@ export function useClientViewMode(): UseClientViewModeReturn {
       setError(errorMessage);
       console.error("Error updating client view mode:", err);
       
-      toast({
+      showToast({
         title: "Error",
         description: "Failed to save view preference. Please try again.",
         variant: "destructive",
@@ -95,7 +95,7 @@ export function useClientViewMode(): UseClientViewModeReturn {
       
       return false;
     }
-  }, [user?.id, toast]);
+  }, [user?.id]);
 
   // Load view mode on mount and when user changes
   useEffect(() => {

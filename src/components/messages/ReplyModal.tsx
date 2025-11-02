@@ -12,7 +12,7 @@ import { ColorPicker } from './ColorPicker';
 import { FontSelector } from './FontSelector';
 import { AttachmentDropzone } from './AttachmentDropzone';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
+import { showToast } from '@/utils/notifications';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 interface EmailMessage {
@@ -60,12 +60,11 @@ export const ReplyModal = ({ isOpen, onClose, originalMessage, onSend }: ReplyMo
     underline: false
   });
   const [isSending, setIsSending] = useState(false);
-  const { toast } = useToast();
   const isMobile = useIsMobile();
 
   const handleSend = async () => {
     if (!body.trim()) {
-      toast({
+      showToast({
         title: "Error",
         description: "Please enter a message before sending.",
         variant: "destructive"
@@ -85,11 +84,11 @@ export const ReplyModal = ({ isOpen, onClose, originalMessage, onSend }: ReplyMo
       });
       if (error) {
         console.error('Error sending email:', error);
-        toast({
-          title: "Error",
-          description: "Failed to send email. Please try again.",
-          variant: "destructive"
-        });
+          showToast({
+            title: "Error",
+            description: "Failed to send email. Please try again.",
+            variant: "destructive"
+          });
         return;
       }
       onSend({
@@ -98,9 +97,10 @@ export const ReplyModal = ({ isOpen, onClose, originalMessage, onSend }: ReplyMo
         body: formattedBody,
         attachments
       });
-      toast({
+      showToast({
         title: "Success",
-        description: "Reply sent successfully!"
+        description: "Reply sent successfully!",
+        variant: "success"
       });
       setBody('');
       setAttachments([]);
@@ -108,7 +108,7 @@ export const ReplyModal = ({ isOpen, onClose, originalMessage, onSend }: ReplyMo
       onClose();
     } catch (error) {
       console.error('Unexpected error:', error);
-      toast({
+      showToast({
         title: "Error",
         description: "An unexpected error occurred. Please try again.",
         variant: "destructive"

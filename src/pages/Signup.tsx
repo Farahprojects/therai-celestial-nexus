@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, Link, Navigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
-import { useToast } from '@/hooks/use-toast';
+import { showToast } from '@/utils/notifications';
 import UnifiedNavigation from '@/components/UnifiedNavigation';
 import Footer from '@/components/Footer';
 import EmailInput from '@/components/auth/EmailInput';
@@ -21,7 +21,6 @@ const debug = (...args: any[]) => {
 const Signup = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { toast } = useToast();
   const { signUp, signInWithGoogle, signInWithApple, user } = useAuth();
 
   // Auto-scroll to top when component mounts
@@ -157,7 +156,7 @@ const Signup = () => {
       
       if (error) {
         console.error('Resend verification error:', error);
-        toast({
+        showToast({
           title: 'Error',
           description: 'Failed to resend verification email. Please try again.',
           variant: 'destructive'
@@ -165,7 +164,7 @@ const Signup = () => {
       } else if (data) {
         // Check for graceful error responses (success: false)
         if (data.success === false && data.shouldRedirectToLogin) {
-          toast({
+          showToast({
             title: 'Account Found',
             description: data.message || 'This email is already registered. Redirecting to login...',
             variant: 'default'
@@ -176,7 +175,7 @@ const Signup = () => {
         
         // Check for legacy error format
         if (data.error && (data.code === 'email_exists' || data.code === 'already_verified')) {
-          toast({
+          showToast({
             title: 'Account Found',
             description: data.message || 'This email is already registered. Redirecting to login...',
             variant: 'default'
@@ -187,7 +186,7 @@ const Signup = () => {
         
         // Handle any other errors
         if (data.error) {
-          toast({
+          showToast({
             title: 'Error',
             description: data.error,
             variant: 'destructive'
@@ -196,7 +195,7 @@ const Signup = () => {
         }
         
         // Success case
-        toast({
+        showToast({
           title: 'Verification Email Sent',
           description: data.message || 'Please check your email for the verification link.',
           variant: 'default'
@@ -204,7 +203,7 @@ const Signup = () => {
       }
     } catch (err) {
       console.error('Exception during resend:', err);
-      toast({
+      showToast({
         title: 'Error',
         description: 'An error occurred while resending the email.',
         variant: 'destructive'

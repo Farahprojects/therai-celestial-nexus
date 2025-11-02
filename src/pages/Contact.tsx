@@ -6,13 +6,13 @@ import { Label } from "@/components/ui/label";
 import { CheckCircle, Loader2, AlertCircle } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { useToast } from "@/hooks/use-toast";
+import { showToast } from "@/utils/notifications";
 
 import { validateEmail } from "@/utils/authValidation";
 import { supabase } from "@/integrations/supabase/client";
 
 const Contact = () => {
-  const { toast } = useToast();
+  
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -109,7 +109,7 @@ const Contact = () => {
     
     // Validate form before submission
     if (!validateForm()) {
-      toast({
+      showToast({
         title: "Please check your form",
         description: "All fields are required and email must be valid.",
         variant: "destructive"
@@ -136,7 +136,7 @@ const Contact = () => {
       // Show a processing toast after 3 seconds if still submitting
       const toastTimeoutId = setTimeout(() => {
         if (isSubmitting) {
-          toast({
+          showToast({
             title: "Processing your message",
             description: "This is taking a bit longer than usual. Please wait..."
           });
@@ -164,7 +164,7 @@ const Contact = () => {
       } catch (timeoutError) {
         // If it was our timeout error, show a non-destructive toast but don't treat it as a failure yet
         if (timeoutError instanceof Error && timeoutError.message.includes('taking longer than expected')) {
-          toast({
+          showToast({
             title: "Please wait",
             description: "We're still processing your message. You'll see confirmation soon."
           });
@@ -184,7 +184,7 @@ const Contact = () => {
             setIsSubmitting(false);
           }).catch(actualError => {
             setIsSubmitting(false);
-            toast({
+            showToast({
               title: "Something went wrong",
               description: actualError instanceof Error ? actualError.message : "We couldn't send your message. Please try again later.",
               variant: "destructive"
@@ -196,7 +196,7 @@ const Contact = () => {
         }
       }
     } catch (error) {
-      toast({
+      showToast({
         title: "Something went wrong",
         description: error instanceof Error ? error.message : "We couldn't send your message. Please try again later.",
         variant: "destructive"

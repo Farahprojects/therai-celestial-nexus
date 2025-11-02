@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { showToast } from "@/utils/notifications";
 import { useAuth } from "@/contexts/AuthContext";
 
 export interface UserPreferences {
@@ -40,7 +40,6 @@ export function useUserPreferences() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState(0);
-  const { toast } = useToast();
   
   // Track user initiated changes to prevent real-time updates from overriding them
   const pendingChangesRef = useRef<Map<string, boolean | string>>(new Map());
@@ -106,7 +105,7 @@ export function useUserPreferences() {
           setError(errorMessage);
 
           if (!errorMessage.includes("timed out")) {
-            toast({
+            showToast({
               title: "Error Loading Preferences",
               description:
                 "There was a problem loading your notification settings",
@@ -148,7 +147,7 @@ export function useUserPreferences() {
       
       // No channel cleanup needed - realtime listener removed
     };
-  }, [user, toast, isMounted, retryCount]);
+  }, [user, isMounted, retryCount]);
 
   const createDefaultPreferences = async (userId: string) => {
     try {
@@ -214,11 +213,12 @@ export function useUserPreferences() {
       if (error) throw error;
 
       if (showToast) {
-        toast({
+        showToast({
           title: "Preferences Saved",
           description: `Email notifications ${
             enabled ? "enabled" : "disabled"
           }`,
+          variant: "success",
         });
       }
 
@@ -240,7 +240,7 @@ export function useUserPreferences() {
         });
         
         if (showToast) {
-          toast({
+          showToast({
             title: "Error",
             description: "There was an issue saving your preference.",
             variant: "destructive",
@@ -311,9 +311,10 @@ export function useUserPreferences() {
       if (error) throw error;
 
       if (showToast) {
-        toast({
+        showToast({
           title: "View Mode Updated",
           description: `Client view changed to ${viewMode}`,
+          variant: "success",
         });
       }
 
@@ -335,7 +336,7 @@ export function useUserPreferences() {
         });
         
         if (showToast) {
-          toast({
+          showToast({
             title: "Error",
             description: "There was an issue saving your view preference.",
             variant: "destructive",

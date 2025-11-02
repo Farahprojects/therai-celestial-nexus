@@ -10,13 +10,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { useToast } from "@/hooks/use-toast";
+import { showToast } from "@/utils/notifications";
 import { supabase } from "@/integrations/supabase/client";
 import { Trash2 } from "lucide-react";
 
 export const DeleteAccountPanel = () => {
   const { user, signOut } = useAuth();
-  const { toast } = useToast();
+  
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   
@@ -26,7 +26,7 @@ export const DeleteAccountPanel = () => {
   
   const confirmDelete = async () => {
     if (!user) {
-      toast({
+      showToast({
         variant: "destructive",
         title: "Error",
         description: "No user session found."
@@ -84,14 +84,14 @@ export const DeleteAccountPanel = () => {
       const { emergencyAuthCleanup } = await import('@/utils/authCleanup');
       emergencyAuthCleanup();
       
-      toast({
+      showToast({
         title: "Account Deleted",
         description: "Your account has been successfully deleted."
       });
       
     } catch (error) {
       console.error('❌ Delete account error:', error);
-      toast({
+      showToast({
         variant: "destructive",
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to delete account. Please try again."

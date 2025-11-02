@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
-import { useToast } from '@/hooks/use-toast';
+import { showToast } from '@/utils/notifications';
 import EmailInput from '@/components/auth/EmailInput';
 import PasswordInput from '@/components/auth/PasswordInput';
 import { CapacitorSocialLogin } from '@/components/auth/CapacitorSocialLogin';
@@ -17,7 +17,7 @@ interface SignupModalProps {
 }
 
 const SignupModal: React.FC<SignupModalProps> = ({ onSuccess }) => {
-  const { toast } = useToast();
+  
   const { signUp, signInWithGoogle, signInWithApple, user } = useAuth();
   const navigate = useNavigate();
   const isNativeApp = useIsNativeApp();
@@ -73,7 +73,7 @@ const SignupModal: React.FC<SignupModalProps> = ({ onSuccess }) => {
         // Store email for later verification after payment
         localStorage.setItem('pendingVerificationEmail', email);
         
-        toast({
+        showToast({
           title: 'Account created!',
           description: 'Please choose your plan to continue.',
         });
@@ -97,7 +97,7 @@ const SignupModal: React.FC<SignupModalProps> = ({ onSuccess }) => {
         navigate('/subscription-paywall');
       }
     } catch (error) {
-      toast({
+      showToast({
         title: 'Sign up failed',
         description: 'Unable to sign up with Google. Please try again.',
         variant: 'destructive'
@@ -113,7 +113,7 @@ const SignupModal: React.FC<SignupModalProps> = ({ onSuccess }) => {
         navigate('/subscription-paywall');
       }
     } catch (error) {
-      toast({
+      showToast({
         title: 'Sign up failed',
         description: 'Unable to sign up with Apple. Please try again.',
         variant: 'destructive'
@@ -128,13 +128,13 @@ const SignupModal: React.FC<SignupModalProps> = ({ onSuccess }) => {
       // Use the same signup function to resend verification
       const result = await signUp(verificationEmail, password);
       if (result.user) {
-        toast({
+        showToast({
           title: 'Verification email sent',
           description: 'Please check your inbox and click the verification link.',
         });
       }
     } catch (err) {
-      toast({
+      showToast({
         title: 'Error',
         description: 'An error occurred while resending the email.',
         variant: 'destructive'

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { useToast } from '@/hooks/use-toast';
+import { showToast } from '@/utils/notifications';
 import { supabase } from '@/integrations/supabase/client';
 import EmailInput from '@/components/auth/EmailInput';
 import { validateEmail } from '@/utils/authValidation';
@@ -13,7 +13,7 @@ interface ForgotPasswordFormProps {
 }
 
 const ForgotPasswordForm: React.FC<ForgotPasswordFormProps> = ({ onCancel }) => {
-  const { toast } = useToast();
+  
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
@@ -32,7 +32,7 @@ const ForgotPasswordForm: React.FC<ForgotPasswordFormProps> = ({ onCancel }) => 
       });
 
       if (error) {
-        toast({ 
+        showToast({ 
           title: 'Error', 
           description: error.message,
           variant: 'destructive'
@@ -42,7 +42,7 @@ const ForgotPasswordForm: React.FC<ForgotPasswordFormProps> = ({ onCancel }) => 
         setResetLinkSent(true);
       }
     } catch (err: any) {
-      toast({ 
+      showToast({ 
         title: 'Error', 
         description: err.message || 'Failed to send reset email',
         variant: 'destructive'

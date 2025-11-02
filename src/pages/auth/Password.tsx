@@ -13,7 +13,7 @@ import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader, CheckCircle, XCircle } from 'lucide-react';
 import Logo from '@/components/Logo';
-import { useToast } from '@/hooks/use-toast';
+import { showToast } from '@/utils/notifications';
 import PasswordResetForm from '@/components/auth/PasswordResetForm';
 
 const ResetPassword: React.FC = () => {
@@ -22,7 +22,7 @@ const ResetPassword: React.FC = () => {
 
   const navigate = useNavigate();
   const location = useLocation();
-  const { toast } = useToast();
+  
   const processedRef = useRef(false);
 
   const finishSuccess = async (token: string) => {
@@ -74,7 +74,7 @@ const ResetPassword: React.FC = () => {
       console.error('[PASSWORD-VERIFY] Critical verification error:', error);
       setStatus('error');
       setMessage('Failed to verify your password reset link. Please try again or contact support.');
-      toast({
+      showToast({
         variant: 'destructive',
         title: 'Verification Error',
         description: error instanceof Error ? error.message : 'Unable to complete password reset verification. Please try again.'
@@ -91,7 +91,7 @@ const ResetPassword: React.FC = () => {
     setStatus('success');
     setMessage('Your password has been updated successfully!');
     
-    toast({ 
+    showToast({ 
       variant: 'success', 
       title: 'Password Updated Successfully!', 
       description: 'Please sign in with your new password.' 
@@ -158,7 +158,7 @@ const ResetPassword: React.FC = () => {
         setStatus('error');
         const msg = err?.message ?? 'Verification failed – link may have expired.';
         setMessage(msg);
-        toast({ variant: 'destructive', title: 'Verification failed', description: msg });
+        showToast({ variant: 'destructive', title: 'Verification failed', description: msg });
       }
     };
     verify();

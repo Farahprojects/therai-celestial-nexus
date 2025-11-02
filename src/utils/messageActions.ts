@@ -1,13 +1,14 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { EmailMessage } from "@/types/email";
-import type { ToastProps } from "@/hooks/use-toast";
+import type { ToastOptions } from "@/utils/notifications";
+import { showToast } from "@/utils/notifications";
 
 /**
  * Star/unstar a message in Supabase.
  */
 export async function toggleStarMessage(
   message: EmailMessage,
-  toast: (message: ToastProps) => void
+  toast?: (message: ToastOptions) => void
 ): Promise<void> {
   const { error } = await supabase
     .from("email_messages")
@@ -15,10 +16,14 @@ export async function toggleStarMessage(
     .eq("id", message.id);
 
   if (error) {
-    toast({ title: "Error", description: "Could not update star.", variant: "destructive" });
+    const errorToast = { title: "Error", description: "Could not update star.", variant: "destructive" as const };
+    if (toast) toast(errorToast);
+    else showToast(errorToast);
     throw error;
   }
-  toast({ title: message.is_starred ? "Unstarred" : "Starred", description: "Star status updated.", variant: "default" });
+  const successToast = { title: message.is_starred ? "Unstarred" : "Starred", description: "Star status updated.", variant: "default" as const };
+  if (toast) toast(successToast);
+  else showToast(successToast);
 }
 
 /**
@@ -26,17 +31,21 @@ export async function toggleStarMessage(
  */
 export async function archiveMessages(
   messageIds: string[],
-  toast: (message: ToastProps) => void
+  toast?: (message: ToastOptions) => void
 ): Promise<void> {
   const { error } = await supabase.from("email_messages")
     .update({ is_archived: true })
     .in("id", messageIds);
 
   if (error) {
-    toast({ title: "Error", description: "Could not archive messages.", variant: "destructive" });
+    const errorToast = { title: "Error", description: "Could not archive messages.", variant: "destructive" as const };
+    if (toast) toast(errorToast);
+    else showToast(errorToast);
     throw error;
   }
-  toast({ title: "Archive", description: "Message archived." });
+  const successToast = { title: "Archive", description: "Message archived." };
+  if (toast) toast(successToast);
+  else showToast(successToast);
 }
 
 /**
@@ -44,15 +53,19 @@ export async function archiveMessages(
  */
 export async function deleteMessages(
   messageIds: string[],
-  toast: (message: ToastProps) => void
+  toast?: (message: ToastOptions) => void
 ): Promise<void> {
   const { error } = await supabase.from("email_messages").delete().in("id", messageIds);
 
   if (error) {
-    toast({ title: "Error", description: "Could not delete messages.", variant: "destructive" });
+    const errorToast = { title: "Error", description: "Could not delete messages.", variant: "destructive" as const };
+    if (toast) toast(errorToast);
+    else showToast(errorToast);
     throw error;
   }
-  toast({ title: "Deleted", description: "Message(s) deleted.", variant: "success" });
+  const successToast = { title: "Deleted", description: "Message(s) deleted.", variant: "success" as const };
+  if (toast) toast(successToast);
+  else showToast(successToast);
 }
 
 /**

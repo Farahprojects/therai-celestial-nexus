@@ -13,7 +13,7 @@ import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader, CheckCircle, XCircle } from 'lucide-react';
 import Logo from '@/components/Logo';
-import { useToast } from '@/hooks/use-toast';
+import { showToast } from '@/utils/notifications';
 
 const ConfirmEmail: React.FC = () => {
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
@@ -21,7 +21,7 @@ const ConfirmEmail: React.FC = () => {
 
   const navigate = useNavigate();
   const location = useLocation();
-  const { toast } = useToast();
+  
   const processedRef = useRef(false);
 
   const finishSuccess = async (kind: 'signup' | 'email_change', token: string, email: string) => {
@@ -57,7 +57,7 @@ const ConfirmEmail: React.FC = () => {
       console.error('[EMAIL-VERIFY] Critical verification error:', error);
       setStatus('error');
       setMessage('Failed to verify your email. Please try again or contact support.');
-      toast({
+      showToast({
         variant: 'destructive',
         title: 'Verification Error',
         description: error instanceof Error ? error.message : 'Unable to complete email verification. Please try again.'
@@ -75,7 +75,7 @@ const ConfirmEmail: React.FC = () => {
       ? 'Email verified! Please sign in to continue.'
       : 'Email updated! Please sign in to continue.';
     setMessage(msg);
-    toast({ variant: 'success', title: 'Success', description: msg });
+    showToast({ variant: 'success', title: 'Success', description: msg });
   };
 
   useEffect(() => {
@@ -156,7 +156,7 @@ const ConfirmEmail: React.FC = () => {
         setStatus('error');
         const msg = err?.message ?? 'Verification failed – link may have expired.';
         setMessage(msg);
-        toast({ variant: 'destructive', title: 'Verification failed', description: msg });
+        showToast({ variant: 'destructive', title: 'Verification failed', description: msg });
       }
     };
     verify();

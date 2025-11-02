@@ -12,7 +12,7 @@ import { ColorPicker } from './ColorPicker';
 import { FontSelector } from './FontSelector';
 import { AttachmentDropzone } from './AttachmentDropzone';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
+import { showToast } from '@/utils/notifications';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 interface Attachment {
@@ -53,7 +53,6 @@ export const ComposeModal = ({ isOpen, onClose, onSend }: ComposeModalProps) => 
     italic: false,
     underline: false
   });
-  const { toast } = useToast();
   const isMobile = useIsMobile();
 
   const validateEmail = (email: string) => {
@@ -79,43 +78,43 @@ export const ComposeModal = ({ isOpen, onClose, onSend }: ComposeModalProps) => 
 
   const handleSend = async () => {
     if (!to.trim()) {
-      toast({
-        title: "Error",
-        description: "Please enter a recipient email address.",
-        variant: "destructive"
-      });
+        showToast({
+          title: "Error",
+          description: "Please enter a recipient email address.",
+          variant: "destructive"
+        });
       return;
     }
     if (!validateEmail(to.trim())) {
-      toast({
-        title: "Error",
-        description: "Please enter a valid recipient email address.",
-        variant: "destructive"
-      });
+        showToast({
+          title: "Error",
+          description: "Please enter a valid recipient email address.",
+          variant: "destructive"
+        });
       return;
     }
     if (cc && !validateEmailList(cc)) {
-      toast({
-        title: "Error",
-        description: "Please enter valid CC email addresses.",
-        variant: "destructive"
-      });
+        showToast({
+          title: "Error",
+          description: "Please enter valid CC email addresses.",
+          variant: "destructive"
+        });
       return;
     }
     if (bcc && !validateEmailList(bcc)) {
-      toast({
-        title: "Error",
-        description: "Please enter valid BCC email addresses.",
-        variant: "destructive"
-      });
+        showToast({
+          title: "Error",
+          description: "Please enter valid BCC email addresses.",
+          variant: "destructive"
+        });
       return;
     }
     if (!body.trim()) {
-      toast({
-        title: "Error",
-        description: "Please enter a message before sending.",
-        variant: "destructive"
-      });
+        showToast({
+          title: "Error",
+          description: "Please enter a message before sending.",
+          variant: "destructive"
+        });
       return;
     }
     setIsSending(true);
@@ -131,11 +130,11 @@ export const ComposeModal = ({ isOpen, onClose, onSend }: ComposeModalProps) => 
       });
       if (error) {
         console.error('Error sending email:', error);
-        toast({
-          title: "Error",
-          description: "Failed to send email. Please try again.",
-          variant: "destructive"
-        });
+          showToast({
+            title: "Error",
+            description: "Failed to send email. Please try again.",
+            variant: "destructive"
+          });
         return;
       }
       if (onSend) {
@@ -148,9 +147,10 @@ export const ComposeModal = ({ isOpen, onClose, onSend }: ComposeModalProps) => 
           attachments
         });
       }
-      toast({
+      showToast({
         title: "Success",
-        description: "Email sent successfully!"
+        description: "Email sent successfully!",
+        variant: "success"
       });
       setTo(''); setCc(''); setBcc(''); setSubject(''); setBody('');
       setAttachments([]); setShowCc(false); setShowBcc(false);
@@ -159,7 +159,7 @@ export const ComposeModal = ({ isOpen, onClose, onSend }: ComposeModalProps) => 
       onClose();
     } catch (error) {
       console.error('Unexpected error:', error);
-      toast({
+      showToast({
         title: "Error",
         description: "An unexpected error occurred. Please try again.",
         variant: "destructive"

@@ -3,7 +3,6 @@ import { X, Download, Copy, Paperclip, Check, ChevronDown, ChevronRight } from '
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
-import { useToast } from '@/hooks/use-toast';
 import { toast } from 'sonner';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { ReportContent } from './ReportContent';

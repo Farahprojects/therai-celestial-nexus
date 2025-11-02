@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Loader, CheckCircle } from 'lucide-react';
-import { useToast } from "@/hooks/use-toast";
+import { showToast } from "@/utils/notifications";
 import { supabase } from '@/integrations/supabase/client';
 import PasswordInput from './PasswordInput';
 import { passwordRequirements } from '@/utils/authValidation';
@@ -15,7 +15,7 @@ const PasswordResetForm: React.FC<PasswordResetFormProps> = ({ onSuccess }) => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isUpdating, setIsUpdating] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
-  const { toast } = useToast();
+  
 
   // Check if password meets requirements
   const passwordValid = passwordRequirements.every(req => req.validate(newPassword));
@@ -27,7 +27,7 @@ const PasswordResetForm: React.FC<PasswordResetFormProps> = ({ onSuccess }) => {
     e.preventDefault();
     
     if (!passwordValid) {
-      toast({
+      showToast({
         variant: 'destructive',
         title: 'Invalid Password',
         description: 'Please ensure your password meets all requirements.'
@@ -36,7 +36,7 @@ const PasswordResetForm: React.FC<PasswordResetFormProps> = ({ onSuccess }) => {
     }
 
     if (!passwordsMatch) {
-      toast({
+      showToast({
         variant: 'destructive',
         title: 'Password Mismatch',
         description: 'Passwords do not match.'
@@ -67,7 +67,7 @@ const PasswordResetForm: React.FC<PasswordResetFormProps> = ({ onSuccess }) => {
       await supabase.auth.signOut();
 
       setShowSuccess(true);
-      toast({
+      showToast({
         variant: 'success',
         title: 'Password Updated Successfully!',
         description: 'Please sign in with your new password.'
@@ -79,7 +79,7 @@ const PasswordResetForm: React.FC<PasswordResetFormProps> = ({ onSuccess }) => {
       }, 2000);
 
     } catch (error: any) {
-      toast({
+      showToast({
         variant: 'destructive',
         title: 'Update Failed',
         description: error.message || 'Failed to update password. Please try again.'
