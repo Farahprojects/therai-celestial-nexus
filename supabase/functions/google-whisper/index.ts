@@ -332,19 +332,6 @@ if (chattype === "voice" && chat_id) {
       }));
       
       const tasks = [
-        fetch(`${SUPABASE_URL}/functions/v1/chat-send`, {
-          method: "POST",
-          headers,
-          body: JSON.stringify({
-            chat_id,
-            text: transcript,
-            client_msg_id: crypto.randomUUID(),
-            chattype: chattypeToPass, // Use captured chattype value
-            mode,
-            user_id,
-            user_name
-          })
-        }),
         fetch(`${SUPABASE_URL}/functions/v1/${llmHandler}`, {
           method: "POST",
           headers,
@@ -358,9 +345,7 @@ if (chattype === "voice" && chat_id) {
             user_name,
             source: "google-whisper" // Identify caller
           })
-        }),
-        // Broadcast function doesn't exist - skip gracefully
-        Promise.resolve({ ok: true, status: 200, statusText: "Broadcast skipped (function not available)" })
+        })
       ];
 
       console.info(JSON.stringify({
@@ -382,7 +367,7 @@ if (chattype === "voice" && chat_id) {
       // Fire-and-forget: Start tasks without awaiting (non-blocking)
       Promise.allSettled(tasks).then((results) => {
         results.forEach((result, index) => {
-          const taskName = index === 0 ? "chat-send" : index === 1 ? "llm-handler" : "broadcast";
+          const taskName = "llm-handler";
           
           if (result.status === "fulfilled") {
             const response = result.value;
