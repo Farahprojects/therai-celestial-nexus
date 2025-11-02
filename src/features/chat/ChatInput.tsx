@@ -11,6 +11,7 @@ import { useSearchParams } from 'react-router-dom';
 import { useMode } from '@/contexts/ModeContext';
 import { useChatInputState } from '@/hooks/useChatInputState';
 import { useChatStore } from '@/core/store';
+import { useFeatureUsage } from '@/hooks/useFeatureUsage';
 import { useMessageStore } from '@/stores/messageStore';
 import { unifiedWebSocketService } from '@/services/websocket/UnifiedWebSocketService';
 import { supabase } from '@/integrations/supabase/client';
@@ -67,6 +68,7 @@ export const ChatInput = () => {
   const { user } = useAuth();
   const { displayName } = useUserData();
   const { isSubscriptionActive } = useSubscription();
+  const { usage } = useFeatureUsage();
   const billingMode = getBillingMode();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -207,6 +209,17 @@ export const ChatInput = () => {
       setShowUpgradeNotification(true);
       return;
     }
+    
+    // Gate: Check STT limit (2 minutes = 120 seconds for free tier)
+    if (usage && !usage.subscription_active) {
+      const STT_FREE_LIMIT = 120; // 2 minutes
+      if (usage.voice_seconds.used >= STT_FREE_LIMIT) {
+        console.log('[ChatInput] STT limit reached, showing upgrade notification');
+        setShowSTTLimitNotification(true);
+        return;
+      }
+    }
+    
     toggleMicRecording();
   };
 
