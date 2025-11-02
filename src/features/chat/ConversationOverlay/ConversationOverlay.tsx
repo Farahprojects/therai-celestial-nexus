@@ -490,13 +490,6 @@ export const ConversationOverlay: React.FC = () => {
                   ? 'Thinking…'
                   : 'Speaking…'}
               </p>
-              {usage && (
-                <p className="text-xs text-gray-400">
-                  {usage.voice_seconds.limit === null 
-                    ? 'Unlimited voice time' 
-                    : `${usage.voice_seconds.remaining}s remaining this month`}
-                </p>
-              )}
             </div>
 
             <button
