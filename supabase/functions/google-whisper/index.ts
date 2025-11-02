@@ -380,48 +380,32 @@ if (chattype === "voice" && chat_id) {
         }
       }));
 
-      // AWAIT to see errors (not fire-and-forget)
-      try {
-        const results = await Promise.allSettled(tasks);
-        
+      // Fire-and-forget: Start tasks without awaiting (non-blocking)
+      Promise.allSettled(tasks).then((results) => {
         results.forEach((result, index) => {
           const taskName = index === 0 ? "chat-send" : index === 1 ? "llm-handler" : "broadcast";
           
           if (result.status === "fulfilled") {
             const response = result.value;
-            console.info(JSON.stringify({
-              event: `${taskName}_succeeded`,
-              status: response.status,
-              statusText: response.statusText
-            }));
-            
-            // Try to read response body for errors
-            response.text().then(text => {
-              try {
-                const body = JSON.parse(text);
-                if (!response.ok) {
+            if (!response.ok) {
+              // Only log errors, not successes (to reduce log noise)
+              response.text().then(text => {
+                try {
+                  const body = JSON.parse(text);
                   console.error(JSON.stringify({
                     event: `${taskName}_failed`,
                     status: response.status,
                     error: body
                   }));
-                }
-              } catch {
-                // Response wasn't JSON, log raw text if error
-                if (!response.ok) {
+                } catch {
                   console.error(JSON.stringify({
                     event: `${taskName}_failed`,
                     status: response.status,
                     error_text: text.substring(0, 200)
                   }));
                 }
-              }
-            }).catch(err => {
-              console.error(JSON.stringify({
-                event: `${taskName}_response_read_error`,
-                error: err instanceof Error ? err.message : String(err)
-              }));
-            });
+              }).catch(() => {});
+            }
           } else {
             console.error(JSON.stringify({
               event: `${taskName}_rejected`,
@@ -429,12 +413,7 @@ if (chattype === "voice" && chat_id) {
             }));
           }
         });
-      } catch (err) {
-        console.error(JSON.stringify({
-          event: "voice_flow_tasks_error",
-          error: err instanceof Error ? err.message : String(err)
-        }));
-      }
+      }).catch(() => {});
     }).catch((err) => {
       console.error(JSON.stringify({
         event: "failed_to_get_llm_handler",
