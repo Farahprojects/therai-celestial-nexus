@@ -86,6 +86,8 @@ if (!mode || typeof mode !== "string") {
 return json(400, { error: "Missing or invalid field: mode" });
 }
 
+const role = rawRole === "assistant" ? "assistant" : "user";
+
 console.info(JSON.stringify({
   event: "chat_send_processing",
   request_id: requestId,
