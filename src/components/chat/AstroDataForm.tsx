@@ -166,7 +166,9 @@ export const AstroDataForm: React.FC<AstroDataFormProps> = ({
     if (isProfileFlow) {
       setIsProcessing(true);
       try {
-        onSubmit(data);
+        // Profile mode: auto-add request: 'essence' for translator-edge
+        // Note: reportType is NOT included - it's only for insights mode, not profile mode
+        onSubmit({ ...data, request: 'essence' });
       } catch (error) {
         console.error('[AstroDataForm] Profile submission error:', error);
         toast.error('Failed to submit profile data. Please try again.');

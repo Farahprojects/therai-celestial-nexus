@@ -104,6 +104,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
       if (profileError) throw profileError;
 
       // Create conversation with profile_mode flag to generate chart data
+      // Convert camelCase to snake_case and structure as person_a (same as buildReportPayload)
       const { data: conversation, error: convError } = await supabase.functions.invoke(
         'conversation-manager?action=create_conversation',
         {
@@ -113,14 +114,16 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
             mode: 'profile', // Set mode to "profile"
             profile_mode: true, // KEY FLAG
             report_data: {
-              reportType: 'essence',
-              name: data.name,
-              birthDate: data.birthDate,
-              birthTime: data.birthTime,
-              birthLocation: data.birthLocation,
-              birthLatitude: data.birthLatitude,
-              birthLongitude: data.birthLongitude,
-              birthPlaceId: data.birthPlaceId,
+              request: 'essence', // translator-edge requires 'request' field
+              // Note: reportType is NOT included - it's only for insights mode, not profile mode
+              person_a: {
+                name: data.name,
+                birth_date: data.birthDate, // snake_case
+                birth_time: data.birthTime, // snake_case
+                location: data.birthLocation,
+                latitude: data.birthLatitude,
+                longitude: data.birthLongitude,
+              },
             }
           }
         }
