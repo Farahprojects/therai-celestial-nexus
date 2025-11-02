@@ -16,10 +16,6 @@ import { useMessageStore } from '@/stores/messageStore';
 import { unifiedWebSocketService } from '@/services/websocket/UnifiedWebSocketService';
 import { supabase } from '@/integrations/supabase/client';
 import { Message } from '@/core/types';
-import { useSubscription } from '@/contexts/SubscriptionContext';
-import { getBillingMode } from '@/utils/billingMode';
-import { useNavigate } from 'react-router-dom';
-import { toast } from 'sonner';
 import { UpgradeNotification } from '@/components/subscription/UpgradeNotification';
 import { STTLimitExceededError } from '@/services/voice/stt';
 // Using unified message store for all message management
@@ -90,10 +86,7 @@ export const ChatInput = () => {
   // Auth detection (still needed for user-specific logic)
   const { user } = useAuth();
   const { displayName } = useUserData();
-  const { isSubscriptionActive } = useSubscription();
   const { usage } = useFeatureUsage();
-  const billingMode = getBillingMode();
-  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const userId = searchParams.get('user_id');
   const isAuthenticated = !!user;
@@ -127,23 +120,10 @@ export const ChatInput = () => {
   const handleSend = async () => {
     if (!text.trim()) return;
 
-    // Gate: Check subscription in subscription mode
-    if (billingMode === 'SUBSCRIPTION' && isAuthenticated && !isSubscriptionActive) {
-      toast.error('Subscription required to send messages');
-      navigate('/subscription-paywall');
-      return;
-    }
-
       let currentChatId = chat_id;
       
       // For authenticated users: create conversation if no chat_id exists
       if (isAuthenticated && !chat_id && user) {
-      // Gate: Check subscription before creating new thread
-      if (billingMode === 'SUBSCRIPTION' && !isSubscriptionActive) {
-        toast.error('Subscription required to create new conversations');
-        navigate('/subscription-paywall');
-        return;
-      }
 
         try {
           console.log('[ChatInput] Creating new conversation for authenticated user');
@@ -210,11 +190,6 @@ export const ChatInput = () => {
         console.error('[ChatInput] Cannot open conversation - no chat_id available');
         return;
       }
-      // Gate: Check subscription in subscription mode
-      if (billingMode === 'SUBSCRIPTION' && isAuthenticated && !isSubscriptionActive) {
-        setShowUpgradeNotification(true);
-        return;
-      }
       // Gate: Check STT limit before opening conversation mode
       if (usage && !usage.subscription_active) {
         const STT_FREE_LIMIT = 120; // 2 minutes
@@ -237,12 +212,6 @@ export const ChatInput = () => {
   };
 
   const handleMicClick = () => {
-    // Gate: Check subscription in subscription mode
-    if (billingMode === 'SUBSCRIPTION' && isAuthenticated && !isSubscriptionActive) {
-      setShowUpgradeNotification(true);
-      return;
-    }
-    
     // Gate: Check STT limit (2 minutes = 120 seconds for free tier)
     if (usage && !usage.subscription_active) {
       const STT_FREE_LIMIT = 120; // 2 minutes
@@ -264,11 +233,6 @@ export const ChatInput = () => {
       handleSend();
     } else {
       // Open conversation mode when no text is entered
-      // Gate: Check subscription in subscription mode
-      if (billingMode === 'SUBSCRIPTION' && isAuthenticated && !isSubscriptionActive) {
-        setShowUpgradeNotification(true);
-        return;
-      }
       handleSpeakerClick();
     }
   };
@@ -326,10 +290,10 @@ export const ChatInput = () => {
               value={text}
               onChange={(e) => setText(e.target.value)}
               onFocus={handleFocus}
-              placeholder={isAssistantGenerating ? "Setting up your space..." : billingMode === 'SUBSCRIPTION' && isAuthenticated && !isSubscriptionActive ? "Subscription required to send messages" : "Share your thoughts..."}
-              disabled={isAssistantGenerating || (billingMode === 'SUBSCRIPTION' && isAuthenticated && !isSubscriptionActive)}
+              placeholder={isAssistantGenerating ? "Setting up your space..." : "Share your thoughts..."}
+              disabled={isAssistantGenerating}
               className={`w-full px-4 py-2.5 pr-24 text-base font-light bg-white border-2 rounded-3xl focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-400 resize-none text-black placeholder-gray-500 overflow-y-auto ${
-                isAssistantGenerating || (billingMode === 'SUBSCRIPTION' && isAuthenticated && !isSubscriptionActive)
+                isAssistantGenerating
                   ? 'border-gray-200 bg-gray-50 cursor-not-allowed' 
                   : 'border-gray-300'
               }`}
@@ -338,12 +302,6 @@ export const ChatInput = () => {
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && !e.shiftKey && !isAssistantGenerating) {
                   e.preventDefault();
-                  // Gate: Check subscription before sending
-                  if (billingMode === 'SUBSCRIPTION' && isAuthenticated && !isSubscriptionActive) {
-                    toast.error('Subscription required to send messages');
-                    navigate('/subscription-paywall');
-                    return;
-                  }
                   handleSend();
                 }
               }}
