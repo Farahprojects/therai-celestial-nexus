@@ -1,5 +1,5 @@
 // src/features/chat/ChatInput.tsx
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import TextareaAutosize from 'react-textarea-autosize';
 import { Mic, AudioLines, ArrowRight, Loader2 } from 'lucide-react';
 import { chatController } from './ChatController';
@@ -36,6 +36,8 @@ export const ChatInput = () => {
   const [showSTTLimitNotification, setShowSTTLimitNotification] = useState(false);
   const { mode } = useMode();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [isAnalyzeMode, setIsAnalyzeMode] = useState(false);
+  const [conversationMode, setConversationMode] = useState<string>('standard');
   
   // Scroll input into view when keyboard appears
   const handleFocus = () => {
@@ -62,6 +64,27 @@ export const ChatInput = () => {
     isAssistantGenerating,
     isRecording,
   } = useChatInputState();
+
+  // Fetch conversation mode on mount
+  useEffect(() => {
+    if (chat_id) {
+      supabase
+        .from('conversations')
+        .select('meta')
+        .eq('id', chat_id)
+        .single()
+        .then(({ data }) => {
+          setConversationMode(data?.meta?.conversation_mode || 'standard');
+        });
+    }
+  }, [chat_id]);
+
+  // Detect @therai (only in together mode)
+  useEffect(() => {
+    const isTogetherMode = conversationMode === 'together';
+    const hasTherai = text.trim().toLowerCase().includes('@therai');
+    setIsAnalyzeMode(isTogetherMode && hasTherai);
+  }, [text, conversationMode]);
   
   
   // Auth detection (still needed for user-specific logic)
@@ -172,7 +195,8 @@ export const ChatInput = () => {
             client_msg_id,
             mode: mode,
             user_id: user?.id,
-            user_name: displayName || 'User'
+            user_name: displayName || 'User',
+            analyze: isAnalyzeMode // Pass analyze flag for Together Mode
           }
         }).catch((error) => {
           console.error('[ChatInput] Message send failed:', error);
@@ -286,6 +310,12 @@ export const ChatInput = () => {
     <div className="bg-white backdrop-blur-lg p-2 relative mobile-input-container" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0.5rem)' }}>
       <div className="flex items-end gap-2 max-w-3xl mx-auto">
         <div className="flex-1 relative">
+          {/* Together Mode Indicator */}
+          {isAnalyzeMode && (
+            <div className="absolute -top-9 left-0 right-0 bg-purple-50 text-purple-700 text-xs py-1.5 px-4 rounded-t-2xl border border-purple-200 border-b-0 z-20">
+              ✨ Together Mode: Inviting AI for relationship insights
+            </div>
+          )}
           {isMicRecording ? (
             <div className="w-full h-[46px] flex items-center justify-center bg-white border-2 border-gray-300 rounded-3xl overflow-hidden">
               <VoiceWaveform audioLevelRef={audioLevelRef} />

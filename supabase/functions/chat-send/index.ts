@@ -73,7 +73,8 @@ mode,
 chattype,
 role: rawRole,
 user_id,
-user_name
+user_name,
+analyze
 } = body || {};
 
 if (!chat_id || typeof chat_id !== "string") {
@@ -249,16 +250,49 @@ console.info(JSON.stringify({
   mode
 }));
 
-// Get configured LLM handler
-getLLMHandler(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY).then((llmHandler) => {
-  const payload = { chat_id, text, mode, user_id, user_name, source: "chat-send" };
+// Determine which LLM handler to use
+const determineLLMHandler = async () => {
+  if (analyze === true) {
+    // Check conversation mode for Together Mode routing
+    const { data: conv } = await supabase
+      .from('conversations')
+      .select('meta')
+      .eq('id', chat_id)
+      .single();
+    
+    const conversationMode = conv?.meta?.conversation_mode || 'standard';
+    
+    if (conversationMode === 'together') {
+      console.info(JSON.stringify({
+        event: "chat_send_together_mode_routing",
+        request_id: requestId,
+        conversation_mode: conversationMode
+      }));
+      return 'llm-handler-together-mode';
+    } else {
+      console.info(JSON.stringify({
+        event: "chat_send_analyze_mode_fallback",
+        request_id: requestId,
+        conversation_mode: conversationMode,
+        note: "Analyze requested but mode not together - using standard handler"
+      }));
+      return await getLLMHandler(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    }
+  } else {
+    // Normal chat flow
+    return await getLLMHandler(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+  }
+};
+
+determineLLMHandler().then((llmHandler) => {
+  const payload = { chat_id, text, mode, user_id, user_name, analyze, source: "chat-send" };
   
   console.info(JSON.stringify({
     event: "chat_send_llm_payload",
     request_id: requestId,
     llm_handler: llmHandler,
     payload_keys: Object.keys(payload),
-    note: "chat-send does NOT pass chattype to LLM handler for regular text chat"
+    analyze_mode: !!analyze
   }));
   
   return fetch(`${SUPABASE_URL}/functions/v1/${llmHandler}`, {

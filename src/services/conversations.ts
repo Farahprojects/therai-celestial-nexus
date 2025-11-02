@@ -196,3 +196,40 @@ export const joinConversation = async (conversationId: string): Promise<void> =>
   }
 };
 
+/**
+ * Update conversation mode (Standard, Together, Daily Nudge, etc.)
+ */
+export const updateConversationMode = async (
+  conversationId: string,
+  mode: string
+): Promise<void> => {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('User not authenticated');
+
+  // Fetch existing meta
+  const { data: conversation, error: fetchError } = await supabase
+    .from('conversations')
+    .select('meta')
+    .eq('id', conversationId)
+    .single();
+
+  if (fetchError) throw new Error('Failed to fetch conversation');
+
+  // Update meta with new mode
+  const updatedMeta = {
+    ...(conversation.meta || {}),
+    conversation_mode: mode
+  };
+
+  const { error } = await supabase
+    .from('conversations')
+    .update({ 
+      meta: updatedMeta,
+      updated_at: new Date().toISOString()
+    })
+    .eq('id', conversationId)
+    .eq('owner_user_id', user.id); // Only owner can change mode
+
+  if (error) throw new Error('Failed to update conversation mode');
+};
+

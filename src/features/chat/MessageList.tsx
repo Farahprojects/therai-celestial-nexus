@@ -3,7 +3,7 @@ import { useChatStore } from '@/core/store';
 import { useMessageStore } from '@/stores/messageStore';
 import { Message } from '@/core/types';
 import { useConversationUIStore } from '@/features/chat/conversation-ui-store';
-import { RefreshCw, AlertTriangle } from 'lucide-react';
+import { RefreshCw, AlertTriangle, Sparkles } from 'lucide-react';
 import { useAutoScroll } from '@/hooks/useAutoScroll';
 import { useWordAnimation } from '@/hooks/useWordAnimation';
 import { Button } from '@/components/ui/button';
@@ -35,15 +35,23 @@ UserMessage.displayName = 'UserMessage';
 
 // ⚡ MEMOIZED ASSISTANT MESSAGE - Only re-renders when message data changes
 const AssistantMessage = React.memo(({ message }: { message: Message }) => {
-  const { text, pending, source } = message;
+  const { text, pending, source, meta } = message;
   // Only animate fresh WebSocket messages, not loaded/refreshed messages
   const shouldAnimate = source === 'websocket';
   const { animatedText, isAnimating } = useWordAnimation(text || '', shouldAnimate);
   const displayText = isAnimating ? animatedText : text || '';
+  const isTogetherModeAnalysis = meta?.together_mode_analysis === true;
 
   return (
     <div className="flex items-end gap-3 justify-start mb-8">
       <div className="px-4 py-3 rounded-2xl max-w-2xl lg:max-w-4xl text-black">
+        {/* Together Mode Badge */}
+        {isTogetherModeAnalysis && (
+          <div className="inline-flex items-center gap-1.5 text-xs text-purple-600 mb-2 font-light">
+            <Sparkles size={14} />
+            <span>Together Mode Insight</span>
+          </div>
+        )}
         <div className="text-base font-light leading-relaxed text-left selectable-text prose prose-sm max-w-none">
           <ReactMarkdown 
             remarkPlugins={[remarkGfm]}
@@ -76,7 +84,8 @@ const AssistantMessage = React.memo(({ message }: { message: Message }) => {
   return prevProps.message.id === nextProps.message.id && 
          prevProps.message.text === nextProps.message.text &&
          prevProps.message.pending === nextProps.message.pending &&
-         prevProps.message.source === nextProps.message.source;
+         prevProps.message.source === nextProps.message.source &&
+         prevProps.message.meta?.together_mode_analysis === nextProps.message.meta?.together_mode_analysis;
 });
 AssistantMessage.displayName = 'AssistantMessage';
 
