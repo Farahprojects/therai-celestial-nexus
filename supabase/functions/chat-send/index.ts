@@ -92,7 +92,8 @@ const INTERNAL_API_KEY = Deno.env.get("INTERNAL_API_KEY");
 const internalKey = req.headers.get("x-internal-key");
 const authHeader = req.headers.get("Authorization");
 // Also check if Authorization header contains service role key (backup for internal calls)
-const hasServiceRoleKey = authHeader && authHeader.includes(SUPABASE_SERVICE_ROLE_KEY || "");
+// Format: "Bearer {SERVICE_ROLE_KEY}"
+const hasServiceRoleKey = authHeader && SUPABASE_SERVICE_ROLE_KEY && authHeader === `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`;
 const isInternalCall = (internalKey && INTERNAL_API_KEY && internalKey === INTERNAL_API_KEY) || hasServiceRoleKey;
 
 console.info(JSON.stringify({
