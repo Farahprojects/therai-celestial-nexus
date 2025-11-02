@@ -68,3 +68,33 @@ verify_jwt = false
 
 [functions.verify-token]
 verify_jwt = false
+
+[functions.contact-form-handler]
+verify_jwt = false
+
+[functions.create-user-and-verify]
+verify_jwt = false
+
+[functions.resend-verification]
+verify_jwt = false
+
+[functions.swiss]
+verify_jwt = false
+
+[functions.get-prices]
+verify_jwt = false
+
+[functions.validate-promo-code]
+verify_jwt = false
+
+[functions.verification-emailer]
+verify_jwt = false
+
+[functions.google-place-details]
+verify_jwt = false
+
+[functions.google-places-autocomplete]
+verify_jwt = false
+
+[functions.inboundMessenger]
+verify_jwt = false
