@@ -6,20 +6,18 @@ import { useAudioStore } from '@/stores/audioStore';
 import { useMode } from '@/contexts/ModeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserData } from '@/hooks/useUserData';
-import { useFeatureUsage } from '@/hooks/useFeatureUsage';
 // Old audio level hook removed - using AudioWorklet + WebWorker pipeline
 import { VoiceBubble } from './VoiceBubble';
 // Universal audio pipeline
 import { UniversalSTTRecorder } from '@/services/audio/UniversalSTTRecorder';
 import { ttsPlaybackService } from '@/services/voice/TTSPlaybackService';
-import { STTLimitExceededError } from '@/services/voice/stt';
 // llmService import removed - not used in this file
 import { v4 as uuidv4 } from 'uuid';
 import { supabase } from '@/integrations/supabase/client';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from '@/integrations/supabase/config';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Mic } from 'lucide-react';
-import { UpgradeNotification } from '@/components/subscription/UpgradeNotification';
+import { toast } from 'sonner';
 
 type ConversationState = 'listening' | 'thinking' | 'replying' | 'connecting' | 'establishing';
 
@@ -29,9 +27,7 @@ export const ConversationOverlay: React.FC = () => {
   const { mode } = useMode();
   const { user } = useAuth();
   const { displayName } = useUserData();
-  const { usage } = useFeatureUsage();
   const [state, setState] = useState<ConversationState>('connecting');
-  const [showSTTLimitNotification, setShowSTTLimitNotification] = useState(false);
   
   // Audio context management
   const { audioContext, isAudioUnlocked, initializeAudioContext, resumeAudioContext } = useAudioStore();
@@ -313,26 +309,14 @@ export const ConversationOverlay: React.FC = () => {
           if (!isShuttingDown.current) audioLevelRef.current = level;
         },
         onError: (error: Error) => {
-          // Check if this is an STT limit exceeded error FIRST - don't log it
-          if (error instanceof STTLimitExceededError) {
-            console.log('[ConversationOverlay] STT limit exceeded, showing upgrade notification');
-            
-            // Close overlay immediately
-            closeConversation();
-            
-            // Set flag to keep overlay closed
-            setShouldKeepClosed(true);
-            
-            // Show upgrade notification
-            setShowSTTLimitNotification(true);
-            
-            // Reset state
-            resetToTapToStart('STT limit exceeded');
-            return;
-          }
-          
-          // Log other errors normally
           console.error('[ConversationOverlay] Audio recorder error:', error);
+          
+          // Show toast with error message
+          toast.error(error.message || 'Audio recorder error');
+          
+          // Close overlay and reset
+          closeConversation();
+          setShouldKeepClosed(true);
           resetToTapToStart('Audio recorder error');
         }
       });
@@ -529,17 +513,6 @@ export const ConversationOverlay: React.FC = () => {
     </div>,
     document.body
       )}
-      
-      {/* STT Limit Notification - pill-shaped popup above chat bar */}
-      <UpgradeNotification
-        isVisible={showSTTLimitNotification}
-        onDismiss={() => {
-          setShowSTTLimitNotification(false);
-          // Reset the flag when user dismisses notification (allows reopening)
-          setShouldKeepClosed(false);
-        }}
-        message="Voice limit reached. Upgrade for unlimited."
-      />
     </>
   );
 };

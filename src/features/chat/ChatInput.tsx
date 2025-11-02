@@ -11,7 +11,6 @@ import { useSearchParams } from 'react-router-dom';
 import { useMode } from '@/contexts/ModeContext';
 import { useChatInputState } from '@/hooks/useChatInputState';
 import { useChatStore } from '@/core/store';
-import { useFeatureUsage } from '@/hooks/useFeatureUsage';
 import { useMessageStore } from '@/stores/messageStore';
 import { unifiedWebSocketService } from '@/services/websocket/UnifiedWebSocketService';
 import { supabase } from '@/integrations/supabase/client';
@@ -21,7 +20,6 @@ import { getBillingMode } from '@/utils/billingMode';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { UpgradeNotification } from '@/components/subscription/UpgradeNotification';
-import { STTLimitExceededError } from '@/services/voice/stt';
 // Using unified message store for all message management
 
 // Stop icon component
@@ -33,7 +31,6 @@ export const ChatInput = () => {
   const [text, setText] = useState('');
   const [isMuted, setIsMuted] = useState(false);
   const [showUpgradeNotification, setShowUpgradeNotification] = useState(false);
-  const [showSTTLimitNotification, setShowSTTLimitNotification] = useState(false);
   const { mode } = useMode();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   
@@ -68,7 +65,6 @@ export const ChatInput = () => {
   const { user } = useAuth();
   const { displayName } = useUserData();
   const { isSubscriptionActive } = useSubscription();
-  const { usage } = useFeatureUsage();
   const billingMode = getBillingMode();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -82,14 +78,6 @@ export const ChatInput = () => {
     setText(newText);
   };
 
-  // Handle STT errors (e.g., limit exceeded)
-  const handleMicError = (error: Error) => {
-    if (error instanceof STTLimitExceededError) {
-      console.log('[ChatInput] STT limit exceeded, showing upgrade notification');
-      setShowSTTLimitNotification(true);
-    }
-  };
-
   // Universal microphone pipeline
   const { 
     isRecording: isMicRecording, 
@@ -98,7 +86,6 @@ export const ChatInput = () => {
     audioLevelRef
   } = useUniversalMic({
     onTranscriptReady: handleTranscriptReady,
-    onError: handleMicError,
   });
 
   const handleSend = async () => {
@@ -191,15 +178,6 @@ export const ChatInput = () => {
         setShowUpgradeNotification(true);
         return;
       }
-      // Gate: Check STT limit before opening conversation mode
-      if (usage && !usage.subscription_active) {
-        const STT_FREE_LIMIT = 120; // 2 minutes
-        if (usage.voice_seconds.used >= STT_FREE_LIMIT) {
-          console.log('[ChatInput] STT limit reached, showing upgrade notification');
-          setShowSTTLimitNotification(true);
-          return;
-        }
-      }
       // Opening conversation
       openConversation();
       return;
@@ -217,16 +195,6 @@ export const ChatInput = () => {
     if (billingMode === 'SUBSCRIPTION' && isAuthenticated && !isSubscriptionActive) {
       setShowUpgradeNotification(true);
       return;
-    }
-    
-    // Gate: Check STT limit (2 minutes = 120 seconds for free tier)
-    if (usage && !usage.subscription_active) {
-      const STT_FREE_LIMIT = 120; // 2 minutes
-      if (usage.voice_seconds.used >= STT_FREE_LIMIT) {
-        console.log('[ChatInput] STT limit reached, showing upgrade notification');
-        setShowSTTLimitNotification(true);
-        return;
-      }
     }
     
     toggleMicRecording();
@@ -365,13 +333,6 @@ export const ChatInput = () => {
         isVisible={showUpgradeNotification}
         onDismiss={() => setShowUpgradeNotification(false)}
         message="Subscription required"
-      />
-      
-      {/* STT Limit Notification - pill-shaped popup above chat bar */}
-      <UpgradeNotification
-        isVisible={showSTTLimitNotification}
-        onDismiss={() => setShowSTTLimitNotification(false)}
-        message="Voice limit reached. Upgrade for unlimited."
       />
     </div>
   );

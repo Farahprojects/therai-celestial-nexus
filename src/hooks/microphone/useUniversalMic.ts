@@ -2,8 +2,7 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { UniversalSTTRecorder } from '@/services/audio/UniversalSTTRecorder';
-import { STTLimitExceededError } from '@/services/voice/stt';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserData } from '@/hooks/useUserData';
 import { useMode } from '@/contexts/ModeContext';
@@ -24,7 +23,6 @@ export const useUniversalMic = (options: UseUniversalMicOptions = {}) => {
   const [audioLevel, setAudioLevel] = useState(0);
   const recorderRef = useRef<UniversalSTTRecorder | null>(null);
   const levelRef = useRef(0);
-  const { toast } = useToast();
 
   // Smooth UI animations
   useEffect(() => {
@@ -75,42 +73,32 @@ export const useUniversalMic = (options: UseUniversalMicOptions = {}) => {
           options.onTranscriptReady?.(transcript);
         },
         onError: (error) => {
-          // Handle STTLimitExceededError specially
-          if (error instanceof STTLimitExceededError) {
-            // 1. Dispose recorder (turn off mic)
-            if (recorderRef.current) {
-              recorderRef.current.dispose();
-              recorderRef.current = null;
-            }
-            
-            // 2. Reset state
-            setIsRecording(false);
-            setIsProcessing(false);
-            levelRef.current = 0;
-            
-            // 3. Pass error to parent component (ChatInput) to show upgrade modal
-            options.onError?.(error);
-            return;
-          }
-          
           console.error('[useUniversalMic] Recorder error:', error);
           
-          let errorMessage = 'Could not access microphone.';
+          // Dispose recorder and reset state
+          if (recorderRef.current) {
+            recorderRef.current.dispose();
+            recorderRef.current = null;
+          }
+          setIsRecording(false);
+          setIsProcessing(false);
+          levelRef.current = 0;
+          
+          // Determine error message
+          let errorMessage = error.message;
           if (error.message.includes('Permission denied') || error.message.includes('NotAllowedError')) {
             errorMessage = 'Microphone permission denied. Please allow microphone access in your browser settings.';
           } else if (error.message.includes('NotFoundError')) {
             errorMessage = 'No microphone found. Please connect a microphone and try again.';
           } else if (error.message.includes('NotReadableError')) {
             errorMessage = 'Microphone is being used by another application.';
+          } else if (!error.message.includes('Voice limit reached') && !error.message.includes('voice transcription')) {
+            errorMessage = 'Could not access microphone.';
           }
           
-          toast({
-            title: 'Microphone Error',
-            description: errorMessage,
-            variant: 'destructive',
-          });
-          setIsRecording(false);
-          setIsProcessing(false);
+          toast.error(errorMessage);
+          
+          options.onError?.(error);
         },
         onLevel: (level) => {
           levelRef.current = level;

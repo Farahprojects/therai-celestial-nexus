@@ -2,23 +2,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import { useChatStore } from '@/core/store';
 
-// Custom error class for STT limit exceeded
-export class STTLimitExceededError extends Error {
-  errorCode: string;
-  currentUsage: number;
-  limit: number;
-  remaining: number;
-
-  constructor(message: string, errorCode: string, currentUsage: number, limit: number, remaining: number) {
-    super(message);
-    this.name = 'STTLimitExceededError';
-    this.errorCode = errorCode;
-    this.currentUsage = currentUsage;
-    this.limit = limit;
-    this.remaining = remaining;
-  }
-}
-
 class SttService {
   async transcribe(audioBlob: Blob, chat_id?: string, meta?: Record<string, any>, chattype?: string, mode?: string, user_id?: string, user_name?: string): Promise<{ transcript: string }> {
     
@@ -28,23 +11,19 @@ class SttService {
       throw new Error('Empty audio recording - please try speaking again');
     }
     
-    if (audioBlob.size < 500) { // Reduced from 1KB to 500 bytes for testing
+    if (audioBlob.size < 500) {
       console.warn('[STT] Audio blob too small:', audioBlob.size, 'bytes');
       throw new Error('Recording too short - please speak for longer');
     }
     
-    // Google STT V2: Simplified validation - just check size
     if (audioBlob.size < 100) {
       console.error(`[STT] Audio blob too small (${audioBlob.size} bytes) - likely empty`);
       throw new Error(`Audio blob too small (${audioBlob.size} bytes). Expected at least 100 bytes.`);
     }
-    
-    // OpenAI Whisper: Log simplified payload
 
-    // OpenAI Whisper: Send multipart/form-data with minimal fields
+    // Send multipart/form-data with minimal fields
     const form = new FormData();
     const selectedVoice = useChatStore.getState().ttsVoice || 'Puck';
-    // Pass selected voice from store to backend for voice mode
     form.append('file', audioBlob, 'audio');
     if (chat_id) form.append('chat_id', chat_id);
     if (chattype) form.append('chattype', chattype);
@@ -58,32 +37,27 @@ class SttService {
       body: form
     });
 
-    // Handle network/HTTP errors (actual failures)
+    // Handle HTTP errors - including 403 for limit exceeded
     if (error) {
       console.error('[STT] Google Whisper HTTP error:', error);
+      console.log('[STT] Error data:', data); // Debug log
+      
+      // FunctionsHttpError has a context property with status
+      const status = (error as any)?.context?.status;
+      
+      if (status === 403) {
+        // Limit exceeded - extract message from data or error
+        const errorMsg = data?.error || error.message || 'Voice limit reached. Upgrade to Premium for unlimited voice features.';
+        console.log('[STT] 403 error message:', errorMsg);
+        throw new Error(errorMsg);
+      }
+      
       throw new Error(`Error invoking google-whisper: ${error.message}`);
     }
 
     if (!data) {
       console.error('[STT] No data in response');
       throw new Error('No data received from Google Whisper');
-    }
-
-    // Check structured response for success flag
-    if (data.success === false) {
-      // Handle limit exceeded error
-      if (data.code === 'STT_LIMIT_EXCEEDED') {
-        throw new STTLimitExceededError(
-          data.message || 'STT usage limit exceeded',
-          data.code,
-          data.current_usage || 0,
-          data.limit || 120,
-          data.remaining || 0
-        );
-      }
-      
-      // Handle other error codes
-      throw new Error(data.message || `STT error: ${data.code || 'UNKNOWN'}`);
     }
 
     // Success - return transcript
