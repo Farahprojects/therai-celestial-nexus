@@ -207,7 +207,7 @@ function triggerSummaryGeneration(
 
 Deno.serve(async (req) => {
   const totalStartTime = Date.now();
-  console.log("[llm-handler-gemini] ⏱️  Request received");
+  const requestId = crypto.randomUUID().substring(0, 8);
 
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return json(405, { error: "Method not allowed" });
@@ -217,15 +217,16 @@ Deno.serve(async (req) => {
   let body;
   try {
     body = await req.json();
-    console.log(`[llm-handler-gemini] ⏱️  JSON parsed (+${Date.now() - totalStartTime}ms)`);
   } catch {
     return json(400, { error: "Invalid JSON body" });
   }
 
-  const { chat_id, text, mode, chattype, voice, user_id, user_name } = body || {};
+  const { chat_id, text, mode, chattype, voice, user_id, user_name, source } = body || {};
 
   console.info(JSON.stringify({
     event: "llm_handler_request_received",
+    request_id: requestId,
+    caller: source || "unknown",
     chat_id,
     chattype,
     chattype_type: typeof chattype,
