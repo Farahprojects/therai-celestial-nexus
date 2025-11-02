@@ -33,6 +33,7 @@ interface AstroDataFormProps {
   isProfileFlow?: boolean;
   variant?: 'standalone' | 'insights';
   mode?: 'chat' | 'astro' | 'insight' | 'swiss';
+  defaultName?: string;
 }
 
 const DEFAULT_FORM_VALUES: ReportFormData = {
@@ -65,6 +66,7 @@ export const AstroDataForm: React.FC<AstroDataFormProps> = ({
   isProfileFlow = false,
   variant = 'standalone',
   mode: explicitMode,
+  defaultName,
 }) => {
   // State
   const isInsights = variant === 'insights';
@@ -99,6 +101,13 @@ export const AstroDataForm: React.FC<AstroDataFormProps> = ({
 
   const { register, handleSubmit, setValue, setError, watch, formState: { errors } } = form;
   const formValues = watch();
+
+  // Pre-fill name if provided (for onboarding flow)
+  useEffect(() => {
+    if (defaultName && !formValues.name) {
+      setValue('name', defaultName);
+    }
+  }, [defaultName, setValue, formValues.name]);
 
   // Handlers
   const handleAstroTypeSelect = (type: string) => {
@@ -317,6 +326,7 @@ export const AstroDataForm: React.FC<AstroDataFormProps> = ({
                 shouldDisableAnimations={shouldDisableAnimations}
                 saveToProfile={saveToProfile}
                 setSaveToProfile={setSaveToProfile}
+                isProfileFlow={isProfileFlow}
               />
             ) : currentStep === 'secondPerson' ? (
               <AstroSecondPersonStep

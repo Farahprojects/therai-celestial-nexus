@@ -56,25 +56,84 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
   const handleAstroFormSubmit = async (data: ReportFormData) => {
     setIsLoading(true);
     try {
-      // Create primary profile in user_profile_list
-      const { error: profileError } = await supabase
+      // Check if primary profile already exists
+      const { data: existingProfile, error: checkError } = await supabase
         .from('user_profile_list')
-        .insert({
-          user_id: user?.id,
-          profile_name: 'My Main Profile',
-          name: data.name,
-          birth_date: data.birthDate,
-          birth_time: data.birthTime,
-          birth_location: data.birthLocation,
-          birth_latitude: data.birthLatitude,
-          birth_longitude: data.birthLongitude,
-          birth_place_id: data.birthPlaceId,
-          timezone: data.birthLocation, // Use location as timezone for now
-          house_system: 'placidus',
-          is_primary: true
-        });
+        .select('id')
+        .eq('user_id', user?.id)
+        .eq('is_primary', true)
+        .maybeSingle();
+      
+      // Ignore "not found" errors - that's fine, we'll insert
+      if (checkError && checkError.code !== 'PGRST116') {
+        throw checkError;
+      }
+
+      const profileData = {
+        user_id: user?.id,
+        profile_name: 'My Main Profile',
+        name: data.name,
+        birth_date: data.birthDate,
+        birth_time: data.birthTime,
+        birth_location: data.birthLocation,
+        birth_latitude: data.birthLatitude,
+        birth_longitude: data.birthLongitude,
+        birth_place_id: data.birthPlaceId,
+        timezone: data.birthLocation, // Use location as timezone for now
+        house_system: 'placidus',
+        is_primary: true
+      };
+
+      // Update existing primary profile or insert new one
+      let profileError;
+      if (existingProfile) {
+        // Update existing primary profile
+        const { error } = await supabase
+          .from('user_profile_list')
+          .update(profileData)
+          .eq('id', existingProfile.id);
+        profileError = error;
+      } else {
+        // Insert new primary profile
+        const { error } = await supabase
+          .from('user_profile_list')
+          .insert(profileData);
+        profileError = error;
+      }
 
       if (profileError) throw profileError;
+
+      // Create conversation with profile_mode flag to generate chart data
+      const { data: conversation, error: convError } = await supabase.functions.invoke(
+        'conversation-manager?action=create_conversation',
+        {
+          body: {
+            user_id: user?.id,
+            title: 'Profile',
+            mode: 'profile', // Set mode to "profile"
+            profile_mode: true, // KEY FLAG
+            report_data: {
+              reportType: 'essence',
+              name: data.name,
+              birthDate: data.birthDate,
+              birthTime: data.birthTime,
+              birthLocation: data.birthLocation,
+              birthLatitude: data.birthLatitude,
+              birthLongitude: data.birthLongitude,
+              birthPlaceId: data.birthPlaceId,
+            }
+          }
+        }
+      );
+
+      if (convError) throw convError;
+
+      // conversation-manager will:
+      // 1. Create conversation with title="Profile" and mode="profile"
+      // 2. Skip messages table
+      // 3. Call translator-edge with chat_id
+      // 4. translator-edge saves to translator_logs (existing behavior)
+      // 5. translator-edge skips messages table (profile_mode)
 
       toast.success('Profile created successfully!');
       setCurrentStep('subscription');
@@ -194,6 +253,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
                   reportType="essence"
                   isProfileFlow={true}
                   mode="astro"
+                  defaultName={displayName}
                 />
               </div>
             </motion.div>

@@ -12,6 +12,7 @@ mode?: string;
 report_data?: Record<string, unknown>;
 email?: string;
 name?: string;
+profile_mode?: boolean;
 };
 
 type HandlerCtx = {
@@ -79,26 +80,31 @@ auth: { persistSession: false, autoRefreshToken: false },
 const handlers: Record<string, (ctx: HandlerCtx) => Promise<Response>> = {
 // Create a new conversation
 async create_conversation({ req, admin, body, userId }: HandlerCtx) {
-const { title, mode, report_data, email, name } = body;
+const { title, mode, report_data, email, name, profile_mode } = body;
 if (!mode) return errorJson('mode is required for conversation creation');
 
-// 🔒 SECURITY: Verify subscription before creating conversation
-try {
-  const subscriptionCheck = await checkSubscriptionAccess(admin, userId);
-  if (!subscriptionCheck.hasAccess) {
-    return errorJson('Subscription required to create conversations', 403);
-  }
+// Check if profile_mode flag is present
+const isProfileMode = profile_mode === true;
 
-  // Voice conversations require premium plan
-  if (mode === 'voice' || mode === 'conversation') {
-    const premiumCheck = await checkPremiumAccess(admin, userId);
-    if (!premiumCheck.hasAccess) {
-      return errorJson('Premium plan required for voice conversations', 403);
+// 🔒 SECURITY: Verify subscription before creating conversation (skip for profile mode during onboarding)
+if (!isProfileMode) {
+  try {
+    const subscriptionCheck = await checkSubscriptionAccess(admin, userId);
+    if (!subscriptionCheck.hasAccess) {
+      return errorJson('Subscription required to create conversations', 403);
     }
+
+    // Voice conversations require premium plan
+    if (mode === 'voice' || mode === 'conversation') {
+      const premiumCheck = await checkPremiumAccess(admin, userId);
+      if (!premiumCheck.hasAccess) {
+        return errorJson('Premium plan required for voice conversations', 403);
+      }
+    }
+  } catch (err) {
+    console.error('[conversation-manager] Subscription check failed:', err);
+    return errorJson('Subscription verification failed', 500);
   }
-} catch (err) {
-  console.error('[conversation-manager] Subscription check failed:', err);
-  return errorJson('Subscription verification failed', 500);
 }
 
 const id = crypto.randomUUID();
@@ -112,6 +118,9 @@ if (report_data) {
     submitted_at: new Date().toISOString(),
   };
 }
+if (isProfileMode) {
+  meta.profile_mode = true;
+}
 
 const { data, error } = await admin
   .from('conversations')
@@ -119,8 +128,8 @@ const { data, error } = await admin
     id,
     user_id: userId,
     owner_user_id: userId,
-    title: title || 'New Conversation',
-    mode,
+    title: isProfileMode ? 'Profile' : (title || 'New Conversation'),
+    mode: isProfileMode ? 'profile' : mode,
     meta,
   })
   .select()
@@ -129,6 +138,35 @@ const { data, error } = await admin
 if (error) {
   console.error('[conversation-manager] Insert error:', error);
   return errorJson(`Failed to create conversation: ${error.message || JSON.stringify(error)}`, 500);
+}
+
+// Profile mode: Skip messages table insertion, but call translator-edge for chart generation
+if (isProfileMode) {
+  console.log('[conversation-manager] Profile mode: conversation created, skipping messages table interaction');
+  
+  // Call translator-edge to generate chart data (will save to translator_logs)
+  if (report_data) {
+    const authHeader = req.headers.get('Authorization') || '';
+    const payload = {
+      chat_id: id,
+      report_data,
+      email: email || '',
+      name: name || '',
+      mode: 'profile',
+      profile_mode: true, // Flag for translator-edge to skip messages
+    };
+    fetch(`${SUPABASE_URL}/functions/v1/translator-edge`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: authHeader },
+      body: JSON.stringify(payload),
+    }).catch((e) => console.error('[conversation-manager] translator-edge error', e));
+  }
+  
+  return json({
+    ...data,
+    is_generating_report: false,
+    reportType: (report_data as any)?.reportType ?? null,
+  });
 }
 
 // For Together Mode: auto-generate astro data from primary profile

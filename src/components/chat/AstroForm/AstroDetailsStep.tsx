@@ -28,6 +28,7 @@ interface AstroDetailsStepProps {
   shouldDisableAnimations: boolean;
   saveToProfile: boolean;
   setSaveToProfile: (value: boolean) => void;
+  isProfileFlow?: boolean;
 }
 
 const ErrorMsg = ({ msg }: { msg: string }) => (
@@ -52,6 +53,7 @@ export const AstroDetailsStep: React.FC<AstroDetailsStepProps> = ({
   shouldDisableAnimations,
   saveToProfile,
   setSaveToProfile,
+  isProfileFlow = false,
 }) => {
   const formValues = watch();
 
@@ -90,36 +92,40 @@ export const AstroDetailsStep: React.FC<AstroDetailsStepProps> = ({
             {errors.name && <ErrorMsg msg={errors.name.message || ''} />}
           </div>
 
-          <div>
-            <Label className="text-sm font-medium text-gray-700">Load Profile</Label>
-            <ProfileSelector
-              onProfileSelect={(profile) => {
-                setValue('name', profile.name);
-                setValue('birthDate', profile.birth_date);
-                setValue('birthTime', profile.birth_time);
-                setValue('birthLocation', profile.birth_location);
-                if (profile.birth_latitude) setValue('birthLatitude', profile.birth_latitude);
-                if (profile.birth_longitude) setValue('birthLongitude', profile.birth_longitude);
-                if (profile.birth_place_id) setValue('birthPlaceId', profile.birth_place_id);
-              }}
-              currentValue={formValues.name}
-            />
-          </div>
+          {!isProfileFlow && (
+            <div>
+              <Label className="text-sm font-medium text-gray-700">Load Profile</Label>
+              <ProfileSelector
+                onProfileSelect={(profile) => {
+                  setValue('name', profile.name);
+                  setValue('birthDate', profile.birth_date);
+                  setValue('birthTime', profile.birth_time);
+                  setValue('birthLocation', profile.birth_location);
+                  if (profile.birth_latitude) setValue('birthLatitude', profile.birth_latitude);
+                  if (profile.birth_longitude) setValue('birthLongitude', profile.birth_longitude);
+                  if (profile.birth_place_id) setValue('birthPlaceId', profile.birth_place_id);
+                }}
+                currentValue={formValues.name}
+              />
+            </div>
+          )}
         </div>
 
-        <div className="flex items-center space-x-2 py-2">
-          <Checkbox
-            id="save-profile"
-            checked={saveToProfile}
-            onCheckedChange={(checked) => setSaveToProfile(checked as boolean)}
-          />
-          <label
-            htmlFor="save-profile"
-            className="text-sm font-light text-gray-700 cursor-pointer select-none"
-          >
-            Save this profile for future use
-          </label>
-        </div>
+        {!isProfileFlow && (
+          <div className="flex items-center space-x-2 py-2">
+            <Checkbox
+              id="save-profile"
+              checked={saveToProfile}
+              onCheckedChange={(checked) => setSaveToProfile(checked as boolean)}
+            />
+            <label
+              htmlFor="save-profile"
+              className="text-sm font-light text-gray-700 cursor-pointer select-none"
+            >
+              Save this profile for future use
+            </label>
+          </div>
+        )}
 
         <div>
           {isMobile ? (
@@ -190,7 +196,7 @@ export const AstroDetailsStep: React.FC<AstroDetailsStepProps> = ({
       </div>
 
       <div className={`flex gap-3 ${isMobile ? 'bg-white pt-4 pb-safe' : 'pt-4'}`}>
-        {!isInsights && (
+        {!isInsights && !isProfileFlow && (
           <Button
             type="button"
             variant="outline"

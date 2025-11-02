@@ -348,8 +348,11 @@ Deno.serve(async (req)=>{
 
     await logTranslator({ request_type:canon, request_payload:body, swiss_data:swissData, swiss_status:swiss.status, processing_ms:Date.now()-t0, error: swiss.ok?undefined:`Swiss ${swiss.status}`, google_geo:googleGeo, translator_payload:payload, chat_id:body.chat_id, mode:body.mode });
     
-    // Call context-injector for all successful astro data reports (skip for insight mode)
-    if (body.chat_id && swiss.ok && body.mode !== 'insight') {
+    // Detect profile_mode
+    const isProfileMode = body.profile_mode === true || body.mode === 'profile';
+    
+    // Call context-injector for all successful astro data reports (skip for insight mode and profile mode)
+    if (body.chat_id && swiss.ok && body.mode !== 'insight' && !isProfileMode) {
       console.log(`[translator-edge-${reqId}] Calling context-injector`);
       try {
         const { error: injectorError } = await sb.functions.invoke('context-injector', {
@@ -366,6 +369,8 @@ Deno.serve(async (req)=>{
       }
     } else if (body.mode === 'insight') {
       console.log(`[translator-edge-${reqId}] Skipping context-injector for insight mode`);
+    } else if (isProfileMode) {
+      console.log(`[translator-edge-${reqId}] Skipping context-injector for profile mode - chart data saved to translator_logs only`);
     }
 
     // Call report-orchestrator for all insight reports (fire-and-forget)
