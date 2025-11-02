@@ -183,20 +183,6 @@ const { transcript, durationSeconds } = await transcribeWithGoogle({
   languageCode
 });
 
-console.info(JSON.stringify({
-  event: "transcription_complete",
-  transcript_length: transcript.length,
-  duration_seconds: durationSeconds,
-  user_id: authenticatedUserId,
-  chattype,
-  condition_check: {
-    chattype_is_voice: chattype === "voice",
-    has_authenticatedUserId: !!authenticatedUserId,
-    duration_seconds_gt_zero: durationSeconds > 0,
-    will_track: chattype === "voice" && authenticatedUserId && durationSeconds > 0
-  }
-}));
-
 if (!transcript.trim()) {
   console.info(JSON.stringify({ event: "empty_transcript_returning" }));
   await new Promise(r => setTimeout(r, 50)); // Allow logs to flush
@@ -249,14 +235,6 @@ if (authenticatedUserId && durationSeconds > 0) {
         user_id: authenticatedUserId,
         duration_seconds: durationSeconds,
         error: result
-      }));
-    } else {
-      console.error(JSON.stringify({
-        event: "increment_feature_usage_failed",
-        user_id: authenticatedUserId,
-        status: response.status,
-        statusText: response.statusText,
-        result
       }));
     }
   } catch (err) {
