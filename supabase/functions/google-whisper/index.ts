@@ -161,23 +161,23 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
   auth: { persistSession: false }
 });
 
-  // Get authenticated user ID from JWT (more secure than form data)
-  const authHeader = req.headers.get("Authorization");
-  if (authHeader) {
-    try {
-      const token = authHeader.replace("Bearer ", "");
-      const { data: userData, error: authError } = await supabase.auth.getUser(token);
-      if (!authError && userData?.user) {
-        authenticatedUserId = userData.user.id;
-      }
-    } catch (authErr) {
-      console.error("[google-whisper] Auth verification failed:", authErr);
+// Get authenticated user ID from JWT (more secure than form data)
+const authHeader = req.headers.get("Authorization");
+if (authHeader) {
+  try {
+    const token = authHeader.replace("Bearer ", "");
+    const { data: userData, error: authError } = await supabase.auth.getUser(token);
+    if (!authError && userData?.user) {
+      authenticatedUserId = userData.user.id;
     }
+  } catch (authErr) {
+    console.error("[google-whisper] Auth verification failed:", authErr);
   }
+}
 
 // 🔒 PRE-TRANSCRIPTION CHECK: Block if user has exceeded free tier limit
 // This prevents wasting Google API calls on users who have already used their 60 seconds
-  if (authenticatedUserId) {
+if (authenticatedUserId) {
   const freeTierCheck = await checkFreeTierSTTAccess(supabase, authenticatedUserId, 0);
   
   console.info(JSON.stringify({
@@ -200,9 +200,15 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
       limit: freeTierCheck.limit
     }));
     
-    // Return 403 Forbidden for limit exceeded
-    return json(403, {
-      error: "You've used 2 minutes of free voice transcription. Upgrade to Premium for unlimited voice features."
+    // Return structured error response (200 status) - don't process audio
+    return json(200, {
+      success: false,
+      code: "STT_LIMIT_EXCEEDED",
+      message: "You've used 2 minutes of free voice transcription. Upgrade to Premium for unlimited voice features.",
+      current_usage: freeTierCheck.currentUsage,
+      limit: freeTierCheck.limit,
+      remaining: freeTierCheck.remaining,
+      transcript: "" // No transcript since we didn't process
     });
   }
 }
@@ -259,62 +265,68 @@ if (authenticatedUserId && durationSeconds > 0) {
       limit: postCheck.limit
     }));
     
-    // Return 403 Forbidden for limit exceeded
-    return json(403, {
-      error: "You've used 2 minutes of free voice transcription. Upgrade to Premium for unlimited voice features."
+    // Return structured error response (200 status) - don't increment usage since limit would be exceeded
+    return json(200, {
+      success: false,
+      code: "STT_LIMIT_EXCEEDED",
+      message: "You've used 2 minutes of free voice transcription. Upgrade to Premium for unlimited voice features.",
+      current_usage: postCheck.currentUsage,
+      limit: postCheck.limit,
+      remaining: postCheck.remaining,
+      transcript: "" // Don't return transcript if limit exceeded
     });
   }
 
   // Only increment if user is premium (unlimited) or within free tier limit
   if (postCheck.isPremium || postCheck.allowed) {
-  console.info(JSON.stringify({
-    event: "calling_increment_feature_usage",
-    user_id: authenticatedUserId,
-    feature_type: "voice_seconds",
+    console.info(JSON.stringify({
+      event: "calling_increment_feature_usage",
+      user_id: authenticatedUserId,
+      feature_type: "voice_seconds",
       amount: durationSeconds,
       is_premium: postCheck.isPremium
-  }));
+    }));
 
-  try {
-    const response = await fetch(`${SUPABASE_URL}/functions/v1/increment-feature-usage`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`
-      },
-      body: JSON.stringify({
-        user_id: authenticatedUserId,
-        feature_type: 'voice_seconds',
-        amount: durationSeconds,
-        source: 'google-whisper'
-      })
-    });
+    try {
+      const response = await fetch(`${SUPABASE_URL}/functions/v1/increment-feature-usage`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`
+        },
+        body: JSON.stringify({
+          user_id: authenticatedUserId,
+          feature_type: 'voice_seconds',
+          amount: durationSeconds,
+          source: 'google-whisper'
+        })
+      });
 
-    const result = await response.json().catch(() => ({ error: 'Failed to parse response' }));
-    
-    if (response.ok && result.success) {
-      console.info(JSON.stringify({
-        event: "increment_feature_usage_success",
-        user_id: authenticatedUserId,
-        duration_seconds: durationSeconds,
-        result
-      }));
-    } else {
+      const result = await response.json().catch(() => ({ error: 'Failed to parse response' }));
+      
+      if (response.ok && result.success) {
+        console.info(JSON.stringify({
+          event: "increment_feature_usage_success",
+          user_id: authenticatedUserId,
+          duration_seconds: durationSeconds,
+          result
+        }));
+      } else {
+        console.error(JSON.stringify({
+          event: "increment_feature_usage_failed",
+          user_id: authenticatedUserId,
+          status: response.status,
+          statusText: response.statusText,
+          result
+        }));
+      }
+    } catch (err) {
       console.error(JSON.stringify({
-        event: "increment_feature_usage_failed",
+        event: "increment_feature_usage_exception",
         user_id: authenticatedUserId,
-        status: response.status,
-        statusText: response.statusText,
-        result
+        error: err instanceof Error ? err.message : String(err)
       }));
     }
-  } catch (err) {
-    console.error(JSON.stringify({
-      event: "increment_feature_usage_exception",
-      user_id: authenticatedUserId,
-      error: err instanceof Error ? err.message : String(err)
-    }));
-  }
   }
 }
 
@@ -588,8 +600,11 @@ return json(200, {
 });
 } catch (err) {
 console.error("[google-stt] Error:", err);
-return json(500, {
-  error: (err as any)?.message || "Unknown error occurred"
+return json(200, {
+  success: false,
+  code: "SERVER_ERROR",
+  message: (err as any)?.message || "Unknown error occurred",
+  transcript: ""
 });
 }
 });
