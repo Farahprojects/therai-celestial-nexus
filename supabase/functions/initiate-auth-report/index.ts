@@ -153,8 +153,8 @@ Deno.serve(async (req) => {
       })
     );
 
-    // Step 5: Save form details to conversations.meta (only for chat flows, skip for insights)
-    if (!isInsightsReport) {
+    // Step 5: Save form details to conversations.meta (only for chat flows, skip for insights and profile)
+    if (!isInsightsReport && mode !== 'profile') {
       const { error: metaError } = await supabase
         .from("conversations")
         .update({
@@ -180,7 +180,7 @@ Deno.serve(async (req) => {
         console.log(`✅ [initiate-auth-report] Form meta saved`);
       }
     } else {
-      console.log(`✅ [initiate-auth-report] Skipping conversation meta save for insights flow`);
+      console.log(`✅ [initiate-auth-report] Skipping conversation meta save for ${mode === 'profile' ? 'profile' : 'insights'} flow`);
     }
 
     console.log(`✅ [initiate-auth-report] Successfully processed`);

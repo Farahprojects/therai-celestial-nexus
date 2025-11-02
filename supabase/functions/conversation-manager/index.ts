@@ -144,7 +144,7 @@ if (error) {
 if (isProfileMode) {
   console.log('[conversation-manager] Profile mode: conversation created, skipping messages table interaction');
   
-  // Call translator-edge to generate chart data (will save to translator_logs)
+  // Call initiate-auth-report (which will call translator-edge)
   if (report_data) {
     const authHeader = req.headers.get('Authorization') || '';
     const payload = {
@@ -152,14 +152,13 @@ if (isProfileMode) {
       report_data,
       email: email || '',
       name: name || '',
-      mode: 'profile',
-      profile_mode: true, // Flag for translator-edge to skip messages
+      mode: 'profile', // Set mode to 'profile' so translator-edge knows to skip messages
     };
-    fetch(`${SUPABASE_URL}/functions/v1/translator-edge`, {
+    fetch(`${SUPABASE_URL}/functions/v1/initiate-auth-report`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: authHeader },
       body: JSON.stringify(payload),
-    }).catch((e) => console.error('[conversation-manager] translator-edge error', e));
+    }).catch((e) => console.error('[conversation-manager] initiate-auth-report error', e));
   }
   
   return json({
