@@ -191,6 +191,15 @@ export const ChatInput = () => {
         setShowUpgradeNotification(true);
         return;
       }
+      // Gate: Check STT limit before opening conversation mode
+      if (usage && !usage.subscription_active) {
+        const STT_FREE_LIMIT = 120; // 2 minutes
+        if (usage.voice_seconds.used >= STT_FREE_LIMIT) {
+          console.log('[ChatInput] STT limit reached, showing upgrade notification');
+          setShowSTTLimitNotification(true);
+          return;
+        }
+      }
       // Opening conversation
       openConversation();
       return;
