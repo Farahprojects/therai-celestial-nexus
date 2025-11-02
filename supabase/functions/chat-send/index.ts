@@ -88,6 +88,11 @@ return json(400, { error: "Missing or invalid field: mode" });
 
 const role = rawRole === "assistant" ? "assistant" : "user";
 
+// Check for internal API key (backend-to-backend calls)
+const INTERNAL_API_KEY = Deno.env.get("INTERNAL_API_KEY");
+const internalKey = req.headers.get("x-internal-key");
+const isInternalCall = internalKey && INTERNAL_API_KEY && internalKey === INTERNAL_API_KEY;
+
 console.info(JSON.stringify({
   event: "chat_send_processing",
   request_id: requestId,
@@ -96,11 +101,13 @@ console.info(JSON.stringify({
   chattype,
   chattype_type: typeof chattype,
   mode,
-  text_length: text?.length || 0
+  text_length: text?.length || 0,
+  is_internal_call: isInternalCall
 }));
 
 // 🔒 SECURITY: Verify user authentication and subscription for user messages
-if (role === "user" && user_id) {
+// Skip JWT validation for trusted internal calls (backend-to-backend)
+if (role === "user" && user_id && !isInternalCall) {
   // Verify JWT token from Authorization header
   const authHeader = req.headers.get("Authorization");
   if (!authHeader) {

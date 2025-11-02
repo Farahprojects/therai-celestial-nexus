@@ -307,7 +307,8 @@ if (chattype === "voice" && chat_id) {
   } else {
     const headers = {
       "Content-Type": "application/json",
-      "Authorization": `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`
+      "Authorization": `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+      "x-internal-key": Deno.env.get("INTERNAL_API_KEY") || "" // Internal API key for backend-to-backend calls
     };
 
     // Get configured LLM handler, then fire-and-forget tasks
