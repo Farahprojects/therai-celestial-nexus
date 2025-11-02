@@ -1,5 +1,4 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { incrementFeatureUsage } from "../_shared/featureGating.ts";
 
 const GOOGLE_TTS_API_KEY = Deno.env.get("GOOGLE-TTS-NEW");
 if (!GOOGLE_TTS_API_KEY) {
@@ -16,13 +15,6 @@ const CORS_HEADERS = {
 "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-// Estimate TTS duration from text (simple and elegant)
-// Average speech rate: ~150 words/min = 2.5 words/sec
-function estimateTTSDuration(text: string): number {
-  const wordCount = text.trim().split(/\s+/).length;
-  const durationSeconds = Math.ceil(wordCount / 2.5);
-  return Math.max(1, durationSeconds); // Minimum 1 second
-}
 
 // Simple in-memory cache (no DB) to reduce repeat TTS calls
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
@@ -117,7 +109,7 @@ try {
 const body = await req.json();
 console.log('[google-tts] 📦 RAW PAYLOAD:', JSON.stringify(body, null, 2));
 
-const { chat_id, text, voice, user_id } = body;
+const { chat_id, text, voice } = body;
 
 if (!chat_id || !text) {
   throw new Error("Missing 'chat_id' or 'text' in request body.");
@@ -129,9 +121,6 @@ if (!voice) {
 const voiceName = `en-US-Chirp3-HD-${voice}`;
 
 console.log(`[google-tts] 📝 Text length: ${text.length} chars, Voice: ${voiceName}`);
-
-// Estimate TTS duration from text (simple and elegant - source of truth)
-const estimatedDuration = estimateTTSDuration(text);
 
 // cache + inflight de-dup
 const key = cacheKey(text, voiceName);
@@ -160,14 +149,8 @@ if (!audioBase64) {
 
 const processingTime = Date.now() - startTime;
 
-// Track TTS usage (fire-and-forget, don't block response)
-if (user_id && estimatedDuration > 0) {
-  incrementFeatureUsage(supabase, user_id, 'voice_seconds', estimatedDuration)
-    .catch(err => console.error("[google-tts] Failed to track TTS usage:", err));
-  console.log(`[google-tts] Tracked ${estimatedDuration}s of TTS usage for user ${user_id}`);
-}
-
 // Fire-and-forget HTTP broadcast (explicit REST API delivery)
+// Note: TTS usage is not tracked separately - STT gating is sufficient since TTS requires STT
 const channel = supabase.channel(`conversation:${chat_id}`);
 fireAndForget(
   channel.send({

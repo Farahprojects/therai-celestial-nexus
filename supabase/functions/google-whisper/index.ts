@@ -203,7 +203,7 @@ if (authenticatedUserId) {
     // Return error immediately - don't process audio
     return json(403, {
       error: "STT usage limit exceeded",
-      message: "You've used 60 seconds of free voice transcription. Upgrade to Premium for unlimited voice features.",
+      message: "You've used 2 minutes of free voice transcription. Upgrade to Premium for unlimited voice features.",
       error_code: "STT_LIMIT_EXCEEDED",
       current_usage: freeTierCheck.currentUsage,
       limit: freeTierCheck.limit,
@@ -267,7 +267,7 @@ if (authenticatedUserId && durationSeconds > 0) {
     // Return error - don't increment usage since limit would be exceeded
     return json(403, {
       error: "STT usage limit exceeded",
-      message: "You've used 60 seconds of free voice transcription. Upgrade to Premium for unlimited voice features.",
+      message: "You've used 2 minutes of free voice transcription. Upgrade to Premium for unlimited voice features.",
       error_code: "STT_LIMIT_EXCEEDED",
       current_usage: postCheck.currentUsage,
       limit: postCheck.limit,

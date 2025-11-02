@@ -91,7 +91,7 @@ export async function checkFeatureAccess(
 }
 
 /**
- * Check free tier STT access - gives all users 60 seconds free, then blocks
+ * Check free tier STT access - gives all users 2 minutes free, then blocks
  * Premium users bypass this check (unlimited)
  * 
  * @param supabase - Supabase client (service role)
@@ -111,7 +111,7 @@ export async function checkFreeTierSTTAccess(
   isPremium: boolean;
   reason?: string;
 }> {
-  const FREE_TIER_LIMIT = 60; // 1 minute free for all users
+  const FREE_TIER_LIMIT = 120; // 2 minutes free for all users
   
   // 1. Get user's subscription plan
   const { data: profile, error: profileError } = await supabase
