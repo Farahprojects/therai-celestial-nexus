@@ -40,12 +40,24 @@ Deno.serve(async (req) => {
     console.log(`[verify-token] Looking up email for token_hash...`);
     const { data: mappingData, error: mappingError } = await supabase
       .from('password_reset_tokens')
-      .select('email, expires_at')
+      .select('email, expires_at, token_hash')
       .eq('token_hash', token)
       .single();
 
     if (mappingError || !mappingData) {
       console.error(`[verify-token] Token not found in mapping:`, mappingError);
+      console.error(`[verify-token] Token received: ${token}`);
+      
+      // Check if token exists but doesn't match exactly (for debugging)
+      const { data: allTokens } = await supabase
+        .from('password_reset_tokens')
+        .select('token_hash, email, expires_at')
+        .limit(5);
+      console.error(`[verify-token] Sample tokens in DB:`, allTokens?.map(t => ({
+        token_hash: t.token_hash?.substring(0, 10) + '...',
+        email: t.email
+      })));
+      
       return respond({ 
         success: false, 
         error: 'Invalid or expired token' 

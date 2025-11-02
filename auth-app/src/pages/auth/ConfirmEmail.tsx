@@ -10,7 +10,7 @@ import {
 } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { useLocation } from 'react-router-dom';
-import { supabase } from '../../lib/supabase';
+import { supabase, supabaseAnonKey } from '../../lib/supabase';
 import { Loader, CheckCircle, XCircle } from 'lucide-react';
 import Logo from '../../components/Logo';
 
@@ -98,16 +98,28 @@ const ConfirmEmail: React.FC = () => {
 
     try {
       // Call secure edge function to verify token and get session
+      // Include apikey header for unauthenticated requests
       const { data, error } = await supabase.functions.invoke('verify-token', {
         body: {
           token
           // Let the edge function determine the type from the token itself
+        },
+        headers: {
+          'apikey': supabaseAnonKey
         }
       });
 
       if (error) {
+        console.error('[PASSWORD-VERIFY] Edge function error:', error);
+        console.error('[PASSWORD-VERIFY] Error details:', {
+          message: error.message,
+          name: error.name,
+          status: (error as any).status,
+          statusText: (error as any).statusText
+        });
+        
         // Handle different types of edge function errors
-        if (error.message?.includes('non-2xx status code')) {
+        if (error.message?.includes('non-2xx status code') || (error as any).status === 401) {
           throw new Error('Token verification failed. Please try again or request a new reset link.');
         } else if (error.message?.includes('FunctionsHttpError')) {
           throw new Error('Unable to verify token. Please try again or request a new reset link.');
