@@ -2,6 +2,23 @@
 import { supabase } from '@/integrations/supabase/client';
 import { useChatStore } from '@/core/store';
 
+// Custom error class for STT limit exceeded
+export class STTLimitExceededError extends Error {
+  errorCode: string;
+  currentUsage: number;
+  limit: number;
+  remaining: number;
+
+  constructor(message: string, errorCode: string, currentUsage: number, limit: number, remaining: number) {
+    super(message);
+    this.name = 'STTLimitExceededError';
+    this.errorCode = errorCode;
+    this.currentUsage = currentUsage;
+    this.limit = limit;
+    this.remaining = remaining;
+  }
+}
+
 class SttService {
   async transcribe(audioBlob: Blob, chat_id?: string, meta?: Record<string, any>, chattype?: string, mode?: string, user_id?: string, user_name?: string): Promise<{ transcript: string }> {
     
@@ -43,6 +60,18 @@ class SttService {
 
     if (error) {
       console.error('[STT] Google Whisper error:', error);
+      
+      // Check if this is a limit exceeded error
+      if (error.error_code === 'STT_LIMIT_EXCEEDED' || error.code === 'STT_LIMIT_EXCEEDED') {
+        throw new STTLimitExceededError(
+          error.message || 'STT usage limit exceeded',
+          error.error_code || error.code || 'STT_LIMIT_EXCEEDED',
+          error.current_usage || 0,
+          error.limit || 120,
+          error.remaining || 0
+        );
+      }
+      
       throw new Error(`Error invoking google-whisper: ${error.message}`);
     }
 
@@ -51,7 +80,16 @@ class SttService {
       throw new Error('No data received from Google Whisper');
     }
 
-
+    // Check if response indicates limit exceeded (403 status with error_code)
+    if (data.error_code === 'STT_LIMIT_EXCEEDED') {
+      throw new STTLimitExceededError(
+        data.message || 'STT usage limit exceeded',
+        data.error_code,
+        data.current_usage || 0,
+        data.limit || 120,
+        data.remaining || 0
+      );
+    }
 
     // Return the transcript
     return {
