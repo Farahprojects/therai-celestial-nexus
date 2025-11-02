@@ -105,7 +105,7 @@ console.info(JSON.stringify({
   is_internal_call: isInternalCall
 }));
 
-// 🔒 SECURITY: Verify user authentication and subscription for user messages
+// 🔒 SECURITY: Verify user authentication for frontend calls
 // Skip JWT validation for trusted internal calls (backend-to-backend)
 if (role === "user" && user_id && !isInternalCall) {
   // Verify JWT token from Authorization header
@@ -139,26 +139,6 @@ if (role === "user" && user_id && !isInternalCall) {
     if (userData.user.id !== user_id) {
       return json(403, { error: "user_id mismatch" });
     }
-
-    // Check subscription access
-    const subscriptionCheck = await checkSubscriptionAccess(supabase, user_id);
-    if (!subscriptionCheck.hasAccess) {
-      return json(403, { 
-        error: "Subscription required",
-        subscription_required: true 
-      });
-    }
-
-    // For voice chat, require premium plan
-    if (chattype === "voice") {
-      const premiumCheck = await checkPremiumAccess(supabase, user_id);
-      if (!premiumCheck.hasAccess) {
-        return json(403, { 
-          error: "Premium plan required for voice features",
-          premium_required: true 
-        });
-      }
-    }
   } catch (err) {
     console.error(JSON.stringify({
       event: "chat_send_auth_check_failed",
@@ -166,6 +146,29 @@ if (role === "user" && user_id && !isInternalCall) {
       error: err instanceof Error ? err.message : String(err)
     }));
     return json(500, { error: "Authentication check failed" });
+  }
+}
+
+// 🔒 SECURITY: Verify subscription for ALL user messages (both internal and frontend)
+if (role === "user" && user_id) {
+  // Check subscription access (trust user_id for internal calls)
+  const subscriptionCheck = await checkSubscriptionAccess(supabase, user_id);
+  if (!subscriptionCheck.hasAccess) {
+    return json(403, { 
+      error: "Subscription required",
+      subscription_required: true 
+    });
+  }
+
+  // For voice chat, require premium plan
+  if (chattype === "voice") {
+    const premiumCheck = await checkPremiumAccess(supabase, user_id);
+    if (!premiumCheck.hasAccess) {
+      return json(403, { 
+        error: "Premium plan required for voice features",
+        premium_required: true 
+      });
+    }
   }
 }
 
@@ -233,30 +236,30 @@ getLLMHandler(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY).then((llmHandler) => {
 });
 }
 
-// ⚡ FIRE-AND-FORGET: DB insert (WebSocket + optimistic UI handle sync)
+// ⚡ AWAIT DB insert to ensure message is saved before returning
 console.info(JSON.stringify({
   event: "chat_send_db_insert_start",
   request_id: requestId
 }));
 
-supabase
-.from("messages")
-.insert(message)
-.then(({ error }) => {
-if (error) {
-console.error(JSON.stringify({
-  event: "chat_send_db_insert_failed",
-  request_id: requestId,
-  error: error.message
-}));
-} else {
+const { error: dbError } = await supabase
+  .from("messages")
+  .insert(message);
+
+if (dbError) {
+  console.error(JSON.stringify({
+    event: "chat_send_db_insert_failed",
+    request_id: requestId,
+    error: dbError.message
+  }));
+  return json(500, { error: "Failed to save message", details: dbError.message });
+}
+
 console.info(JSON.stringify({
   event: "chat_send_db_insert_complete",
   request_id: requestId,
   duration_ms: Date.now() - startTime
 }));
-}
-});
 
 // Flush logs before returning response
 await new Promise(r => setTimeout(r, 50));
