@@ -91,6 +91,124 @@ export async function checkFeatureAccess(
 }
 
 /**
+ * Check free tier STT access - gives all users 60 seconds free, then blocks
+ * Premium users bypass this check (unlimited)
+ * 
+ * @param supabase - Supabase client (service role)
+ * @param userId - User ID to check
+ * @param requestedSeconds - Seconds requested (for checking if would exceed limit)
+ * @returns Access check result with usage info
+ */
+export async function checkFreeTierSTTAccess(
+  supabase: SupabaseClient<any>,
+  userId: string,
+  requestedSeconds: number = 0
+): Promise<{
+  allowed: boolean;
+  currentUsage: number;
+  remaining: number;
+  limit: number;
+  isPremium: boolean;
+  reason?: string;
+}> {
+  const FREE_TIER_LIMIT = 60; // 1 minute free for all users
+  
+  // 1. Get user's subscription plan
+  const { data: profile, error: profileError } = await supabase
+    .from('profiles')
+    .select('subscription_plan, subscription_active, subscription_status')
+    .eq('id', userId)
+    .single();
+
+  if (profileError || !profile) {
+    console.error('[featureGating] Failed to fetch profile:', profileError);
+    return {
+      allowed: false,
+      currentUsage: 0,
+      remaining: 0,
+      limit: FREE_TIER_LIMIT,
+      isPremium: false,
+      reason: 'Unable to verify subscription'
+    };
+  }
+
+  // 2. Check if user has premium plan (unlimited)
+  const plan = profile.subscription_plan || 'free';
+  const limits = FEATURE_LIMITS[plan];
+  const isPremium = limits?.voice_seconds === null; // Premium plans have null = unlimited
+
+  if (isPremium && profile.subscription_active && 
+      ['active', 'trialing'].includes(profile.subscription_status || '')) {
+    // Premium user - unlimited access
+    return {
+      allowed: true,
+      currentUsage: 0,
+      remaining: Infinity,
+      limit: Infinity,
+      isPremium: true
+    };
+  }
+
+  // 3. Free tier users - check usage
+  const currentPeriod = new Date().toISOString().slice(0, 7); // 'YYYY-MM'
+  
+  const { data: usageData, error: usageError } = await supabase
+    .from('feature_usage')
+    .select('voice_seconds')
+    .eq('user_id', userId)
+    .eq('period', currentPeriod)
+    .maybeSingle();
+
+  if (usageError) {
+    console.error('[featureGating] Failed to fetch usage:', usageError);
+    return {
+      allowed: false,
+      currentUsage: 0,
+      remaining: 0,
+      limit: FREE_TIER_LIMIT,
+      isPremium: false,
+      reason: 'Unable to verify usage'
+    };
+  }
+
+  const currentUsage = usageData?.voice_seconds || 0;
+  const remaining = Math.max(0, FREE_TIER_LIMIT - currentUsage);
+
+  // 4. Check if requested amount would exceed free tier limit
+  if (requestedSeconds > 0 && currentUsage + requestedSeconds > FREE_TIER_LIMIT) {
+    return {
+      allowed: false,
+      currentUsage,
+      remaining,
+      limit: FREE_TIER_LIMIT,
+      isPremium: false,
+      reason: `Free tier limit reached (${currentUsage}/${FREE_TIER_LIMIT} seconds)`
+    };
+  }
+
+  // 5. Check if already at or over limit
+  if (currentUsage >= FREE_TIER_LIMIT) {
+    return {
+      allowed: false,
+      currentUsage,
+      remaining: 0,
+      limit: FREE_TIER_LIMIT,
+      isPremium: false,
+      reason: `Free tier limit reached (${currentUsage}/${FREE_TIER_LIMIT} seconds)`
+    };
+  }
+
+  // 6. Allow access
+  return {
+    allowed: true,
+    currentUsage,
+    remaining: remaining - requestedSeconds,
+    limit: FREE_TIER_LIMIT,
+    isPremium: false
+  };
+}
+
+/**
  * PRO-LEVEL: Atomically check limit and increment usage in a single transaction.
  * This prevents race conditions and ensures limits are never exceeded.
  * 

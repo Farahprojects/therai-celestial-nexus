@@ -8,7 +8,7 @@
 
 import { getLLMHandler } from "../_shared/llmConfig.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-import { checkFeatureAccess } from "../_shared/featureGating.ts";
+import { checkFreeTierSTTAccess } from "../_shared/featureGating.ts";
 
 const corsHeaders = {
 "Access-Control-Allow-Origin": "*",
@@ -161,26 +161,54 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
   auth: { persistSession: false }
 });
 
-// Feature gating: Check voice usage limits for voice chattype
-if (chattype === "voice") {
-  // Get authenticated user ID from JWT (more secure than form data)
-  const authHeader = req.headers.get("Authorization");
-  
-  if (authHeader) {
-    try {
-      const token = authHeader.replace("Bearer ", "");
-      const { data: userData, error: authError } = await supabase.auth.getUser(token);
-      if (!authError && userData?.user) {
-        authenticatedUserId = userData.user.id;
-      }
-    } catch (authErr) {
-      console.error("[google-whisper] Auth verification failed:", authErr);
+// Get authenticated user ID from JWT (more secure than form data)
+const authHeader = req.headers.get("Authorization");
+if (authHeader) {
+  try {
+    const token = authHeader.replace("Bearer ", "");
+    const { data: userData, error: authError } = await supabase.auth.getUser(token);
+    if (!authError && userData?.user) {
+      authenticatedUserId = userData.user.id;
     }
+  } catch (authErr) {
+    console.error("[google-whisper] Auth verification failed:", authErr);
   }
+}
 
-  if (authenticatedUserId) {
-    // For voice chattype, we'll check limits after getting actual duration from Google
-    // This prevents rejecting valid requests due to inaccurate pre-flight estimates
+// 🔒 PRE-TRANSCRIPTION CHECK: Block if user has exceeded free tier limit
+// This prevents wasting Google API calls on users who have already used their 60 seconds
+if (authenticatedUserId) {
+  const freeTierCheck = await checkFreeTierSTTAccess(supabase, authenticatedUserId, 0);
+  
+  console.info(JSON.stringify({
+    event: "free_tier_pre_check",
+    user_id: authenticatedUserId,
+    allowed: freeTierCheck.allowed,
+    current_usage: freeTierCheck.currentUsage,
+    remaining: freeTierCheck.remaining,
+    limit: freeTierCheck.limit,
+    is_premium: freeTierCheck.isPremium,
+    reason: freeTierCheck.reason
+  }));
+
+  if (!freeTierCheck.allowed) {
+    console.warn(JSON.stringify({
+      event: "usage_limit_exceeded_pre_transcription",
+      reason: freeTierCheck.reason,
+      user_id: authenticatedUserId,
+      current_usage: freeTierCheck.currentUsage,
+      limit: freeTierCheck.limit
+    }));
+    
+    // Return error immediately - don't process audio
+    return json(403, {
+      error: "STT usage limit exceeded",
+      message: "You've used 60 seconds of free voice transcription. Upgrade to Premium for unlimited voice features.",
+      error_code: "STT_LIMIT_EXCEEDED",
+      current_usage: freeTierCheck.currentUsage,
+      limit: freeTierCheck.limit,
+      remaining: freeTierCheck.remaining
+    });
   }
 }
 
@@ -222,69 +250,82 @@ if (authenticatedUserId && durationSeconds > 0) {
     duration_seconds: durationSeconds
   }));
 
-  // Check if user has access (post-transcription, using actual duration)
-  const accessCheck = await checkFeatureAccess(
-    supabase,
-    authenticatedUserId,
-    'voice_seconds',
-    durationSeconds
-  );
+  // 🔒 POST-TRANSCRIPTION CHECK: Verify adding this duration won't exceed limit
+  // Check again with actual duration to catch edge cases
+  const postCheck = await checkFreeTierSTTAccess(supabase, authenticatedUserId, durationSeconds);
 
-  if (!accessCheck.allowed) {
+  if (!postCheck.allowed) {
     console.warn(JSON.stringify({
-      event: "usage_limit_exceeded",
-      reason: accessCheck.reason,
-      user_id: authenticatedUserId
+      event: "usage_limit_exceeded_post_transcription",
+      reason: postCheck.reason,
+      user_id: authenticatedUserId,
+      current_usage: postCheck.currentUsage,
+      requested_duration: durationSeconds,
+      limit: postCheck.limit
     }));
+    
+    // Return error - don't increment usage since limit would be exceeded
+    return json(403, {
+      error: "STT usage limit exceeded",
+      message: "You've used 60 seconds of free voice transcription. Upgrade to Premium for unlimited voice features.",
+      error_code: "STT_LIMIT_EXCEEDED",
+      current_usage: postCheck.currentUsage,
+      limit: postCheck.limit,
+      remaining: postCheck.remaining,
+      transcript: "" // Don't return transcript if limit exceeded
+    });
   }
 
-  // Call increment-feature-usage edge function (await response for debugging)
-  console.info(JSON.stringify({
-    event: "calling_increment_feature_usage",
-    user_id: authenticatedUserId,
-    feature_type: "voice_seconds",
-    amount: durationSeconds
-  }));
+  // Only increment if user is premium (unlimited) or within free tier limit
+  if (postCheck.isPremium || postCheck.allowed) {
+    console.info(JSON.stringify({
+      event: "calling_increment_feature_usage",
+      user_id: authenticatedUserId,
+      feature_type: "voice_seconds",
+      amount: durationSeconds,
+      is_premium: postCheck.isPremium
+    }));
 
-  try {
-    const response = await fetch(`${SUPABASE_URL}/functions/v1/increment-feature-usage`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`
-      },
-      body: JSON.stringify({
-        user_id: authenticatedUserId,
-        feature_type: 'voice_seconds',
-        amount: durationSeconds,
-        source: 'google-whisper'
-      })
-    });
+    try {
+      const response = await fetch(`${SUPABASE_URL}/functions/v1/increment-feature-usage`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`
+        },
+        body: JSON.stringify({
+          user_id: authenticatedUserId,
+          feature_type: 'voice_seconds',
+          amount: durationSeconds,
+          source: 'google-whisper'
+        })
+      });
 
-    const result = await response.json().catch(() => ({ error: 'Failed to parse response' }));
-    
-    if (response.ok && result.success) {
-      console.info(JSON.stringify({
-        event: "increment_feature_usage_success",
-        user_id: authenticatedUserId,
-        duration_seconds: durationSeconds,
-        result
-      }));
-    } else {
+      const result = await response.json().catch(() => ({ error: 'Failed to parse response' }));
+      
+      if (response.ok && result.success) {
+        console.info(JSON.stringify({
+          event: "increment_feature_usage_success",
+          user_id: authenticatedUserId,
+          duration_seconds: durationSeconds,
+          result
+        }));
+      } else {
+        console.error(JSON.stringify({
+          event: "increment_feature_usage_failed",
+          user_id: authenticatedUserId,
+          status: response.status,
+          statusText: response.statusText,
+          result
+        }));
+      }
+    } catch (err) {
       console.error(JSON.stringify({
-        event: "increment_feature_usage_failed",
+        event: "increment_feature_usage_exception",
         user_id: authenticatedUserId,
-        status: response.status,
-        statusText: response.statusText,
-        result
+        error: err instanceof Error ? err.message : String(err)
       }));
     }
-  } catch (err) {
-    console.error(JSON.stringify({
-      event: "increment_feature_usage_exception",
-      user_id: authenticatedUserId,
-      error: err instanceof Error ? err.message : String(err)
-    }));
   }
 }
 
