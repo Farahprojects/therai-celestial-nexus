@@ -1,14 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import TimingToolkitSection from '@/components/pricing/TimingToolkitSection';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { CheckCircle, Star, Users, BrainCircuit, Sparkles, XCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import Logo from '@/components/Logo';
 import { supabase } from '@/integrations/supabase/client';
-import Footer from '@/components/Footer';
-import UnifiedNavigation from '@/components/UnifiedNavigation';
 
 interface PricingData {
   id: string;
@@ -21,7 +17,42 @@ interface PricingData {
 const Pricing: React.FC = () => {
   const navigate = useNavigate();
   const [pricingPlans, setPricingPlans] = useState<PricingData[]>([]);
-  const [pricingLoading, setPricingLoading] = useState(true);
+
+  // Determine plan tier label (Growth or Premium)
+  const getPlanTier = (planId: string): 'Growth' | 'Premium' => {
+    if (planId === '10_monthly' || planId.includes('growth') || planId.includes('starter')) {
+      return 'Growth';
+    }
+    return 'Premium';
+  };
+
+  const getPlanFeatures = (planId: string, planName: string) => {
+    const growthFeatures = [
+      'Unlimited messages per thread',
+      'Priority support',
+      'Advanced chart features',
+      'AI insights and guidance'
+    ];
+    
+    const premiumFeatures = [
+      'Everything in Growth',
+      '25+ threads per month',
+      'Early access to new features',
+      'Premium support',
+      'Advanced analytics'
+    ];
+
+    if (planId === '25_monthly' || planId === 'subscription_professional' || planName.toLowerCase().includes('premium')) {
+      return premiumFeatures;
+    }
+    
+    return growthFeatures;
+  };
+
+  const getButtonText = (planId: string): string => {
+    const tier = getPlanTier(planId);
+    return `Get ${tier}`;
+  };
 
   // Fetch all subscription plans
   useEffect(() => {
@@ -40,56 +71,37 @@ const Pricing: React.FC = () => {
         }
       } catch (error) {
         console.error('Error fetching pricing:', error);
-      } finally {
-          setPricingLoading(false);
-        }
+      }
     };
 
     fetchPricing();
   }, []);
 
-  const handleGetStarted = () => {
-    navigate('/signup');
+  const handleGetStarted = (planId: string) => {
+    // Redirect to login page instead of checkout
+    navigate('/login');
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-gray-50">
-      <UnifiedNavigation />
-      {/* Header Section */}
-      <div className="bg-white py-16 pt-24">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <h1 className="text-4xl font-light text-gray-900 tracking-tight mb-4">
-              Focus Your Energy. Master Your Self.
-            </h1>
-            <p className="text-xl text-gray-600 font-light max-w-3xl mx-auto">
-              Transform the way you reflect, reframe, and act. Our AI-powered system listens, maps, and guides you to breaking your energy patterns, and helps you work deeply on the intentions that matter most—whether for personal growth or professional coaching.
-            </p>
-          </div>
-        </div>
-      </div>
+    <div className="min-h-screen flex flex-col bg-white">
+      <header className="w-full py-8 flex justify-center border-b border-gray-100">
+        <Logo size="md" />
+      </header>
 
-
-      {/* Subscription Plans Section */}
-      <div className="py-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <main className="flex-grow flex items-center justify-center px-4 sm:px-6 lg:px-8 py-16">
+        <div className="w-full max-w-6xl">
+          {/* Header */}
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-light text-gray-900 tracking-tight mb-4">
+            <h1 className="text-3xl font-light text-gray-900 tracking-tight mb-4">
               Choose Your Plan
-            </h2>
+            </h1>
             <p className="text-lg text-gray-600 font-light max-w-2xl mx-auto">
               Select the perfect plan for your journey
             </p>
           </div>
-          
-          {pricingLoading ? (
-            <div className="flex justify-center">
-              <div className="animate-pulse">
-                <div className="h-64 bg-gray-200 rounded-xl w-80"></div>
-              </div>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+
+          {/* Pricing Cards */}
+          <div className="flex justify-center gap-8 max-w-6xl mx-auto">
               {pricingPlans.map((plan, index) => (
                 <motion.div
                   key={plan.id}
@@ -101,172 +113,70 @@ const Pricing: React.FC = () => {
                   <Card className={`border-0 shadow-lg bg-white rounded-3xl overflow-hidden h-full ${
                     plan.id === 'subscription_professional' ? 'ring-2 ring-gray-900' : ''
                   }`}>
-                    <CardContent className="p-8 text-center space-y-6 h-full flex flex-col">
-                      {/* Icon */}
-                      <motion.div
-                        initial={{ scale: 0.8 }}
-                        animate={{ scale: 1 }}
-                        transition={{ delay: 0.2 + index * 0.1, duration: 0.5 }}
-                        className="flex items-center justify-center h-12 w-12 mx-auto rounded-full bg-gray-900"
-                      >
-                        <Sparkles className="h-6 w-6 text-white" />
-                      </motion.div>
+                    <CardContent className="p-8 text-left space-y-6 h-full flex flex-col">
+                      {/* Header - Plan Tier and Price */}
+                      <div className="space-y-3">
+                        {/* Plan Tier Label (Growth/Premium) */}
+                        <div className="text-2xl font-light text-gray-900">
+                          {getPlanTier(plan.id)}
+                        </div>
 
-                      {/* Header */}
-                      <div className="space-y-2">
-                        <h3 className="text-xl font-light text-gray-900 leading-tight">
-                          {plan.name}
-                        </h3>
-                        <p className="text-2xl font-light text-gray-600">
+                        {/* Price - Bigger */}
+                        <div className="space-y-1">
+                          <div className="text-4xl font-light text-gray-900">
                           ${plan.unit_price_usd}
-                          {plan.id === 'subscription_onetime' ? '' : '/month'}
-                        </p>
+                          </div>
+                          {plan.id === 'subscription_onetime' ? '' : 
+                           plan.id.includes('yearly') || plan.id.includes('astro') ? (
+                            <div className="text-sm font-light text-gray-500">per year</div>
+                          ) : (
+                            <div className="text-sm font-light text-gray-500">per month</div>
+                          )}
+                        </div>
                       </div>
 
-                      {/* Description */}
+                      {/* Features - Bullet Points */}
                       <div className="flex-grow">
-                        <p className="text-sm font-light text-gray-600 leading-relaxed">
-                          {plan.description}
-                        </p>
+                        <ul className="space-y-3">
+                          {getPlanFeatures(plan.id, plan.name).map((feature, featureIndex) => (
+                            <li key={featureIndex} className="flex items-start text-sm text-gray-600">
+                              <div className="w-1.5 h-1.5 bg-gray-400 rounded-full mr-3 mt-1.5 flex-shrink-0"></div>
+                              <span className="font-light">{feature}</span>
+                            </li>
+                          ))}
+                        </ul>
                       </div>
 
-                      {/* Button logic based on plan type */}
+                      {/* CTA Button */}
                       <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         transition={{ delay: 0.4 + index * 0.1, duration: 0.5 }}
                         className="pt-2"
                       >
-                        {/* One-time pass - Try now button */}
-                        {plan.name.toLowerCase().includes('single') || plan.name.toLowerCase().includes('one-time') || plan.id.includes('onetime') ? (
-                          <Button
-                            onClick={handleGetStarted}
-                            className="w-full font-light py-3 rounded-xl text-base transition-all duration-200 shadow-sm hover:shadow-md bg-gray-900 hover:bg-gray-800 text-white"
-                          >
-                            Try now
-                          </Button>
-                        ) : (
-                          /* Subscription plans - Coming Soon */
-                          <div className="w-full py-3 px-4 rounded-xl text-base font-light text-gray-500 bg-gray-100 border border-gray-200 text-center">
-                            Coming Soon
-                          </div>
-                        )}
+                        <Button
+                          onClick={() => handleGetStarted(plan.id)}
+                          className="w-full bg-gray-900 hover:bg-gray-800 text-white font-light py-3 rounded-full text-base transition-all duration-200 shadow-sm hover:shadow-md"
+                        >
+                          {getButtonText(plan.id)}
+                        </Button>
                       </motion.div>
 
-                      {/* Security note - only for one-time pass */}
-                      {(plan.name.toLowerCase().includes('single') || plan.name.toLowerCase().includes('one-time') || plan.id.includes('onetime')) && (
-                        <p className="text-xs text-gray-400 font-light leading-relaxed">
-                          Secure payment processed by Stripe. Cancel anytime.
-                        </p>
-                      )}
+                      {/* Security note */}
+                      <p className="text-xs text-gray-400 font-light leading-relaxed">
+                        Secure payment processed by Stripe. Cancel anytime.
+                      </p>
                     </CardContent>
                   </Card>
                 </motion.div>
               ))}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Timing Toolkit Section */}
-      <div className="py-16 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <TimingToolkitSection />
-        </div>
-      </div>
-
-      {/* FAQ Section */}
-      <div className="py-16">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-light text-gray-900 tracking-tight mb-4">
-              Frequently Asked Questions
-            </h2>
-            <p className="text-lg text-gray-600 font-light">
-              Everything you need to know about our pricing
-            </p>
-          </div>
-          
-          <div className="space-y-8">
-            <Card className="shadow-sm border-gray-200 border bg-white">
-              <CardHeader>
-                <CardTitle className="text-lg font-light text-gray-900">What's the difference between the Personal and Professional plans?</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-gray-700 font-light">
-                  The Personal plan gives you 10 intention threads per month, perfect for individual growth. 
-                  The Professional plan offers unlimited threads, ideal for coaches working with multiple clients 
-                  or power users who want comprehensive insights.
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="shadow-sm border-gray-200 border bg-white">
-              <CardHeader>
-                <CardTitle className="text-lg font-light text-gray-900">What is the Single-Intention Pass?</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-gray-700 font-light">
-                  Perfect for trying our system! You get one intention thread with 2 months of AI guidance 
-                  and insights. No subscription required—it's a one-time purchase to experience how our 
-                  energy mapping works.
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="shadow-sm border-gray-200 border bg-white">
-              <CardHeader>
-                <CardTitle className="text-lg font-light text-gray-900">What are intention threads?</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-gray-700 font-light">
-                  Intention threads are focused conversations where you explore a specific goal or challenge. 
-                  Our AI listens, maps your energy patterns, and provides personalized guidance to help you 
-                  break through limiting patterns and achieve your intentions.
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="shadow-sm border-gray-200 border bg-white">
-              <CardHeader>
-                <CardTitle className="text-lg font-light text-gray-900">Can I upgrade or downgrade my plan?</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-gray-700 font-light">
-                  Yes, you can change your subscription at any time. Upgrades take effect immediately, 
-                  and downgrades take effect at your next billing cycle. We'll prorate any differences.
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="shadow-sm border-gray-200 border bg-white">
-              <CardHeader>
-                <CardTitle className="text-lg font-light text-gray-900">What payment methods do you accept?</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-gray-700 font-light">
-                  We accept all major credit cards, including Visa, MasterCard, American Express, and Discover, 
-                  securely processed by Stripe.
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="shadow-sm border-gray-200 border bg-white">
-              <CardHeader>
-                <CardTitle className="text-lg font-light text-gray-900">Is my data secure and private?</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-gray-700 font-light">
-                  Absolutely. We use industry-standard encryption and security protocols to protect your data. 
-                  Your intention threads and personal insights are completely private and never shared.
-                </p>
-              </CardContent>
-            </Card>
           </div>
         </div>
-      </div>
+      </main>
 
-      <Footer />
+      <footer className="py-8 text-center text-sm text-gray-500 font-light">
+        © {new Date().getFullYear()} therai. All rights reserved.
+      </footer>
     </div>
   );
 };
