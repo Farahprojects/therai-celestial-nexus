@@ -17,6 +17,7 @@ import { useAstroConversation } from '@/hooks/useAstroConversation';
 import { useAstroFormValidation } from '@/hooks/useAstroFormValidation';
 import { useAstroReportPayload } from '@/hooks/useAstroReportPayload';
 import { useProfileSaver } from '@/hooks/useProfileSaver';
+import { createFolder } from '@/services/folders';
 
 // Step components
 import { AstroTypeStep } from './AstroForm/AstroTypeStep';
@@ -166,9 +167,28 @@ export const AstroDataForm: React.FC<AstroDataFormProps> = ({
     if (isProfileFlow) {
       setIsProcessing(true);
       try {
-        // Profile mode: auto-add request: 'essence' for translator-edge
-        // Note: reportType is NOT included - it's only for insights mode, not profile mode
-        onSubmit({ ...data, request: 'essence' });
+        // Run profile/conversation creation and folder creation in parallel
+        const results = await Promise.allSettled([
+          onSubmit({ ...data, request: 'essence' }),  // Profile + conversation
+          createFolder(user.id, 'My folder')
+        ]);
+        
+        // If folder was created successfully, dispatch event to update UI
+        const folderResult = results[1];
+        if (folderResult.status === 'fulfilled') {
+          window.dispatchEvent(new CustomEvent('folders:created', {
+            detail: { folderId: folderResult.value.id }
+          }));
+        } else {
+          // Log error but don't block - folder creation is non-critical
+          console.error('Error creating default folder during onboarding:', folderResult.reason);
+        }
+        
+        // Check if profile/conversation creation failed
+        const profileResult = results[0];
+        if (profileResult.status === 'rejected') {
+          throw profileResult.reason;
+        }
       } catch (error) {
         console.error('[AstroDataForm] Profile submission error:', error);
         toast.error('Failed to submit profile data. Please try again.');
