@@ -490,7 +490,7 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
           </div>
         ) : (
           <div className="px-3 pb-3">
-            <Button className="w-full" onClick={() => setShowAuthModal(true)}>Sign in</Button>
+            <Button className="w-full rounded-full" onClick={() => setShowAuthModal(true)}>Sign in</Button>
           </div>
         )}
       </div>
