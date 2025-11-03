@@ -70,7 +70,7 @@ export const CancelSubscriptionModal: React.FC<CancelSubscriptionModalProps> = (
                 You'll lose access to all premium features
               </p>
               <p className="text-sm font-light text-amber-800">
-                This includes astrology reports, insights, and chat history.
+                This includes reports, insights, and chat history.
               </p>
             </div>
           </div>
