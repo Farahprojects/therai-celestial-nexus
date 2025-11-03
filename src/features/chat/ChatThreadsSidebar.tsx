@@ -527,9 +527,9 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
             <DialogTitle>Delete this chat?</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-gray-600">This action cannot be undone.</p>
-          <DialogFooter>
-            <Button variant="secondary" onClick={() => setConfirmDeleteFor(null)}>Cancel</Button>
-            <Button variant="destructive" onClick={() => confirmDeleteFor && deleteChat(confirmDeleteFor)}>Delete</Button>
+          <DialogFooter className="flex justify-between">
+            <Button variant="outline" onClick={() => setConfirmDeleteFor(null)} className="rounded-full">Cancel</Button>
+            <Button variant="destructive" onClick={() => confirmDeleteFor && deleteChat(confirmDeleteFor)} className="rounded-full">Delete</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
