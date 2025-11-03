@@ -229,7 +229,7 @@ export const MessageList = () => {
             <div className="flex-1 flex flex-col justify-end">
             </div>
           ) : (
-            <div className="flex flex-col p-4">
+            <div className="flex flex-col p-4 max-w-3xl mx-auto w-full">
               {/* 🚀 LAZY LOAD: No loading indicators - messages load silently */}
 
               {renderedMessages}

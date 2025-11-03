@@ -193,7 +193,8 @@ export const ChatBox: React.FC<ChatBoxProps> = ({ onDelete }) => {
             <div className="max-w-6xl mx-auto w-full h-full flex flex-col md:border-x border-gray-100">
 
               {/* Mobile Header */}
-              <div className="md:hidden flex items-center justify-between gap-2 p-3 bg-white border-b border-gray-100 pt-safe">
+              <div className="md:hidden p-3 bg-white border-b border-gray-100 pt-safe">
+                <div className="max-w-3xl mx-auto w-full flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
                   <Sheet open={isMobileSidebarOpen} onOpenChange={setIsMobileSidebarOpen}>
                     <SheetTrigger asChild>
@@ -252,6 +253,7 @@ export const ChatBox: React.FC<ChatBoxProps> = ({ onDelete }) => {
                   <Suspense fallback={<div className="h-8 w-8 bg-gray-200 rounded-lg animate-pulse" />}>
                     <ChatMenuButton />
                   </Suspense>
+                </div>
                 </div>
               </div>
 
