@@ -71,6 +71,37 @@ function getCustomerIdFromEvent(event: Stripe.Event): string | null {
   return obj.customer || obj.customer_id || null
 }
 
+/**
+ * Get friendly plan name from price_list table by Stripe price ID
+ * Returns the plan name or 'Unknown Plan' if not found
+ */
+async function getPlanNameFromPriceList(stripePriceId: string): Promise<string> {
+  try {
+    const { data, error } = await supabase
+      .from('price_list')
+      .select('name')
+      .eq('stripe_price_id', stripePriceId)
+      .eq('endpoint', 'subscription')
+      .maybeSingle()
+    
+    if (error) {
+      console.error(`❌ Error looking up plan name for price ${stripePriceId}:`, error)
+      return 'Unknown Plan'
+    }
+    
+    if (data?.name) {
+      console.log(`✅ Found plan name in price_list: "${data.name}" for price ${stripePriceId}`)
+      return data.name
+    }
+    
+    console.warn(`⚠️ No match in price_list for price ${stripePriceId}`)
+    return 'Unknown Plan'
+  } catch (err) {
+    console.error(`❌ Exception looking up plan name for price ${stripePriceId}:`, err)
+    return 'Unknown Plan'
+  }
+}
+
 async function processWebhookEvent(event: Stripe.Event) {
   switch (event.type) {
     case 'payment_intent.succeeded':
@@ -246,8 +277,11 @@ async function handleSubscriptionChange(subscription: Stripe.Subscription) {
     nextCharge = new Date(subscription.current_period_end * 1000).toISOString()
   }
 
-  const planName = subscription.items.data[0]?.price?.nickname || 
-                   subscription.items.data[0]?.price?.id || 'unknown'
+  // Get plan name from price_list table (no fallbacks)
+  const stripePriceId = subscription.items.data[0]?.price?.id
+  const planName = stripePriceId 
+    ? await getPlanNameFromPriceList(stripePriceId)
+    : 'Unknown Plan'
 
   await supabase
     .from('profiles')
@@ -279,9 +313,12 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
   const userId = await resolveUserId(subscription.customer as string, undefined, subscription.metadata)
   if (!userId) return
 
-  // Get plan name and access until date before updating database
-  const planName = subscription.items.data[0]?.price?.nickname || 
-                   subscription.items.data[0]?.price?.id || 'Your Plan'
+  // Get plan name from price_list table (no fallbacks)
+  const stripePriceId = subscription.items.data[0]?.price?.id
+  const stripeNickname = subscription.items.data[0]?.price?.nickname
+  const planName = stripePriceId 
+    ? await getPlanNameFromPriceList(stripePriceId)
+    : 'Unknown Plan'
   const accessUntil = subscription.current_period_end 
     ? new Date(subscription.current_period_end * 1000).toLocaleDateString()
     : new Date().toLocaleDateString()
