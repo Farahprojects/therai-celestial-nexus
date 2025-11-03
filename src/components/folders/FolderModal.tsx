@@ -70,14 +70,14 @@ export const FolderModal: React.FC<FolderModalProps> = ({
             />
           </div>
           
-          <div className="flex justify-end gap-2">
+          <div className="flex justify-between gap-2">
             <Button variant="outline" onClick={handleClose} className="rounded-full">
               Cancel
             </Button>
             <Button 
               onClick={handleCreate} 
               disabled={!folderName.trim()}
-              className="rounded-full bg-gray-900 hover:bg-gray-800"
+              className="rounded-full bg-gray-900 hover:bg-gray-800 text-white"
             >
               {editingFolder ? 'Save' : 'Create Folder'}
             </Button>

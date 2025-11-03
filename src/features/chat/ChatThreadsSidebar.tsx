@@ -513,9 +513,9 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
             <DialogTitle>Edit chat title</DialogTitle>
           </DialogHeader>
           <Input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} placeholder="Enter chat title..." onKeyDown={(e) => { if (e.key === 'Enter') saveTitle(); }} />
-          <DialogFooter>
-            <Button variant="secondary" onClick={() => { setEditTitleFor(null); setEditTitle(''); }}>Cancel</Button>
-            <Button onClick={saveTitle} disabled={!editTitle.trim()}>Save</Button>
+          <DialogFooter className="flex justify-between">
+            <Button variant="outline" onClick={() => { setEditTitleFor(null); setEditTitle(''); }} className="rounded-full">Cancel</Button>
+            <Button onClick={saveTitle} disabled={!editTitle.trim()} className="rounded-full bg-gray-900 hover:bg-gray-800 text-white">Save</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

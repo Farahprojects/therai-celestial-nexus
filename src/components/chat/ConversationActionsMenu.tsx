@@ -84,7 +84,7 @@ export const ConversationActionsMenuContent: React.FC<ConversationActionsMenuPro
     <DropdownMenuContent align={align} className="bg-white border border-gray-200 shadow-lg min-w-fit rounded-lg p-1">
       <DropdownMenuItem
         onClick={handleAstroClick}
-        className="px-3 py-1.5 text-sm text-black hover:bg-gray-100 hover:text-black focus:bg-gray-100 focus:text-black cursor-pointer rounded-md"
+        className="px-3 py-1.5 text-sm text-black hover:bg-gray-100 hover:text-black focus:bg-gray-100 focus:text-black cursor-pointer rounded-full"
       >
         <div className="flex items-center gap-2">
           <Sparkles className="w-4 h-4" />
@@ -95,7 +95,7 @@ export const ConversationActionsMenuContent: React.FC<ConversationActionsMenuPro
         {onEdit && (
           <DropdownMenuItem
             onClick={handleEditClick}
-            className="px-3 py-1.5 text-sm text-black hover:bg-gray-100 hover:text-black focus:bg-gray-100 focus:text-black cursor-pointer rounded-md"
+            className="px-3 py-1.5 text-sm text-black hover:bg-gray-100 hover:text-black focus:bg-gray-100 focus:text-black cursor-pointer rounded-full"
           >
             <div className="flex items-center gap-2">
               <Edit3 className="w-4 h-4" />
@@ -106,7 +106,7 @@ export const ConversationActionsMenuContent: React.FC<ConversationActionsMenuPro
         
         {onMoveToFolder && (
           <DropdownMenuSub>
-            <DropdownMenuSubTrigger className="px-3 py-1.5 text-sm text-black hover:bg-gray-100 hover:text-black focus:bg-gray-100 focus:text-black cursor-pointer rounded-md">
+            <DropdownMenuSubTrigger className="px-3 py-1.5 text-sm text-black hover:bg-gray-100 hover:text-black focus:bg-gray-100 focus:text-black cursor-pointer rounded-full">
               <div className="flex items-center gap-2">
                 <FolderInput className="w-4 h-4" />
                 <span>Move to Folder</span>
@@ -116,7 +116,7 @@ export const ConversationActionsMenuContent: React.FC<ConversationActionsMenuPro
               {onCreateFolder && (
                 <DropdownMenuItem
                   onClick={handleCreateFolder}
-                  className="px-3 py-1.5 text-sm text-black hover:bg-gray-100 hover:text-black focus:bg-gray-100 focus:text-black cursor-pointer rounded-md"
+                  className="px-3 py-1.5 text-sm text-black hover:bg-gray-100 hover:text-black focus:bg-gray-100 focus:text-black cursor-pointer rounded-full"
                 >
                   <div className="flex items-center gap-2">
                     <Folder className="w-4 h-4" />
@@ -132,7 +132,7 @@ export const ConversationActionsMenuContent: React.FC<ConversationActionsMenuPro
               {currentFolderId && (
                 <DropdownMenuItem
                   onClick={() => handleMoveToFolder(null)}
-                  className="px-3 py-1.5 text-sm text-black hover:bg-gray-100 hover:text-black focus:bg-gray-100 focus:text-black cursor-pointer rounded-md"
+                  className="px-3 py-1.5 text-sm text-black hover:bg-gray-100 hover:text-black focus:bg-gray-100 focus:text-black cursor-pointer rounded-full"
                 >
                   <div className="flex items-center gap-2">
                     <X className="w-4 h-4" />
@@ -144,7 +144,7 @@ export const ConversationActionsMenuContent: React.FC<ConversationActionsMenuPro
                 <DropdownMenuItem
                   key={folder.id}
                   onClick={() => handleMoveToFolder(folder.id)}
-                  className="px-3 py-1.5 text-sm text-black hover:bg-gray-100 hover:text-black focus:bg-gray-100 focus:text-black cursor-pointer rounded-md"
+                  className="px-3 py-1.5 text-sm text-black hover:bg-gray-100 hover:text-black focus:bg-gray-100 focus:text-black cursor-pointer rounded-full"
                   disabled={folder.id === currentFolderId}
                 >
                   <span className={folder.id === currentFolderId ? 'font-medium' : ''}>
@@ -159,7 +159,7 @@ export const ConversationActionsMenuContent: React.FC<ConversationActionsMenuPro
         {onDelete && (
           <DropdownMenuItem
             onClick={handleDeleteClick}
-            className="px-3 py-1.5 text-sm text-black hover:bg-gray-100 hover:text-black focus:bg-gray-100 focus:text-black cursor-pointer rounded-md"
+            className="px-3 py-1.5 text-sm text-black hover:bg-gray-100 hover:text-black focus:bg-gray-100 focus:text-black cursor-pointer rounded-full"
           >
             <div className="flex items-center gap-2">
               <Trash2 className="w-4 h-4" />
