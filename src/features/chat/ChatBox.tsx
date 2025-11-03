@@ -44,6 +44,7 @@ export const ChatBox: React.FC<ChatBoxProps> = ({ onDelete }) => {
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
   const [showFolderShareModal, setShowFolderShareModal] = useState(false);
+  const [hasCheckedTogetherModeShare, setHasCheckedTogetherModeShare] = useState(false);
   const navigate = useNavigate();
   const { uuid } = getChatTokens();
   const isConversationOpen = useConversationUIStore((s) => s.isConversationOpen);
@@ -83,13 +84,63 @@ export const ChatBox: React.FC<ChatBoxProps> = ({ onDelete }) => {
 
 
 
-  // Additional cleanup on component unmount
+  // Check if Together Mode conversation needs share modal
   useEffect(() => {
-    return () => {
-      // Ensure all listeners are cleaned up when component unmounts
-      // Component unmounting, cleaning up all listeners
+    const checkTogetherModeShare = async () => {
+      if (!chat_id || !user || hasCheckedTogetherModeShare) return;
+      
+      try {
+        // Fetch conversation mode and sharing status
+        const { data: conversation, error: convError } = await supabase
+          .from('conversations')
+          .select('mode, is_public')
+          .eq('id', chat_id)
+          .single();
+        
+        if (convError) {
+          console.error('[ChatBox] Error fetching conversation:', convError);
+          return;
+        }
+        
+        if (conversation?.mode === 'together') {
+          // Check participants count - if only 1 participant (owner), it hasn't been shared
+          const { data: participants, error: partError } = await supabase
+            .from('conversations_participants')
+            .select('user_id')
+            .eq('conversation_id', chat_id);
+          
+          if (partError) {
+            console.error('[ChatBox] Error checking participants:', partError);
+            return;
+          }
+          
+          // If conversation is public OR has more than 1 participant, it's been shared
+          const isShared = conversation.is_public || (participants && participants.length > 1);
+          
+          // If not shared yet, show share modal
+          if (!isShared) {
+            setShowShareModal(true);
+            setHasCheckedTogetherModeShare(true);
+          } else {
+            // Already shared, don't show modal
+            setHasCheckedTogetherModeShare(true);
+          }
+        } else {
+          // Not together mode, mark as checked
+          setHasCheckedTogetherModeShare(true);
+        }
+      } catch (error) {
+        console.error('[ChatBox] Error checking together mode share:', error);
+      }
     };
-  }, []);
+    
+    checkTogetherModeShare();
+  }, [chat_id, user, hasCheckedTogetherModeShare]);
+  
+  // Reset check when chat_id changes
+  useEffect(() => {
+    setHasCheckedTogetherModeShare(false);
+  }, [chat_id]);
 
 
 
@@ -273,7 +324,28 @@ export const ChatBox: React.FC<ChatBoxProps> = ({ onDelete }) => {
       {showShareModal && chat_id && (
         <ShareConversationModal
           conversationId={chat_id}
-          onClose={() => setShowShareModal(false)}
+          onClose={async () => {
+            setShowShareModal(false);
+            // Re-check sharing status after modal closes to see if it was shared
+            if (chat_id) {
+              const { data: conversation } = await supabase
+                .from('conversations')
+                .select('is_public')
+                .eq('id', chat_id)
+                .single();
+              
+              const { data: participants } = await supabase
+                .from('conversations_participants')
+                .select('user_id')
+                .eq('conversation_id', chat_id);
+              
+              // If now shared (is_public or participants > 1), mark as checked so modal won't show again
+              const isShared = conversation?.is_public || (participants && participants.length > 1);
+              if (isShared) {
+                setHasCheckedTogetherModeShare(true);
+              }
+            }
+          }}
         />
       )}
 

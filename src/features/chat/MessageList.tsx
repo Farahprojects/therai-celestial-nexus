@@ -15,7 +15,7 @@ import { useNavigate } from 'react-router-dom';
 
 // ⚡ MEMOIZED USER MESSAGE - Only re-renders when message data changes
 const UserMessage = React.memo(({ message, isOwn }: { message: Message; isOwn: boolean }) => (
-  <div className={`flex items-end gap-3 ${isOwn ? 'justify-end' : 'justify-end'} mb-4`}>
+  <div className={`flex items-end gap-3 ${isOwn ? 'justify-end' : 'justify-start'} mb-4`}>
     <div className={`px-4 py-3 rounded-2xl max-w-[75%] text-black ${
       message.pending ? (isOwn ? 'bg-gray-200 opacity-75' : 'bg-blue-100 opacity-75') : (isOwn ? 'bg-gray-200' : 'bg-blue-100')
     }`}>
@@ -49,7 +49,7 @@ const AssistantMessage = React.memo(({ message }: { message: Message }) => {
         {isTogetherModeAnalysis && (
           <div className="inline-flex items-center gap-1.5 text-xs text-purple-600 mb-2 font-light">
             <Sparkles size={14} />
-            <span>Together Mode Insight</span>
+            <span>Insight</span>
           </div>
         )}
         <div className="text-base font-light leading-relaxed text-left selectable-text prose prose-sm max-w-none">

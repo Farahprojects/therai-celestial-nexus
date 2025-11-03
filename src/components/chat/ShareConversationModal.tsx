@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { X, Copy, Check, Link, MessageCircle, Sparkles, Bell, Target } from 'lucide-react';
-import { shareConversation, unshareConversation, updateConversationMode } from '@/services/conversations';
-import { CONVERSATION_MODES, getAvailableModes, ConversationMode } from '@/constants/conversationModes';
-import { supabase } from '@/integrations/supabase/client';
+import { X, Copy, Check, Link } from 'lucide-react';
+import { shareConversation, unshareConversation } from '@/services/conversations';
 
 interface ShareConversationModalProps {
   conversationId: string;
@@ -18,8 +16,6 @@ export const ShareConversationModal: React.FC<ShareConversationModalProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [isShared, setIsShared] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [selectedMode, setSelectedMode] = useState<string>('standard');
-  const [isCompatibilityChat, setIsCompatibilityChat] = useState(false);
 
   // Auto-create share link when modal opens
   useEffect(() => {
@@ -36,26 +32,6 @@ export const ShareConversationModal: React.FC<ShareConversationModalProps> = ({
     };
 
     autoShare();
-  }, [conversationId]);
-
-  // Load conversation and check if it's compatibility chat
-  useEffect(() => {
-    const loadConversation = async () => {
-      const { data } = await supabase
-        .from('conversations')
-        .select('meta, mode')
-        .eq('id', conversationId)
-        .single();
-      
-      // Check if compatibility chat (has person_b)
-      const isCompat = !!data?.meta?.last_report_form?.person_b;
-      setIsCompatibilityChat(isCompat);
-      
-      // Load current mode from mode column
-      setSelectedMode(data?.mode || 'standard');
-    };
-    
-    loadConversation();
   }, [conversationId]);
 
   const handleUnshare = async () => {
@@ -78,18 +54,6 @@ export const ShareConversationModal: React.FC<ShareConversationModalProps> = ({
       setTimeout(() => setCopied(false), 2000);
     } catch (error) {
       console.error('Error copying to clipboard:', error);
-    }
-  };
-
-  const handleModeChange = async (modeId: string) => {
-    setIsLoading(true);
-    try {
-      await updateConversationMode(conversationId, modeId);
-      setSelectedMode(modeId);
-    } catch (error) {
-      console.error('Error updating mode:', error);
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -163,70 +127,6 @@ export const ShareConversationModal: React.FC<ShareConversationModalProps> = ({
                     </>
                   )}
                 </button>
-              </div>
-
-              {/* Mode Picker */}
-              <div className="space-y-4 pt-2">
-                <div>
-                  <h4 className="text-sm font-medium text-gray-900">Conversation Mode</h4>
-                  <p className="text-xs font-light text-gray-600 mt-1">
-                    Choose how this conversation operates
-                  </p>
-                </div>
-                
-                <div className="space-y-2">
-                  {getAvailableModes(isCompatibilityChat).map((mode) => {
-                    const IconComponent = {
-                      MessageCircle,
-                      Sparkles,
-                      Bell,
-                      Target
-                    }[mode.icon];
-                    
-                    const isDisabled = !mode.enabled;
-                    
-                    return (
-                      <button
-                        key={mode.id}
-                        onClick={() => !isDisabled && handleModeChange(mode.id)}
-                        disabled={isDisabled}
-                        className={`w-full p-4 rounded-xl border-2 transition-all text-left ${
-                          selectedMode === mode.id
-                            ? 'border-gray-900 bg-gray-50' 
-                            : isDisabled
-                              ? 'border-gray-100 bg-gray-50 opacity-50 cursor-not-allowed'
-                              : 'border-gray-200 hover:border-gray-300'
-                        }`}
-                      >
-                        <div className="flex items-start gap-3">
-                          <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                            selectedMode === mode.id 
-                              ? 'bg-gray-900 text-white' 
-                              : 'bg-gray-100 text-gray-600'
-                          }`}>
-                            <IconComponent size={18} />
-                          </div>
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2">
-                              <h5 className="text-sm font-medium text-gray-900">{mode.name}</h5>
-                              {!mode.enabled && (
-                                <span className="px-2 py-0.5 bg-gray-100 text-gray-500 text-xs rounded-full">
-                                  Coming soon
-                                </span>
-                              )}
-                            </div>
-                            <p className="text-xs font-light text-gray-600 mt-0.5">
-                              {mode.description}
-                            </p>
-                          </div>
-                          {selectedMode === mode.id && (
-                            <Check className="w-5 h-5 text-gray-900" />
-                          )}
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
               </div>
 
               {/* Stop Sharing */}

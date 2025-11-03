@@ -225,7 +225,7 @@ export const useMessageStore = create<MessageStore>()((set, get) => ({
       // JUST FETCH MESSAGES - Fast and simple
       const { data, error } = await supabase
         .from('messages')
-        .select('id, chat_id, role, text, created_at, client_msg_id, status, context_injected, message_number, user_id, user_name')
+        .select('id, chat_id, role, text, created_at, client_msg_id, status, context_injected, message_number, user_id, user_name, meta')
         .eq('chat_id', fetchChatId)
         .order('created_at', { ascending: true })
         .limit(50);
@@ -267,7 +267,7 @@ export const useMessageStore = create<MessageStore>()((set, get) => ({
     try {
       const { data, error } = await supabase
         .from('messages')
-        .select('id, chat_id, role, text, created_at, client_msg_id, status, context_injected, message_number, user_id, user_name')
+        .select('id, chat_id, role, text, created_at, client_msg_id, status, context_injected, message_number, user_id, user_name, meta')
         .eq('chat_id', chat_id)
         .lt('created_at', oldestMessage.createdAt)
         .order('created_at', { ascending: true })
