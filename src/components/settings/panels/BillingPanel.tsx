@@ -204,22 +204,8 @@ export const BillingPanel: React.FC = () => {
     return ['purchase', 'auto_topup', 'refund'].includes(transaction.type) ? '+' : '-';
   };
 
-  const handleManageSubscription = async () => {
-    try {
-      const { data, error } = await supabase.functions.invoke('customer-portal');
-      
-      if (error) {
-        toast.error('Failed to open customer portal');
-        return;
-      }
-
-      if (data?.url) {
-        window.location.href = data.url;
-      }
-    } catch (err) {
-      console.error('Customer portal error:', err);
-      toast.error('Failed to open customer portal');
-    }
+  const handleManageSubscription = () => {
+    window.location.href = '/manage-subscription';
   };
 
   const handleUpgrade = async (newPlanId: string, newStripePriceId: string) => {

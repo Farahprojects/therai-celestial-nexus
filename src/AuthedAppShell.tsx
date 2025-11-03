@@ -21,6 +21,7 @@ import Index from './pages/Index';
 import MobileLanding from './pages/MobileLanding';
 import NotFound from './pages/NotFound';
 const EmbeddedCheckout = lazy(() => import('./pages/EmbeddedCheckout'));
+const SubscriptionManagement = lazy(() => import('./pages/SubscriptionManagement'));
 import Beats from './pages/Beats';
 import { CheckoutPage } from './pages/CheckoutPage';
 import { CheckoutSuccessPage } from './pages/CheckoutSuccessPage';
@@ -62,6 +63,7 @@ const AuthedAppShell: React.FC = () => {
       <Route path="/success" element={<SubscriptionSuccess />} />
       <Route path="/cancel" element={<SubscriptionPaywall />} />
       <Route path="/stripe" element={<EmbeddedCheckout />} />
+      <Route path="/manage-subscription" element={<AuthGuard><SubscriptionManagement /></AuthGuard>} />
       
       {/* Credit purchase checkout routes */}
       <Route path="/checkout" element={<AuthGuard><CheckoutPage /></AuthGuard>} />
