@@ -1,5 +1,6 @@
 
 import Stripe from "https://esm.sh/stripe@12.18.0";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -15,7 +16,32 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { amount, currency, guest_id, chat_id, description } = await req.json();
+    // SECURITY: Require authenticated user (no guest payments)
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: "Missing authorization header" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const supabaseClient = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+      { auth: { persistSession: false } }
+    );
+
+    const token = authHeader.replace("Bearer ", "");
+    const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
+    
+    if (userError || !userData?.user) {
+      return new Response(JSON.stringify({ error: "User not authenticated" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const { amount, currency, chat_id, description } = await req.json();
 
     if (!amount || amount <= 0) {
       return new Response(JSON.stringify({ error: "Amount is required" }), {
@@ -25,7 +51,7 @@ Deno.serve(async (req) => {
     }
 
     const metadata = {
-      guest_id: guest_id || "",
+      user_id: userData.user.id,
       chat_id: chat_id || "",
     };
 

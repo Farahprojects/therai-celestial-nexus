@@ -46,6 +46,12 @@ Deno.serve(async (req) => {
 
     const customerId = customers.data[0].id;
 
+    // Verify the payment method belongs to this customer
+    const paymentMethod = await stripe.paymentMethods.retrieve(paymentMethodId);
+    if (paymentMethod.customer !== customerId) {
+      throw new Error("Payment method does not belong to this customer");
+    }
+
     // Set as default payment method
     await stripe.customers.update(customerId, {
       invoice_settings: {

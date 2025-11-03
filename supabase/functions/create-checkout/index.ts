@@ -38,7 +38,7 @@ Deno.serve(async (req) => {
       return new Response('Invalid token', { status: 401, headers: corsHeaders });
     }
 
-    const { planId, userId, successUrl, cancelUrl, embedded, returnUrl } = await req.json();
+    const { planId, successUrl, cancelUrl, embedded, returnUrl } = await req.json();
 
     if (!planId) {
       return new Response(JSON.stringify({ error: "Plan ID is required" }), {
@@ -47,12 +47,8 @@ Deno.serve(async (req) => {
       });
     }
 
-    if (!userId) {
-      return new Response(JSON.stringify({ error: "User ID is required" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    // SECURITY: Use authenticated user ID, not from request body
+    const userId = user.id;
 
     console.log(`Creating one-shot checkout for user: ${userId}, plan: ${planId}`);
 
