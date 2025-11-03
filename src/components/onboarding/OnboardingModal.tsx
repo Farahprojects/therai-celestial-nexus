@@ -8,7 +8,6 @@ import { AstroDataForm } from '@/components/chat/AstroDataForm';
 import { ReportFormData } from '@/types/public-report';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
-import { createFolder } from '@/services/folders';
 
 interface OnboardingModalProps {
   isOpen: boolean;
@@ -138,16 +137,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
       // 3. Call translator-edge with chat_id
       // 4. translator-edge saves to translator_logs (existing behavior)
       // 5. translator-edge skips messages table (profile_mode)
-
-      // Auto-create default folder for user (onboarding only, so no duplicate check needed)
-      if (user?.id) {
-        try {
-          await createFolder(user.id, 'My folder');
-        } catch (folderError) {
-          // Log error but don't block onboarding completion
-          console.error('Error creating default folder during onboarding:', folderError);
-        }
-      }
+      // Note: Folder creation is handled in AstroDataForm.tsx in parallel with profile creation
 
       toast.success('Profile created successfully!');
       setCurrentStep('subscription');

@@ -10,6 +10,7 @@ import { InsightsModal } from '@/components/insights/InsightsModal';
 import { AstroDataForm } from '@/components/chat/AstroDataForm';
 import { AstroChartSelector } from '@/components/chat/AstroChartSelector';
 import { ReportFormData } from '@/types/public-report';
+import { AuthModal } from '@/components/auth/AuthModal';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -27,6 +28,7 @@ export const NewChatDropdown: React.FC<NewChatDropdownProps> = ({ className = ""
   const { isSubscriptionActive } = useSubscription();
   const billingMode = getBillingMode();
   const navigate = useNavigate();
+  const [showAuthModal, setShowAuthModal] = useState(false);
   const [showInsightsModal, setShowInsightsModal] = useState(false);
   const [showAstroChartSelector, setShowAstroChartSelector] = useState(false);
   const [showAstroModal, setShowAstroModal] = useState(false);
@@ -34,8 +36,9 @@ export const NewChatDropdown: React.FC<NewChatDropdownProps> = ({ className = ""
 
   // Shared handleNewChat function - all creation goes through conversation-manager
   const handleNewChat = async (mode: 'chat' | 'astro' | 'insight' | 'together' = 'chat') => {
+    // Check auth first
     if (!user) {
-      console.error('[NewChatDropdown] Cannot create new chat: user not authenticated');
+      setShowAuthModal(true);
       return;
     }
 
@@ -73,6 +76,12 @@ export const NewChatDropdown: React.FC<NewChatDropdownProps> = ({ className = ""
 
   // Shared handleOpenInsights function
   const handleOpenInsights = () => {
+    // Check auth first
+    if (!user) {
+      setShowAuthModal(true);
+      return;
+    }
+
     // Gate: Check subscription in subscription mode
     if (billingMode === 'SUBSCRIPTION' && !isSubscriptionActive) {
       navigate('/subscription-paywall');
@@ -83,6 +92,12 @@ export const NewChatDropdown: React.FC<NewChatDropdownProps> = ({ className = ""
 
   // Handle Astro modal open - show chart selector first
   const handleOpenAstro = () => {
+    // Check auth first
+    if (!user) {
+      setShowAuthModal(true);
+      return;
+    }
+
     // Gate: Check subscription in subscription mode
     if (billingMode === 'SUBSCRIPTION' && !isSubscriptionActive) {
       navigate('/subscription-paywall');
@@ -146,7 +161,7 @@ export const NewChatDropdown: React.FC<NewChatDropdownProps> = ({ className = ""
     <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <button className={`flex items-center gap-2 px-3 py-1.5 text-sm font-light text-black hover:bg-gray-100 rounded-lg transition-colors ${className}`}>
+          <button className={`flex items-center gap-2 px-3 py-1.5 text-sm font-light text-black hover:bg-gray-100 rounded-lg transition-colors justify-start ${className}`}>
             <Plus className="w-4 h-4" />
             New Chat
             <ChevronDown className="w-3 h-3" />
@@ -226,6 +241,13 @@ export const NewChatDropdown: React.FC<NewChatDropdownProps> = ({ className = ""
           </div>
         </div>
       )}
+
+      {/* Auth Modal */}
+      <AuthModal
+        isOpen={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+        defaultMode="login"
+      />
     </>
   );
 };
