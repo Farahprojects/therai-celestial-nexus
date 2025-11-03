@@ -279,6 +279,13 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
   const userId = await resolveUserId(subscription.customer as string, undefined, subscription.metadata)
   if (!userId) return
 
+  // Get plan name and access until date before updating database
+  const planName = subscription.items.data[0]?.price?.nickname || 
+                   subscription.items.data[0]?.price?.id || 'Your Plan'
+  const accessUntil = subscription.current_period_end 
+    ? new Date(subscription.current_period_end * 1000).toLocaleDateString()
+    : new Date().toLocaleDateString()
+
   await supabase
     .from('profiles')
     .update({
@@ -297,6 +304,25 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
     })
     .eq('user_id', userId)
     .eq('active', true)
+
+  // Send subscription cancelled email notification
+  try {
+    await supabase.functions.invoke('send-payment-notification', {
+      body: {
+        user_id: userId,
+        template_type: 'subscription_cancelled',
+        variables: {
+          cancellation_date: new Date().toLocaleDateString(),
+          plan_name: planName,
+          access_until: accessUntil
+        }
+      }
+    }).catch((err) => {
+      console.error(`[Webhook] Failed to send subscription cancelled email for user ${userId}:`, err)
+    })
+  } catch (err) {
+    console.error(`[Webhook] Error sending subscription cancelled email:`, err)
+  }
 }
 
 async function handleInvoicePayment(invoice: Stripe.Invoice, eventType: string) {
@@ -354,6 +380,63 @@ async function handleInvoicePayment(invoice: Stripe.Invoice, eventType: string) 
     .eq('active', true)
 
   console.log(`Updated payment method billing info for user ${userId}`)
+
+  // Send email notification based on payment status
+  try {
+    if (eventType === 'invoice.payment_failed') {
+      // Send payment failed email
+      const retryDate = invoice.next_payment_attempt 
+        ? new Date(invoice.next_payment_attempt * 1000).toLocaleDateString()
+        : 'N/A'
+
+      await supabase.functions.invoke('send-payment-notification', {
+        body: {
+          user_id: userId,
+          template_type: 'payment_failed',
+          variables: {
+            amount: `$${(invoice.amount_due / 100).toFixed(2)}`,
+            date: new Date().toLocaleDateString(),
+            retry_date: retryDate,
+            invoice_number: invoice.number || 'N/A'
+          }
+        }
+      }).catch((err) => {
+        console.error(`[Webhook] Failed to send payment failed email for user ${userId}:`, err)
+      })
+    } else if (eventType === 'invoice.payment_succeeded') {
+      // Send payment successful email (receipt)
+      // Need to get subscription to find next billing date
+      let nextBillingDate = 'N/A'
+      if (invoice.subscription) {
+        try {
+          const subscription = await stripe.subscriptions.retrieve(invoice.subscription as string)
+          if (subscription.current_period_end) {
+            nextBillingDate = new Date(subscription.current_period_end * 1000).toLocaleDateString()
+          }
+        } catch (subErr) {
+          console.error(`[Webhook] Failed to retrieve subscription for next billing date:`, subErr)
+        }
+      }
+
+      await supabase.functions.invoke('send-payment-notification', {
+        body: {
+          user_id: userId,
+          template_type: 'payment_successful',
+          variables: {
+            amount: `$${((invoice.amount_paid || invoice.total) / 100).toFixed(2)}`,
+            date: new Date().toLocaleDateString(),
+            next_billing_date: nextBillingDate,
+            invoice_number: invoice.number || 'N/A',
+            receipt_url: invoice.hosted_invoice_url || '#'
+          }
+        }
+      }).catch((err) => {
+        console.error(`[Webhook] Failed to send payment successful email for user ${userId}:`, err)
+      })
+    }
+  } catch (err) {
+    console.error(`[Webhook] Error sending invoice payment email:`, err)
+  }
 }
 
 async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
@@ -490,6 +573,27 @@ async function handlePaymentMethodAttached(paymentMethod: Stripe.PaymentMethod) 
   if (!userId) return
 
   await updatePaymentMethodInDb(userId, paymentMethod)
+
+  // Send payment method updated email notification
+  if (paymentMethod.type === 'card' && paymentMethod.card) {
+    try {
+      await supabase.functions.invoke('send-payment-notification', {
+        body: {
+          user_id: userId,
+          template_type: 'payment_method_updated',
+          variables: {
+            card_brand: paymentMethod.card.brand.charAt(0).toUpperCase() + paymentMethod.card.brand.slice(1),
+            card_last4: paymentMethod.card.last4,
+            date: new Date().toLocaleDateString()
+          }
+        }
+      }).catch((err) => {
+        console.error(`[Webhook] Failed to send payment method updated email for user ${userId}:`, err)
+      })
+    } catch (err) {
+      console.error(`[Webhook] Error sending payment method updated email:`, err)
+    }
+  }
 }
 
 async function handlePaymentMethodDetached(paymentMethod: Stripe.PaymentMethod) {
