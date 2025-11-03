@@ -41,6 +41,7 @@ const AuthedAppShell: React.FC = () => {
       {/* Public routes */}
       <Route path="/about" element={<About />} />
       <Route path="/contact" element={<Contact />} />
+      <Route path="/support" element={<Navigate to="/contact" replace />} />
       <Route path="/legal" element={<Legal />} />
       <Route path="/pricing" element={<Pricing />} />
       <Route path="/blog" element={<Blog />} />
