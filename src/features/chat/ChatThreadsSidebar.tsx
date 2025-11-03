@@ -658,6 +658,11 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
   // Filter threads by conversation type first
   const filteredThreads = useMemo(() => {
     return threads.filter(thread => {
+      // Exclude Profile conversations (internal use only)
+      if (thread.mode === 'profile') {
+        return false;
+      }
+      
       // Exclude conversations that are in folders (they're displayed in the folders section)
       if (thread.folder_id) {
         return false;

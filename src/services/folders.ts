@@ -135,6 +135,7 @@ export async function moveConversationToFolder(conversationId: string, folderId:
 
 /**
  * Get all conversations in a folder with their details
+ * Excludes Profile conversations (mode: 'profile') as they are for internal use
  */
 export async function getFolderConversations(folderId: string): Promise<Array<{
   id: string;
@@ -146,6 +147,7 @@ export async function getFolderConversations(folderId: string): Promise<Array<{
     .from('conversations')
     .select('id, title, updated_at, mode')
     .eq('folder_id', folderId)
+    .neq('mode', 'profile') // Exclude Profile conversations (internal use only)
     .order('updated_at', { ascending: false });
 
   if (error) {
@@ -158,12 +160,14 @@ export async function getFolderConversations(folderId: string): Promise<Array<{
 
 /**
  * Get folder statistics (chat count)
+ * Excludes Profile conversations (mode: 'profile') as they are for internal use
  */
 export async function getFolderStats(folderId: string): Promise<{ chatsCount: number }> {
   const { count, error } = await supabase
     .from('conversations')
     .select('id', { count: 'exact', head: true })
-    .eq('folder_id', folderId);
+    .eq('folder_id', folderId)
+    .neq('mode', 'profile'); // Exclude Profile conversations (internal use only)
 
   if (error) {
     console.error('[folders] Failed to fetch folder stats:', error);

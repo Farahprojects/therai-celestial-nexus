@@ -115,9 +115,9 @@ const ThreadSelectionPage: React.FC = () => {
                 </Card>
               ))}
             </div>
-          ) : threads.length > 0 ? (
+          ) : threads.filter(t => t.mode !== 'profile').length > 0 ? (
             <div className="grid gap-4">
-              {threads.map((thread) => (
+              {threads.filter(t => t.mode !== 'profile').map((thread) => (
                 <Card 
                   key={thread.id} 
                   className="border-0 shadow-sm hover:shadow-md transition-shadow cursor-pointer"

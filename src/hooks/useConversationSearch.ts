@@ -65,6 +65,7 @@ export const useConversationSearch = () => {
           )
         `)
         .eq('user_id', user.id)
+        .neq('mode', 'profile') // Exclude Profile conversations (internal use only)
         .ilike('messages.text', `%${query}%`)
         .order('created_at', { ascending: false })
         .limit(100); // Increased limit for better results

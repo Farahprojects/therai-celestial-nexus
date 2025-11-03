@@ -55,6 +55,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
         .from('conversations')
         .select('id, title, created_at')
         .eq('user_id', user.id)
+        .neq('mode', 'profile') // Exclude Profile conversations (internal use only)
         .order('created_at', { ascending: false })
         .limit(20); // Show last 20 conversations
 
@@ -104,11 +105,12 @@ export const SearchModal: React.FC<SearchModalProps> = ({
   const performSearch = async (searchQuery: string) => {
     setIsLoading(true);
     try {
-      // First, get all user's conversations
+      // First, get all user's conversations (excluding Profile conversations)
       const { data: conversations, error: convError } = await supabase
         .from('conversations')
         .select('id, title, created_at')
         .eq('user_id', user?.id)
+        .neq('mode', 'profile') // Exclude Profile conversations (internal use only)
         .order('created_at', { ascending: false });
 
       if (convError) {
