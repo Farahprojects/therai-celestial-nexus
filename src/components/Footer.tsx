@@ -31,7 +31,7 @@ const Footer = ({ hideMobileAstroToggle = false }: FooterProps) => {
   return (
     <footer className="bg-white border-t border-gray-200/50 text-gray-600 py-16">
       <div className="container mx-auto px-4">
-        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-8 md:gap-12 text-left">
+        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-8 md:gap-12 text-left">
           <div className="col-span-2 lg:col-span-1">
             <p className="text-sm mb-6 max-w-sm text-gray-500 leading-relaxed font-light">
               AI-powered insights that create momentum
@@ -61,16 +61,15 @@ const Footer = ({ hideMobileAstroToggle = false }: FooterProps) => {
           </div>
           
           <div>
-            <h3 className="font-medium text-gray-900 mb-6 tracking-tight">Product</h3>
+            <h3 className="font-medium text-gray-900 mb-6 tracking-tight">Company</h3>
             <ul className="space-y-4 text-sm">
-
               <li>
                 <Link 
-                  to="/" 
+                  to="/about" 
                   className="text-gray-500 hover:text-gray-900 transition-all duration-300 ease-out hover:translate-x-1 transform inline-block font-light group"
                 >
                   <span className="relative">
-                    Public Reports
+                    About Us
                     <span className="absolute -bottom-0.5 left-0 w-0 h-0.5 bg-gray-900 transition-all duration-300 ease-out group-hover:w-full"></span>
                   </span>
                 </Link>
@@ -82,23 +81,6 @@ const Footer = ({ hideMobileAstroToggle = false }: FooterProps) => {
                 >
                   <span className="relative">
                     Pricing
-                    <span className="absolute -bottom-0.5 left-0 w-0 h-0.5 bg-gray-900 transition-all duration-300 ease-out group-hover:w-full"></span>
-                  </span>
-                </Link>
-              </li>
-            </ul>
-          </div>
-          
-          <div>
-            <h3 className="font-medium text-gray-900 mb-6 tracking-tight">Company</h3>
-            <ul className="space-y-4 text-sm">
-              <li>
-                <Link 
-                  to="/about" 
-                  className="text-gray-500 hover:text-gray-900 transition-all duration-300 ease-out hover:translate-x-1 transform inline-block font-light group"
-                >
-                  <span className="relative">
-                    About Us
                     <span className="absolute -bottom-0.5 left-0 w-0 h-0.5 bg-gray-900 transition-all duration-300 ease-out group-hover:w-full"></span>
                   </span>
                 </Link>
