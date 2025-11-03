@@ -198,6 +198,16 @@ const MobileLanding: React.FC<Props> = ({ onGoogle, onApple }) => {
             <p className="text-lg text-gray-500 max-w-xl mx-auto leading-relaxed">
               Psychological insights that create momentum
             </p>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.8, duration: 0.8 }}
+              className="mt-6"
+            >
+              <p className="text-2xl font-light text-gray-900 italic">
+                e ≡ AΦ
+              </p>
+            </motion.div>
           </motion.div>
           
           <motion.div

@@ -99,6 +99,16 @@ const Index = () => {
                 <p className="text-xl text-gray-500 max-w-2xl mx-auto leading-relaxed">
                   Psychological insights that create momentum
                 </p>
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.8, duration: 0.8 }}
+                  className="mt-6"
+                >
+                  <p className="text-2xl md:text-3xl font-light text-gray-900 italic">
+                    e ≡ AΦ
+                  </p>
+                </motion.div>
               </motion.div>
 
               <motion.div
