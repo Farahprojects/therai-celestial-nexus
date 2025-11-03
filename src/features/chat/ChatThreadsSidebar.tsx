@@ -939,8 +939,8 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
 
       {/* Clean Footer - Sticky at bottom */}
       <div className="mt-auto pt-4 shrink-0">
-        {/* Usage Stats - Only show if authenticated and has usage data */}
-        {isAuthenticated && usage && (
+        {/* Usage Stats - Only show in development */}
+        {import.meta.env.DEV && isAuthenticated && usage && (
           <div className="px-3 py-2 mb-2 bg-gray-50 rounded-lg mx-3">
             <div className="text-xs text-gray-500 mb-2 font-medium">Monthly Usage</div>
             <div className="space-y-1.5">

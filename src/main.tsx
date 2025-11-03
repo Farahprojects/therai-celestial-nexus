@@ -17,20 +17,13 @@ if (typeof window !== 'undefined') {
   // One-time cleanup of old storage keys
   cleanupOldStorage();
   
-  // TEMPORARILY DISABLED: Enable full console logs in production for debugging
-  // if (process.env.NODE_ENV !== 'production') {
-  //   initDevConsoleFilter();
-  // }
-  console.log('[main.tsx] Console logging enabled in production for debugging');
+  // Enable console filter in development only
+  if (import.meta.env.DEV) {
+    initDevConsoleFilter();
+  }
   // Initialize unified auth manager AFTER window is available
   // Ensures Capacitor bridge is ready before platform detection
-  try { 
-    console.log('[main.tsx] Initializing authManager...');
-    initAuthManager(); 
-    console.log('[main.tsx] authManager initialized successfully');
-  } catch (error) {
-    console.error('[main.tsx] CRITICAL: authManager initialization failed:', error);
-  }
+  initAuthManager();
   createRoot(document.getElementById("root")!).render(
     <App />
   );

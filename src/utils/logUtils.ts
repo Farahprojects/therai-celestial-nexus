@@ -20,12 +20,12 @@ interface LogConfig {
 
 // Default configuration - can be overridden via localStorage
 const defaultConfig: LogConfig = {
-  enabled: true, // TEMPORARILY ENABLED IN PRODUCTION FOR DEBUGGING
+  enabled: import.meta.env.DEV, // Only enabled in development
   level: 'info',
   components: {
-    ReportForm: process.env.NODE_ENV === 'development', // Enable ReportForm logs only in development
+    ReportForm: import.meta.env.DEV, // Enable ReportForm logs only in development
     SuccessScreen: false, // Disable verbose SuccessScreen logs
-    orchestrator: true, // Keep orchestrator logs for debugging
+    orchestrator: false, // Disable orchestrator logs
     swissFormatter: false, // Disable verbose Swiss formatter logs
     pricing: false, // Disable verbose pricing logs
     auth: false, // Disable verbose auth logs
