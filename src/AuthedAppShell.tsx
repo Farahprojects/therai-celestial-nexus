@@ -10,6 +10,7 @@ import Contact from './pages/Contact';
 import About from './pages/About';
 import Legal from './pages/Legal';
 import Pricing from './pages/Pricing';
+import Support from './pages/Support';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useIsNativeApp } from '@/hooks/use-native-app';
 import SubscriptionPaywall from './pages/SubscriptionPaywall';
@@ -41,7 +42,7 @@ const AuthedAppShell: React.FC = () => {
       {/* Public routes */}
       <Route path="/about" element={<About />} />
       <Route path="/contact" element={<Contact />} />
-      <Route path="/support" element={<Navigate to="/contact" replace />} />
+      <Route path="/support" element={<Support />} />
       <Route path="/legal" element={<Legal />} />
       <Route path="/pricing" element={<Pricing />} />
       <Route path="/blog" element={<Blog />} />

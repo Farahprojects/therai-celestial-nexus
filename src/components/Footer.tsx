@@ -116,6 +116,17 @@ const Footer = ({ hideMobileAstroToggle = false }: FooterProps) => {
               </li>
               <li>
                 <Link 
+                  to="/support" 
+                  className="text-gray-500 hover:text-gray-900 transition-all duration-300 ease-out hover:translate-x-1 transform inline-block font-light group"
+                >
+                  <span className="relative">
+                    Support
+                    <span className="absolute -bottom-0.5 left-0 w-0 h-0.5 bg-gray-900 transition-all duration-300 ease-out group-hover:w-full"></span>
+                  </span>
+                </Link>
+              </li>
+              <li>
+                <Link 
                   to="/contact" 
                   className="text-gray-500 hover:text-gray-900 transition-all duration-300 ease-out hover:translate-x-1 transform inline-block font-light group"
                 >

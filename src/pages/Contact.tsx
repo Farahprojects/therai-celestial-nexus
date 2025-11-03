@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -12,6 +13,7 @@ import { validateEmail } from "@/utils/authValidation";
 import { supabase } from "@/integrations/supabase/client";
 
 const Contact = () => {
+  const [searchParams] = useSearchParams();
   
   const [formData, setFormData] = useState({
     name: "",
@@ -65,6 +67,17 @@ const Contact = () => {
       }
     }
   }, []);
+
+  // Pre-fill subject from URL parameter
+  useEffect(() => {
+    const subjectParam = searchParams.get('subject');
+    if (subjectParam) {
+      setFormData(prev => ({
+        ...prev,
+        subject: subjectParam
+      }));
+    }
+  }, [searchParams]);
 
   // Scroll to top when showing the thank you message
   useEffect(() => {
