@@ -1,16 +1,17 @@
+// @ts-nocheck - Deno runtime, types checked at deployment
 // Simplified, production-ready version
 // - Uses Deno.serve (no std/http dependency)
 // - Validates input and fails fast on missing env vars
 // - Single path for saving messages (role inferred)
 // - Awaits DB insert; fires LLM call asynchronously when needed
 // - Consistent JSON responses and CORS handling
-// - Dynamically routes to correct LLM handler based on system config
+// Dynamically routes to correct LLM handler based on system config
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getLLMHandler } from "../_shared/llmConfig.ts";
 
 const corsHeaders = {
-"Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Origin": "*",
 "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, accept",
 "Access-Control-Allow-Methods": "POST, OPTIONS",
 "Vary": "Origin"

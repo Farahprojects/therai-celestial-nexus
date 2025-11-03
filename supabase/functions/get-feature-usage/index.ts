@@ -1,4 +1,6 @@
+// @ts-nocheck - Deno runtime, types checked at deployment
 // Get Feature Usage - Returns current monthly usage for authenticated user
+
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { FEATURE_LIMITS } from "../_shared/featureLimits.ts";
 

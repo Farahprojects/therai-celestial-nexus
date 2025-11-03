@@ -1,3 +1,4 @@
+// @ts-nocheck - Deno runtime, types checked at deployment
 // Simplified, production-ready Google STT edge function
 // - Uses Deno.serve (no std/http import)
 // - Validates inputs, consistent CORS + JSON responses
