@@ -516,6 +516,9 @@ Deno.serve(async (req) => {
     (p: any) => p.functionCall
   )?.functionCall;
 
+  // Declare assistantText in outer scope so it's available after if/else
+  let assistantText = "";
+
   // Handle image generation tool call
   if (functionCall && functionCall.name === "generate_image") {
     console.log("[llm-handler-gemini] 🎨 Image generation requested:", functionCall.args?.prompt);
@@ -557,13 +560,13 @@ Deno.serve(async (req) => {
     }
   } else {
     // Extract assistant text normally if no tool call
-  try {
-    const parts = data?.candidates?.[0]?.content?.parts || [];
-    assistantText = parts.map((p: any) => p?.text || "").filter(Boolean).join(" ").trim();
-  } catch {
-    // ignore
-  }
-  if (!assistantText) return json(502, { error: "No response text from Gemini" });
+    try {
+      const parts = data?.candidates?.[0]?.content?.parts || [];
+      assistantText = parts.map((p: any) => p?.text || "").filter(Boolean).join(" ").trim();
+    } catch {
+      // ignore
+    }
+    if (!assistantText) return json(502, { error: "No response text from Gemini" });
   }
 
   // Sanitize text for TTS only (strip markdown for voice)
