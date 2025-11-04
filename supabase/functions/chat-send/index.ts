@@ -6,6 +6,7 @@
 // - Awaits DB insert; fires LLM call asynchronously when needed
 // - Consistent JSON responses and CORS handling
 // Dynamically routes to correct LLM handler based on system config
+// Updated: SEO improvements and routing fixes
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getLLMHandler } from "../_shared/llmConfig.ts";
@@ -327,13 +328,13 @@ determineLLMHandler().then((llmHandler) => {
     request_id: requestId,
     duration_ms: Date.now() - llmStartTime
   }));
-  }).catch((err) => {
-    console.error(JSON.stringify({
-      event: "chat_send_llm_failed",
-      request_id: requestId,
-      error: err instanceof Error ? err.message : String(err)
-    }));
-  });
+}).catch((err) => {
+  console.error(JSON.stringify({
+    event: "chat_send_llm_failed",
+    request_id: requestId,
+    error: err instanceof Error ? err.message : String(err)
+  }));
+});
 
   // Check if we should extract memory (profile-based conversation)
   if (shouldStartLLM) {
