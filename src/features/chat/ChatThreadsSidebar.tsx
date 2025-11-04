@@ -352,8 +352,8 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
         {conversationType !== 'swiss' && (
           <div className="space-y-1 p-2">
             <NewChatDropdown className="w-full font-light" />
-            <Button variant="ghost" className="w-full justify-start font-light" onClick={() => setShowSearchModal(true)}>
-              <Search className="w-4 h-4 mr-2" /> Search chat
+            <Button variant="ghost" className="w-full justify-start gap-2 px-3 py-1.5 text-sm font-light" onClick={() => setShowSearchModal(true)}>
+              <Search className="w-4 h-4" /> Search Chat
             </Button>
           </div>
         )}
