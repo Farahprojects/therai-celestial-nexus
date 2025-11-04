@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { MessageCircle, Orbit, Sparkles, MoreHorizontal, Search, Blend } from 'lucide-react';
+import { MessageCircle, Orbit, Sparkles, MoreHorizontal, Search, Image } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { useChatStore } from '@/core/store';
@@ -21,6 +21,7 @@ import { AuthModal } from '@/components/auth/AuthModal';
 import { SearchModal } from '@/components/search/SearchModal';
 import { AddFolderButton } from '@/components/folders/AddFolderButton';
 import { NewChatDropdown } from '@/components/chat/NewChatDropdown';
+import { ImageGallery } from '@/components/chat/ImageGallery';
 import { FoldersList } from '@/components/folders/FoldersList';
 import { FolderModal } from '@/components/folders/FolderModal';
 import { useSettingsModal } from '@/contexts/SettingsModalContext';
@@ -158,6 +159,7 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showSearchModal, setShowSearchModal] = useState(false);
   const [showFolderModal, setShowFolderModal] = useState(false);
+  const [showImageGallery, setShowImageGallery] = useState(false);
   const [editingFolder, setEditingFolder] = useState<{ id: string; name: string } | null>(null);
   const [conversationToMoveToNewFolder, setConversationToMoveToNewFolder] = useState<string | null>(null);
   const [editTitleFor, setEditTitleFor] = useState<string | null>(null);
@@ -355,6 +357,9 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
             <Button variant="ghost" className="w-full justify-start gap-2 px-3 py-1.5 text-sm font-light" onClick={() => setShowSearchModal(true)}>
               <Search className="w-4 h-4" /> Search Chat
             </Button>
+            <Button variant="ghost" className="w-full justify-start gap-2 px-3 py-1.5 text-sm font-light" onClick={() => setShowImageGallery(true)}>
+              <Image className="w-4 h-4" /> Images
+            </Button>
           </div>
         )}
 
@@ -499,6 +504,7 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
       {/* Modals */}
       <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} defaultMode="login" />
       <SearchModal isOpen={showSearchModal} onClose={() => setShowSearchModal(false)} onSelectMessage={(chatId) => switchToChat(chatId)} />
+      <ImageGallery isOpen={showImageGallery} onClose={() => setShowImageGallery(false)} />
 
       <FolderModal
         isOpen={showFolderModal}

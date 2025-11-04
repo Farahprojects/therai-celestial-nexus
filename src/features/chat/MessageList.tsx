@@ -42,6 +42,38 @@ const AssistantMessage = React.memo(({ message }: { message: Message }) => {
   const displayText = isAnimating ? animatedText : text || '';
   const isTogetherModeAnalysis = meta?.together_mode_analysis === true;
 
+  // 🆕 ADD IMAGE DETECTION
+  const isImageMessage = meta?.message_type === 'image';
+  const imageUrl = meta?.image_url;
+  const imagePrompt = meta?.image_prompt;
+
+  // 🆕 RENDER IMAGE IF PRESENT
+  if (isImageMessage && imageUrl) {
+    return (
+      <div className="flex items-end gap-3 justify-start mb-8">
+        <div className="rounded-2xl max-w-2xl overflow-hidden">
+          <img 
+            src={imageUrl} 
+            alt={imagePrompt || 'Generated image'}
+            className="w-full rounded-xl shadow-md hover:shadow-lg transition-shadow cursor-pointer"
+            onClick={() => window.open(imageUrl, '_blank')}
+            loading="lazy"
+          />
+          {imagePrompt && (
+            <p className="text-xs text-gray-600 mt-2 px-2 italic font-light">
+              "{imagePrompt}"
+            </p>
+          )}
+          {text && (
+            <div className="px-2 mt-2 text-sm font-light text-gray-700">
+              {text}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex items-end gap-3 justify-start mb-8">
       <div className="px-4 py-3 rounded-2xl max-w-2xl lg:max-w-4xl text-black">
@@ -80,12 +112,14 @@ const AssistantMessage = React.memo(({ message }: { message: Message }) => {
     </div>
   );
 }, (prevProps, nextProps) => {
-  // Re-render if text, id, or source changed (new message or updated message)
+  // Re-render if text, id, source, or image meta changed
   return prevProps.message.id === nextProps.message.id && 
          prevProps.message.text === nextProps.message.text &&
          prevProps.message.pending === nextProps.message.pending &&
          prevProps.message.source === nextProps.message.source &&
-         prevProps.message.meta?.together_mode_analysis === nextProps.message.meta?.together_mode_analysis;
+         prevProps.message.meta?.together_mode_analysis === nextProps.message.meta?.together_mode_analysis &&
+         prevProps.message.meta?.message_type === nextProps.message.meta?.message_type &&
+         prevProps.message.meta?.image_url === nextProps.message.meta?.image_url;
 });
 AssistantMessage.displayName = 'AssistantMessage';
 

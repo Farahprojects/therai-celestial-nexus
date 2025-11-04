@@ -435,6 +435,28 @@ Deno.serve(async (req) => {
     thinkingConfig: { thinkingBudget: 0 }
   };
 
+  // Add image generation tool
+  requestBody.tools = [
+    {
+      functionDeclarations: [
+        {
+          name: "generate_image",
+          description: "Generate an AI image based on a text prompt. Use this when the user explicitly asks to create, generate, or visualize an image.",
+          parameters: {
+            type: "object",
+            properties: {
+              prompt: {
+                type: "string",
+                description: "Detailed description of the image to generate"
+              }
+            },
+            required: ["prompt"]
+          }
+        }
+      ]
+    }
+  ];
+
   // Make Gemini API call
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), GEMINI_TIMEOUT_MS);
@@ -484,15 +506,60 @@ Deno.serve(async (req) => {
 
   const llmLatencyMs = Date.now() - llmStartedAt;
 
-  // Extract assistant text
-  let assistantText = "";
-  try {
-    const parts = data?.candidates?.[0]?.content?.parts || [];
-    assistantText = parts.map((p: any) => p?.text || "").filter(Boolean).join(" ").trim();
-  } catch {
-    // ignore
+  // Check if Gemini wants to call a tool
+  const functionCall = data?.candidates?.[0]?.content?.parts?.find(
+    (p: any) => p.functionCall
+  )?.functionCall;
+
+  // Handle image generation tool call
+  if (functionCall && functionCall.name === "generate_image") {
+    console.log("[llm-handler-gemini] 🎨 Image generation requested:", functionCall.args?.prompt);
+    
+    try {
+      // Call image-generate edge function
+      const imageGenResponse = await fetch(`${SUPABASE_URL}/functions/v1/image-generate`, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          chat_id,
+          prompt: functionCall.args?.prompt || "",
+          user_id,
+          mode
+        })
+      });
+      
+      if (!imageGenResponse.ok) {
+        const errorData = await imageGenResponse.json().catch(() => ({}));
+        if (imageGenResponse.status === 429) {
+          console.log("[llm-handler-gemini] ⚠️ Rate limit hit for image generation");
+          // Return a message about the rate limit instead of continuing
+          assistantText = "I've reached the daily limit of 3 images. You can generate more images tomorrow!";
+        } else {
+          console.error("[llm-handler-gemini] ❌ Image generation failed:", errorData);
+          assistantText = "I tried to generate an image but encountered an error. Please try again.";
+        }
+      } else {
+        // The image-generate function creates the message with proper meta
+        // Return confirmation
+        assistantText = `I've generated the image for you.`;
+      }
+    } catch (error) {
+      console.error("[llm-handler-gemini] ❌ Image generation exception:", error);
+      assistantText = "I tried to generate an image but encountered an error. Please try again.";
+    }
+  } else {
+    // Extract assistant text normally if no tool call
+    try {
+      const parts = data?.candidates?.[0]?.content?.parts || [];
+      assistantText = parts.map((p: any) => p?.text || "").filter(Boolean).join(" ").trim();
+    } catch {
+      // ignore
+    }
+    if (!assistantText) return json(502, { error: "No response text from Gemini" });
   }
-  if (!assistantText) return json(502, { error: "No response text from Gemini" });
 
   // Sanitize text for TTS only (strip markdown for voice)
   const sanitizedTextForTTS = sanitizePlainText(assistantText) || assistantText;
