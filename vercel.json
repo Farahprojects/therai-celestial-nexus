@@ -3,7 +3,7 @@
   "installCommand": "npm install",
   "rewrites": [
     {
-      "source": "/:path*",
+      "source": "/((?!sitemap|robots|favicon|.*\\.(xml|txt|ico|png|jpg|jpeg|gif|svg|webp|css|js|woff|woff2|ttf|eot|json)).*)",
       "destination": "/"
     }
   ],

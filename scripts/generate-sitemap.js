@@ -97,11 +97,18 @@ async function generateSitemap() {
 
   sitemap += `</urlset>`;
 
-  // Write to public directory
-  const sitemapPath = path.join(process.cwd(), 'public', 'sitemap.xml');
-  fs.writeFileSync(sitemapPath, sitemap, 'utf8');
+  // Write to public directory (for dev and prebuild)
+  const publicPath = path.join(process.cwd(), 'public', 'sitemap.xml');
+  fs.writeFileSync(publicPath, sitemap, 'utf8');
+  console.log(`✅ Sitemap generated at ${publicPath}`);
 
-  console.log(`✅ Sitemap generated successfully at ${sitemapPath}`);
+  // Also write to dist directory if it exists (for postbuild)
+  const distPath = path.join(process.cwd(), 'dist', 'sitemap.xml');
+  if (fs.existsSync(path.join(process.cwd(), 'dist'))) {
+    fs.writeFileSync(distPath, sitemap, 'utf8');
+    console.log(`✅ Sitemap also written to ${distPath}`);
+  }
+
   console.log(`   - ${staticPages.length} static pages`);
   console.log(`   - ${blogPosts.length} blog posts`);
   console.log(`   - Total: ${staticPages.length + blogPosts.length} URLs`);

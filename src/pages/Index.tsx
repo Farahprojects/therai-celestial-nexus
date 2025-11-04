@@ -48,8 +48,6 @@ const Index = () => {
   return (
     <>
       <SEO
-        title="AI-Driven Astrology Reports | Unlock Your Personal Insight"
-        description="Discover your cosmic blueprint with AI-powered astrology reports. Get personalized insights based on your birth chart, transits, and compatibility analysis."
         url="/"
       />
       <div className="flex min-h-screen flex-col bg-white">
