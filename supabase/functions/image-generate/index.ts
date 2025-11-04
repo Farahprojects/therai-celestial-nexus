@@ -121,6 +121,9 @@ Deno.serve(async (req) => {
   }
 
   // Call Google Imagen 4 API via Gemini endpoint
+  // NOTE: If this fails, we may need to use Vertex AI endpoint instead:
+  // https://us-central1-aiplatform.googleapis.com/v1/projects/{PROJECT}/locations/us-central1/publishers/google/models/imagen-4.0-generate-001:predict
+  // Also check if model name should be: imagen-4.0-generate-preview-06-06 or imagen-4.0-generate-001
   const generationStartTime = Date.now();
   const imagenUrl = `https://generativelanguage.googleapis.com/v1beta/models/imagen-4.0-generate-001:generateContent`;
 
@@ -155,16 +158,30 @@ Deno.serve(async (req) => {
         event: "image_generate_api_failed",
         request_id: requestId,
         status: response.status,
-        error: errorText
+        statusText: response.statusText,
+        url: imagenUrl,
+        headers: Object.fromEntries(response.headers.entries()),
+        error: errorText,
+        full_error: errorText.substring(0, 2000) // Log first 2000 chars
       }));
-      return json(502, { error: `Imagen API failed: ${response.status} - ${errorText}` });
+      return json(502, { 
+        error: `Imagen API failed: ${response.status} - ${errorText}`,
+        details: {
+          status: response.status,
+          statusText: response.statusText,
+          url: imagenUrl,
+          error: errorText.substring(0, 500)
+        }
+      });
     }
 
     imageData = await response.json();
     console.info(JSON.stringify({
       event: "image_generate_api_success",
       request_id: requestId,
-      duration_ms: Date.now() - generationStartTime
+      duration_ms: Date.now() - generationStartTime,
+      response_keys: Object.keys(imageData),
+      response_structure: JSON.stringify(imageData).substring(0, 1000) // Log first 1000 chars of response
     }));
   } catch (error) {
     console.error(JSON.stringify({
@@ -175,15 +192,33 @@ Deno.serve(async (req) => {
     return json(504, { error: `Imagen API error: ${error instanceof Error ? error.message : String(error)}` });
   }
 
-  // Extract base64 image from response
-  const base64Image = imageData?.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+  // Extract base64 image from response - try multiple possible response formats
+  let base64Image = imageData?.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+  
+  // Alternative response format: check for bytesBase64Encoded (Vertex AI format)
+  if (!base64Image) {
+    base64Image = imageData?.predictions?.[0]?.bytesBase64Encoded;
+  }
+  
+  // Another alternative: check for imageData field
+  if (!base64Image) {
+    base64Image = imageData?.imageData;
+  }
+  
   if (!base64Image) {
     console.error(JSON.stringify({
       event: "image_generate_no_image_in_response",
       request_id: requestId,
-      response_structure: JSON.stringify(imageData).substring(0, 500)
+      full_response: JSON.stringify(imageData),
+      response_keys: Object.keys(imageData || {}),
+      candidates_structure: imageData?.candidates ? JSON.stringify(imageData.candidates) : 'no candidates',
+      predictions_structure: imageData?.predictions ? JSON.stringify(imageData.predictions) : 'no predictions'
     }));
-    return json(502, { error: "No image data in API response" });
+    return json(502, { 
+      error: "No image data in API response",
+      response_structure: JSON.stringify(imageData).substring(0, 2000),
+      note: "Please check the actual response format from Imagen API"
+    });
   }
 
   // Decode base64 to Uint8Array
