@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { MessageCircle, Orbit, Sparkles, MoreHorizontal, Search } from 'lucide-react';
+import { MessageCircle, Orbit, Sparkles, MoreHorizontal, Search, Blend } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { useChatStore } from '@/core/store';
@@ -419,6 +419,7 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
                       <div className="flex items-center gap-2">
                         {c.mode === 'insight' && <Sparkles className="w-4 h-4 text-gray-600" />}
                         {c.mode === 'astro' && <Orbit className="w-4 h-4 text-gray-600" />}
+                        {c.mode === 'together' && <Blend className="w-4 h-4 text-gray-600" />}
                         {(c.mode === 'chat' || !c.mode) && <MessageCircle className="w-4 h-4 text-gray-600" />}
                         <div className="text-sm font-medium text-gray-900 truncate" title={c.title || draftTitle}>{c.title || draftTitle}</div>
                         {isSharedThread(c) && (

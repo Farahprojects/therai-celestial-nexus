@@ -5,7 +5,7 @@ export interface ConversationMode {
   id: string;
   name: string;
   description: string;
-  icon: 'MessageCircle' | 'Sparkles' | 'Bell' | 'Target';
+  icon: 'MessageCircle' | 'Blend' | 'Bell' | 'Target';
   requires_compatibility: boolean;
   enabled: boolean; // false = placeholder for future implementation
 }
@@ -23,7 +23,7 @@ export const CONVERSATION_MODES: ConversationMode[] = [
     id: 'together',
     name: 'Together Mode',
     description: 'Invite @therai for relationship insights',
-    icon: 'Sparkles',
+    icon: 'Blend',
     requires_compatibility: true,
     enabled: true // ONLY THIS ONE WORKS IN PHASE 1
   },
