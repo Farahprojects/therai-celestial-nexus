@@ -13,6 +13,7 @@ declare const Deno: {
 
 // @ts-ignore - ESM import works in Deno runtime
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { fetchAndFormatMemories, updateMemoryUsage } from '../_shared/memoryInjection.ts';
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -33,7 +34,7 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 const GOOGLE_API_KEY = Deno.env.get("GOOGLE-LLM-NEW");
 const GEMINI_MODEL = Deno.env.get("GEMINI_MODEL") || "gemini-2.5-flash";
 const GEMINI_TIMEOUT_MS = 30000;
-const SUMMARY_INTERVAL = 12; // Generate summary every 12 turns
+const SUMMARY_INTERVAL = 4; // Generate summary every 4 turns
 
 if (!SUPABASE_URL) throw new Error("Missing env: SUPABASE_URL");
 if (!SUPABASE_SERVICE_ROLE_KEY) throw new Error("Missing env: SUPABASE_SERVICE_ROLE_KEY");
@@ -253,12 +254,14 @@ Deno.serve(async (req) => {
   let conversationSummary = "";
   let currentTurnCount = 0;
   let lastSummaryTurn = 0;
+  let memoryContext = "";
+  let memoryIds: string[] = [];
 
   try {
     console.log(`[llm-handler-gemini] ⏱️  Starting context fetch (+${Date.now() - totalStartTime}ms)`);
 
-    // Parallel fetch: cache status, system message, conversation metadata, summary, and history
-    const [cacheResult, systemMessageResult, conversationResult, summaryResult, historyResult] = await Promise.all([
+    // Parallel fetch: cache status, system message, conversation metadata, summary, history, and memories
+    const [cacheResult, systemMessageResult, conversationResult, summaryResult, historyResult, memoryResult] = await Promise.all([
       // Check if cache exists (include hash for validation)
       supabase
         .from("conversation_caches")
@@ -366,6 +369,10 @@ Deno.serve(async (req) => {
     console.warn("[llm-handler-gemini] Context fetch exception:", e?.message || String(e));
   }
 
+  // Fetch memories
+  const { memoryContext, memoryIds } = await fetchAndFormatMemories(supabase, chat_id);
+  console.log(`[llm-handler-gemini] 📝 Loaded ${memoryIds.length} memories`);
+
   // Build Gemini request contents (oldest -> newest)
   type GeminiContent = {
     role: "user" | "model";
@@ -408,9 +415,17 @@ Deno.serve(async (req) => {
     requestBody.cachedContent = cacheName;
   } else {
     // Fallback: include system instruction directly (bookend with prompt for better attention)
-    const combinedSystemInstruction = systemText
-      ? `${systemPrompt}\n\n[System Data]\n${systemText}\n\n[CRITICAL: Remember Your Instructions]\n${systemPrompt}`
+    let combinedSystemInstruction = systemText
+      ? `${systemPrompt}\n\n[System Data]\n${systemText}`
       : systemPrompt;
+    
+    // Inject memory context
+    if (memoryContext) {
+      combinedSystemInstruction += `\n\n<user_memory>\nKey information about this user from past conversations:\n${memoryContext}\n</user_memory>`;
+    }
+    
+    combinedSystemInstruction += `\n\n[CRITICAL: Remember Your Instructions]\n${systemPrompt}`;
+    
     requestBody.system_instruction = {
       role: "system",
       parts: [{ text: combinedSystemInstruction }]
@@ -621,8 +636,15 @@ Deno.serve(async (req) => {
 
   Promise.allSettled(tasks).catch(() => { });
 
+  // Update memory usage (fire-and-forget)
+  if (memoryIds.length > 0) {
+    updateMemoryUsage(supabase, memoryIds).catch(e => 
+      console.error('[memory] Update failed:', e)
+    );
+  }
+
   const totalLatencyMs = Date.now() - startedAt;
-  console.log(`[llm-handler-gemini] ⏱️  Returning response (+${Date.now() - totalStartTime}ms) TOTAL - LLM: ${llmLatencyMs}ms`);
+  console.log(`[llm-handler-gemini] ⏱️  Returning response (+${Date.now() - totalStartTime}ms) TOTAL - LLM: ${llmLatencyMs}ms - Memories: ${memoryIds.length}`);
 
   return json(200, {
     text: assistantText,

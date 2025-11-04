@@ -78,9 +78,49 @@ auth: { persistSession: false, autoRefreshToken: false },
 
 // Handlers
 const handlers: Record<string, (ctx: HandlerCtx) => Promise<Response>> = {
+// Update conversation profile (link primary profile for memory tracking)
+async update_conversation_profile({ admin, body, userId }: HandlerCtx) {
+  const { conversation_id, profile_id } = body;
+  if (!conversation_id) return errorJson('conversation_id is required');
+  if (!profile_id) return errorJson('profile_id is required');
+
+  // Verify profile belongs to user and is primary
+  const { data: profile, error: profileError } = await admin
+    .from('user_profile_list')
+    .select('user_id, is_primary')
+    .eq('id', profile_id)
+    .single();
+
+  if (profileError || !profile) {
+    return errorJson('Profile not found', 404);
+  }
+
+  if (profile.user_id !== userId) {
+    return errorJson('Profile does not belong to user', 403);
+  }
+
+  if (!profile.is_primary) {
+    return errorJson('Only primary profile can be linked for memory tracking', 400);
+  }
+
+  // Update conversation
+  const { error: updateError } = await admin
+    .from('conversations')
+    .update({ profile_id })
+    .eq('id', conversation_id)
+    .eq('user_id', userId);
+
+  if (updateError) {
+    console.error('[update_conversation_profile] Update failed:', updateError);
+    return errorJson('Failed to update conversation', 500);
+  }
+
+  return json({ success: true, profile_id });
+},
+
 // Create a new conversation
 async create_conversation({ req, admin, body, userId }: HandlerCtx) {
-const { title, mode, report_data, email, name, profile_mode } = body;
+const { title, mode, report_data, email, name, profile_mode, profile_id } = body;
 if (!mode) return errorJson('mode is required for conversation creation');
 
 // Check if profile_mode flag is present
@@ -130,6 +170,7 @@ const { data, error } = await admin
     owner_user_id: userId,
     title: isProfileMode ? 'Profile' : (title || 'New Conversation'),
     mode: isProfileMode ? 'profile' : mode,
+    profile_id: profile_id || null,
     meta,
   })
   .select()

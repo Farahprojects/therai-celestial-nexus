@@ -238,6 +238,7 @@ meta: {}
 // ⚡ FIRE-AND-FORGET: Start LLM immediately (non-blocking)
 // For "together" mode, only trigger LLM if @therai is present (analyze = true)
 let shouldStartLLM = role === "user" && chattype !== "voice";
+let shouldExtractMemory = false;
 
 if (shouldStartLLM) {
   // Check conversation mode to determine if we should skip LLM
@@ -326,13 +327,26 @@ determineLLMHandler().then((llmHandler) => {
     request_id: requestId,
     duration_ms: Date.now() - llmStartTime
   }));
-}).catch((err) => {
-  console.error(JSON.stringify({
-    event: "chat_send_llm_failed",
-    request_id: requestId,
-    error: err instanceof Error ? err.message : String(err)
-  }));
-});
+  }).catch((err) => {
+    console.error(JSON.stringify({
+      event: "chat_send_llm_failed",
+      request_id: requestId,
+      error: err instanceof Error ? err.message : String(err)
+    }));
+  });
+
+  // Check if we should extract memory (profile-based conversation)
+  if (shouldStartLLM) {
+    const { data: convCheck } = await supabase
+      .from('conversations')
+      .select('profile_id')
+      .eq('id', chat_id)
+      .single();
+    
+    if (convCheck?.profile_id) {
+      shouldExtractMemory = true;
+    }
+  }
 }
 
 // ⚡ AWAIT DB insert to ensure message is saved before returning
@@ -341,9 +355,11 @@ console.info(JSON.stringify({
   request_id: requestId
 }));
 
-const { error: dbError } = await supabase
+const { data: insertedMessage, error: dbError } = await supabase
   .from("messages")
-  .insert(message);
+  .insert(message)
+  .select("id")
+  .single();
 
 if (dbError) {
   console.error(JSON.stringify({
@@ -360,6 +376,28 @@ console.info(JSON.stringify({
   duration_ms: Date.now() - startTime
 }));
 
+// Trigger memory extraction if needed (fire-and-forget)
+if (shouldExtractMemory && insertedMessage?.id) {
+  fetch(`${SUPABASE_URL}/functions/v1/extract-user-memory`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`
+    },
+    body: JSON.stringify({
+      conversation_id: chat_id,
+      message_id: insertedMessage.id,
+      user_id: user_id
+    })
+  }).catch(err => {
+    console.error(JSON.stringify({
+      event: "memory_extraction_trigger_failed",
+      request_id: requestId,
+      error: err instanceof Error ? err.message : String(err)
+    }));
+  });
+}
+
 // Flush logs before returning response
 await new Promise(r => setTimeout(r, 50));
 
@@ -369,7 +407,8 @@ console.info(JSON.stringify({
   request_id: requestId,
   total_duration_ms: Date.now() - startTime,
   role,
-  llm_started: shouldStartLLM
+  llm_started: shouldStartLLM,
+  memory_extraction_started: shouldExtractMemory
 }));
 
 return json(200, {

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogClose, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { X, User, Bell, LifeBuoy, Settings as SettingsIcon, LogOut, Trash2, CreditCard, ArrowLeft, Users, Zap } from "lucide-react";
+import { X, User, Bell, LifeBuoy, Settings as SettingsIcon, LogOut, Trash2, CreditCard, ArrowLeft, Users, Zap, Brain } from "lucide-react";
 import { useSettingsModal } from "@/contexts/SettingsModalContext";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { AccountSettingsPanel } from "./account/AccountSettingsPanel";
@@ -13,6 +13,7 @@ import { ProfilesPanel } from "./panels/ProfilesPanel";
 import { VoiceSelectionPanel } from "./VoiceSelectionPanel";
 import DisplayNamePanel from "./panels/DisplayNamePanel";
 import { BillingPanel } from "./panels/BillingPanel";
+import { MemoryPanel } from "./panels/MemoryPanel";
 import { SignInPrompt } from "@/components/auth/SignInPrompt";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSubscription } from "@/contexts/SubscriptionContext";
@@ -89,6 +90,7 @@ export const SettingsModal = () => {
     ...(user ? [
       { id: "account", label: "Account Settings", icon: User },
       { id: "profiles", label: "Profiles", icon: Users },
+      { id: "memory", label: "Memory", icon: Brain },
       { id: "billing", label: "Billing", icon: CreditCard },
       { id: "notifications", label: "Notifications", icon: Bell },
     ] : []),
@@ -160,6 +162,7 @@ export const SettingsModal = () => {
       </TabsContent>
       <TabsContent value="account"><AccountSettingsPanel /></TabsContent>
       <TabsContent value="profiles"><ProfilesPanel /></TabsContent>
+      <TabsContent value="memory"><MemoryPanel /></TabsContent>
       <TabsContent value="billing"><BillingPanel /></TabsContent>
       <TabsContent value="notifications"><NotificationsPanel /></TabsContent>
       <TabsContent value="support"><ContactSupportPanel /></TabsContent>

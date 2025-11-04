@@ -103,6 +103,14 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
 
       if (profileError) throw profileError;
 
+      // Get the profile_id for memory linking
+      const { data: createdProfile } = await supabase
+        .from('user_profile_list')
+        .select('id')
+        .eq('user_id', user?.id)
+        .eq('is_primary', true)
+        .single();
+
       // Create conversation with profile_mode flag to generate chart data
       // Convert camelCase to snake_case and structure as person_a (same as buildReportPayload)
       const { data: conversation, error: convError } = await supabase.functions.invoke(
@@ -113,6 +121,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
             title: 'Profile',
             mode: 'profile', // Set mode to "profile"
             profile_mode: true, // KEY FLAG
+            profile_id: createdProfile?.id, // Link profile for memory tracking
             report_data: {
               request: 'essence', // translator-edge requires 'request' field
               // Note: reportType is NOT included - it's only for insights mode, not profile mode
