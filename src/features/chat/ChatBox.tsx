@@ -293,7 +293,7 @@ export const ChatBox: React.FC<ChatBoxProps> = ({ onDelete }) => {
                       {error}
                     </div>
                   )}
-                  <div className="border-t border-gray-100">
+                  <div>
                     <ChatInput />
                   </div>
                 </div>
