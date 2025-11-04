@@ -5,6 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Logo from '@/components/Logo';
 import { supabase } from '@/integrations/supabase/client';
+import { SEO } from '@/components/SEO';
 
 interface PricingData {
   id: string;
@@ -82,8 +83,35 @@ const Pricing: React.FC = () => {
     navigate('/login');
   };
 
+  const pricingStructuredData = {
+    '@context': 'https://schema.org',
+    '@type': 'Product',
+    name: 'Therai Astrology Subscription',
+    description: 'AI-powered astrology reports and insights with multiple subscription tiers',
+    url: 'https://therai.co/pricing',
+    offers: {
+      '@type': 'AggregateOffer',
+      offerCount: pricingPlans.length,
+      offers: pricingPlans.map(plan => ({
+        '@type': 'Offer',
+        price: plan.unit_price_usd,
+        priceCurrency: 'USD',
+        availability: 'https://schema.org/InStock',
+        url: 'https://therai.co/pricing',
+      })),
+    },
+  };
+
   return (
-    <div className="min-h-screen flex flex-col bg-white">
+    <>
+      <SEO
+        title="Pricing | Astrology Reports & AI Insights | Therai"
+        description="Choose the perfect plan for your astrological journey. From AI-powered birth chart reports to compatibility analysis, find the right subscription tier for you."
+        keywords="astrology pricing, astrology subscription, birth chart pricing, astrology app cost, AI astrology reports pricing"
+        url="/pricing"
+        structuredData={pricingStructuredData}
+      />
+      <div className="min-h-screen flex flex-col bg-white">
       <header className="w-full py-8 flex justify-center border-b border-gray-100">
         <Logo size="md" />
       </header>
@@ -174,10 +202,11 @@ const Pricing: React.FC = () => {
         </div>
       </main>
 
-      <footer className="py-8 text-center text-sm text-gray-500 font-light">
-        © {new Date().getFullYear()} therai. All rights reserved.
-      </footer>
-    </div>
+        <footer className="py-8 text-center text-sm text-gray-500 font-light">
+          © {new Date().getFullYear()} therai. All rights reserved.
+        </footer>
+      </div>
+    </>
   );
 };
 

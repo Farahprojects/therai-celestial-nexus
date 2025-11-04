@@ -4,11 +4,19 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Star, Award, Rocket, Linkedin } from "lucide-react";
 import { normalizeStorageUrl } from "@/utils/storageUtils";
+import { SEO } from "@/components/SEO";
 
 const About = () => {
   return (
-    <div className="flex flex-col min-h-screen">
-      <Navbar />
+    <>
+      <SEO
+        title="About Us | Revolutionizing Astrological Technology | Therai"
+        description="Learn about Therai's mission to revolutionize astrological technology through advanced AI and innovative solutions. Building the future of astrology."
+        keywords="about therai, astrology technology, AI astrology, astrological software, astrology company"
+        url="/about"
+      />
+      <div className="flex flex-col min-h-screen">
+        <Navbar />
       
       <main className="flex-grow">
         {/* Header Section with Theme Color Gradient */}
@@ -157,8 +165,9 @@ const About = () => {
         </section>
       </main>
       
-      <Footer />
-    </div>
+        <Footer />
+      </div>
+    </>
   );
 };
 

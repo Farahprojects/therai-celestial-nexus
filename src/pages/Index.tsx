@@ -7,6 +7,7 @@ import UnifiedNavigation from '@/components/UnifiedNavigation';
 import Footer from '@/components/Footer';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLandingPageImages } from '@/hooks/useLandingPageImages';
+import { SEO } from '@/components/SEO';
 
 /**
  * Desktop Landing / Index page with Know Your [Self, Mind, Bae, Soul, Will] hero
@@ -45,8 +46,14 @@ const Index = () => {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-white">
-      <UnifiedNavigation />
+    <>
+      <SEO
+        title="AI-Driven Astrology Reports | Unlock Your Personal Insight"
+        description="Discover your cosmic blueprint with AI-powered astrology reports. Get personalized insights based on your birth chart, transits, and compatibility analysis."
+        url="/"
+      />
+      <div className="flex min-h-screen flex-col bg-white">
+        <UnifiedNavigation />
 
       <main className="flex-grow overflow-hidden">
         {/* Hero Section with Know Your [rotating words] */}

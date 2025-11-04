@@ -11,6 +11,7 @@ import { showToast } from "@/utils/notifications";
 
 import { validateEmail } from "@/utils/authValidation";
 import { supabase } from "@/integrations/supabase/client";
+import { SEO } from "@/components/SEO";
 
 const Contact = () => {
   const [searchParams] = useSearchParams();
@@ -234,9 +235,16 @@ const Contact = () => {
   );
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <Navbar />
-      <main className="flex-grow">
+    <>
+      <SEO
+        title="Contact Us | Get in Touch | Therai"
+        description="Reach out to Therai about partnerships, support, or anything else we can help with. We're here to assist you on your astrological journey."
+        keywords="contact therai, astrology support, astrology help, partnership inquiry, customer support"
+        url="/contact"
+      />
+      <div className="flex min-h-screen flex-col">
+        <Navbar />
+        <main className="flex-grow">
         {submitted ? (
           <ThankYouMessage />
         ) : (
@@ -373,9 +381,10 @@ const Contact = () => {
             </section>
           </>
         )}
-      </main>
-      <Footer />
-    </div>
+        </main>
+        <Footer />
+      </div>
+    </>
   );
 };
 

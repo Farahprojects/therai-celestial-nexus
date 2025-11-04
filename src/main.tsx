@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { createRoot } from 'react-dom/client';
+import { HelmetProvider } from 'react-helmet-async';
 import App from './App';
 import { initAuthManager } from './services/authManager';
 import './index.css';
@@ -25,6 +26,8 @@ if (typeof window !== 'undefined') {
   // Ensures Capacitor bridge is ready before platform detection
   initAuthManager();
   createRoot(document.getElementById("root")!).render(
-    <App />
+    <HelmetProvider>
+      <App />
+    </HelmetProvider>
   );
 }

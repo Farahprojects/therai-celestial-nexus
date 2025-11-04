@@ -7,6 +7,7 @@ import Footer from '@/components/Footer';
 import { BlogGrid } from '@/components/blog/BlogGrid';
 import { BlogContentFilter } from '@/components/blog/BlogContentFilter';
 import { TheraLoader } from '@/components/ui/TheraLoader';
+import { SEO } from '@/components/SEO';
 
 const Blog = () => {
   const [activeFilter, setActiveFilter] = useState('all');
@@ -51,9 +52,33 @@ const Blog = () => {
     news: posts?.filter(p => p.content_type === 'news').length || 0,
   };
 
+  const blogStructuredData = {
+    '@context': 'https://schema.org',
+    '@type': 'Blog',
+    name: 'Therai Blog',
+    description: 'Astrological insights, app tutorials, and guides to deepen your understanding',
+    url: 'https://therai.co/blog',
+    publisher: {
+      '@type': 'Organization',
+      name: 'Therai',
+      logo: {
+        '@type': 'ImageObject',
+        url: 'https://api.therai.co/storage/v1/object/public/therai-assets/logowhite.jpeg',
+      },
+    },
+  };
+
   return (
-    <div className="flex min-h-screen flex-col bg-white">
-      <UnifiedNavigation />
+    <>
+      <SEO
+        title="Blog | Astrological Insights & App Tutorials | Therai"
+        description="Discover astrological insights, app tutorials, and guides to deepen your understanding of astrology and get the most out of Therai."
+        keywords="astrology blog, astrology guides, astrology tutorials, birth chart guide, astrology app, natal chart tutorial"
+        url="/blog"
+        structuredData={blogStructuredData}
+      />
+      <div className="flex min-h-screen flex-col bg-white">
+        <UnifiedNavigation />
 
       <main className="flex-grow">
         {/* Hero Section */}
@@ -92,8 +117,9 @@ const Blog = () => {
         </section>
       </main>
 
-      <Footer />
-    </div>
+        <Footer />
+      </div>
+    </>
   );
 };
 
