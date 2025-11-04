@@ -156,10 +156,11 @@ const Index = () => {
             </motion.div>
           </div>
         </section>
-      </main>
+        </main>
 
-      <Footer />
-    </div>
+        <Footer />
+      </div>
+    </>
   );
 };
 
