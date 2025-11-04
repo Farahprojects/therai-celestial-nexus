@@ -7,6 +7,7 @@ import { FAQSection } from '@/components/support/FAQSection';
 import { Button } from '@/components/ui/button';
 import { supportCategories, faqData, SupportCategory, FAQItem } from '@/constants/supportContent';
 import { HelpCircle } from 'lucide-react';
+import { SEO } from '@/components/SEO';
 
 const Support = () => {
   const [selectedCategory, setSelectedCategory] = useState<SupportCategory | null>(null);
@@ -41,8 +42,15 @@ const Support = () => {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-white">
-      <Navbar />
+    <>
+      <SEO
+        title="Support & Help Center | Therai"
+        description="Find answers to common questions about Therai, learn how to use features, troubleshoot issues, and get the most out of your astrology journey."
+        keywords="therai support, astrology app help, astrology FAQ, astrology troubleshooting, birth chart help"
+        url="/support"
+      />
+      <div className="flex flex-col min-h-screen bg-white">
+        <Navbar />
       
       <main className="flex-grow">
         {/* Hero Section */}
@@ -132,8 +140,9 @@ const Support = () => {
         </section>
       </main>
       
-      <Footer />
-    </div>
+        <Footer />
+      </div>
+    </>
   );
 };
 

@@ -11,6 +11,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "generate-sitemap": "node scripts/generate-sitemap.js",
+    "prebuild": "npm run generate-sitemap",
     "postbuild": "npm run generate-sitemap"
   },
   "dependencies": {

@@ -37,7 +37,7 @@ async function generateSitemap() {
   try {
     const { data, error } = await supabase
       .from('blog_posts')
-      .select('slug, created_at, updated_at')
+      .select('slug, created_at')
       .eq('published', true)
       .order('created_at', { ascending: false });
 
@@ -51,6 +51,17 @@ async function generateSitemap() {
     console.error('Error connecting to Supabase:', error);
   }
 
+  // XML escaping function
+  function escapeXml(unsafe) {
+    if (!unsafe) return '';
+    return unsafe
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&apos;');
+  }
+
   // Generate sitemap XML
   const currentDate = new Date().toISOString().split('T')[0];
 
@@ -60,8 +71,9 @@ async function generateSitemap() {
 
   // Add static pages
   for (const page of staticPages) {
+    const url = `${BASE_URL}${page.url || '/'}`;
     sitemap += `  <url>
-    <loc>${BASE_URL}${page.url}</loc>
+    <loc>${escapeXml(url)}</loc>
     <lastmod>${currentDate}</lastmod>
     <changefreq>${page.changefreq}</changefreq>
     <priority>${page.priority}</priority>
@@ -71,9 +83,11 @@ async function generateSitemap() {
 
   // Add blog posts
   for (const post of blogPosts) {
-    const lastmod = (post.updated_at || post.created_at || currentDate).split('T')[0];
+    if (!post.slug) continue;
+    const lastmod = (post.created_at || currentDate).split('T')[0];
+    const url = `${BASE_URL}/blog/${post.slug}`;
     sitemap += `  <url>
-    <loc>${BASE_URL}/blog/${post.slug}</loc>
+    <loc>${escapeXml(url)}</loc>
     <lastmod>${lastmod}</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>

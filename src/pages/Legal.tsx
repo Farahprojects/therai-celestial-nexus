@@ -6,6 +6,7 @@ import { Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import PublicHeader from "@/components/PublicHeader";
 import Footer from "@/components/Footer";
+import { SEO } from "@/components/SEO";
 // Markdown support removed to reduce bundle size
 
 
@@ -61,8 +62,15 @@ const Legal = () => {
   }
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <PublicHeader />
+    <>
+      <SEO
+        title="Legal Information | Privacy Policy & Terms of Service | Therai"
+        description="Review Therai's Privacy Policy and Terms of Service. Learn how we protect your data and handle your information."
+        keywords="therai privacy policy, therai terms of service, astrology privacy, data protection, legal information"
+        url="/legal"
+      />
+      <div className="flex min-h-screen flex-col">
+        <PublicHeader />
       <main className="flex-grow">
         <section className="relative overflow-hidden bg-white py-24">
           <div className="container relative z-10 mx-auto px-4">
@@ -115,8 +123,9 @@ const Legal = () => {
           </div>
         </section>
       </main>
-      <Footer />
-    </div>
+        <Footer />
+      </div>
+    </>
   );
 };
 
