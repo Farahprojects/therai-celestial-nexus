@@ -3,7 +3,7 @@
   "installCommand": "npm install",
   "rewrites": [
     {
-      "source": "/:path((?!sitemap\\.xml|robots\\.txt|.*\\..*).*)",
+      "source": "/:path*",
       "destination": "/"
     }
   ],
