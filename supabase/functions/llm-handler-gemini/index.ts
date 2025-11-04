@@ -103,6 +103,28 @@ Show one-line "why" tying emotional/psychological pattern back to user when appl
 
 frame them as direct questions to invite further interaction**`;
 
+// Image generation tool definition (shared between cache and request)
+const imageGenerationTool = [
+  {
+    functionDeclarations: [
+      {
+        name: "generate_image",
+        description: "Generate an AI image based on a text prompt. Use this when the user explicitly asks to create, generate, or visualize an image.",
+        parameters: {
+          type: "object",
+          properties: {
+            prompt: {
+              type: "string",
+              description: "Detailed description of the image to generate"
+            }
+          },
+          required: ["prompt"]
+        }
+      }
+    ]
+  }
+];
+
 // Get or create Gemini cache for system message
 async function getOrCreateCache(
   chat_id: string,
@@ -151,6 +173,7 @@ async function getOrCreateCache(
           role: "system",
           parts: [{ text: combinedSystemInstruction }]
         },
+        tools: imageGenerationTool, // Include tools in cache so we can use cached content with tools
         ttl: "3600s" // 1 hour cache
       })
     });
@@ -409,8 +432,9 @@ Deno.serve(async (req) => {
   const requestBody: any = { contents };
 
   if (cacheName) {
-    // Use cached content (system message already in cache)
+    // Use cached content (system message and tools already in cache)
     requestBody.cachedContent = cacheName;
+    // Don't add tools here - they're already in the cached content
   } else {
     // Fallback: include system instruction directly (bookend with prompt for better attention)
     let combinedSystemInstruction = systemText
@@ -428,34 +452,15 @@ Deno.serve(async (req) => {
       role: "system",
       parts: [{ text: combinedSystemInstruction }]
     };
+    
+    // Add tools only when NOT using cached content (tools are in cache)
+    requestBody.tools = imageGenerationTool;
   }
 
   requestBody.generationConfig = {
     temperature: 0.7,
     thinkingConfig: { thinkingBudget: 0 }
   };
-
-  // Add image generation tool
-  requestBody.tools = [
-    {
-      functionDeclarations: [
-        {
-          name: "generate_image",
-          description: "Generate an AI image based on a text prompt. Use this when the user explicitly asks to create, generate, or visualize an image.",
-          parameters: {
-            type: "object",
-            properties: {
-              prompt: {
-                type: "string",
-                description: "Detailed description of the image to generate"
-              }
-            },
-            required: ["prompt"]
-          }
-        }
-      ]
-    }
-  ];
 
   // Make Gemini API call
   const controller = new AbortController();
@@ -552,13 +557,13 @@ Deno.serve(async (req) => {
     }
   } else {
     // Extract assistant text normally if no tool call
-    try {
-      const parts = data?.candidates?.[0]?.content?.parts || [];
-      assistantText = parts.map((p: any) => p?.text || "").filter(Boolean).join(" ").trim();
-    } catch {
-      // ignore
-    }
-    if (!assistantText) return json(502, { error: "No response text from Gemini" });
+  try {
+    const parts = data?.candidates?.[0]?.content?.parts || [];
+    assistantText = parts.map((p: any) => p?.text || "").filter(Boolean).join(" ").trim();
+  } catch {
+    // ignore
+  }
+  if (!assistantText) return json(502, { error: "No response text from Gemini" });
   }
 
   // Sanitize text for TTS only (strip markdown for voice)
