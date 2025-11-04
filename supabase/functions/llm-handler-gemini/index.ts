@@ -254,8 +254,6 @@ Deno.serve(async (req) => {
   let conversationSummary = "";
   let currentTurnCount = 0;
   let lastSummaryTurn = 0;
-  let memoryContext = "";
-  let memoryIds: string[] = [];
 
   try {
     console.log(`[llm-handler-gemini] ⏱️  Starting context fetch (+${Date.now() - totalStartTime}ms)`);
