@@ -34,6 +34,7 @@ export const ChatInput = () => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [isAnalyzeMode, setIsAnalyzeMode] = useState(false);
   const [conversationMode, setConversationMode] = useState<string>('standard');
+  const abortControllerRef = useRef<AbortController | null>(null);
   
   // Scroll input into view when keyboard appears
   const handleFocus = () => {
@@ -168,6 +169,10 @@ export const ChatInput = () => {
       
       // Fire-and-forget invoke (truly non-blocking via queueMicrotask)
       queueMicrotask(() => {
+        // Create abort controller for this request
+        const abortController = new AbortController();
+        abortControllerRef.current = abortController;
+        
         supabase.functions.invoke('chat-send', {
           body: {
             chat_id: currentChatId!,
@@ -177,9 +182,20 @@ export const ChatInput = () => {
             user_id: user?.id,
             user_name: displayName || 'User',
             analyze: isAnalyzeMode // Pass analyze flag for Together Mode
-          }
+          },
+          // @ts-ignore - signal is supported but not in types
+          signal: abortController.signal
         }).catch((error) => {
-          console.error('[ChatInput] Message send failed:', error);
+          if (error.name === 'AbortError') {
+            console.log('[ChatInput] Message send aborted by user');
+          } else {
+            console.error('[ChatInput] Message send failed:', error);
+          }
+        }).finally(() => {
+          // Clear the abort controller reference
+          if (abortControllerRef.current === abortController) {
+            abortControllerRef.current = null;
+          }
         });
       });
   };
@@ -227,8 +243,21 @@ export const ChatInput = () => {
 
   const handleRightButtonClick = () => {
     if (isAssistantTyping) {
-      // Stop the typing animation
+      // Stop the typing animation and abort the request
       setAssistantTyping(false);
+      
+      // Abort the ongoing request
+      if (abortControllerRef.current) {
+        console.log('[ChatInput] Aborting ongoing request');
+        abortControllerRef.current.abort();
+        abortControllerRef.current = null;
+      }
+      
+      // Send stop signal to backend via websocket
+      const { chat_id } = useChatStore.getState();
+      if (chat_id) {
+        unifiedWebSocketService.sendMessageDirect('__STOP__', mode || 'chat');
+      }
     } else if (text.trim()) {
       handleSend();
     } else {
