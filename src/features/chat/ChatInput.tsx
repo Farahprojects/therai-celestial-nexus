@@ -173,7 +173,7 @@ export const ChatInput = () => {
             chat_id: currentChatId!,
             text: messageText,
             client_msg_id,
-            mode: mode,
+            mode: mode || 'chat',
             user_id: user?.id,
             user_name: displayName || 'User',
             analyze: isAnalyzeMode // Pass analyze flag for Together Mode
