@@ -119,8 +119,8 @@ export const ProfilesPanel = () => {
       return;
     }
     
-    // Use name as profileName if no profile label provided
-    const finalProfileName = profileName.trim() || name;
+    // Use name as profileName (for backend compatibility)
+    const finalProfileName = name;
 
     setIsSaving(true);
     try {
@@ -237,19 +237,6 @@ export const ProfilesPanel = () => {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <Label htmlFor="profileName" className="text-sm font-medium text-gray-700">
-                Profile Label
-              </Label>
-              <Input
-                id="profileName"
-                value={profileName}
-                onChange={(e) => setProfileName(e.target.value)}
-                placeholder="e.g., My Profile, Partner, Mom, etc."
-                className="mt-1"
-              />
-            </div>
-
-            <div>
               <Label htmlFor="name" className="text-sm font-medium text-gray-700">
                 Name *
               </Label>
@@ -316,19 +303,6 @@ export const ProfilesPanel = () => {
               />
             </div>
 
-            <div>
-              <Label htmlFor="notes" className="text-sm font-medium text-gray-700">
-                Notes (Optional)
-              </Label>
-              <Input
-                id="notes"
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="Any additional notes..."
-                className="mt-1"
-              />
-            </div>
-
             <div className="flex items-center gap-3 pt-2">
               <Button
                 type="submit"
@@ -381,15 +355,11 @@ export const ProfilesPanel = () => {
                   <div className="flex items-center gap-2 mb-2">
                     <User className="w-4 h-4 text-gray-400 flex-shrink-0" />
                     <h4 className="font-medium text-gray-900 truncate">
-                      {profile.profile_name}
+                      {profile.name}
                     </h4>
                   </div>
                   
                   <div className="space-y-1 text-sm text-gray-600">
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium">Name:</span>
-                      <span>{profile.name}</span>
-                    </div>
                     <div className="flex items-center gap-2">
                       <Calendar className="w-3 h-3" />
                       <span>{profile.birth_date} at {profile.birth_time}</span>
