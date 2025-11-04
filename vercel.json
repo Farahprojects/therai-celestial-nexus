@@ -3,15 +3,8 @@
   "installCommand": "npm install",
   "rewrites": [
     {
-      "source": "/:path*",
-      "destination": "/",
-      "has": [
-        {
-          "type": "header",
-          "key": "accept",
-          "value": "text/html"
-        }
-      ]
+      "source": "/:path((?!sitemap\\.xml|robots\\.txt|.*\\..*).*)",
+      "destination": "/"
     }
   ],
   "headers": [
