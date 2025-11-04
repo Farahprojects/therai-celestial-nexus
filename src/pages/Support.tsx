@@ -44,9 +44,9 @@ const Support = () => {
   return (
     <>
       <SEO
-        title="Support & Help Center | Therai"
-        description="Find answers to common questions about Therai, learn how to use features, troubleshoot issues, and get the most out of your astrology journey."
-        keywords="therai support, astrology app help, astrology FAQ, astrology troubleshooting, birth chart help"
+        title="Support & Help Center | AI Webapp for Psychological Insights | Therai"
+        description="Find answers to common questions about Therai, an AI webapp that helps create psychological insights into momentum. Learn how to use features and troubleshoot issues."
+        keywords="therai support, AI webapp help, psychological insights FAQ, astrology troubleshooting, AI-powered insights help"
         url="/support"
       />
       <div className="flex flex-col min-h-screen bg-white">

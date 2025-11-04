@@ -238,8 +238,8 @@ const Contact = () => {
     <>
       <SEO
         title="Contact Us | Get in Touch | Therai"
-        description="Reach out to Therai about partnerships, support, or anything else we can help with. We're here to assist you on your astrological journey."
-        keywords="contact therai, astrology support, astrology help, partnership inquiry, customer support"
+        description="Reach out to Therai about partnerships, support, or questions about our AI webapp for psychological insights. We're here to help you on your journey of self-discovery."
+        keywords="contact therai, AI webapp support, psychological insights, partnership inquiry, customer support, astrology help"
         url="/contact"
       />
       <div className="flex min-h-screen flex-col">

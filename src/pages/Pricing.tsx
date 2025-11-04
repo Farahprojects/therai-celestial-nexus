@@ -105,9 +105,9 @@ const Pricing: React.FC = () => {
   return (
     <>
       <SEO
-        title="Pricing | Astrology Reports & AI Insights | Therai"
-        description="Choose the perfect plan for your astrological journey. From AI-powered birth chart reports to compatibility analysis, find the right subscription tier for you."
-        keywords="astrology pricing, astrology subscription, birth chart pricing, astrology app cost, AI astrology reports pricing"
+        title="Pricing | AI-Powered Psychological Insights | Therai"
+        description="Choose a plan for Therai, an AI webapp that helps create psychological insights into momentum through astrology. Growth and Premium plans available."
+        keywords="therai pricing, AI astrology, psychological insights, astrology subscription, AI webapp pricing"
         url="/pricing"
         structuredData={pricingStructuredData}
       />

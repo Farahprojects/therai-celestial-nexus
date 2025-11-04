@@ -56,7 +56,7 @@ const Blog = () => {
     '@context': 'https://schema.org',
     '@type': 'Blog',
     name: 'Therai Blog',
-    description: 'Astrological insights, app tutorials, and guides to deepen your understanding',
+    description: 'AI-powered psychological insights, self-discovery guides, and articles about momentum and personal growth',
     url: 'https://therai.co/blog',
     publisher: {
       '@type': 'Organization',
@@ -71,9 +71,9 @@ const Blog = () => {
   return (
     <>
       <SEO
-        title="Blog | Astrological Insights & App Tutorials | Therai"
-        description="Discover astrological insights, app tutorials, and guides to deepen your understanding of astrology and get the most out of Therai."
-        keywords="astrology blog, astrology guides, astrology tutorials, birth chart guide, astrology app, natal chart tutorial"
+        title="Blog | AI-Powered Psychological Insights & Guides | Therai"
+        description="Discover articles about psychological insights, momentum, and self-discovery through AI-powered astrology. Learn how Therai helps create insights into your inner rhythms."
+        keywords="AI webapp blog, psychological insights, self-discovery, astrology blog, momentum, AI-powered insights, personal growth"
         url="/blog"
         structuredData={blogStructuredData}
       />

@@ -29,7 +29,18 @@ const BlogPost = () => {
     enabled: !!slug,
   });
 
-  // Always render the UI with lazy loading - no spinners
+  // Wait for loading to complete before redirecting
+  if (isLoading) {
+    return (
+      <div className="flex min-h-screen flex-col bg-white">
+        <UnifiedNavigation />
+        <main className="flex-grow flex items-center justify-center">
+          <TheraLoader />
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   if (error || !post) {
     return <Navigate to="/blog" replace />;
@@ -80,9 +91,9 @@ const BlogPost = () => {
   return (
     <>
       <SEO
-        title={`${post.title} | Therai Blog`}
+        title={`${post.title} | AI-Powered Psychological Insights | Therai`}
         description={postDescription}
-        keywords={keywords}
+        keywords={`${keywords}, AI webapp, psychological insights, momentum, self-discovery`}
         image={postImage}
         url={`/blog/${post.slug}`}
         type="article"

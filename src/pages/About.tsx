@@ -10,9 +10,9 @@ const About = () => {
   return (
     <>
       <SEO
-        title="About Us | Revolutionizing Astrological Technology | Therai"
-        description="Learn about Therai's mission to revolutionize astrological technology through advanced AI and innovative solutions. Building the future of astrology."
-        keywords="about therai, astrology technology, AI astrology, astrological software, astrology company"
+        title="About Us | AI-Powered Psychological Insights Platform | Therai"
+        description="Learn about Therai's mission to create psychological insights through momentum using AI-powered astrology. An AI webapp that helps you understand yourself through natural cycles and energetic patterns."
+        keywords="about therai, AI webapp, psychological insights, astrology, momentum, self-discovery, AI-powered insights"
         url="/about"
       />
       <div className="flex flex-col min-h-screen">
