@@ -105,13 +105,33 @@ if (imageData?.candidates?.[0]?.content?.parts) {
 image_model: 'imagen-4.0-generate-001' // Updated from 'imagen-3'
 ```
 
+## Update: Second Fix (responseMimeType)
+
+After the first fix, we encountered a 400 error:
+```
+response_mime_type: allowed mimetypes are `text/plain`, `application/json`, `application/xml`, `application/yaml` and `text/x.enum`
+```
+
+**Issue**: The `generateContent` endpoint doesn't support `image/png` as a response MIME type - it's designed for text content. Imagen models return images as **inline data** in the response naturally, without needing `responseMimeType`.
+
+**Fix**: Removed the `generationConfig` parameter entirely. The simplified request:
+```typescript
+body: JSON.stringify({
+  contents: [
+    {
+      parts: [{ text: prompt }]
+    }
+  ]
+})
+```
+
 ## Testing
 
 To test the fix:
 1. Deploy the updated edge function
 2. Ask the AI to generate an image
 3. Verify the image is created successfully
-4. Check that the 404 error no longer occurs
+4. Check that errors no longer occur
 
 ## Notes
 
