@@ -15,11 +15,20 @@ export const createConversation = async (
     name?: string;
   }
 ): Promise<string> => {
+  // Fetch primary profile for memory tracking
+  const { data: primaryProfile } = await supabase
+    .from('user_profile_list')
+    .select('id')
+    .eq('user_id', userId)
+    .eq('is_primary', true)
+    .maybeSingle();
+
   const { data, error } = await supabase.functions.invoke('conversation-manager?action=create_conversation', {
     body: {
       user_id: userId,
       title: title || 'New Chat',
       mode: mode,
+      profile_id: primaryProfile?.id || null, // Pass profile_id for memory tracking
       ...(reportData?.report_data && {
         report_data: reportData.report_data,
         email: reportData.email,
