@@ -116,7 +116,8 @@ if (messages && Array.isArray(messages) && messages.length > 0) {
     mode: msg.mode || mode,
     user_id: (msg.user_id || user_id) ?? null,
     user_name: (msg.user_name || user_name) ?? null,
-    meta: {}
+    meta: {},
+    is_generating_image: msg.is_generating_image ?? false
   }));
 
   const { error: dbError } = await supabase
@@ -225,7 +226,7 @@ if (role === "user" && user_id && !isInternalCall) {
 }
 
 // Support message update if id is provided (for image generation flow)
-const messageId = req.body?.id || null;
+const messageId = body?.id || null;
 const isUpdate = !!messageId;
 
 const message = {
@@ -237,8 +238,8 @@ status: "complete",
 mode,
 user_id: user_id ?? null,
 user_name: user_name ?? null,
-meta: req.body?.meta || {},
-is_generating_image: req.body?.is_generating_image ?? null // Support boolean flag for image generation
+meta: body?.meta || {},
+is_generating_image: body?.is_generating_image ?? false // Support boolean flag for image generation
 };
 
 // If id is provided, include it for update
