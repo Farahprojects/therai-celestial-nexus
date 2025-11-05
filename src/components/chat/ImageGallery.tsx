@@ -168,7 +168,7 @@ export const ImageGallery = ({ isOpen, onClose }: ImageGalleryProps) => {
                           </Button>
                         </TooltipTrigger>
                         <TooltipContent>
-                          <p>Download</p>
+                          <p>Save</p>
                         </TooltipContent>
                       </Tooltip>
                     </TooltipProvider>
@@ -255,7 +255,7 @@ export const ImageGallery = ({ isOpen, onClose }: ImageGalleryProps) => {
                       variant="outline"
                       size="icon"
                       onClick={() => handleOpenChat(selectedImage)}
-                      className="rounded-xl hover:bg-gray-100"
+                      className="rounded-full hover:bg-gray-100"
                     >
                       <MessageCircle className="w-4 h-4" />
                     </Button>
@@ -273,7 +273,7 @@ export const ImageGallery = ({ isOpen, onClose }: ImageGalleryProps) => {
                       variant="outline"
                       size="icon"
                       onClick={() => handleShare(selectedImage)}
-                      className="rounded-xl hover:bg-gray-100"
+                      className="rounded-full hover:bg-gray-100"
                     >
                       <Share2 className="w-4 h-4" />
                     </Button>
@@ -291,13 +291,13 @@ export const ImageGallery = ({ isOpen, onClose }: ImageGalleryProps) => {
                       variant="outline"
                       size="icon"
                       onClick={() => handleDownload(selectedImage)}
-                      className="rounded-xl hover:bg-gray-100"
+                      className="rounded-full hover:bg-gray-100"
                     >
                       <Download className="w-4 h-4" />
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>
-                    <p>Download</p>
+                    <p>Save</p>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
@@ -384,7 +384,7 @@ export const ImageGallery = ({ isOpen, onClose }: ImageGalleryProps) => {
             variant="outline"
             size="sm"
             onClick={() => handleOpenChat(selectedImage)}
-            className="flex-1 rounded-xl gap-2 font-light"
+            className="flex-1 rounded-full gap-2 font-light"
           >
             <MessageCircle className="w-4 h-4" />
             Open Chat
@@ -394,7 +394,7 @@ export const ImageGallery = ({ isOpen, onClose }: ImageGalleryProps) => {
             variant="outline"
             size="sm"
             onClick={() => handleShare(selectedImage)}
-            className="flex-1 rounded-xl gap-2 font-light"
+            className="flex-1 rounded-full gap-2 font-light"
           >
             <Share2 className="w-4 h-4" />
             Share
@@ -404,17 +404,17 @@ export const ImageGallery = ({ isOpen, onClose }: ImageGalleryProps) => {
             variant="outline"
             size="sm"
             onClick={() => handleDownload(selectedImage)}
-            className="flex-1 rounded-xl gap-2 font-light"
+            className="flex-1 rounded-full gap-2 font-light"
           >
             <Download className="w-4 h-4" />
-            Download
+            Save
           </Button>
 
           <Button
             variant="outline"
             size="icon"
             onClick={() => setSelectedImage(null)}
-            className="rounded-xl"
+            className="rounded-full"
           >
             <X className="w-4 h-4" />
           </Button>
