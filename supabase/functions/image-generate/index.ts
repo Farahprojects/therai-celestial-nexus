@@ -1,11 +1,12 @@
 // @ts-nocheck - Deno runtime, types checked at deployment
 // Image generation edge function using Google Imagen
 // - Rate limiting: 3 images per user per 24 hours
-// - Calls Google Imagen API via generateImages endpoint (NOT generateContent)
+// - Uses @google/genai SDK (Imagen not available via REST API)
 // - Uploads to Supabase Storage
 // - Creates message with image metadata
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { GoogleGenAI } from "https://esm.sh/@google/genai@^1.0.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -120,106 +121,63 @@ Deno.serve(async (req) => {
     });
   }
 
-  // Use Imagen model for image generation
-  // IMPORTANT: Use :generateImages endpoint (NOT :generateContent)
-  // generateContent is for Gemini text models, generateImages is for Imagen models
+  // Use Imagen model for image generation via SDK
+  // REST API :generateImages endpoint doesn't exist (404 error)
+  // Must use @google/genai SDK instead
   const generationStartTime = Date.now();
-  const IMAGEN_MODEL = 'imagen-3.0-generate-002'; // Available Imagen model
-  const imagenUrl = `https://generativelanguage.googleapis.com/v1beta/models/${IMAGEN_MODEL}:generateImages`;
+  const IMAGEN_MODEL = 'imagen-3.0-generate-002';
 
-  let imageData;
+  let base64Image: string | undefined;
+  
   try {
     console.info(JSON.stringify({
       event: "image_generate_api_call_start",
       request_id: requestId,
       model: IMAGEN_MODEL,
-      endpoint: ":generateImages"
+      method: "SDK (@google/genai)"
     }));
 
-    const response = await fetch(imagenUrl, {
-      method: 'POST',
-      headers: {
-        'x-goog-api-key': GOOGLE_API_KEY,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        prompt: prompt,
-        config: {
-          numberOfImages: 1
-        }
-      })
+    // Initialize Google GenAI client
+    const genAI = new GoogleGenAI({ apiKey: GOOGLE_API_KEY });
+
+    // Generate image using SDK
+    const response = await genAI.models.generateImages({
+      model: IMAGEN_MODEL,
+      prompt: prompt,
+      config: {
+        numberOfImages: 1
+      }
     });
 
-    if (!response.ok) {
-      const errorText = await response.text().catch(() => "");
+    // Extract image from SDK response
+    if (response.generatedImages?.[0]?.image?.imageBytes) {
+      base64Image = response.generatedImages[0].image.imageBytes;
+    } else {
       console.error(JSON.stringify({
-        event: "image_generate_api_failed",
+        event: "image_generate_no_image_in_response",
         request_id: requestId,
-        status: response.status,
-        statusText: response.statusText,
-        url: imagenUrl,
-        headers: Object.fromEntries(response.headers.entries()),
-        error: errorText,
-        full_error: errorText.substring(0, 2000) // Log first 2000 chars
+        response_keys: Object.keys(response || {}),
+        response_structure: JSON.stringify(response).substring(0, 2000)
       }));
       return json(502, { 
-        error: `Imagen API failed: ${response.status} - ${errorText}`,
-        details: {
-          status: response.status,
-          statusText: response.statusText,
-          url: imagenUrl,
-          error: errorText.substring(0, 500)
-        }
+        error: "No image data in API response",
+        response_structure: JSON.stringify(response).substring(0, 2000)
       });
     }
 
-    imageData = await response.json();
     console.info(JSON.stringify({
       event: "image_generate_api_success",
       request_id: requestId,
-      duration_ms: Date.now() - generationStartTime,
-      response_keys: Object.keys(imageData),
-      response_structure: JSON.stringify(imageData).substring(0, 1000) // Log first 1000 chars of response
+      duration_ms: Date.now() - generationStartTime
     }));
   } catch (error) {
     console.error(JSON.stringify({
       event: "image_generate_api_exception",
       request_id: requestId,
-      error: error instanceof Error ? error.message : String(error)
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined
     }));
     return json(504, { error: `Imagen API error: ${error instanceof Error ? error.message : String(error)}` });
-  }
-
-  // Extract base64 image from Imagen API response
-  // generateImages endpoint returns: { generatedImages: [{ image: { imageBytes: "..." } }] }
-  
-  let base64Image: string | undefined;
-  
-  // Extract from generateImages response format
-  if (imageData?.generatedImages?.[0]?.image?.imageBytes) {
-    base64Image = imageData.generatedImages[0].image.imageBytes;
-  }
-  // Fallback: also check for candidates format (in case API changes)
-  else if (imageData?.candidates?.[0]?.content?.parts) {
-    const imagePart = imageData.candidates[0].content.parts.find(
-      (part: any) => part.inlineData?.mimeType?.startsWith('image/')
-    );
-    base64Image = imagePart?.inlineData?.data;
-  }
-  
-  if (!base64Image) {
-    console.error(JSON.stringify({
-      event: "image_generate_no_image_in_response",
-      request_id: requestId,
-      full_response: JSON.stringify(imageData),
-      response_keys: Object.keys(imageData || {}),
-      candidates_structure: imageData?.candidates ? JSON.stringify(imageData.candidates) : 'no candidates'
-    }));
-    return json(502, { 
-      error: "No image data in API response",
-      response_structure: JSON.stringify(imageData).substring(0, 2000),
-      note: "Expected generateImages response with generatedImages[0].image.imageBytes"
-    });
   }
 
   // Decode base64 to Uint8Array
