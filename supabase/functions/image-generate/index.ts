@@ -124,7 +124,8 @@ Deno.serve(async (req) => {
   // Try imagen-3 first (cost-effective), fallback to imagen-4.0-generate-001 if needed
   const generationStartTime = Date.now();
   const IMAGEN_MODEL = 'imagen-3'; // Cost-effective option, or use 'imagen-4.0-generate-001' for latest
-  const imagenUrl = `https://generativelanguage.googleapis.com/v1beta/models/${IMAGEN_MODEL}:generateContent`;
+  // Use generateImages endpoint (not generateContent) for Imagen models
+  const imagenUrl = `https://generativelanguage.googleapis.com/v1beta/models/${IMAGEN_MODEL}:generateImages`;
 
   let imageData;
   try {
@@ -140,13 +141,8 @@ Deno.serve(async (req) => {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        contents: [{
-          parts: [{ text: prompt }]
-        }],
-        generationConfig: {
-          temperature: 0.4,
-          topP: 0.95,
-          topK: 40,
+        prompt: prompt,
+        config: {
           numberOfImages: 1
         }
       })
