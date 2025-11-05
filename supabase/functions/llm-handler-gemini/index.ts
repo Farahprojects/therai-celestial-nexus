@@ -109,13 +109,22 @@ const imageGenerationTool = [
     functionDeclarations: [
       {
         name: "generate_image",
-        description: "Generate an AI image based on a text prompt. Use this when the user explicitly asks to create, generate, or visualize an image.",
+        description: `Generate an AI image based on conceptual guidance. Use when user explicitly requests image creation.
+
+PROMPT STRUCTURE:
+1. Intent: Define the core feeling, truth, or essence being visualized
+2. Style: Visual language (medium, movement) - directional, not literal  
+3. Subject Focus: Central form or relationship that anchors attention
+4. Atmosphere: Sensory layer - light, color, texture, space (the vibration)
+5. Contrast/Duality (optional): Introduce polarity for conceptual depth
+
+Create prompts that express energy and essence, not literal descriptions.`,
         parameters: {
           type: "object",
           properties: {
             prompt: {
               type: "string",
-              description: "Detailed description of the image to generate"
+              description: "Conceptual image prompt following the structure: Intent → Style → Subject Focus → Atmosphere → Contrast/Duality. Express the energy and essence, not literal details."
             }
           },
           required: ["prompt"]
