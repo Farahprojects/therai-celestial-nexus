@@ -1,11 +1,12 @@
 // @ts-nocheck - Deno runtime, types checked at deployment
 // Image generation edge function using Google Imagen 4 Standard
 // - Rate limiting: 3 images per user per 24 hours
-// - Calls Google Imagen 4 API via Gemini endpoint
+// - Calls Google Imagen 4 API via Vertex AI endpoint
 // - Uploads to Supabase Storage
 // - Creates message with image metadata
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { GoogleAuth } from "https://esm.sh/google-auth-library@9.0.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -44,62 +45,43 @@ function decodeBase64(base64: string): Uint8Array {
   return bytes;
 }
 
-// Get OAuth 2 access token for Vertex AI
+// Get OAuth 2 access token for Vertex AI using Google Auth Library
 // Vertex AI requires OAuth tokens, not API keys
 async function getAccessToken(): Promise<string> {
-  // Option 1: Use service account JSON (if available)
-  const SERVICE_ACCOUNT_JSON = Deno.env.get("GOOGLE_SERVICE_ACCOUNT_JSON");
-  if (SERVICE_ACCOUNT_JSON) {
-    try {
-      const serviceAccount = JSON.parse(SERVICE_ACCOUNT_JSON);
-      const jwt = await createJWT(serviceAccount);
-      const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({
-          grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
-          assertion: jwt
-        })
-      });
-      const tokenData = await tokenResponse.json();
-      return tokenData.access_token;
-    } catch (error) {
-      console.error("[image-generate] Failed to get token from service account:", error);
-    }
-  }
+  // Read service account JSON from environment variable
+  // User may have saved it as GOOGLE_SERVICE_ACCOUNT_JSON or SUPABASE_GOOGLE_SERVICE_ACCOUNT_KEY
+  const SERVICE_ACCOUNT_JSON = Deno.env.get("GOOGLE_SERVICE_ACCOUNT_JSON") || 
+                                Deno.env.get("SUPABASE_GOOGLE_SERVICE_ACCOUNT_KEY");
   
-  // Option 2: Try using API key to get token (may not work, but worth trying)
-  // This is a fallback - Vertex AI typically needs service account
-  throw new Error("OAuth token required. Please set GOOGLE_SERVICE_ACCOUNT_JSON environment variable with service account JSON.");
-}
+  if (!SERVICE_ACCOUNT_JSON) {
+    throw new Error("Service account key not found in environment variables. Please set GOOGLE_SERVICE_ACCOUNT_JSON or SUPABASE_GOOGLE_SERVICE_ACCOUNT_KEY");
+  }
 
-// Create JWT for service account authentication
-async function createJWT(serviceAccount: any): Promise<string> {
-  // Use jose library for JWT signing (Deno-compatible)
+  let credentials;
   try {
-    const { SignJWT, importPKCS8 } = await import("https://deno.land/x/jose@v5.14.3/index.ts");
+    credentials = JSON.parse(SERVICE_ACCOUNT_JSON);
+  } catch (e) {
+    throw new Error(`Failed to parse service account key JSON: ${e instanceof Error ? e.message : String(e)}`);
+  }
+
+  try {
+    // Use Google Auth Library to get access token
+    const auth = new GoogleAuth({
+      credentials: credentials,
+      scopes: ['https://www.googleapis.com/auth/cloud-platform']
+    });
+
+    const client = await auth.getClient();
+    const accessToken = await client.getAccessToken();
     
-    const now = Math.floor(Date.now() / 1000);
-    const privateKey = serviceAccount.private_key.replace(/\\n/g, '\n');
+    if (!accessToken.token) {
+      throw new Error("Failed to get access token from Google Auth");
+    }
     
-    // Import the private key using jose's helper
-    const key = await importPKCS8(privateKey, "RS256");
-    
-    const jwt = await new SignJWT({
-      iss: serviceAccount.client_email,
-      sub: serviceAccount.client_email,
-      aud: "https://oauth2.googleapis.com/token",
-      scope: "https://www.googleapis.com/auth/cloud-platform"
-    })
-      .setProtectedHeader({ alg: "RS256" })
-      .setIssuedAt(now)
-      .setExpirationTime(now + 3600)
-      .sign(key);
-    
-    return jwt;
+    return accessToken.token;
   } catch (error) {
-    console.error("[image-generate] JWT signing error:", error);
-    throw new Error(`JWT signing failed: ${error instanceof Error ? error.message : String(error)}`);
+    console.error("[image-generate] Google Auth error:", error);
+    throw new Error(`Failed to get access token: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
 
