@@ -453,7 +453,7 @@ Deno.serve(async (req: Request) => {
             chat_id,
             role: 'assistant',
             text: '', // Empty text for now
-            status: 'thinking',
+            status: 'pending',
             mode: mode || 'chat',
             user_id,
             client_msg_id: crypto.randomUUID(),
