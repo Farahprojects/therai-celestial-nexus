@@ -89,8 +89,8 @@ const AssistantMessage = React.memo(({ message }: { message: Message }) => {
             }}
             loading="lazy"
           />
-          {/* Hover overlay with icons */}
-          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all duration-200 flex items-center justify-center gap-3">
+          {/* Bottom bar with icons */}
+          <div className="absolute bottom-0 left-0 right-0 h-12 bg-black/0 group-hover:bg-black/60 transition-all duration-200 flex items-center justify-center gap-3 rounded-b-xl">
             <Button
               variant="ghost"
               size="icon"
