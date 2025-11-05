@@ -120,12 +120,24 @@ Deno.serve(async (req) => {
     });
   }
 
-  // Call Google Imagen 4 API via Gemini endpoint
-  // NOTE: If this fails, we may need to use Vertex AI endpoint instead:
-  // https://us-central1-aiplatform.googleapis.com/v1/projects/{PROJECT}/locations/us-central1/publishers/google/models/imagen-4.0-generate-001:predict
-  // Also check if model name should be: imagen-4.0-generate-preview-06-06 or imagen-4.0-generate-001
+  // Call Google Imagen 4 API via Vertex AI endpoint
+  // NOTE: Using Vertex AI endpoint since Gemini API endpoint returned 404
+  // Format: https://{REGION}-aiplatform.googleapis.com/v1/projects/{PROJECT}/locations/{REGION}/publishers/google/models/{MODEL}:predict
   const generationStartTime = Date.now();
-  const imagenUrl = `https://generativelanguage.googleapis.com/v1beta/models/imagen-4.0-generate-001:generateContent`;
+  
+  // Get Google Cloud project ID from environment (or use default)
+  const GOOGLE_CLOUD_PROJECT = Deno.env.get("GOOGLE_CLOUD_PROJECT") || Deno.env.get("GCP_PROJECT_ID");
+  const VERTEX_AI_REGION = Deno.env.get("VERTEX_AI_REGION") || "us-central1";
+  
+  if (!GOOGLE_CLOUD_PROJECT) {
+    console.error(JSON.stringify({
+      event: "image_generate_missing_project_id",
+      request_id: requestId
+    }));
+    return json(500, { error: "Missing GOOGLE_CLOUD_PROJECT environment variable" });
+  }
+  
+  const imagenUrl = `https://${VERTEX_AI_REGION}-aiplatform.googleapis.com/v1/projects/${GOOGLE_CLOUD_PROJECT}/locations/${VERTEX_AI_REGION}/publishers/google/models/imagen-4.0-generate-001:predict`;
 
   let imageData;
   try {
@@ -134,20 +146,24 @@ Deno.serve(async (req) => {
       request_id: requestId
     }));
 
+    // Vertex AI uses OAuth2 token
+    // For now using API key in Bearer format (may need proper OAuth2 token)
+    const authHeader = `Bearer ${GOOGLE_API_KEY}`;
+    
     const response = await fetch(imagenUrl, {
       method: 'POST',
       headers: {
-        'x-goog-api-key': GOOGLE_API_KEY,
+        'Authorization': authHeader,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        contents: [{
-          parts: [{ text: prompt }]
+        instances: [{
+          prompt: prompt
         }],
-        generationConfig: {
-          temperature: 0.4,
-          topP: 0.95,
-          topK: 40
+        parameters: {
+          sampleCount: 1,
+          aspectRatio: "1:1",
+          safetySetting: "block_some"
         }
       })
     });
