@@ -181,7 +181,7 @@ const ImageSkeleton = ({ prompt }: { prompt: string }) => (
 );
 
 // Simple message rendering - no complex turn grouping needed with message_number ordering
-const renderMessages = (messages: Message[], currentUserId?: string, generatingImages?: Map<string, { prompt: string; chat_id: string }>) => {
+const renderMessages = (messages: Message[], currentUserId?: string) => {
   const elements: React.ReactNode[] = [];
   
   for (let i = 0; i < messages.length; i++) {
@@ -190,6 +190,17 @@ const renderMessages = (messages: Message[], currentUserId?: string, generatingI
     // Skip context-injected system messages
     if (message.role === 'system' && message.context_injected) {
       continue;
+    }
+    
+    // Render generating image skeleton
+    if (message.role === 'assistant' && message.meta?.status === 'generating') {
+      elements.push(
+        <ImageSkeleton 
+          key={message.id} 
+          prompt={message.meta.image_prompt || 'Generating image...'} 
+        />
+      );
+      continue; // Skip normal rendering
     }
     
     // Render user messages (own vs other user)
@@ -216,14 +227,8 @@ const renderMessages = (messages: Message[], currentUserId?: string, generatingI
     }
   }
   
-  // Add generating image skeletons at the end
-  if (generatingImages && generatingImages.size > 0) {
-    generatingImages.forEach(({ prompt }, id) => {
-      elements.push(<ImageSkeleton key={`generating-${id}`} prompt={prompt} />);
-    });
-  }
-  
-  // Unified store handles all messages - no need for direct assistant message logic
+  // ✅ Skeletons now rendered inline when message.meta.status === 'generating'
+  // No separate loop needed
   
   return elements;
 };
@@ -246,9 +251,6 @@ export const MessageList = () => {
   const [initialMessageCount, setInitialMessageCount] = useState<number | null>(null);
   const [hasUserSentMessage, setHasUserSentMessage] = useState(false);
   const navigate = useNavigate();
-  
-  // Track generating images by ID (from broadcast events)
-  const [generatingImages, setGeneratingImages] = useState<Map<string, { prompt: string; chat_id: string }>>(new Map());
   
   // Set chat ID when it changes
   // Removed redundant setChatId call - chat switching already handles this
@@ -274,63 +276,20 @@ export const MessageList = () => {
     }
   }, [messages, hasUserSentMessage]);
 
-  // Listen for image generation broadcast events
-  React.useEffect(() => {
-    const handleImageStart = (event: CustomEvent) => {
-      const { id, chat_id: eventChatId, prompt } = event.detail;
-      if (eventChatId === chat_id) {
-        setGeneratingImages(prev => new Map(prev).set(id, { prompt, chat_id: eventChatId }));
-      }
-    };
-    
-    const handleImageComplete = (event: CustomEvent) => {
-      const { id, chat_id: eventChatId } = event.detail;
-      if (eventChatId === chat_id) {
-        setGeneratingImages(prev => {
-          const next = new Map(prev);
-          next.delete(id);
-          return next;
-        });
-      }
-    };
-    
-    const handleImageError = (event: CustomEvent) => {
-      const { id, chat_id: eventChatId } = event.detail;
-      if (eventChatId === chat_id) {
-        setGeneratingImages(prev => {
-          const next = new Map(prev);
-          next.delete(id);
-          return next;
-        });
-      }
-    };
-    
-    window.addEventListener('image-generation-start', handleImageStart as EventListener);
-    window.addEventListener('image-generation-complete', handleImageComplete as EventListener);
-    window.addEventListener('image-generation-error', handleImageError as EventListener);
-    
-    return () => {
-      window.removeEventListener('image-generation-start', handleImageStart as EventListener);
-      window.removeEventListener('image-generation-complete', handleImageComplete as EventListener);
-      window.removeEventListener('image-generation-error', handleImageError as EventListener);
-    };
-  }, [chat_id]);
+  // ✅ Removed CustomEvent listeners - using database INSERT/UPDATE listener instead
 
   // Auto-scroll when content grows
   React.useEffect(() => {
     onContentChange();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [messages.length, generatingImages.size]);
+  }, [messages.length]);
 
   // Auto-scroll handled by messages.length changes
 
   // ⚡ OPTIMIZED: Memoize rendered messages - prevents recreating JSX for unchanged messages
-  // Use size and entries for dependency tracking (Map itself is not reliably tracked)
-  const generatingImagesSize = generatingImages.size;
-  const generatingImagesEntries = Array.from(generatingImages.entries());
   const renderedMessages = useMemo(() => 
-    renderMessages(messages, user?.id, generatingImages),
-    [messages, user?.id, generatingImagesSize, generatingImagesEntries]
+    renderMessages(messages, user?.id),
+    [messages, user?.id]
   );
 
   // Render messages directly in message_number order - no complex turn grouping needed
