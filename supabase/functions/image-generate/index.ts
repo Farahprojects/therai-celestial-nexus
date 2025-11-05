@@ -226,6 +226,25 @@ Deno.serve(async (req) => {
 
   const generationTime = Date.now() - generationStartTime;
 
+  // ✅ Final atomic check right before logging (prevents race conditions)
+  // Double-check limit to catch any concurrent requests that slipped through
+  const { count: finalCount, error: finalCheckError } = await supabase
+    .from('image_generation_log')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', user_id)
+    .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
+
+  if (!finalCheckError && finalCount && finalCount >= 3) {
+    console.warn(JSON.stringify({
+      event: "image_generate_limit_exceeded_at_log",
+      request_id: requestId,
+      user_id,
+      count: finalCount,
+      note: "Image generated but limit exceeded - logging anyway for audit"
+    }));
+    // Continue to log - this is rare race condition, audit log still matters
+  }
+
   // Log to audit table (immutable, persists even if chat is deleted)
   const { error: logError } = await supabase
     .from('image_generation_log')

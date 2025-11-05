@@ -210,6 +210,31 @@ async function createCache(chat_id: string, systemText: string): Promise<string 
 }
 
 /* --------------------------- Summary helper ------------------------------ */
+/* ----------------------- Image Generation Rate Limit ----------------------- */
+async function checkImageGenerationLimit(user_id: string): Promise<{ allowed: boolean; count: number; limit: number }> {
+  const IMAGE_LIMIT = 3;
+  const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
+  
+  const { count, error } = await supabase
+    .from('image_generation_log')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', user_id)
+    .gte('created_at', new Date(Date.now() - TWENTY_FOUR_HOURS_MS).toISOString());
+
+  if (error) {
+    console.error("[image-limit] check failed:", error);
+    // Fail closed - deny if check fails
+    return { allowed: false, count: IMAGE_LIMIT, limit: IMAGE_LIMIT };
+  }
+
+  const currentCount = count || 0;
+  return {
+    allowed: currentCount < IMAGE_LIMIT,
+    count: currentCount,
+    limit: IMAGE_LIMIT
+  };
+}
+
 function triggerSummaryGeneration(chat_id: string, fromTurn: number, toTurn: number) {
   const headers = {
     "Content-Type": "application/json",
@@ -403,73 +428,87 @@ Deno.serve(async (req: Request) => {
       // handle image generation via internal edge function
       const prompt = functionCall.args?.prompt || "";
       
-      // Create placeholder message immediately for better UX
-      const placeholderMessageId = crypto.randomUUID();
-      const { error: placeholderError } = await supabase
-        .from('messages')
-        .insert({
-          id: placeholderMessageId,
-          chat_id,
-          role: 'assistant',
-          status: 'complete',
-          mode: mode || 'chat',
+      // ✅ Check rate limit BEFORE creating placeholder (single source of truth: image_generation_log)
+      const limitCheck = await checkImageGenerationLimit(user_id);
+      
+      if (!limitCheck.allowed) {
+        console.info(JSON.stringify({
+          event: "image_generation_limit_exceeded",
           user_id,
-          client_msg_id: crypto.randomUUID(),
-          meta: {
-            message_type: 'image',
-            image_prompt: prompt,
-            status: 'generating'
-          }
-        });
-      
-      if (placeholderError) {
-        console.error("[image-gen] placeholder insert failed:", placeholderError);
-        // Continue anyway - image-generate will create its own message
-      }
-      
-      try {
-        const imageGenResp = await fetch(`${ENV.SUPABASE_URL}/functions/v1/image-generate`, {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${ENV.SUPABASE_SERVICE_ROLE_KEY}`,
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({ chat_id, prompt, user_id, mode, message_id: placeholderMessageId })
-        });
+          count: limitCheck.count,
+          limit: limitCheck.limit
+        }));
+        assistantText = `I've reached the daily limit of ${limitCheck.limit} images. You can generate more images tomorrow!`;
+        // Skip image generation, proceed with normal message flow
+      } else {
+        // Create placeholder message immediately for better UX
+        const placeholderMessageId = crypto.randomUUID();
+        const { error: placeholderError } = await supabase
+          .from('messages')
+          .insert({
+            id: placeholderMessageId,
+            chat_id,
+            role: 'assistant',
+            status: 'complete',
+            mode: mode || 'chat',
+            user_id,
+            client_msg_id: crypto.randomUUID(),
+            meta: {
+              message_type: 'image',
+              image_prompt: prompt,
+              status: 'generating'
+            }
+          });
+        
+        if (placeholderError) {
+          console.error("[image-gen] placeholder insert failed:", placeholderError);
+          // Continue anyway - image-generate will create its own message
+        }
+        
+        try {
+          const imageGenResp = await fetch(`${ENV.SUPABASE_URL}/functions/v1/image-generate`, {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${ENV.SUPABASE_SERVICE_ROLE_KEY}`,
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ chat_id, prompt, user_id, mode, message_id: placeholderMessageId })
+          });
 
-        if (!imageGenResp.ok) {
-          const errBody = await imageGenResp.json().catch(() => ({}));
+          if (!imageGenResp.ok) {
+            const errBody = await imageGenResp.json().catch(() => ({}));
+            
+            // Delete placeholder message on error
+            if (placeholderMessageId) {
+              await supabase.from('messages').delete().eq('id', placeholderMessageId);
+            }
+            
+            if (imageGenResp.status === 429) {
+              assistantText = "I've reached the daily limit of 3 images. You can generate more images tomorrow!";
+            } else {
+              console.error("[image-gen] failure:", imageGenResp.status, errBody);
+              assistantText = "I tried to generate an image but encountered an error. Please try again.";
+            }
+          } else {
+            // image-generate will create the assistant message itself — skip new message creation
+            return JSON_RESPONSE(200, {
+              success: true,
+              message: "Image generated and message created",
+              skip_message_creation: true,
+              llm_latency_ms: geminiResponseJson?.latencyMs ?? null,
+              total_latency_ms: Date.now() - startMs
+            });
+          }
+        } catch (e) {
+          console.error("[image-gen] exception:", (e as any)?.message || e);
           
-          // Delete placeholder message on error
+          // Delete placeholder message on exception
           if (placeholderMessageId) {
             await supabase.from('messages').delete().eq('id', placeholderMessageId);
           }
           
-          if (imageGenResp.status === 429) {
-            assistantText = "I've reached the daily limit of 3 images. You can generate more images tomorrow!";
-          } else {
-            console.error("[image-gen] failure:", imageGenResp.status, errBody);
-            assistantText = "I tried to generate an image but encountered an error. Please try again.";
-          }
-        } else {
-          // image-generate will create the assistant message itself — skip new message creation
-          return JSON_RESPONSE(200, {
-            success: true,
-            message: "Image generated and message created",
-            skip_message_creation: true,
-            llm_latency_ms: geminiResponseJson?.latencyMs ?? null,
-            total_latency_ms: Date.now() - startMs
-          });
+          assistantText = "I tried to generate an image but encountered an error. Please try again.";
         }
-      } catch (e) {
-        console.error("[image-gen] exception:", (e as any)?.message || e);
-        
-        // Delete placeholder message on exception
-        if (placeholderMessageId) {
-          await supabase.from('messages').delete().eq('id', placeholderMessageId);
-        }
-        
-        assistantText = "I tried to generate an image but encountered an error. Please try again.";
       }
     } else {
       // normal text extraction
