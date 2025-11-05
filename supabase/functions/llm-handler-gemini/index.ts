@@ -468,6 +468,10 @@ Deno.serve(async (req: Request) => {
           console.error(`[image-start] Failed to insert placeholder:`, placeholderError);
           // Continue anyway - worst case no skeleton shows
         }
+
+        // ⏱️ Wait 100ms to ensure WebSocket INSERT event is processed by frontend
+        await new Promise(resolve => setTimeout(resolve, 100));
+        console.log(`[image-start] Placeholder delivered, starting image generation`);
         
         try {
           const imageGenResp = await fetch(`${ENV.SUPABASE_URL}/functions/v1/image-generate`, {
