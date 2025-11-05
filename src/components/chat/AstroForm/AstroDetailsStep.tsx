@@ -209,9 +209,16 @@ export const AstroDetailsStep: React.FC<AstroDetailsStepProps> = ({
         <Button
           type="submit"
           disabled={isProcessing}
-          className="flex-1 bg-gray-900 hover:bg-gray-800 disabled:opacity-50 rounded-full"
+          className="flex-1 bg-gray-900 hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed rounded-full transition-all"
         >
-          {isProcessing ? 'Processing...' : 'Next'}
+          {isProcessing ? (
+            <span className="flex items-center gap-2 justify-center">
+              <span className="animate-spin">⏳</span>
+              Processing...
+            </span>
+          ) : (
+            'Next'
+          )}
         </Button>
       </div>
     </motion.form>

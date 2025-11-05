@@ -121,9 +121,19 @@ const InlineDateTimeSelector = ({
   const handleConfirm = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    // Update the parent component's value immediately
+    
+    // Ensure value is committed
     onChange(localValue);
-    onConfirm();
+    
+    // Blur any active input to dismiss mobile keyboard
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
+    
+    // Small delay to ensure onChange completes before closing
+    setTimeout(() => {
+      onConfirm();
+    }, 50);
   };
 
   const handleTriggerClick = (e: React.MouseEvent) => {
@@ -208,43 +218,55 @@ const InlineDateTimeSelector = ({
 
       <AnimatePresence>
         {isOpen && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.2, ease: 'easeOut' }}
-            className="fixed left-4 right-4 top-1/2 -translate-y-1/2 z-50 bg-white border border-gray-200 rounded-lg shadow-xl overflow-hidden"
-          >
-            <div className="p-6">
-              <div className="mb-6">
-                <h3 className="text-lg font-semibold text-gray-900 text-center">
-                  Select {type === 'date' ? 'Date' : 'Time'}
-                </h3>
+          <>
+            {/* Backdrop to block form interaction */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={onCancel}
+              className="fixed inset-0 bg-black/20 z-[55]"
+            />
+            
+            {/* Picker Modal */}
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.2, ease: 'easeOut' }}
+              className="fixed left-4 right-4 top-1/2 -translate-y-1/2 z-[60] bg-white border border-gray-200 rounded-lg shadow-xl overflow-hidden"
+            >
+              <div className="p-6">
+                <div className="mb-6">
+                  <h3 className="text-lg font-semibold text-gray-900 text-center">
+                    Select {type === 'date' ? 'Date' : 'Time'}
+                  </h3>
+                </div>
+                
+                {type === 'date' ? (
+                  <InlineDateWheel 
+                    value={localValue} 
+                    onChange={handleLocalChange} 
+                  />
+                ) : (
+                  <InlineTimeWheel 
+                    value={localValue} 
+                    onChange={handleLocalChange} 
+                  />
+                )}
+                
+                <div className="flex justify-center mt-6 pt-4 border-t border-gray-100">
+                  <button
+                    type="button"
+                    onClick={handleConfirm}
+                    className="text-blue-600 text-lg font-semibold hover:text-blue-800 transition-colors bg-transparent border-none p-0 cursor-pointer"
+                  >
+                    Done
+                  </button>
+                </div>
               </div>
-              
-              {type === 'date' ? (
-                <InlineDateWheel 
-                  value={localValue} 
-                  onChange={handleLocalChange} 
-                />
-              ) : (
-                <InlineTimeWheel 
-                  value={localValue} 
-                  onChange={handleLocalChange} 
-                />
-              )}
-              
-              <div className="flex justify-center mt-6 pt-4 border-t border-gray-100">
-                <button
-                  type="button"
-                  onClick={handleConfirm}
-                  className="text-blue-600 text-lg font-semibold hover:text-blue-800 transition-colors bg-transparent border-none p-0 cursor-pointer"
-                >
-                  Done
-                </button>
-              </div>
-            </div>
-          </motion.div>
+            </motion.div>
+          </>
         )}
       </AnimatePresence>
     </div>
