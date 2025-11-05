@@ -1,12 +1,11 @@
 // @ts-nocheck - Deno runtime, types checked at deployment
-// Image generation edge function using Google Imagen 4 Standard
+// Image generation edge function using Google Gemini API
 // - Rate limiting: 3 images per user per 24 hours
-// - Calls Google Imagen 4 API via Vertex AI endpoint
+// - Calls Gemini API for image generation (uses API key, no OAuth needed)
 // - Uploads to Supabase Storage
 // - Creates message with image metadata
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { GoogleAuth } from "https://esm.sh/google-auth-library@9.0.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -45,113 +44,7 @@ function decodeBase64(base64: string): Uint8Array {
   return bytes;
 }
 
-// Get OAuth 2 access token for Vertex AI using Google Auth Library
-// Vertex AI requires OAuth tokens, not API keys
-async function getAccessToken(requestId: string): Promise<string> {
-  // Read service account JSON from environment variable
-  // User may have saved it as GOOGLE_SERVICE_ACCOUNT_JSON or SUPABASE_GOOGLE_SERVICE_ACCOUNT_KEY
-  const SERVICE_ACCOUNT_JSON = Deno.env.get("GOOGLE_SERVICE_ACCOUNT_JSON") || 
-                                Deno.env.get("SUPABASE_GOOGLE_SERVICE_ACCOUNT_KEY");
-  
-  if (!SERVICE_ACCOUNT_JSON) {
-    const errorMsg = "Service account key not found in environment variables. Please set GOOGLE_SERVICE_ACCOUNT_JSON or SUPABASE_GOOGLE_SERVICE_ACCOUNT_KEY";
-    console.error(JSON.stringify({
-      event: "image_generate_missing_service_account",
-      request_id: requestId,
-      error: errorMsg,
-      checked_env_vars: ["GOOGLE_SERVICE_ACCOUNT_JSON", "SUPABASE_GOOGLE_SERVICE_ACCOUNT_KEY"]
-    }));
-    throw new Error(errorMsg);
-  }
-
-  // Log that we found the env var (but not the actual content)
-  console.info(JSON.stringify({
-    event: "image_generate_service_account_found",
-    request_id: requestId,
-    env_var_length: SERVICE_ACCOUNT_JSON.length,
-    starts_with: SERVICE_ACCOUNT_JSON.substring(0, 20)
-  }));
-
-  let credentials;
-  try {
-    credentials = JSON.parse(SERVICE_ACCOUNT_JSON);
-    
-    // Validate required fields
-    if (!credentials.type || credentials.type !== "service_account") {
-      throw new Error("Invalid service account JSON: 'type' field is missing or not 'service_account'");
-    }
-    if (!credentials.project_id) {
-      throw new Error("Invalid service account JSON: 'project_id' field is missing");
-    }
-    if (!credentials.private_key) {
-      throw new Error("Invalid service account JSON: 'private_key' field is missing");
-    }
-    if (!credentials.client_email) {
-      throw new Error("Invalid service account JSON: 'client_email' field is missing");
-    }
-    
-    console.info(JSON.stringify({
-      event: "image_generate_service_account_parsed",
-      request_id: requestId,
-      project_id: credentials.project_id,
-      client_email: credentials.client_email
-    }));
-  } catch (e) {
-    const errorMsg = `Failed to parse service account key JSON: ${e instanceof Error ? e.message : String(e)}`;
-    console.error(JSON.stringify({
-      event: "image_generate_parse_error",
-      request_id: requestId,
-      error: errorMsg,
-      parse_error: e instanceof Error ? e.message : String(e)
-    }));
-    throw new Error(errorMsg);
-  }
-
-  try {
-    console.info(JSON.stringify({
-      event: "image_generate_auth_start",
-      request_id: requestId
-    }));
-    
-    // Use Google Auth Library to get access token
-    const auth = new GoogleAuth({
-      credentials: credentials,
-      scopes: ['https://www.googleapis.com/auth/cloud-platform']
-    });
-
-    const client = await auth.getClient();
-    const accessToken = await client.getAccessToken();
-    
-    if (!accessToken.token) {
-      const errorMsg = "Failed to get access token from Google Auth: token is null or undefined";
-      console.error(JSON.stringify({
-        event: "image_generate_token_null",
-        request_id: requestId,
-        error: errorMsg
-      }));
-      throw new Error(errorMsg);
-    }
-    
-    console.info(JSON.stringify({
-      event: "image_generate_token_success",
-      request_id: requestId,
-      token_length: accessToken.token.length,
-      token_preview: accessToken.token.substring(0, 20) + "..."
-    }));
-    
-    return accessToken.token;
-  } catch (error) {
-    const errorMsg = `Failed to get access token: ${error instanceof Error ? error.message : String(error)}`;
-    console.error(JSON.stringify({
-      event: "image_generate_auth_error",
-      request_id: requestId,
-      error: errorMsg,
-      error_type: error instanceof Error ? error.constructor.name : typeof error,
-      error_stack: error instanceof Error ? error.stack : undefined
-    }));
-    throw new Error(errorMsg);
-  }
-}
+// No OAuth needed - using Gemini API with simple API key authentication
 
 Deno.serve(async (req) => {
   const startTime = Date.now();
@@ -230,148 +123,108 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Call Google Imagen 4 API via Vertex AI endpoint
-    // NOTE: Using Vertex AI endpoint since Gemini API endpoint returned 404
-    // Format: https://{REGION}-aiplatform.googleapis.com/v1/projects/{PROJECT}/locations/{REGION}/publishers/google/models/{MODEL}:predict
-    const generationStartTime = Date.now();
-    
-    // Get Google Cloud project ID from environment (user saved it as GOOGLE_ID)
-    const GOOGLE_CLOUD_PROJECT = Deno.env.get("GOOGLE_ID") || Deno.env.get("GOOGLE_CLOUD_PROJECT") || Deno.env.get("GCP_PROJECT_ID");
-    const VERTEX_AI_REGION = Deno.env.get("VERTEX_AI_REGION") || "us-central1";
-    
-    if (!GOOGLE_CLOUD_PROJECT) {
-      console.error(JSON.stringify({
-        event: "image_generate_missing_project_id",
-        request_id: requestId,
-        checked_env_vars: ["GOOGLE_ID", "GOOGLE_CLOUD_PROJECT", "GCP_PROJECT_ID"]
-      }));
-      return json(500, { error: "Missing GOOGLE_ID environment variable (Google Cloud Project ID)" });
-    }
-    
-    const imagenUrl = `https://${VERTEX_AI_REGION}-aiplatform.googleapis.com/v1/projects/${GOOGLE_CLOUD_PROJECT}/locations/${VERTEX_AI_REGION}/publishers/google/models/imagen-4.0-generate-001:predict`;
+     // Call Gemini API for image generation
+     // Uses simple API key authentication (no OAuth needed)
+     const generationStartTime = Date.now();
+     
+     // Use Gemini API endpoint with image generation support
+     // Model: gemini-2.0-flash-exp supports image generation
+     const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${GOOGLE_API_KEY}`;
 
     let imageData;
     try {
-      console.info(JSON.stringify({
-        event: "image_generate_api_call_start",
-        request_id: requestId
-      }));
+       // Gemini API uses API key in query parameter (simple, no OAuth needed)
+       console.info(JSON.stringify({
+         event: "image_generate_api_call_start",
+         request_id: requestId,
+         url: geminiUrl.replace(GOOGLE_API_KEY, 'REDACTED'),
+         model: "gemini-2.0-flash-exp"
+       }));
+       
+       const response = await fetch(geminiUrl, {
+         method: 'POST',
+         headers: {
+           'Content-Type': 'application/json'
+         },
+         body: JSON.stringify({
+           contents: [{
+             parts: [{
+               text: `Generate image: ${prompt}`
+             }]
+           }],
+           generationConfig: {
+             temperature: 1,
+             topK: 40,
+             topP: 0.95,
+             responseModalities: ["image"]
+           }
+         })
+       });
 
-      // Vertex AI requires OAuth2 token (not API key)
-      // Try to get access token, fallback to API key if token generation fails
-      let authHeader: string;
-      try {
-        const accessToken = await getAccessToken(requestId);
-        authHeader = `Bearer ${accessToken}`;
-        console.info(JSON.stringify({
-          event: "image_generate_using_oauth_token",
-          request_id: requestId
-        }));
-      } catch (tokenError) {
-        const errorMsg = tokenError instanceof Error ? tokenError.message : String(tokenError);
-        console.error(JSON.stringify({
-          event: "image_generate_token_failed",
-          request_id: requestId,
-          error: errorMsg,
-          error_type: tokenError instanceof Error ? tokenError.constructor.name : typeof tokenError,
-          fallback_note: "Vertex AI requires OAuth2 token. API key will likely fail."
-        }));
-        // Fallback to API key (will probably fail, but try anyway)
-        authHeader = `Bearer ${GOOGLE_API_KEY}`;
-        console.warn(JSON.stringify({
-          event: "image_generate_fallback_to_api_key",
-          request_id: requestId,
-          note: "This will likely fail - Vertex AI requires OAuth tokens"
-        }));
-      }
-      
-      const response = await fetch(imagenUrl, {
-        method: 'POST',
-        headers: {
-          'Authorization': authHeader,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          instances: [{
-            prompt: prompt
-          }],
-          parameters: {
-            sampleCount: 1,
-            aspectRatio: "1:1",
-            safetySetting: "block_some"
-          }
-        })
-      });
+       if (!response.ok) {
+         const errorText = await response.text().catch(() => "");
+         console.error(JSON.stringify({
+           event: "image_generate_api_failed",
+           request_id: requestId,
+           status: response.status,
+           statusText: response.statusText,
+           url: geminiUrl.replace(GOOGLE_API_KEY, 'REDACTED'),
+           headers: Object.fromEntries(response.headers.entries()),
+           error: errorText,
+           full_error: errorText.substring(0, 2000) // Log first 2000 chars
+         }));
+         return json(502, { 
+           error: `Gemini API failed: ${response.status} - ${errorText}`,
+           details: {
+             status: response.status,
+             statusText: response.statusText,
+             error: errorText.substring(0, 500)
+           }
+         });
+       }
 
-      if (!response.ok) {
-        const errorText = await response.text().catch(() => "");
-        console.error(JSON.stringify({
-          event: "image_generate_api_failed",
-          request_id: requestId,
-          status: response.status,
-          statusText: response.statusText,
-          url: imagenUrl,
-          headers: Object.fromEntries(response.headers.entries()),
-          error: errorText,
-          full_error: errorText.substring(0, 2000) // Log first 2000 chars
-        }));
-        return json(502, { 
-          error: `Imagen API failed: ${response.status} - ${errorText}`,
-          details: {
-            status: response.status,
-            statusText: response.statusText,
-            url: imagenUrl,
-            error: errorText.substring(0, 500)
-          }
-        });
-      }
+       imageData = await response.json();
+       console.info(JSON.stringify({
+         event: "image_generate_api_success",
+         request_id: requestId,
+         duration_ms: Date.now() - generationStartTime,
+         response_keys: Object.keys(imageData),
+         response_structure: JSON.stringify(imageData).substring(0, 1000) // Log first 1000 chars of response
+       }));
+     } catch (error) {
+       console.error(JSON.stringify({
+         event: "image_generate_api_exception",
+         request_id: requestId,
+         error: error instanceof Error ? error.message : String(error)
+       }));
+       return json(504, { error: `Gemini API error: ${error instanceof Error ? error.message : String(error)}` });
+     }
 
-      imageData = await response.json();
-      console.info(JSON.stringify({
-        event: "image_generate_api_success",
-        request_id: requestId,
-        duration_ms: Date.now() - generationStartTime,
-        response_keys: Object.keys(imageData),
-        response_structure: JSON.stringify(imageData).substring(0, 1000) // Log first 1000 chars of response
-      }));
-    } catch (error) {
-      console.error(JSON.stringify({
-        event: "image_generate_api_exception",
-        request_id: requestId,
-        error: error instanceof Error ? error.message : String(error)
-      }));
-      return json(504, { error: `Imagen API error: ${error instanceof Error ? error.message : String(error)}` });
-    }
-
-    // Extract base64 image from response - Vertex AI format (primary)
-    // Vertex AI returns: { predictions: [{ bytesBase64Encoded: "..." }] }
-    let base64Image = imageData?.predictions?.[0]?.bytesBase64Encoded;
-    
-    // Fallback: Gemini API format (if using Gemini endpoint)
-    if (!base64Image) {
-      base64Image = imageData?.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
-    }
-    
-    // Another alternative: check for imageData field
-    if (!base64Image) {
-      base64Image = imageData?.imageData;
-    }
-    
-    if (!base64Image) {
-      console.error(JSON.stringify({
-        event: "image_generate_no_image_in_response",
-        request_id: requestId,
-        full_response: JSON.stringify(imageData),
-        response_keys: Object.keys(imageData || {}),
-        candidates_structure: imageData?.candidates ? JSON.stringify(imageData.candidates) : 'no candidates',
-        predictions_structure: imageData?.predictions ? JSON.stringify(imageData.predictions) : 'no predictions'
-      }));
-      return json(502, { 
-        error: "No image data in API response",
-        response_structure: JSON.stringify(imageData).substring(0, 2000),
-        note: "Please check the actual response format from Imagen API"
-      });
-    }
+     // Extract base64 image from Gemini API response
+     // Gemini API returns: { candidates: [{ content: { parts: [{ inlineData: { data: "..." } }] } }] }
+     let base64Image = imageData?.candidates?.[0]?.content?.parts?.find(
+       (part: any) => part.inlineData?.mimeType?.startsWith('image/')
+     )?.inlineData?.data;
+     
+     // Alternative format check
+     if (!base64Image) {
+       base64Image = imageData?.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+     }
+     
+     if (!base64Image) {
+       console.error(JSON.stringify({
+         event: "image_generate_no_image_in_response",
+         request_id: requestId,
+         full_response: JSON.stringify(imageData),
+         response_keys: Object.keys(imageData || {}),
+         candidates_structure: imageData?.candidates ? JSON.stringify(imageData.candidates) : 'no candidates'
+       }));
+       return json(502, { 
+         error: "No image data in API response",
+         response_structure: JSON.stringify(imageData).substring(0, 2000),
+         note: "Please check the actual response format from Gemini API"
+       });
+     }
 
     // Decode base64 to Uint8Array
     let imageBytes;
@@ -433,7 +286,7 @@ Deno.serve(async (req) => {
         image_url: publicUrl,
         image_path: filePath,
         image_prompt: prompt,
-        image_model: 'imagen-4.0-generate-001',
+         image_model: 'gemini-2.0-flash-exp',
         image_size: '1024x1024',
         generation_time_ms: generationTime,
         cost_usd: 0.04
