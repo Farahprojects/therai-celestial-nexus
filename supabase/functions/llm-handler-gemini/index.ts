@@ -457,8 +457,8 @@ Deno.serve(async (req: Request) => {
             mode: mode || 'chat',
             user_id,
             client_msg_id: crypto.randomUUID(),
+            is_generating_image: true, // 🔑 Boolean signal for skeleton detection
             meta: {
-              status: 'generating', // 🔑 Key field for skeleton detection
               image_prompt: prompt,
               message_type: 'image'
             }
@@ -494,6 +494,7 @@ Deno.serve(async (req: Request) => {
                   ? "I've reached the daily limit of 3 images. You can generate more images tomorrow!"
                   : "I tried to generate an image but encountered an error. Please try again.",
                 status: 'complete',
+                is_generating_image: false, // Clear generating flag on error
                 meta: {
                   message_type: 'text',
                   image_error: true
@@ -528,6 +529,7 @@ Deno.serve(async (req: Request) => {
             .update({
               text: "I tried to generate an image but encountered an error. Please try again.",
               status: 'complete',
+              is_generating_image: false, // Clear generating flag on error
               meta: {
                 message_type: 'text',
                 image_error: true

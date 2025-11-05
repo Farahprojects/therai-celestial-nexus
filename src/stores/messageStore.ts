@@ -65,6 +65,7 @@ const mapDbToMessage = (db: any): StoreMessage => ({
   context_injected: db.context_injected,
   message_number: db.message_number,
   mode: db.mode,
+  is_generating_image: db.is_generating_image ?? false,
   source: 'fetch', // All DB-fetched messages are explicitly 'fetch' - no animation
 });
 
@@ -225,7 +226,7 @@ export const useMessageStore = create<MessageStore>()((set, get) => ({
       // JUST FETCH MESSAGES - Fast and simple
       const { data, error } = await supabase
         .from('messages')
-        .select('id, chat_id, role, text, created_at, client_msg_id, status, context_injected, message_number, user_id, user_name, meta')
+        .select('id, chat_id, role, text, created_at, client_msg_id, status, context_injected, message_number, user_id, user_name, meta, is_generating_image')
         .eq('chat_id', fetchChatId)
         .order('created_at', { ascending: true })
         .limit(50);

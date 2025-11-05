@@ -275,6 +275,7 @@ Deno.serve(async (req) => {
     .from('messages')
     .update({
       status: 'complete',
+      is_generating_image: false, // 🔑 Clear generating flag - skeleton will be replaced with image
       meta: {
         message_type: 'image',
         image_url: publicUrl,
@@ -284,7 +285,6 @@ Deno.serve(async (req) => {
         image_size: '1024x1024',
         generation_time_ms: generationTime,
         cost_usd: 0.04
-        // ⚠️ Note: 'status: generating' is removed by not including it
       }
     })
     .eq('id', image_id)

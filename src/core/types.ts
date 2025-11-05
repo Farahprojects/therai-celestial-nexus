@@ -24,6 +24,7 @@ export interface Message {
   mode?: string;
   user_id?: string;
   user_name?: string;
+  is_generating_image?: boolean; // True when image generation is in progress
   meta?: Record<string, any>; // typed from Json
   
   // UI-only fields (not in DB)
