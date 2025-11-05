@@ -268,9 +268,15 @@ Deno.serve(async (req) => {
   }
 
   // Broadcast removed - using database UPDATE instead
-  console.log(`[image-complete] Updating message ${image_id} with image URL`);
+  console.log(JSON.stringify({
+    event: "image_generate_updating_message",
+    request_id: requestId,
+    image_id: image_id,
+    note: "Updating placeholder message with final image data"
+  }));
 
   // Update placeholder message with final image data
+  // Use maybeSingle() to handle case where message might not exist yet (race condition)
   const { data: updatedMessage, error: messageError } = await supabase
     .from('messages')
     .update({
@@ -289,18 +295,40 @@ Deno.serve(async (req) => {
     })
     .eq('id', image_id)
     .select()
-    .single();
+    .maybeSingle();
 
   if (messageError) {
     console.error(JSON.stringify({
       event: "image_generate_message_update_failed",
       request_id: requestId,
       error: messageError.message,
+      error_code: messageError.code,
       image_id: image_id || 'none'
     }));
     // Image is uploaded but message update failed - user won't see image
     // Return error since message update is critical
     return json(500, { error: `Failed to update message: ${messageError.message}` });
+  }
+
+  if (!updatedMessage) {
+    // Message doesn't exist - this shouldn't happen but handle gracefully
+    console.warn(JSON.stringify({
+      event: "image_generate_message_not_found",
+      request_id: requestId,
+      image_id: image_id,
+      note: "Placeholder message not found - may have been deleted or never created",
+      action: "Image uploaded successfully but message update failed - user may need to refresh"
+    }));
+    // Don't fail - image is uploaded and available, just log the warning
+  } else {
+    console.log(JSON.stringify({
+      event: "image_generate_message_updated",
+      request_id: requestId,
+      image_id: image_id,
+      message_id: updatedMessage.id,
+      is_generating_image: updatedMessage.is_generating_image,
+      note: "Successfully updated message with is_generating_image=false"
+    }));
   }
 
   console.info(JSON.stringify({
