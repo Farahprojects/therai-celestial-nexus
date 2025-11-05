@@ -76,8 +76,12 @@ chattype,
 role: rawRole,
 user_id,
 user_name,
-analyze
+analyze,
+id: messageId // Support message update if id is provided (for image generation flow)
 } = body || {};
+
+// Support message update if id is provided (for image generation flow)
+const isUpdate = !!messageId;
 
 if (!chat_id || typeof chat_id !== "string") {
 return json(400, { error: "Missing or invalid field: chat_id" });
