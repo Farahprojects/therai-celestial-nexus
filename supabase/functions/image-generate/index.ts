@@ -192,17 +192,28 @@ Deno.serve(async (req) => {
     return json(504, { error: `Imagen API error: ${error instanceof Error ? error.message : String(error)}` });
   }
 
-  // Extract base64 image from response - try multiple possible response formats
-  let base64Image = imageData?.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+  // Extract base64 image from Imagen API response
+  // Imagen API can return in different formats:
+  // 1. Imagen format: { generatedImages: [{ image: { imageBytes: "..." } }] }
+  // 2. Gemini-style: { candidates: [{ content: { parts: [{ inlineData: { data: "..." } }] } }] }
+  // 3. Vertex AI format: { predictions: [{ bytesBase64Encoded: "..." }] }
   
-  // Alternative response format: check for bytesBase64Encoded (Vertex AI format)
-  if (!base64Image) {
-    base64Image = imageData?.predictions?.[0]?.bytesBase64Encoded;
+  let base64Image: string | undefined;
+  
+  // Try Imagen format first (generatedImages) - this is the primary format for Imagen API
+  if (imageData?.generatedImages?.[0]?.image?.imageBytes) {
+    base64Image = imageData.generatedImages[0].image.imageBytes;
   }
-  
-  // Another alternative: check for imageData field
-  if (!base64Image) {
-    base64Image = imageData?.imageData;
+  // Try Gemini/candidates format
+  else if (imageData?.candidates?.[0]?.content?.parts) {
+    const imagePart = imageData.candidates[0].content.parts.find(
+      (part: any) => part.inlineData?.mimeType?.startsWith('image/')
+    );
+    base64Image = imagePart?.inlineData?.data;
+  }
+  // Try predictions format (Vertex AI)
+  else if (imageData?.predictions?.[0]?.bytesBase64Encoded) {
+    base64Image = imageData.predictions[0].bytesBase64Encoded;
   }
   
   if (!base64Image) {
@@ -212,7 +223,8 @@ Deno.serve(async (req) => {
       full_response: JSON.stringify(imageData),
       response_keys: Object.keys(imageData || {}),
       candidates_structure: imageData?.candidates ? JSON.stringify(imageData.candidates) : 'no candidates',
-      predictions_structure: imageData?.predictions ? JSON.stringify(imageData.predictions) : 'no predictions'
+      predictions_structure: imageData?.predictions ? JSON.stringify(imageData.predictions) : 'no predictions',
+      generatedImages_structure: imageData?.generatedImages ? JSON.stringify(imageData.generatedImages) : 'no generatedImages'
     }));
     return json(502, { 
       error: "No image data in API response",
