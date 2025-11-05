@@ -122,10 +122,9 @@ Deno.serve(async (req) => {
 
   // Call Google Imagen 4 API via Gemini endpoint
   // NOTE: If this fails, we may need to use Vertex AI endpoint instead:
-  // https://us-central1-aiplatform.googleapis.com/v1/projects/{PROJECT}/locations/us-central1/publishers/google/models/imagen-4.0-generate-001:predict
-  // Also check if model name should be: imagen-4.0-generate-preview-06-06 or imagen-4.0-generate-001
+  // Use Gemini API for image generation
   const generationStartTime = Date.now();
-  const imagenUrl = `https://generativelanguage.googleapis.com/v1beta/models/imagen-4.0-generate-001:generateContent`;
+  const imagenUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent`;
 
   let imageData;
   try {
@@ -142,12 +141,13 @@ Deno.serve(async (req) => {
       },
       body: JSON.stringify({
         contents: [{
-          parts: [{ text: prompt }]
+          parts: [{ text: `Generate image: ${prompt}` }]
         }],
         generationConfig: {
-          temperature: 0.4,
+          temperature: 1,
+          topK: 40,
           topP: 0.95,
-          topK: 40
+          responseModalities: ["image"]
         }
       })
     });
@@ -281,7 +281,7 @@ Deno.serve(async (req) => {
       image_url: publicUrl,
       image_path: filePath,
       image_prompt: prompt,
-      image_model: 'imagen-4.0-generate-001',
+      image_model: 'gemini-2.0-flash-exp',
       image_size: '1024x1024',
       generation_time_ms: generationTime,
       cost_usd: 0.04
