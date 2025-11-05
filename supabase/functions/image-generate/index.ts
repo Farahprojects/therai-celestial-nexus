@@ -248,9 +248,11 @@ Deno.serve(async (req) => {
     }
   };
 
-  const { error: messageError } = await supabase
+  const { data: insertedMessage, error: messageError } = await supabase
     .from('messages')
-    .insert([messageData]);
+    .insert([messageData])
+    .select()
+    .single();
 
   if (messageError) {
     console.error(JSON.stringify({
@@ -268,7 +270,8 @@ Deno.serve(async (req) => {
     request_id: requestId,
     total_duration_ms: Date.now() - startTime,
     generation_time_ms: generationTime,
-    file_path: filePath
+    file_path: filePath,
+    message_id: insertedMessage?.id
   }));
 
   return json(200, {
