@@ -119,14 +119,6 @@ export const AstroDataForm: React.FC<AstroDataFormProps> = ({
   };
 
   const handleDetailsFormSubmit = async () => {
-    // Dismiss mobile keyboard and ensure all inputs are blurred
-    if (document.activeElement instanceof HTMLElement) {
-      document.activeElement.blur();
-    }
-    
-    // Small delay to ensure blur completes and onChange handlers finish
-    await new Promise(resolve => setTimeout(resolve, 100));
-    
     if (!validatePrimaryPerson(formValues, setError)) return;
 
     // Save profile if checkbox is checked
