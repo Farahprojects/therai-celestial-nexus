@@ -76,12 +76,8 @@ chattype,
 role: rawRole,
 user_id,
 user_name,
-analyze,
-id: messageId // Support message update if id is provided (for image generation flow)
+analyze
 } = body || {};
-
-// Support message update if id is provided (for image generation flow)
-const isUpdate = !!messageId;
 
 if (!chat_id || typeof chat_id !== "string") {
 return json(400, { error: "Missing or invalid field: chat_id" });
@@ -154,13 +150,13 @@ if (messages && Array.isArray(messages) && messages.length > 0) {
 }
 
 // Regular single message mode
-// Allow empty text for updates (image generation placeholder)
+// Support message update if id is provided (for image generation flow)
+const messageId = req.body?.id || null;
+const isUpdate = !!messageId;
+
+// Allow empty text for image generation placeholder updates
 if (!isUpdate && (!text || typeof text !== "string")) {
 return json(400, { error: "Missing or invalid field: text" });
-}
-// For updates, allow empty text (will be set to empty string if undefined)
-if (isUpdate && text === undefined) {
-  text = '';
 }
 if (!mode || typeof mode !== "string") {
 return json(400, { error: "Missing or invalid field: mode" });
@@ -234,7 +230,9 @@ if (role === "user" && user_id && !isInternalCall) {
   }
 }
 
-// messageId and isUpdate already defined above
+// Support message update if id is provided (for image generation flow)
+const messageId = body?.id || null;
+const isUpdate = !!messageId;
 
 const message = {
 chat_id,
