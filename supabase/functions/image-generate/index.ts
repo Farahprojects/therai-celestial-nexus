@@ -125,7 +125,7 @@ Deno.serve(async (req) => {
   // REST API :generateImages endpoint doesn't exist (404 error)
   // Must use @google/genai SDK instead
   const generationStartTime = Date.now();
-  const IMAGEN_MODEL = 'imagen-3.0-generate-002';
+  const IMAGEN_MODEL = 'imagen-4.0-fast-generate-001';
 
   let base64Image: string | undefined;
   
@@ -238,7 +238,7 @@ Deno.serve(async (req) => {
       message_type: 'image',
       image_url: publicUrl,
       image_path: filePath,
-      image_model: 'imagen-3.0-generate-002',
+      image_model: 'imagen-4.0-fast-generate-001',
       image_size: '1024x1024',
       generation_time_ms: generationTime,
       cost_usd: 0.04 // Cost per image (may vary based on model)
