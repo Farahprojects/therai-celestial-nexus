@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "12.2.3 (519615d)"
+    PostgrestVersion: "13.0.5"
   }
   public: {
     Tables: {
@@ -100,42 +100,75 @@ export type Database = {
       blog_posts: {
         Row: {
           author_name: string | null
+          avg_read_time_minutes: number | null
           content: string
+          content_type: string | null
+          conversion_count: number | null
           cover_image_url: string | null
           created_at: string | null
+          cta_link: string | null
+          cta_text: string | null
+          cta_type: string | null
+          featured: boolean | null
           id: string
           like_count: number | null
+          meta_description: string | null
+          meta_keywords: string[] | null
           published: boolean | null
+          related_posts: string[] | null
           share_count: number | null
           slug: string
           tags: string[] | null
           title: string
+          view_count: number | null
         }
         Insert: {
           author_name?: string | null
+          avg_read_time_minutes?: number | null
           content: string
+          content_type?: string | null
+          conversion_count?: number | null
           cover_image_url?: string | null
           created_at?: string | null
+          cta_link?: string | null
+          cta_text?: string | null
+          cta_type?: string | null
+          featured?: boolean | null
           id?: string
           like_count?: number | null
+          meta_description?: string | null
+          meta_keywords?: string[] | null
           published?: boolean | null
+          related_posts?: string[] | null
           share_count?: number | null
           slug: string
           tags?: string[] | null
           title: string
+          view_count?: number | null
         }
         Update: {
           author_name?: string | null
+          avg_read_time_minutes?: number | null
           content?: string
+          content_type?: string | null
+          conversion_count?: number | null
           cover_image_url?: string | null
           created_at?: string | null
+          cta_link?: string | null
+          cta_text?: string | null
+          cta_type?: string | null
+          featured?: boolean | null
           id?: string
           like_count?: number | null
+          meta_description?: string | null
+          meta_keywords?: string[] | null
           published?: boolean | null
+          related_posts?: string[] | null
           share_count?: number | null
           slug?: string
           tags?: string[] | null
           title?: string
+          view_count?: number | null
         }
         Relationships: []
       }
@@ -208,10 +241,43 @@ export type Database = {
         }
         Relationships: []
       }
+      chat_folder_participants: {
+        Row: {
+          folder_id: string
+          invited_by: string | null
+          joined_at: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          folder_id: string
+          invited_by?: string | null
+          joined_at?: string
+          role?: string
+          user_id: string
+        }
+        Update: {
+          folder_id?: string
+          invited_by?: string | null
+          joined_at?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_folder_participants_folder_id_fkey"
+            columns: ["folder_id"]
+            isOneToOne: false
+            referencedRelation: "chat_folders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       chat_folders: {
         Row: {
           created_at: string | null
           id: string
+          is_public: boolean | null
           name: string
           updated_at: string | null
           user_id: string
@@ -219,6 +285,7 @@ export type Database = {
         Insert: {
           created_at?: string | null
           id?: string
+          is_public?: boolean | null
           name: string
           updated_at?: string | null
           user_id: string
@@ -226,11 +293,79 @@ export type Database = {
         Update: {
           created_at?: string | null
           id?: string
+          is_public?: boolean | null
           name?: string
           updated_at?: string | null
           user_id?: string
         }
         Relationships: []
+      }
+      conversation_caches: {
+        Row: {
+          cache_name: string
+          chat_id: string
+          created_at: string | null
+          expires_at: string
+          system_data_hash: string
+        }
+        Insert: {
+          cache_name: string
+          chat_id: string
+          created_at?: string | null
+          expires_at: string
+          system_data_hash: string
+        }
+        Update: {
+          cache_name?: string
+          chat_id?: string
+          created_at?: string | null
+          expires_at?: string
+          system_data_hash?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversation_caches_chat_id_fkey"
+            columns: ["chat_id"]
+            isOneToOne: true
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      conversation_summaries: {
+        Row: {
+          chat_id: string
+          created_at: string | null
+          id: string
+          message_count: number
+          summary_text: string
+          turn_range: string
+        }
+        Insert: {
+          chat_id: string
+          created_at?: string | null
+          id?: string
+          message_count: number
+          summary_text: string
+          turn_range: string
+        }
+        Update: {
+          chat_id?: string
+          created_at?: string | null
+          id?: string
+          message_count?: number
+          summary_text?: string
+          turn_range?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversation_summaries_chat_id_fkey"
+            columns: ["chat_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       conversations: {
         Row: {
@@ -238,10 +373,13 @@ export type Database = {
           folder_id: string | null
           id: string
           is_public: boolean | null
+          last_summary_at_turn: number | null
           meta: Json | null
           mode: string | null
           owner_user_id: string | null
+          profile_id: string | null
           title: string | null
+          turn_count: number | null
           updated_at: string | null
           user_id: string
         }
@@ -250,10 +388,13 @@ export type Database = {
           folder_id?: string | null
           id?: string
           is_public?: boolean | null
+          last_summary_at_turn?: number | null
           meta?: Json | null
           mode?: string | null
           owner_user_id?: string | null
+          profile_id?: string | null
           title?: string | null
+          turn_count?: number | null
           updated_at?: string | null
           user_id: string
         }
@@ -262,10 +403,13 @@ export type Database = {
           folder_id?: string | null
           id?: string
           is_public?: boolean | null
+          last_summary_at_turn?: number | null
           meta?: Json | null
           mode?: string | null
           owner_user_id?: string | null
+          profile_id?: string | null
           title?: string | null
+          turn_count?: number | null
           updated_at?: string | null
           user_id?: string
         }
@@ -275,6 +419,13 @@ export type Database = {
             columns: ["folder_id"]
             isOneToOne: false
             referencedRelation: "chat_folders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversations_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "user_profile_list"
             referencedColumns: ["id"]
           },
         ]
@@ -310,6 +461,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      credit_transactions: {
+        Row: {
+          amount_usd: number | null
+          created_at: string | null
+          credits: number
+          description: string | null
+          endpoint: string | null
+          id: string
+          reference_id: string | null
+          type: string
+          user_id: string
+        }
+        Insert: {
+          amount_usd?: number | null
+          created_at?: string | null
+          credits: number
+          description?: string | null
+          endpoint?: string | null
+          id?: string
+          reference_id?: string | null
+          type: string
+          user_id: string
+        }
+        Update: {
+          amount_usd?: number | null
+          created_at?: string | null
+          credits?: number
+          description?: string | null
+          endpoint?: string | null
+          id?: string
+          reference_id?: string | null
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       debug_logs: {
         Row: {
@@ -482,6 +669,36 @@ export type Database = {
           subject?: string
           template_type?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      feature_usage: {
+        Row: {
+          created_at: string | null
+          id: string
+          insights_count: number
+          period: string
+          updated_at: string | null
+          user_id: string
+          voice_seconds: number
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          insights_count?: number
+          period: string
+          updated_at?: string | null
+          user_id: string
+          voice_seconds?: number
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          insights_count?: number
+          period?: string
+          updated_at?: string | null
+          user_id?: string
+          voice_seconds?: number
         }
         Relationships: []
       }
@@ -1171,6 +1388,60 @@ export type Database = {
         }
         Relationships: []
       }
+      system_config: {
+        Row: {
+          description: string | null
+          key: string
+          updated_at: string | null
+          value: Json
+        }
+        Insert: {
+          description?: string | null
+          key: string
+          updated_at?: string | null
+          value: Json
+        }
+        Update: {
+          description?: string | null
+          key?: string
+          updated_at?: string | null
+          value?: Json
+        }
+        Relationships: []
+      }
+      system_prompts: {
+        Row: {
+          category: string
+          created_at: string | null
+          display_order: number | null
+          id: string
+          is_active: boolean | null
+          prompt_text: string
+          subcategory: string
+          updated_at: string | null
+        }
+        Insert: {
+          category: string
+          created_at?: string | null
+          display_order?: number | null
+          id?: string
+          is_active?: boolean | null
+          prompt_text: string
+          subcategory: string
+          updated_at?: string | null
+        }
+        Update: {
+          category?: string
+          created_at?: string | null
+          display_order?: number | null
+          id?: string
+          is_active?: boolean | null
+          prompt_text?: string
+          subcategory?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       temp_audio: {
         Row: {
           audio_data: string
@@ -1280,7 +1551,7 @@ export type Database = {
           credited: boolean | null
           credits: number | null
           id: string
-          is_auto_topup: boolean
+          is_auto_topup: boolean | null
           receipt_url: string | null
           status: string
           stripe_payment_intent_id: string | null
@@ -1292,7 +1563,7 @@ export type Database = {
           credited?: boolean | null
           credits?: number | null
           id?: string
-          is_auto_topup?: boolean
+          is_auto_topup?: boolean | null
           receipt_url?: string | null
           status: string
           stripe_payment_intent_id?: string | null
@@ -1304,7 +1575,7 @@ export type Database = {
           credited?: boolean | null
           credits?: number | null
           id?: string
-          is_auto_topup?: boolean
+          is_auto_topup?: boolean | null
           receipt_url?: string | null
           status?: string
           stripe_payment_intent_id?: string | null
@@ -1396,69 +1667,33 @@ export type Database = {
         }
         Relationships: []
       }
-      credit_transactions: {
-        Row: {
-          id: string
-          user_id: string
-          type: string
-          credits: number
-          amount_usd: number | null
-          description: string | null
-          reference_id: string | null
-          endpoint: string | null
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          user_id: string
-          type: string
-          credits: number
-          amount_usd?: number | null
-          description?: string | null
-          reference_id?: string | null
-          endpoint?: string | null
-          created_at?: string
-        }
-        Update: {
-          id?: string
-          user_id?: string
-          type?: string
-          credits?: number
-          amount_usd?: number | null
-          description?: string | null
-          reference_id?: string | null
-          endpoint?: string | null
-          created_at?: string
-        }
-        Relationships: []
-      }
       user_credits: {
         Row: {
-          user_id: string
+          auto_topup_amount: number | null
+          auto_topup_enabled: boolean | null
+          auto_topup_threshold: number | null
+          created_at: string | null
           credits: number
-          auto_topup_enabled: boolean
-          auto_topup_threshold: number
-          auto_topup_amount: number
           last_updated: string | null
-          created_at: string
+          user_id: string
         }
         Insert: {
-          user_id: string
+          auto_topup_amount?: number | null
+          auto_topup_enabled?: boolean | null
+          auto_topup_threshold?: number | null
+          created_at?: string | null
           credits?: number
-          auto_topup_enabled?: boolean
-          auto_topup_threshold?: number
-          auto_topup_amount?: number
           last_updated?: string | null
-          created_at?: string
+          user_id: string
         }
         Update: {
-          user_id?: string
+          auto_topup_amount?: number | null
+          auto_topup_enabled?: boolean | null
+          auto_topup_threshold?: number | null
+          created_at?: string | null
           credits?: number
-          auto_topup_enabled?: boolean
-          auto_topup_threshold?: number
-          auto_topup_amount?: number
           last_updated?: string | null
-          created_at?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -1504,6 +1739,194 @@ export type Database = {
         }
         Relationships: []
       }
+      user_memory: {
+        Row: {
+          astrological_context: Json | null
+          confidence_score: number | null
+          conversation_id: string | null
+          created_at: string | null
+          deleted_at: string | null
+          id: string
+          is_active: boolean | null
+          last_referenced_at: string | null
+          memory_text: string
+          memory_type: Database["public"]["Enums"]["memory_type"]
+          origin_mode: string | null
+          profile_id: string
+          reference_count: number | null
+          source_message_id: string | null
+          turn_index: number | null
+          user_id: string
+        }
+        Insert: {
+          astrological_context?: Json | null
+          confidence_score?: number | null
+          conversation_id?: string | null
+          created_at?: string | null
+          deleted_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_referenced_at?: string | null
+          memory_text: string
+          memory_type: Database["public"]["Enums"]["memory_type"]
+          origin_mode?: string | null
+          profile_id: string
+          reference_count?: number | null
+          source_message_id?: string | null
+          turn_index?: number | null
+          user_id: string
+        }
+        Update: {
+          astrological_context?: Json | null
+          confidence_score?: number | null
+          conversation_id?: string | null
+          created_at?: string | null
+          deleted_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_referenced_at?: string | null
+          memory_text?: string
+          memory_type?: Database["public"]["Enums"]["memory_type"]
+          origin_mode?: string | null
+          profile_id?: string
+          reference_count?: number | null
+          source_message_id?: string | null
+          turn_index?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_memory_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_memory_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "user_profile_list"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_memory_source_message_id_fkey"
+            columns: ["source_message_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_memory_monthly_summaries: {
+        Row: {
+          cognitive_summary: string | null
+          conversation_count: number | null
+          created_at: string | null
+          dominant_transits: Json | null
+          emotional_summary: string
+          id: string
+          key_themes: string[] | null
+          month: number
+          planetary_influences: Json | null
+          profile_id: string
+          user_id: string
+          weekly_summaries_used: number | null
+          year: number
+        }
+        Insert: {
+          cognitive_summary?: string | null
+          conversation_count?: number | null
+          created_at?: string | null
+          dominant_transits?: Json | null
+          emotional_summary: string
+          id?: string
+          key_themes?: string[] | null
+          month: number
+          planetary_influences?: Json | null
+          profile_id: string
+          user_id: string
+          weekly_summaries_used?: number | null
+          year: number
+        }
+        Update: {
+          cognitive_summary?: string | null
+          conversation_count?: number | null
+          created_at?: string | null
+          dominant_transits?: Json | null
+          emotional_summary?: string
+          id?: string
+          key_themes?: string[] | null
+          month?: number
+          planetary_influences?: Json | null
+          profile_id?: string
+          user_id?: string
+          weekly_summaries_used?: number | null
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_memory_monthly_summaries_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "user_profile_list"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_memory_weekly_summaries: {
+        Row: {
+          conversation_count: number | null
+          created_at: string | null
+          dominant_patterns: string[] | null
+          emotional_summary: string
+          id: string
+          key_themes: string[] | null
+          profile_id: string
+          user_id: string
+          week_end_date: string
+          week_number: number
+          week_start_date: string
+          year: number
+        }
+        Insert: {
+          conversation_count?: number | null
+          created_at?: string | null
+          dominant_patterns?: string[] | null
+          emotional_summary: string
+          id?: string
+          key_themes?: string[] | null
+          profile_id: string
+          user_id: string
+          week_end_date: string
+          week_number: number
+          week_start_date: string
+          year: number
+        }
+        Update: {
+          conversation_count?: number | null
+          created_at?: string | null
+          dominant_patterns?: string[] | null
+          emotional_summary?: string
+          id?: string
+          key_themes?: string[] | null
+          profile_id?: string
+          user_id?: string
+          week_end_date?: string
+          week_number?: number
+          week_start_date?: string
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_memory_weekly_summaries_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "user_profile_list"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_preferences: {
         Row: {
           client_view_mode: string | null
@@ -1545,6 +1968,7 @@ export type Database = {
           created_at: string
           house_system: string | null
           id: string
+          is_primary: boolean
           name: string
           notes: string | null
           profile_name: string
@@ -1562,6 +1986,7 @@ export type Database = {
           created_at?: string
           house_system?: string | null
           id?: string
+          is_primary?: boolean
           name: string
           notes?: string | null
           profile_name: string
@@ -1579,6 +2004,7 @@ export type Database = {
           created_at?: string
           house_system?: string | null
           id?: string
+          is_primary?: boolean
           name?: string
           notes?: string | null
           profile_name?: string
@@ -1650,91 +2076,71 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      bytea_to_text: {
-        Args: { data: string }
-        Returns: string
-      }
       add_credits: {
         Args: {
-          _user_id: string
-          _credits: number
           _amount_usd: number
-          _type?: string
-          _reference_id?: string
-          _description?: string
-        }
-        Returns: boolean
-      }
-      deduct_credits: {
-        Args: {
-          _user_id: string
           _credits: number
-          _endpoint: string
-          _reference_id?: string
           _description?: string
+          _reference_id?: string
+          _type?: string
+          _user_id: string
         }
         Returns: boolean
       }
-      update_auto_topup_settings: {
+      bytea_to_text: { Args: { data: string }; Returns: string }
+      check_and_increment_insights_count: {
         Args: {
-          _user_id: string
-          _enabled: boolean
-          _threshold: number
-          _amount: number
+          p_count: number
+          p_limit: number
+          p_period: string
+          p_user_id: string
         }
-        Returns: boolean
+        Returns: Json
+      }
+      check_and_increment_voice_seconds: {
+        Args: {
+          p_limit: number
+          p_period: string
+          p_seconds: number
+          p_user_id: string
+        }
+        Returns: Json
       }
       check_orphaned_data: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           orphaned_count: number
           table_name: string
           total_size_estimate: string
         }[]
       }
-      check_report_logs_constraints: {
-        Args: Record<PropertyKey, never>
-        Returns: {
-          column_default: string
-          column_name: string
-          constraint_definition: string
-          constraint_name: string
-          constraint_type: string
-          data_type: string
-          is_nullable: string
-          udt_name: string
-        }[]
-      }
       check_user_admin_role: {
         Args: { user_id_param: string }
         Returns: boolean
       }
-      clean_completed_topups: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
+      clean_completed_topups: { Args: never; Returns: undefined }
       create_user_after_payment: {
         Args: { plan_type?: string; user_id: string }
         Returns: undefined
+      }
+      deduct_credits: {
+        Args: {
+          _credits: number
+          _description?: string
+          _endpoint: string
+          _reference_id?: string
+          _user_id: string
+        }
+        Returns: boolean
       }
       delete_user_account: {
         Args: { user_id_to_delete: string }
         Returns: undefined
       }
-      ensure_profile_for_current_user: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
-      gen_random_bytes: {
-        Args: { "": number }
-        Returns: string
-      }
-      generate_api_key: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
+      ensure_profile_for_current_user: { Args: never; Returns: undefined }
+      generate_api_key: { Args: never; Returns: string }
       get_all_users_admin: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           balance_usd: number
           created_at: string
@@ -1745,6 +2151,7 @@ export type Database = {
           user_id: string
         }[]
       }
+      get_config: { Args: { config_key: string }; Returns: string }
       get_flow_status: {
         Args: { user_email: string }
         Returns: {
@@ -1754,10 +2161,7 @@ export type Database = {
           updated_at: string
         }[]
       }
-      get_next_engine_sequence: {
-        Args: Record<PropertyKey, never>
-        Returns: number
-      }
+      get_next_engine_sequence: { Args: never; Returns: number }
       get_stripe_customer_id_for_user: {
         Args: { user_id_param: string }
         Returns: {
@@ -1765,34 +2169,81 @@ export type Database = {
           stripe_payment_method_id: string
         }[]
       }
-      get_user_email_by_id: {
-        Args: { user_id_param: string }
-        Returns: string
-      }
+      get_user_email_by_id: { Args: { user_id_param: string }; Returns: string }
       http: {
         Args: { request: Database["public"]["CompositeTypes"]["http_request"] }
         Returns: Database["public"]["CompositeTypes"]["http_response"]
+        SetofOptions: {
+          from: "http_request"
+          to: "http_response"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
-      http_delete: {
-        Args:
-          | { content: string; content_type: string; uri: string }
-          | { uri: string }
-        Returns: Database["public"]["CompositeTypes"]["http_response"]
-      }
-      http_get: {
-        Args: { data: Json; uri: string } | { uri: string }
-        Returns: Database["public"]["CompositeTypes"]["http_response"]
-      }
+      http_delete:
+        | {
+            Args: { uri: string }
+            Returns: Database["public"]["CompositeTypes"]["http_response"]
+            SetofOptions: {
+              from: "*"
+              to: "http_response"
+              isOneToOne: true
+              isSetofReturn: false
+            }
+          }
+        | {
+            Args: { content: string; content_type: string; uri: string }
+            Returns: Database["public"]["CompositeTypes"]["http_response"]
+            SetofOptions: {
+              from: "*"
+              to: "http_response"
+              isOneToOne: true
+              isSetofReturn: false
+            }
+          }
+      http_get:
+        | {
+            Args: { uri: string }
+            Returns: Database["public"]["CompositeTypes"]["http_response"]
+            SetofOptions: {
+              from: "*"
+              to: "http_response"
+              isOneToOne: true
+              isSetofReturn: false
+            }
+          }
+        | {
+            Args: { data: Json; uri: string }
+            Returns: Database["public"]["CompositeTypes"]["http_response"]
+            SetofOptions: {
+              from: "*"
+              to: "http_response"
+              isOneToOne: true
+              isSetofReturn: false
+            }
+          }
       http_head: {
         Args: { uri: string }
         Returns: Database["public"]["CompositeTypes"]["http_response"]
+        SetofOptions: {
+          from: "*"
+          to: "http_response"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       http_header: {
         Args: { field: string; value: string }
         Returns: Database["public"]["CompositeTypes"]["http_header"]
+        SetofOptions: {
+          from: "*"
+          to: "http_header"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       http_list_curlopt: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           curlopt: string
           value: string
@@ -1801,33 +2252,59 @@ export type Database = {
       http_patch: {
         Args: { content: string; content_type: string; uri: string }
         Returns: Database["public"]["CompositeTypes"]["http_response"]
+        SetofOptions: {
+          from: "*"
+          to: "http_response"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
-      http_post: {
-        Args:
-          | { content: string; content_type: string; uri: string }
-          | { data: Json; uri: string }
-        Returns: Database["public"]["CompositeTypes"]["http_response"]
-      }
+      http_post:
+        | {
+            Args: { content: string; content_type: string; uri: string }
+            Returns: Database["public"]["CompositeTypes"]["http_response"]
+            SetofOptions: {
+              from: "*"
+              to: "http_response"
+              isOneToOne: true
+              isSetofReturn: false
+            }
+          }
+        | {
+            Args: { data: Json; uri: string }
+            Returns: Database["public"]["CompositeTypes"]["http_response"]
+            SetofOptions: {
+              from: "*"
+              to: "http_response"
+              isOneToOne: true
+              isSetofReturn: false
+            }
+          }
       http_put: {
         Args: { content: string; content_type: string; uri: string }
         Returns: Database["public"]["CompositeTypes"]["http_response"]
+        SetofOptions: {
+          from: "*"
+          to: "http_response"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
-      http_reset_curlopt: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
+      http_reset_curlopt: { Args: never; Returns: boolean }
       http_set_curlopt: {
         Args: { curlopt: string; value: string }
         Returns: boolean
       }
-      is_user_verified: {
-        Args: { _user_id?: string }
-        Returns: boolean
+      increment_insights_count: {
+        Args: { p_count: number; p_period: string; p_user_id: string }
+        Returns: undefined
       }
-      mark_profile_verified: {
-        Args: { user_id?: string }
-        Returns: boolean
+      increment_voice_seconds: {
+        Args: { p_period: string; p_seconds: number; p_user_id: string }
+        Returns: undefined
       }
+      is_user_verified: { Args: { _user_id?: string }; Returns: boolean }
+      mark_profile_verified: { Args: { user_id?: string }; Returns: boolean }
       rpc_notify_orchestrator: {
         Args: { guest_report_id: string }
         Returns: undefined
@@ -1840,28 +2317,42 @@ export type Database = {
         }
         Returns: boolean
       }
-      text_to_bytea: {
-        Args: { data: string }
-        Returns: string
-      }
+      text_to_bytea: { Args: { data: string }; Returns: string }
       toggle_addon: {
         Args: { addon_name: string; enabled: boolean; user_id_param: string }
         Returns: undefined
+      }
+      update_auto_topup_settings: {
+        Args: {
+          _amount: number
+          _enabled: boolean
+          _threshold: number
+          _user_id: string
+        }
+        Returns: boolean
       }
       upgrade_plan: {
         Args: { new_plan: string; user_id_param: string }
         Returns: undefined
       }
-      urlencode: {
-        Args: { data: Json } | { string: string } | { string: string }
-        Returns: string
-      }
-      user_owns_insight: {
-        Args: { report_id: string }
-        Returns: boolean
-      }
+      urlencode:
+        | { Args: { data: Json }; Returns: string }
+        | {
+            Args: { string: string }
+            Returns: {
+              error: true
+            } & "Could not choose the best candidate function between: public.urlencode(string => bytea), public.urlencode(string => varchar). Try renaming the parameters or the function itself in the database so function overloading can be resolved"
+          }
+        | {
+            Args: { string: string }
+            Returns: {
+              error: true
+            } & "Could not choose the best candidate function between: public.urlencode(string => bytea), public.urlencode(string => varchar). Try renaming the parameters or the function itself in the database so function overloading can be resolved"
+          }
+      user_owns_insight: { Args: { report_id: string }; Returns: boolean }
     }
     Enums: {
+      memory_type: "fact" | "emotion" | "goal" | "pattern" | "relationship"
       queue_status: "pending" | "processing" | "completed" | "failed"
       user_role: "admin" | "user"
     }
@@ -1871,7 +2362,7 @@ export type Database = {
         value: string | null
       }
       http_request: {
-        method: unknown | null
+        method: unknown
         uri: string | null
         headers: Database["public"]["CompositeTypes"]["http_header"][] | null
         content_type: string | null
@@ -2007,6 +2498,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      memory_type: ["fact", "emotion", "goal", "pattern", "relationship"],
       queue_status: ["pending", "processing", "completed", "failed"],
       user_role: ["admin", "user"],
     },

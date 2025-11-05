@@ -220,10 +220,9 @@ Deno.serve(async (req) => {
     return json(500, { error: `Upload failed: ${uploadError.message}` });
   }
 
-  // Get public URL
-  const { data: { publicUrl } } = supabase.storage
-    .from('generated-images')
-    .getPublicUrl(filePath);
+  // Use custom domain for image URLs
+  const CUSTOM_DOMAIN = 'https://api.therai.co';
+  const publicUrl = `${CUSTOM_DOMAIN}/storage/v1/object/public/generated-images/${filePath}`;
 
   const generationTime = Date.now() - generationStartTime;
 
