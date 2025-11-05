@@ -78,7 +78,7 @@ const AssistantMessage = React.memo(({ message }: { message: Message }) => {
 
     return (
       <div className="flex items-end gap-3 justify-start mb-8">
-        <div className="relative group rounded-2xl max-w-2xl overflow-hidden">
+        <div className="relative group rounded-xl max-w-2xl overflow-hidden">
           <img 
             src={imageUrl} 
             alt={imagePrompt || 'Generated image'}
