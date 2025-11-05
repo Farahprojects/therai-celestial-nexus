@@ -156,6 +156,44 @@ class UnifiedWebSocketService {
             if (DEBUG) console.log(`[UnifiedWebSocket] ✅ Event dispatched`);
           }
         )
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'messages',
+            filter: `chat_id=eq.${chat_id}`
+          },
+          (payload) => {
+            // 🔒 Ignore if subscription is stale
+            if (currentToken !== this.subscribeToken) return;
+            
+            const role = payload.new?.role;
+            const messageId = payload.new?.id;
+            
+            if (DEBUG) {
+              console.log(`[UnifiedWebSocket] 🔄 ${role} message UPDATE:`, { 
+                chat_id, 
+                message_id: messageId,
+                text_preview: payload.new?.text?.substring(0, 50),
+                has_image_url: !!(payload.new?.meta as any)?.image_url
+              });
+            }
+            
+            // Emit global event with full updated message data (no DB refetch needed)
+            if (DEBUG) console.log(`[UnifiedWebSocket] 🔔 Emitting UPDATE event with data`);
+            
+            window.dispatchEvent(new CustomEvent('assistant-message', { 
+              detail: { 
+                chat_id, 
+                role,
+                message: payload.new // ⚡ Pass full updated message data to avoid refetch
+              }
+            }));
+            
+            if (DEBUG) console.log(`[UnifiedWebSocket] ✅ UPDATE event dispatched`);
+          }
+        )
         .subscribe((status) => {
           // 🔒 Ignore stale subscription callbacks
           if (currentToken !== this.subscribeToken) return;

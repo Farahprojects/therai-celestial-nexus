@@ -325,11 +325,9 @@ if (typeof window !== 'undefined' && !(window as any).__msgStoreListenerInstalle
       const message = mapDbToMessage(messageData);
       const messageWithSource = { ...message, source: 'websocket' as const };
       
-      // ⚡ OPTIMIZED: Fast O(1) deduplication using Set of recent message IDs
-      const recentIds = new Set(messages.slice(-20).map(m => m.id));
-      if (!recentIds.has(messageData.id)) {
-        addMessage(messageWithSource);
-      }
+      // Always call addMessage - it handles both INSERT (new) and UPDATE (existing) cases
+      // The addMessage function checks if message exists by ID and updates it if needed
+      addMessage(messageWithSource);
       
       // ⚡ OPTIMIZED: Handle side-effects ONLY for assistant messages
       if (role === 'assistant') {
