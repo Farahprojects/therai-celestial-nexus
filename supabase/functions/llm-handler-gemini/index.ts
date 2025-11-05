@@ -543,16 +543,22 @@ Deno.serve(async (req) => {
         const errorData = await imageGenResponse.json().catch(() => ({}));
         if (imageGenResponse.status === 429) {
           console.log("[llm-handler-gemini] ⚠️ Rate limit hit for image generation");
-          // Return a message about the rate limit instead of continuing
           assistantText = "I've reached the daily limit of 3 images. You can generate more images tomorrow!";
         } else {
           console.error("[llm-handler-gemini] ❌ Image generation failed:", errorData);
           assistantText = "I tried to generate an image but encountered an error. Please try again.";
         }
       } else {
-        // The image-generate function creates the message with proper meta
-        // Return confirmation
-        assistantText = `I've generated the image for you.`;
+        // Image generation succeeded - image-generate already created the message
+        console.log("[llm-handler-gemini] ✅ Image generated successfully, message already created by image-generate");
+        
+        return json(200, {
+          success: true,
+          message: "Image generated and message created",
+          skip_message_creation: true,
+          llm_latency_ms: llmLatencyMs,
+          total_latency_ms: Date.now() - totalStartTime
+        });
       }
     } catch (error) {
       console.error("[llm-handler-gemini] ❌ Image generation exception:", error);
