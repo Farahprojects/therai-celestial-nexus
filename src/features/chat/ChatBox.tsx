@@ -95,18 +95,10 @@ export const ChatBox: React.FC<ChatBoxProps> = ({ onDelete }) => {
           .from('conversations')
           .select('mode, is_public')
           .eq('id', chat_id)
-          .maybeSingle();
+          .single();
         
         if (convError) {
-          // Only log non-PGRST116 errors (PGRST116 = not found, which is expected when conversation is deleted)
-          if (convError.code !== 'PGRST116') {
-            console.error('[ChatBox] Error fetching conversation:', convError);
-          }
-          return;
-        }
-        
-        // Conversation doesn't exist (deleted or invalid ID)
-        if (!conversation) {
+          console.error('[ChatBox] Error fetching conversation:', convError);
           return;
         }
         
@@ -342,10 +334,7 @@ export const ChatBox: React.FC<ChatBoxProps> = ({ onDelete }) => {
                 .from('conversations')
                 .select('is_public')
                 .eq('id', chat_id)
-                .maybeSingle();
-              
-              // Skip if conversation doesn't exist
-              if (!conversation) return;
+                .single();
               
               const { data: participants } = await supabase
                 .from('conversations_participants')

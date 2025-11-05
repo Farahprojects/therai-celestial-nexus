@@ -47,10 +47,7 @@ console.info(JSON.stringify({
 }));
 
 if (req.method === "OPTIONS") {
-  return new Response("ok", { 
-    status: 200,
-    headers: corsHeaders 
-  });
+return new Response("ok", { headers: corsHeaders });
 }
 
 if (req.method !== "POST") {
@@ -119,8 +116,7 @@ if (messages && Array.isArray(messages) && messages.length > 0) {
     mode: msg.mode || mode,
     user_id: (msg.user_id || user_id) ?? null,
     user_name: (msg.user_name || user_name) ?? null,
-    meta: {},
-    is_generating_image: msg.is_generating_image ?? false
+    meta: {}
   }));
 
   const { error: dbError } = await supabase
@@ -153,7 +149,9 @@ if (messages && Array.isArray(messages) && messages.length > 0) {
 }
 
 // Regular single message mode
-// Note: Text validation happens after body is parsed (line 236+)
+if (!text || typeof text !== "string") {
+return json(400, { error: "Missing or invalid field: text" });
+}
 if (!mode || typeof mode !== "string") {
 return json(400, { error: "Missing or invalid field: mode" });
 }
@@ -226,15 +224,6 @@ if (role === "user" && user_id && !isInternalCall) {
   }
 }
 
-// Support message update if id is provided (for image generation flow)
-const messageId = body?.id || null;
-const isUpdate = !!messageId;
-
-// Validate text (allow empty for updates)
-if (!isUpdate && (!text || typeof text !== "string")) {
-  return json(400, { error: "Missing or invalid field: text" });
-}
-
 const message = {
 chat_id,
 role,
@@ -244,19 +233,12 @@ status: "complete",
 mode,
 user_id: user_id ?? null,
 user_name: user_name ?? null,
-meta: body?.meta || {},
-is_generating_image: body?.is_generating_image ?? false // Support boolean flag for image generation
+meta: {}
 };
-
-// If id is provided, include it for update
-if (messageId) {
-  (message as any).id = messageId;
-}
 
 // ⚡ FIRE-AND-FORGET: Start LLM immediately (non-blocking)
 // For "together" mode, only trigger LLM if @therai is present (analyze = true)
-// Skip LLM for updates (image generation flow)
-let shouldStartLLM = role === "user" && chattype !== "voice" && !isUpdate;
+let shouldStartLLM = role === "user" && chattype !== "voice";
 let shouldExtractMemory = false;
 
 if (shouldStartLLM) {
@@ -368,56 +350,31 @@ determineLLMHandler().then((llmHandler) => {
   }
 }
 
-// ⚡ AWAIT DB insert/update to ensure message is saved before returning
+// ⚡ AWAIT DB insert to ensure message is saved before returning
 console.info(JSON.stringify({
-  event: isUpdate ? "chat_send_db_update_start" : "chat_send_db_insert_start",
-  request_id: requestId,
-  message_id: messageId || 'new',
-  is_update: isUpdate
+  event: "chat_send_db_insert_start",
+  request_id: requestId
 }));
 
-let insertedMessage;
-let dbError;
-
-if (isUpdate) {
-  // Update existing message
-  const { id, ...updateData } = message as any;
-  const { data, error } = await supabase
-    .from("messages")
-    .update(updateData)
-    .eq('id', id)
-    .select("id")
-    .maybeSingle();
-  
-  insertedMessage = data;
-  dbError = error;
-} else {
-  // Insert new message
-  const { data, error } = await supabase
-    .from("messages")
-    .insert(message)
-    .select("id")
-    .single();
-  
-  insertedMessage = data;
-  dbError = error;
-}
+const { data: insertedMessage, error: dbError } = await supabase
+  .from("messages")
+  .insert(message)
+  .select("id")
+  .single();
 
 if (dbError) {
   console.error(JSON.stringify({
-    event: isUpdate ? "chat_send_db_update_failed" : "chat_send_db_insert_failed",
+    event: "chat_send_db_insert_failed",
     request_id: requestId,
-    error: dbError.message,
-    message_id: messageId || 'new'
+    error: dbError.message
   }));
-  return json(500, { error: `Failed to ${isUpdate ? 'update' : 'save'} message`, details: dbError.message });
+  return json(500, { error: "Failed to save message", details: dbError.message });
 }
 
 console.info(JSON.stringify({
-  event: isUpdate ? "chat_send_db_update_complete" : "chat_send_db_insert_complete",
+  event: "chat_send_db_insert_complete",
   request_id: requestId,
-  duration_ms: Date.now() - startTime,
-  message_id: insertedMessage?.id || messageId
+  duration_ms: Date.now() - startTime
 }));
 
 // Trigger memory extraction if needed (fire-and-forget)

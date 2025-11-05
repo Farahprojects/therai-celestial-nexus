@@ -267,27 +267,14 @@ Deno.serve(async (req) => {
     // Don't block the user if audit logging fails - continue with message creation
   }
 
-  // Update placeholder message via chat-send (single source of truth for DB writes)
-  console.log(JSON.stringify({
-    event: "image_generate_updating_message",
-    request_id: requestId,
-    image_id: image_id,
-    note: "Updating placeholder message via chat-send with final image data"
-  }));
+  // Broadcast removed - using database UPDATE instead
+  console.log(`[image-complete] Updating message ${image_id} with image URL`);
 
-  const updateResponse = await fetch(`${SUPABASE_URL}/functions/v1/chat-send`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      id: image_id,
-      chat_id,
-      role: 'assistant',
-      text: '', // Keep empty for image messages
+  // Update placeholder message with final image data
+  const { data: updatedMessage, error: messageError } = await supabase
+    .from('messages')
+    .update({
       status: 'complete',
-      is_generating_image: false, // 🔑 Clear generating flag - skeleton will be replaced with image
       meta: {
         message_type: 'image',
         image_url: publicUrl,
@@ -297,30 +284,24 @@ Deno.serve(async (req) => {
         image_size: '1024x1024',
         generation_time_ms: generationTime,
         cost_usd: 0.04
+        // ⚠️ Note: 'status: generating' is removed by not including it
       }
     })
-  });
+    .eq('id', image_id)
+    .select()
+    .single();
 
-  if (!updateResponse.ok) {
-    const errorBody = await updateResponse.json().catch(() => ({}));
+  if (messageError) {
     console.error(JSON.stringify({
       event: "image_generate_message_update_failed",
       request_id: requestId,
-      status: updateResponse.status,
-      error: errorBody,
+      error: messageError.message,
       image_id: image_id || 'none'
     }));
     // Image is uploaded but message update failed - user won't see image
     // Return error since message update is critical
-    return json(500, { error: `Failed to update message: ${updateResponse.status} ${JSON.stringify(errorBody)}` });
+    return json(500, { error: `Failed to update message: ${messageError.message}` });
   }
-
-  console.log(JSON.stringify({
-    event: "image_generate_message_updated",
-    request_id: requestId,
-    image_id: image_id,
-    note: "Successfully updated message via chat-send with is_generating_image=false"
-  }));
 
   console.info(JSON.stringify({
     event: "image_generate_complete",

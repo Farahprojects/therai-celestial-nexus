@@ -165,7 +165,7 @@ const AssistantMessage = React.memo(({ message }: { message: Message }) => {
          prevProps.message.meta?.together_mode_analysis === nextProps.message.meta?.together_mode_analysis &&
          prevProps.message.meta?.message_type === nextProps.message.meta?.message_type &&
          prevProps.message.meta?.image_url === nextProps.message.meta?.image_url &&
-         prevProps.message.is_generating_image === nextProps.message.is_generating_image;
+         prevProps.message.meta?.status === nextProps.message.meta?.status;
 });
 AssistantMessage.displayName = 'AssistantMessage';
 
@@ -193,11 +193,11 @@ const renderMessages = (messages: Message[], currentUserId?: string) => {
     }
     
     // Render generating image skeleton
-    if (message.role === 'assistant' && message.is_generating_image === true) {
+    if (message.role === 'assistant' && message.meta?.status === 'generating') {
       elements.push(
         <ImageSkeleton 
           key={message.id} 
-          prompt={message.meta?.image_prompt || 'Generating image...'} 
+          prompt={message.meta.image_prompt || 'Generating image...'} 
         />
       );
       continue; // Skip normal rendering
@@ -227,7 +227,7 @@ const renderMessages = (messages: Message[], currentUserId?: string) => {
     }
   }
   
-  // ✅ Skeletons now rendered inline when message.is_generating_image === true
+  // ✅ Skeletons now rendered inline when message.meta.status === 'generating'
   // No separate loop needed
   
   return elements;

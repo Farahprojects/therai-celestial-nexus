@@ -444,16 +444,11 @@ Deno.serve(async (req: Request) => {
         // Generate unique ID for this image generation
         const imageId = crypto.randomUUID();
         
-        // Insert placeholder message via chat-send (single source of truth for DB writes)
-        console.log(`[image-start] Requesting placeholder message insert via chat-send: ${imageId}`);
-        
-        const placeholderResponse = await fetch(`${ENV.SUPABASE_URL}/functions/v1/chat-send`, {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${ENV.SUPABASE_SERVICE_ROLE_KEY}`,
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({
+        // Insert placeholder message for skeleton rendering
+        console.log(`[image-start] Inserting placeholder message ${imageId} for chat ${chat_id}`);
+        const { error: placeholderError } = await supabase
+          .from('messages')
+          .insert({
             id: imageId, // Use imageId as message id for later update
             chat_id,
             role: 'assistant',
@@ -462,24 +457,17 @@ Deno.serve(async (req: Request) => {
             mode: mode || 'chat',
             user_id,
             client_msg_id: crypto.randomUUID(),
-            is_generating_image: true, // 🔑 Boolean signal for skeleton detection
             meta: {
+              status: 'generating', // 🔑 Key field for skeleton detection
               image_prompt: prompt,
               message_type: 'image'
             }
-          })
-        });
+          });
 
-        if (!placeholderResponse.ok) {
-          const errorBody = await placeholderResponse.json().catch(() => ({}));
-          console.error(`[image-start] Failed to insert placeholder via chat-send:`, errorBody);
+        if (placeholderError) {
+          console.error(`[image-start] Failed to insert placeholder:`, placeholderError);
           // Continue anyway - worst case no skeleton shows
-        } else {
-          console.log(`[image-start] Placeholder inserted successfully, starting image generation`);
         }
-
-        // ⏱️ Wait 100ms to ensure WebSocket INSERT event is processed by frontend
-        await new Promise(resolve => setTimeout(resolve, 100));
         
         try {
           const imageGenResp = await fetch(`${ENV.SUPABASE_URL}/functions/v1/image-generate`, {
@@ -494,28 +482,20 @@ Deno.serve(async (req: Request) => {
           if (!imageGenResp.ok) {
             const errBody = await imageGenResp.json().catch(() => ({}));
             
-            // Update placeholder message with error via chat-send
-            await fetch(`${ENV.SUPABASE_URL}/functions/v1/chat-send`, {
-              method: "POST",
-              headers: {
-                Authorization: `Bearer ${ENV.SUPABASE_SERVICE_ROLE_KEY}`,
-                "Content-Type": "application/json"
-              },
-              body: JSON.stringify({
-                id: imageId,
-                chat_id,
-                role: 'assistant',
+            // Update placeholder message with error
+            await supabase
+              .from('messages')
+              .update({
                 text: imageGenResp.status === 429 
                   ? "I've reached the daily limit of 3 images. You can generate more images tomorrow!"
                   : "I tried to generate an image but encountered an error. Please try again.",
                 status: 'complete',
-                is_generating_image: false, // Clear generating flag on error
                 meta: {
                   message_type: 'text',
                   image_error: true
                 }
               })
-            });
+              .eq('id', imageId);
 
             // Skip normal message creation since we updated the placeholder
             return JSON_RESPONSE(200, {
@@ -538,26 +518,18 @@ Deno.serve(async (req: Request) => {
         } catch (e) {
           console.error("[image-gen] exception:", (e as any)?.message || e);
           
-          // Update placeholder message with error via chat-send
-          await fetch(`${ENV.SUPABASE_URL}/functions/v1/chat-send`, {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${ENV.SUPABASE_SERVICE_ROLE_KEY}`,
-              "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-              id: imageId,
-              chat_id,
-              role: 'assistant',
+          // Update placeholder message with error
+          await supabase
+            .from('messages')
+            .update({
               text: "I tried to generate an image but encountered an error. Please try again.",
               status: 'complete',
-              is_generating_image: false, // Clear generating flag on error
               meta: {
                 message_type: 'text',
                 image_error: true
               }
             })
-          });
+            .eq('id', imageId);
 
           // Skip normal message creation
           return JSON_RESPONSE(200, {
