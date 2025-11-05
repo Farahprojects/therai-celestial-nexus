@@ -1,7 +1,7 @@
 // @ts-nocheck - Deno runtime, types checked at deployment
-// Image generation edge function using Google Gemini API
+// Image generation edge function using Google Imagen 4 Standard
 // - Rate limiting: 3 images per user per 24 hours
-// - Calls Gemini API for image generation (uses API key, no OAuth needed)
+// - Calls Google Imagen 4 API via Gemini endpoint
 // - Uploads to Supabase Storage
 // - Creates message with image metadata
 
@@ -44,302 +44,277 @@ function decodeBase64(base64: string): Uint8Array {
   return bytes;
 }
 
-// No OAuth needed - using Gemini API with simple API key authentication
-
 Deno.serve(async (req) => {
   const startTime = Date.now();
   const requestId = crypto.randomUUID().substring(0, 8);
 
+  console.info(JSON.stringify({
+    event: "image_generate_request_received",
+    request_id: requestId,
+    method: req.method
+  }));
+
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
+  }
+
+  if (req.method !== "POST") {
+    return json(405, { error: "Method not allowed" });
+  }
+
+  let body;
   try {
-    console.info(JSON.stringify({
-      event: "image_generate_request_received",
-      request_id: requestId,
-      method: req.method
-    }));
+    body = await req.json();
+  } catch {
+    return json(400, { error: "Invalid JSON body" });
+  }
 
-    if (req.method === "OPTIONS") {
-      return new Response("ok", { headers: corsHeaders });
-    }
+  const { chat_id, prompt, user_id, mode } = body || {};
 
-    if (req.method !== "POST") {
-      return json(405, { error: "Method not allowed" });
-    }
+  if (!chat_id || typeof chat_id !== "string") {
+    return json(400, { error: "Missing or invalid field: chat_id" });
+  }
+  if (!prompt || typeof prompt !== "string") {
+    return json(400, { error: "Missing or invalid field: prompt" });
+  }
+  if (!user_id || typeof user_id !== "string") {
+    return json(400, { error: "Missing or invalid field: user_id" });
+  }
 
-    let body;
-    try {
-      body = await req.json();
-    } catch {
-      return json(400, { error: "Invalid JSON body" });
-    }
+  console.info(JSON.stringify({
+    event: "image_generate_processing",
+    request_id: requestId,
+    chat_id,
+    user_id,
+    prompt_length: prompt.length
+  }));
 
-    const { chat_id, prompt, user_id, mode } = body || {};
+  // Rate limiting: 3 images per user per 24 hours (cost control for $10 subscription)
+  const { count, error: countError } = await supabase
+    .from('messages')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', user_id)
+    .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
+    .eq('meta->>message_type', 'image');
 
-    if (!chat_id || typeof chat_id !== "string") {
-      return json(400, { error: "Missing or invalid field: chat_id" });
-    }
-    if (!prompt || typeof prompt !== "string") {
-      return json(400, { error: "Missing or invalid field: prompt" });
-    }
-    if (!user_id || typeof user_id !== "string") {
-      return json(400, { error: "Missing or invalid field: user_id" });
-    }
-
-    console.info(JSON.stringify({
-      event: "image_generate_processing",
-      request_id: requestId,
-      chat_id,
-      user_id,
-      prompt_length: prompt.length
-    }));
-
-    // Rate limiting: 3 images per user per 24 hours (cost control for $10 subscription)
-    const { count, error: countError } = await supabase
-      .from('messages')
-      .select('id', { count: 'exact', head: true })
-      .eq('user_id', user_id)
-      .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
-      .eq('meta->>message_type', 'image');
-
-    if (countError) {
-      console.error(JSON.stringify({
-        event: "image_generate_rate_limit_check_failed",
-        request_id: requestId,
-        error: countError.message
-      }));
-      return json(500, { error: "Failed to check rate limit" });
-    }
-
-    if (count && count >= 3) {
-      console.info(JSON.stringify({
-        event: "image_generate_rate_limit_exceeded",
-        request_id: requestId,
-        user_id,
-        count
-      }));
-      return json(429, {
-        error: 'Daily image generation limit reached (3 images per day). Limit resets in 24 hours.',
-        limit: 3,
-        used: count
-      });
-    }
-
-     // Call Gemini API for image generation
-     // Uses simple API key authentication (no OAuth needed)
-     const generationStartTime = Date.now();
-     
-     // Use Gemini API endpoint with image generation support
-     // Model: gemini-2.0-flash-exp supports image generation
-     const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${GOOGLE_API_KEY}`;
-
-    let imageData;
-    try {
-       // Gemini API uses API key in query parameter (simple, no OAuth needed)
-       console.info(JSON.stringify({
-         event: "image_generate_api_call_start",
-         request_id: requestId,
-         url: geminiUrl.replace(GOOGLE_API_KEY, 'REDACTED'),
-         model: "gemini-2.0-flash-exp"
-       }));
-       
-       const response = await fetch(geminiUrl, {
-         method: 'POST',
-         headers: {
-           'Content-Type': 'application/json'
-         },
-         body: JSON.stringify({
-           contents: [{
-             parts: [{
-               text: `Generate image: ${prompt}`
-             }]
-           }],
-           generationConfig: {
-             temperature: 1,
-             topK: 40,
-             topP: 0.95,
-             responseModalities: ["image"]
-           }
-         })
-       });
-
-       if (!response.ok) {
-         const errorText = await response.text().catch(() => "");
-         console.error(JSON.stringify({
-           event: "image_generate_api_failed",
-           request_id: requestId,
-           status: response.status,
-           statusText: response.statusText,
-           url: geminiUrl.replace(GOOGLE_API_KEY, 'REDACTED'),
-           headers: Object.fromEntries(response.headers.entries()),
-           error: errorText,
-           full_error: errorText.substring(0, 2000) // Log first 2000 chars
-         }));
-         return json(502, { 
-           error: `Gemini API failed: ${response.status} - ${errorText}`,
-           details: {
-             status: response.status,
-             statusText: response.statusText,
-             error: errorText.substring(0, 500)
-           }
-         });
-       }
-
-       imageData = await response.json();
-       console.info(JSON.stringify({
-         event: "image_generate_api_success",
-         request_id: requestId,
-         duration_ms: Date.now() - generationStartTime,
-         response_keys: Object.keys(imageData),
-         response_structure: JSON.stringify(imageData).substring(0, 1000) // Log first 1000 chars of response
-       }));
-     } catch (error) {
-       console.error(JSON.stringify({
-         event: "image_generate_api_exception",
-         request_id: requestId,
-         error: error instanceof Error ? error.message : String(error)
-       }));
-       return json(504, { error: `Gemini API error: ${error instanceof Error ? error.message : String(error)}` });
-     }
-
-     // Extract base64 image from Gemini API response
-     // Gemini API returns: { candidates: [{ content: { parts: [{ inlineData: { data: "..." } }] } }] }
-     let base64Image = imageData?.candidates?.[0]?.content?.parts?.find(
-       (part: any) => part.inlineData?.mimeType?.startsWith('image/')
-     )?.inlineData?.data;
-     
-     // Alternative format check
-     if (!base64Image) {
-       base64Image = imageData?.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
-     }
-     
-     if (!base64Image) {
-       console.error(JSON.stringify({
-         event: "image_generate_no_image_in_response",
-         request_id: requestId,
-         full_response: JSON.stringify(imageData),
-         response_keys: Object.keys(imageData || {}),
-         candidates_structure: imageData?.candidates ? JSON.stringify(imageData.candidates) : 'no candidates'
-       }));
-       return json(502, { 
-         error: "No image data in API response",
-         response_structure: JSON.stringify(imageData).substring(0, 2000),
-         note: "Please check the actual response format from Gemini API"
-       });
-     }
-
-    // Decode base64 to Uint8Array
-    let imageBytes;
-    try {
-      imageBytes = decodeBase64(base64Image);
-    } catch (error) {
-      console.error(JSON.stringify({
-        event: "image_generate_decode_failed",
-        request_id: requestId,
-        error: error instanceof Error ? error.message : String(error)
-      }));
-      return json(500, { error: "Failed to decode image data" });
-    }
-
-    // Upload to Storage
-    const timestamp = Date.now();
-    const fileName = `${timestamp}-${crypto.randomUUID()}.png`;
-    const filePath = `${user_id}/${fileName}`;
-
-    console.info(JSON.stringify({
-      event: "image_generate_upload_start",
-      request_id: requestId,
-      file_path: filePath
-    }));
-
-    const { error: uploadError } = await supabase.storage
-      .from('generated-images')
-      .upload(filePath, imageBytes, {
-        contentType: 'image/png',
-        upsert: false
-      });
-
-    if (uploadError) {
-      console.error(JSON.stringify({
-        event: "image_generate_upload_failed",
-        request_id: requestId,
-        error: uploadError.message
-      }));
-      return json(500, { error: `Upload failed: ${uploadError.message}` });
-    }
-
-    // Get public URL
-    const { data: { publicUrl } } = supabase.storage
-      .from('generated-images')
-      .getPublicUrl(filePath);
-
-    const generationTime = Date.now() - generationStartTime;
-
-    // Create message with image meta
-    const messageData = {
-      chat_id,
-      role: 'assistant',
-      text: '', // Empty text, image is in meta
-      mode: mode || 'chat',
-      user_id,
-      client_msg_id: crypto.randomUUID(),
-      meta: {
-        message_type: 'image',
-        image_url: publicUrl,
-        image_path: filePath,
-        image_prompt: prompt,
-         image_model: 'gemini-2.0-flash-exp',
-        image_size: '1024x1024',
-        generation_time_ms: generationTime,
-        cost_usd: 0.04
-      }
-    };
-
-    const { error: messageError } = await supabase
-      .from('messages')
-      .insert([messageData]);
-
-    if (messageError) {
-      console.error(JSON.stringify({
-        event: "image_generate_message_insert_failed",
-        request_id: requestId,
-        error: messageError.message
-      }));
-      // Image is uploaded but message failed - this is problematic but we'll return success
-      // The image exists in storage but won't show in chat
-      return json(500, { error: `Message insert failed: ${messageError.message}` });
-    }
-
-    console.info(JSON.stringify({
-      event: "image_generate_complete",
-      request_id: requestId,
-      total_duration_ms: Date.now() - startTime,
-      generation_time_ms: generationTime,
-      file_path: filePath
-    }));
-
-    return json(200, {
-      success: true,
-      image_url: publicUrl,
-      image_path: filePath
-    });
-  } catch (error) {
-    // Catch any unhandled errors
-    const errorMsg = error instanceof Error ? error.message : String(error);
-    const errorStack = error instanceof Error ? error.stack : undefined;
-    
+  if (countError) {
     console.error(JSON.stringify({
-      event: "image_generate_unhandled_error",
+      event: "image_generate_rate_limit_check_failed",
       request_id: requestId,
-      error: errorMsg,
-      error_type: error instanceof Error ? error.constructor.name : typeof error,
-      error_stack: errorStack,
-      total_duration_ms: Date.now() - startTime
+      error: countError.message
     }));
-    
-    return json(500, {
-      error: "Internal server error",
-      message: errorMsg,
-      request_id: requestId
+    return json(500, { error: "Failed to check rate limit" });
+  }
+
+  if (count && count >= 3) {
+    console.info(JSON.stringify({
+      event: "image_generate_rate_limit_exceeded",
+      request_id: requestId,
+      user_id,
+      count
+    }));
+    return json(429, {
+      error: 'Daily image generation limit reached (3 images per day). Limit resets in 24 hours.',
+      limit: 3,
+      used: count
     });
   }
+
+  // Call Google Imagen 4 API via Gemini endpoint
+  // NOTE: If this fails, we may need to use Vertex AI endpoint instead:
+  // https://us-central1-aiplatform.googleapis.com/v1/projects/{PROJECT}/locations/us-central1/publishers/google/models/imagen-4.0-generate-001:predict
+  // Also check if model name should be: imagen-4.0-generate-preview-06-06 or imagen-4.0-generate-001
+  const generationStartTime = Date.now();
+  const imagenUrl = `https://generativelanguage.googleapis.com/v1beta/models/imagen-4.0-generate-001:generateContent`;
+
+  let imageData;
+  try {
+    console.info(JSON.stringify({
+      event: "image_generate_api_call_start",
+      request_id: requestId
+    }));
+
+    const response = await fetch(imagenUrl, {
+      method: 'POST',
+      headers: {
+        'x-goog-api-key': GOOGLE_API_KEY,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        contents: [{
+          parts: [{ text: prompt }]
+        }],
+        generationConfig: {
+          temperature: 0.4,
+          topP: 0.95,
+          topK: 40
+        }
+      })
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => "");
+      console.error(JSON.stringify({
+        event: "image_generate_api_failed",
+        request_id: requestId,
+        status: response.status,
+        statusText: response.statusText,
+        url: imagenUrl,
+        headers: Object.fromEntries(response.headers.entries()),
+        error: errorText,
+        full_error: errorText.substring(0, 2000) // Log first 2000 chars
+      }));
+      return json(502, { 
+        error: `Imagen API failed: ${response.status} - ${errorText}`,
+        details: {
+          status: response.status,
+          statusText: response.statusText,
+          url: imagenUrl,
+          error: errorText.substring(0, 500)
+        }
+      });
+    }
+
+    imageData = await response.json();
+    console.info(JSON.stringify({
+      event: "image_generate_api_success",
+      request_id: requestId,
+      duration_ms: Date.now() - generationStartTime,
+      response_keys: Object.keys(imageData),
+      response_structure: JSON.stringify(imageData).substring(0, 1000) // Log first 1000 chars of response
+    }));
+  } catch (error) {
+    console.error(JSON.stringify({
+      event: "image_generate_api_exception",
+      request_id: requestId,
+      error: error instanceof Error ? error.message : String(error)
+    }));
+    return json(504, { error: `Imagen API error: ${error instanceof Error ? error.message : String(error)}` });
+  }
+
+  // Extract base64 image from response - try multiple possible response formats
+  let base64Image = imageData?.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+  
+  // Alternative response format: check for bytesBase64Encoded (Vertex AI format)
+  if (!base64Image) {
+    base64Image = imageData?.predictions?.[0]?.bytesBase64Encoded;
+  }
+  
+  // Another alternative: check for imageData field
+  if (!base64Image) {
+    base64Image = imageData?.imageData;
+  }
+  
+  if (!base64Image) {
+    console.error(JSON.stringify({
+      event: "image_generate_no_image_in_response",
+      request_id: requestId,
+      full_response: JSON.stringify(imageData),
+      response_keys: Object.keys(imageData || {}),
+      candidates_structure: imageData?.candidates ? JSON.stringify(imageData.candidates) : 'no candidates',
+      predictions_structure: imageData?.predictions ? JSON.stringify(imageData.predictions) : 'no predictions'
+    }));
+    return json(502, { 
+      error: "No image data in API response",
+      response_structure: JSON.stringify(imageData).substring(0, 2000),
+      note: "Please check the actual response format from Imagen API"
+    });
+  }
+
+  // Decode base64 to Uint8Array
+  let imageBytes;
+  try {
+    imageBytes = decodeBase64(base64Image);
+  } catch (error) {
+    console.error(JSON.stringify({
+      event: "image_generate_decode_failed",
+      request_id: requestId,
+      error: error instanceof Error ? error.message : String(error)
+    }));
+    return json(500, { error: "Failed to decode image data" });
+  }
+
+  // Upload to Storage
+  const timestamp = Date.now();
+  const fileName = `${timestamp}-${crypto.randomUUID()}.png`;
+  const filePath = `${user_id}/${fileName}`;
+
+  console.info(JSON.stringify({
+    event: "image_generate_upload_start",
+    request_id: requestId,
+    file_path: filePath
+  }));
+
+  const { error: uploadError } = await supabase.storage
+    .from('generated-images')
+    .upload(filePath, imageBytes, {
+      contentType: 'image/png',
+      upsert: false
+    });
+
+  if (uploadError) {
+    console.error(JSON.stringify({
+      event: "image_generate_upload_failed",
+      request_id: requestId,
+      error: uploadError.message
+    }));
+    return json(500, { error: `Upload failed: ${uploadError.message}` });
+  }
+
+  // Get public URL
+  const { data: { publicUrl } } = supabase.storage
+    .from('generated-images')
+    .getPublicUrl(filePath);
+
+  const generationTime = Date.now() - generationStartTime;
+
+  // Create message with image meta
+  const messageData = {
+    chat_id,
+    role: 'assistant',
+    text: '', // Empty text, image is in meta
+    mode: mode || 'chat',
+    user_id,
+    client_msg_id: crypto.randomUUID(),
+    meta: {
+      message_type: 'image',
+      image_url: publicUrl,
+      image_path: filePath,
+      image_prompt: prompt,
+      image_model: 'imagen-4.0-generate-001',
+      image_size: '1024x1024',
+      generation_time_ms: generationTime,
+      cost_usd: 0.04
+    }
+  };
+
+  const { error: messageError } = await supabase
+    .from('messages')
+    .insert([messageData]);
+
+  if (messageError) {
+    console.error(JSON.stringify({
+      event: "image_generate_message_insert_failed",
+      request_id: requestId,
+      error: messageError.message
+    }));
+    // Image is uploaded but message failed - this is problematic but we'll return success
+    // The image exists in storage but won't show in chat
+    return json(500, { error: `Message insert failed: ${messageError.message}` });
+  }
+
+  console.info(JSON.stringify({
+    event: "image_generate_complete",
+    request_id: requestId,
+    total_duration_ms: Date.now() - startTime,
+    generation_time_ms: generationTime,
+    file_path: filePath
+  }));
+
+  return json(200, {
+    success: true,
+    image_url: publicUrl,
+    image_path: filePath
+  });
 });
 
