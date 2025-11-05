@@ -150,14 +150,7 @@ Deno.serve(async (req) => {
               }
             ]
           }
-        ],
-        generationConfig: {
-          temperature: 1.0,
-          topP: 0.95,
-          topK: 40,
-          maxOutputTokens: 8192,
-          responseMimeType: "image/png"
-        }
+        ]
       })
     });
 
