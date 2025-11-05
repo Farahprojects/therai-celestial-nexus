@@ -441,29 +441,22 @@ Deno.serve(async (req: Request) => {
         assistantText = `I've reached the daily limit of ${limitCheck.limit} images. You can generate more images tomorrow!`;
         // Skip image generation, proceed with normal message flow
       } else {
-        // Create placeholder message immediately for better UX
-        const placeholderMessageId = crypto.randomUUID();
-        const { error: placeholderError } = await supabase
-          .from('messages')
-          .insert({
-            id: placeholderMessageId,
-            chat_id,
-            role: 'assistant',
-            status: 'complete',
-            mode: mode || 'chat',
-            user_id,
-            client_msg_id: crypto.randomUUID(),
-            meta: {
-              message_type: 'image',
-              image_prompt: prompt,
-              status: 'generating'
-            }
-          });
+        // Generate unique ID for this image generation
+        const imageId = crypto.randomUUID();
         
-        if (placeholderError) {
-          console.error("[image-gen] placeholder insert failed:", placeholderError);
-          // Continue anyway - image-generate will create its own message
-        }
+        // Send image-start broadcast event for real-time UI update
+        const channel = supabase.channel(`unified-messages:${chat_id}`);
+        channel.send({
+          type: "broadcast",
+          event: "image-start",
+          payload: {
+            id: imageId,
+            chat_id,
+            prompt
+          }
+        }, { httpSend: true })
+          .then(() => channel.unsubscribe())
+          .catch(() => channel.unsubscribe());
         
         try {
           const imageGenResp = await fetch(`${ENV.SUPABASE_URL}/functions/v1/image-generate`, {
@@ -472,16 +465,27 @@ Deno.serve(async (req: Request) => {
               Authorization: `Bearer ${ENV.SUPABASE_SERVICE_ROLE_KEY}`,
               "Content-Type": "application/json"
             },
-            body: JSON.stringify({ chat_id, prompt, user_id, mode, message_id: placeholderMessageId })
+            body: JSON.stringify({ chat_id, prompt, user_id, mode, image_id: imageId })
           });
 
           if (!imageGenResp.ok) {
             const errBody = await imageGenResp.json().catch(() => ({}));
             
-            // Delete placeholder message on error
-            if (placeholderMessageId) {
-              await supabase.from('messages').delete().eq('id', placeholderMessageId);
-            }
+            // Send image-error broadcast
+            const errorChannel = supabase.channel(`unified-messages:${chat_id}`);
+            errorChannel.send({
+              type: "broadcast",
+              event: "image-error",
+              payload: {
+                id: imageId,
+                chat_id,
+                error: imageGenResp.status === 429 
+                  ? "I've reached the daily limit of 3 images. You can generate more images tomorrow!"
+                  : "I tried to generate an image but encountered an error. Please try again."
+              }
+            }, { httpSend: true })
+              .then(() => errorChannel.unsubscribe())
+              .catch(() => errorChannel.unsubscribe());
             
             if (imageGenResp.status === 429) {
               assistantText = "I've reached the daily limit of 3 images. You can generate more images tomorrow!";
@@ -490,10 +494,10 @@ Deno.serve(async (req: Request) => {
               assistantText = "I tried to generate an image but encountered an error. Please try again.";
             }
           } else {
-            // image-generate will create the assistant message itself — skip new message creation
+            // image-generate will send image-complete broadcast and create message
             return JSON_RESPONSE(200, {
               success: true,
-              message: "Image generated and message created",
+              message: "Image generation started",
               skip_message_creation: true,
               llm_latency_ms: geminiResponseJson?.latencyMs ?? null,
               total_latency_ms: Date.now() - startMs
@@ -502,10 +506,19 @@ Deno.serve(async (req: Request) => {
         } catch (e) {
           console.error("[image-gen] exception:", (e as any)?.message || e);
           
-          // Delete placeholder message on exception
-          if (placeholderMessageId) {
-            await supabase.from('messages').delete().eq('id', placeholderMessageId);
-          }
+          // Send image-error broadcast
+          const errorChannel = supabase.channel(`unified-messages:${chat_id}`);
+          errorChannel.send({
+            type: "broadcast",
+            event: "image-error",
+            payload: {
+              id: imageId,
+              chat_id,
+              error: "I tried to generate an image but encountered an error. Please try again."
+            }
+          }, { httpSend: true })
+            .then(() => errorChannel.unsubscribe())
+            .catch(() => errorChannel.unsubscribe());
           
           assistantText = "I tried to generate an image but encountered an error. Please try again.";
         }

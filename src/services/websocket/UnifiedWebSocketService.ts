@@ -194,6 +194,33 @@ class UnifiedWebSocketService {
             if (DEBUG) console.log(`[UnifiedWebSocket] ✅ UPDATE event dispatched`);
           }
         )
+        .on(
+          'broadcast',
+          { event: 'image-start' },
+          ({ payload }) => {
+            if (currentToken !== this.subscribeToken) return;
+            if (DEBUG) console.log(`[UnifiedWebSocket] 🖼️ image-start:`, payload);
+            window.dispatchEvent(new CustomEvent('image-generation-start', { detail: payload }));
+          }
+        )
+        .on(
+          'broadcast',
+          { event: 'image-complete' },
+          ({ payload }) => {
+            if (currentToken !== this.subscribeToken) return;
+            if (DEBUG) console.log(`[UnifiedWebSocket] ✅ image-complete:`, payload);
+            window.dispatchEvent(new CustomEvent('image-generation-complete', { detail: payload }));
+          }
+        )
+        .on(
+          'broadcast',
+          { event: 'image-error' },
+          ({ payload }) => {
+            if (currentToken !== this.subscribeToken) return;
+            if (DEBUG) console.log(`[UnifiedWebSocket] ❌ image-error:`, payload);
+            window.dispatchEvent(new CustomEvent('image-generation-error', { detail: payload }));
+          }
+        )
         .subscribe((status) => {
           // 🔒 Ignore stale subscription callbacks
           if (currentToken !== this.subscribeToken) return;

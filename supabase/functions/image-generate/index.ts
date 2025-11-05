@@ -70,7 +70,7 @@ Deno.serve(async (req) => {
     return json(400, { error: "Invalid JSON body" });
   }
 
-  const { chat_id, prompt, user_id, mode, message_id } = body || {};
+  const { chat_id, prompt, user_id, mode, image_id } = body || {};
 
   if (!chat_id || typeof chat_id !== "string") {
     return json(400, { error: "Missing or invalid field: chat_id" });
@@ -264,8 +264,30 @@ Deno.serve(async (req) => {
     // Don't block the user if audit logging fails - continue with message creation
   }
 
-  // Update placeholder message or create new one if placeholder doesn't exist
+  // Send image-complete broadcast event for real-time UI update
+  const channel = supabase.channel(`unified-messages:${chat_id}`);
+  channel.send({
+    type: "broadcast",
+    event: "image-complete",
+    payload: {
+      id: image_id || crypto.randomUUID(),
+      chat_id,
+      image_url: publicUrl,
+      image_path: filePath,
+      image_prompt: prompt
+    }
+  }, { httpSend: true })
+    .then(() => channel.unsubscribe())
+    .catch(() => channel.unsubscribe());
+
+  // Create final message with image metadata
   const messageData = {
+    chat_id,
+    role: 'assistant',
+    status: 'complete',
+    mode: mode || 'chat',
+    user_id,
+    client_msg_id: crypto.randomUUID(),
     meta: {
       message_type: 'image',
       image_url: publicUrl,
@@ -278,50 +300,20 @@ Deno.serve(async (req) => {
     }
   };
 
-  let insertedMessage;
-  let messageError;
-
-  if (message_id) {
-    // Update existing placeholder message
-    const { data, error } = await supabase
-      .from('messages')
-      .update(messageData)
-      .eq('id', message_id)
-      .select()
-      .single();
-    
-    insertedMessage = data;
-    messageError = error;
-  } else {
-    // Create new message if no placeholder exists
-    const { data, error } = await supabase
-      .from('messages')
-      .insert([{
-        chat_id,
-        role: 'assistant',
-        status: 'complete',
-        mode: mode || 'chat',
-        user_id,
-        client_msg_id: crypto.randomUUID(),
-        ...messageData
-      }])
-      .select()
-      .single();
-    
-    insertedMessage = data;
-    messageError = error;
-  }
+  const { data: insertedMessage, error: messageError } = await supabase
+    .from('messages')
+    .insert([messageData])
+    .select()
+    .single();
 
   if (messageError) {
     console.error(JSON.stringify({
-      event: "image_generate_message_update_failed",
+      event: "image_generate_message_insert_failed",
       request_id: requestId,
-      error: messageError.message,
-      message_id: message_id || 'none'
+      error: messageError.message
     }));
-    // Image is uploaded but message failed - this is problematic but we'll return success
-    // The image exists in storage but won't show in chat
-    return json(500, { error: `Message update failed: ${messageError.message}` });
+    // Image is uploaded and broadcast sent, but message failed - user will see image via broadcast
+    // Still return success since image is available
   }
 
   console.info(JSON.stringify({
@@ -330,7 +322,8 @@ Deno.serve(async (req) => {
     total_duration_ms: Date.now() - startTime,
     generation_time_ms: generationTime,
     file_path: filePath,
-    message_id: insertedMessage?.id
+    message_id: insertedMessage?.id,
+    image_id: image_id || 'none'
   }));
 
   return json(200, {
