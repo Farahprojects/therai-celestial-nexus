@@ -1,8 +1,6 @@
-// Production-ready llm-handler-gemini with Gemini Context Caching
-// - Caches system messages (7K tokens) for 1 hour → 90% cost reduction
-// - Generates conversation summaries every 10-15 turns
-// - Fetches only recent 6-8 messages for context
-// - Tracks turn count for summary generation.
+// llm-handler-gemini.ts
+// Production-ready refactor for Deno deploy (Gemini + Supabase integration).
+// Preserves: cached system message, short history, memory injection, summaries, image tool handling, TTS, and turn tracking.
 
 declare const Deno: {
   env: {
@@ -11,71 +9,74 @@ declare const Deno: {
   serve(handler: (req: Request) => Response | Promise<Response>): void;
 };
 
-// @ts-ignore - ESM import works in Deno runtime
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { fetchAndFormatMemories, updateMemoryUsage } from '../_shared/memoryInjection.ts';
+import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { fetchAndFormatMemories, updateMemoryUsage } from "../_shared/memoryInjection.ts";
 
-const corsHeaders = {
+/* ----------------------------- Configuration ----------------------------- */
+const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, accept",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Vary": "Origin"
+  Vary: "Origin"
+} as Record<string, string>;
+
+const JSON_RESPONSE = (status: number, payload: any) =>
+  new Response(JSON.stringify(payload), { status, headers: { ...CORS_HEADERS, "Content-Type": "application/json" } });
+
+const ENV = {
+  SUPABASE_URL: Deno.env.get("SUPABASE_URL"),
+  SUPABASE_SERVICE_ROLE_KEY: Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"),
+  GOOGLE_API_KEY: Deno.env.get("GOOGLE-LLM-NEW"),
+  GEMINI_MODEL: Deno.env.get("GEMINI_MODEL") || "gemini-2.5-flash",
+  INTERNAL_API_KEY: Deno.env.get("INTERNAL_API_KEY") || ""
 };
 
-const json = (status: number, data: any) =>
-  new Response(JSON.stringify(data), {
-    status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" }
-  });
+const GEMINI_TIMEOUT_MS = 30_000;
+const CACHE_TTL_SECONDS = 3600; // 1 hour
+const HISTORY_LIMIT = 8;
+const SUMMARY_INTERVAL = 4;
 
-// Env
-const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
-const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-const GOOGLE_API_KEY = Deno.env.get("GOOGLE-LLM-NEW");
-const GEMINI_MODEL = Deno.env.get("GEMINI_MODEL") || "gemini-2.5-flash";
-const GEMINI_TIMEOUT_MS = 30000;
-const SUMMARY_INTERVAL = 4; // Generate summary every 4 turns
+/* ------------------------------- Validation ------------------------------ */
+if (!ENV.SUPABASE_URL) throw new Error("Missing env: SUPABASE_URL");
+if (!ENV.SUPABASE_SERVICE_ROLE_KEY) throw new Error("Missing env: SUPABASE_SERVICE_ROLE_KEY");
+if (!ENV.GOOGLE_API_KEY) throw new Error("Missing env: GOOGLE-LLM-NEW");
 
-if (!SUPABASE_URL) throw new Error("Missing env: SUPABASE_URL");
-if (!SUPABASE_SERVICE_ROLE_KEY) throw new Error("Missing env: SUPABASE_SERVICE_ROLE_KEY");
-if (!GOOGLE_API_KEY) {
-  console.error("[llm-handler-gemini] ❌ GOOGLE-LLM-NEW environment variable is not set");
-  throw new Error("Missing env: GOOGLE-LLM-NEW");
+/* ------------------------------ Utilities -------------------------------- */
+function maskKey(key = "") {
+  if (!key) return "";
+  if (key.length <= 8) return "****";
+  return `${key.slice(0, 4)}...${key.slice(-4)}`;
 }
 
-console.log("[llm-handler-gemini] ✅ API Key loaded:", GOOGLE_API_KEY.substring(0, 4) + "..." + GOOGLE_API_KEY.substring(GOOGLE_API_KEY.length - 4));
-console.log("[llm-handler-gemini] 📊 Using model:", GEMINI_MODEL);
+function nowIso() {
+  return new Date().toISOString();
+}
 
-// Supabase client (module scope)
-const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
-  auth: { persistSession: false }
-});
-
-// Hash function to detect system data changes
 function hashSystemData(data: string): string {
-  let hash = 0;
+  // Stable simple hash sufficient for cache invalidation
+  let h = 2166136261;
   for (let i = 0; i < data.length; i++) {
-    const char = data.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
-    hash = hash & hash;
+    h ^= data.charCodeAt(i);
+    h += (h << 1) + (h << 4) + (h << 7) + (h << 8) + (h << 24);
   }
-  return hash.toString(36);
+  return (h >>> 0).toString(36);
 }
 
-// Simple sanitizer: strips common markdown and extra whitespace
 function sanitizePlainText(input: string) {
   const s = typeof input === "string" ? input : "";
   return s
-    .replace(/```[\s\S]*?```/g, "") // code blocks
-    .replace(/`([^`]+)`/g, "$1") // inline code
-    .replace(/!\[[^\]]+\]\([^)]+\)/g, "") // images
-    .replace(/\[[^\]]+\]\([^)]+\)/g, "$1") // links
-    .replace(/[>_~#*]+/g, "") // md symbols (including bold/italic *)
+    .replace(/```[\s\S]*?```/g, "")
+    .replace(/`([^`]+)`/g, "$1")
+    .replace(/!\[[^\]]+\]\([^)]+\)/g, "")
+    .replace(/\[[^\]]+\]\([^)]+\)/g, "$1")
+    .replace(/[>_~#*]+/g, "")
     .replace(/-{3,}/g, " ")
     .replace(/\s+/g, " ")
     .trim();
 }
 
+/* ------------------------------- System Prompt --------------------------- */
+/* Kept your original prompt body; minor whitespace normalization only. */
 const systemPrompt = `You are an AI guide for self-awareness who understands planet energies  as ressence infulance.
 
 Pull in recent convo context only when it preserves flow or adds nuance.
@@ -103,7 +104,7 @@ Show one-line "why" tying emotional/psychological pattern back to user when appl
 
 frame them as direct questions to invite further interaction**`;
 
-// Image generation tool definition (shared between cache and request)
+/* ----------------------------- Image Tool Def ---------------------------- */
 const imageGenerationTool = [
   {
     functionDeclarations: [
@@ -134,204 +135,155 @@ Create prompts that express energy and essence, not literal descriptions.`,
   }
 ];
 
-// Get or create Gemini cache for system message
-async function getOrCreateCache(
-  chat_id: string,
-  systemText: string,
-  supabase: any,
-  GOOGLE_API_KEY: string,
-  GEMINI_MODEL: string
-): Promise<string | null> {
-  const systemDataHash = hashSystemData(systemText);
+/* ----------------------------- Supabase client --------------------------- */
+const supabase = createClient(ENV.SUPABASE_URL!, ENV.SUPABASE_SERVICE_ROLE_KEY!, {
+  auth: { persistSession: false }
+});
 
-  // Check if cache exists and is still valid
-  const { data: existingCache } = await supabase
-    .from("conversation_caches")
-    .select("cache_name, system_data_hash, expires_at")
-    .eq("chat_id", chat_id)
-    .single();
-
-  // If cache exists, is valid, and system data hasn't changed
-  if (existingCache &&
-    new Date(existingCache.expires_at) > new Date() &&
-    existingCache.system_data_hash === systemDataHash) {
-    console.log(`[cache] ✅ Using existing cache: ${existingCache.cache_name}`);
-    return existingCache.cache_name;
-  }
-
-  // Create new cache
-  console.log(`[cache] 🔄 Creating new cache for chat_id: ${chat_id}`);
-
-  // Bookend astro data with system prompt for better attention
-  const combinedSystemInstruction = systemText
-    ? `${systemPrompt}\n\n[System Data]\n${systemText}\n\n[CRITICAL: Remember Your Instructions]\n${systemPrompt}`
-    : systemPrompt;
-
-  const cacheUrl = `https://generativelanguage.googleapis.com/v1beta/cachedContents`;
-
+/* --------------------------- Cache Management ---------------------------- */
+async function getCacheIfValid(chat_id: string) {
   try {
-    const cacheResponse = await fetch(cacheUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-goog-api-key": GOOGLE_API_KEY
-      },
-      body: JSON.stringify({
-        model: `models/${GEMINI_MODEL}`,
-        systemInstruction: {
-          role: "system",
-          parts: [{ text: combinedSystemInstruction }]
-        },
-        tools: imageGenerationTool, // Include tools in cache so we can use cached content with tools
-        ttl: "3600s" // 1 hour cache
-      })
-    });
+    const { data, error } = await supabase
+      .from("conversation_caches")
+      .select("cache_name, system_data_hash, expires_at")
+      .eq("chat_id", chat_id)
+      .single();
 
-    if (!cacheResponse.ok) {
-      const error = await cacheResponse.text();
-      console.error("[cache] ❌ Failed to create cache:", error);
+    if (error) {
+      // no cache - return null
       return null;
     }
-
-    const cacheData = await cacheResponse.json();
-    const cacheName = cacheData.name;
-
-    // Calculate expiration (59 minutes to be safe)
-    const expiresAt = new Date(Date.now() + 59 * 60 * 1000);
-
-    // Store cache reference
-    await supabase
-      .from("conversation_caches")
-      .upsert({
-        chat_id,
-        cache_name: cacheName,
-        system_data_hash: systemDataHash,
-        expires_at: expiresAt.toISOString()
-      });
-
-    console.log(`[cache] ✅ Cache created: ${cacheName}`);
-    return cacheName;
-
-  } catch (error) {
-    console.error("[cache] ❌ Exception creating cache:", error);
+    if (!data) return null;
+    if (new Date(data.expires_at) <= new Date()) return null;
+    return data;
+  } catch (e) {
+    console.warn(`[cache] check failed: ${(e as any)?.message || e}`);
     return null;
   }
 }
 
-// Trigger summary generation (fire-and-forget)
-function triggerSummaryGeneration(
-  chat_id: string,
-  fromTurn: number,
-  toTurn: number
-): void {
+async function createCache(chat_id: string, systemText: string): Promise<string | null> {
+  const systemDataHash = hashSystemData(systemText);
+  const cacheUrl = `https://generativelanguage.googleapis.com/v1beta/cachedContents`;
+  const combinedSystemInstruction = `${systemPrompt}\n\n[System Data]\n${systemText}\n\n[CRITICAL: Remember Your Instructions]\n${systemPrompt}`;
+
+  try {
+    const resp = await fetch(cacheUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-goog-api-key": ENV.GOOGLE_API_KEY!
+      },
+      body: JSON.stringify({
+        model: `models/${ENV.GEMINI_MODEL}`,
+        systemInstruction: {
+          role: "system",
+          parts: [{ text: combinedSystemInstruction }]
+        },
+        tools: imageGenerationTool,
+        ttl: `${CACHE_TTL_SECONDS}s`
+      })
+    });
+
+    if (!resp.ok) {
+      const txt = await resp.text().catch(() => "");
+      console.error("[cache] create failed:", resp.status, txt);
+      return null;
+    }
+
+    const body = await resp.json();
+    const cacheName: string = body?.name;
+    const expiresAt = new Date(Date.now() + (CACHE_TTL_SECONDS - 60) * 1000).toISOString(); // 1 min safety
+
+    await supabase.from("conversation_caches").upsert({
+      chat_id,
+      cache_name: cacheName,
+      system_data_hash: systemDataHash,
+      expires_at: expiresAt
+    });
+
+    return cacheName;
+  } catch (e) {
+    console.error("[cache] exception:", (e as any)?.message || e);
+    return null;
+  }
+}
+
+/* --------------------------- Summary helper ------------------------------ */
+function triggerSummaryGeneration(chat_id: string, fromTurn: number, toTurn: number) {
   const headers = {
     "Content-Type": "application/json",
-    "Authorization": `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`
+    Authorization: `Bearer ${ENV.SUPABASE_SERVICE_ROLE_KEY}`
   };
 
-  fetch(`${SUPABASE_URL}/functions/v1/llm-summarizer`, {
+  fetch(`${ENV.SUPABASE_URL}/functions/v1/llm-summarizer`, {
     method: "POST",
     headers,
     body: JSON.stringify({ chat_id, from_turn: fromTurn, to_turn: toTurn })
   })
-    .then(() => console.log(`[summary] 📝 Summary generation triggered for turns ${fromTurn}-${toTurn}`))
-    .catch((e) => console.error("[summary] ❌ Failed to trigger summary:", e));
+    .then(() => {
+      // no-op
+    })
+    .catch((err) => console.error("[summary] trigger failed:", err?.message || err));
 }
 
-Deno.serve(async (req) => {
-  const totalStartTime = Date.now();
-  const requestId = crypto.randomUUID().substring(0, 8);
+/* ------------------------------ Main Serve -------------------------------- */
+Deno.serve(async (req: Request) => {
+  const startMs = Date.now();
+  const requestId = crypto.randomUUID().slice(0, 8);
 
-  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
-  if (req.method !== "POST") return json(405, { error: "Method not allowed" });
+  if (req.method === "OPTIONS") return new Response("ok", { headers: CORS_HEADERS });
+  if (req.method !== "POST") return JSON_RESPONSE(405, { error: "Method not allowed" });
 
-  const startedAt = Date.now();
-
-  let body;
+  let body: any;
   try {
     body = await req.json();
   } catch {
-    return json(400, { error: "Invalid JSON body" });
+    return JSON_RESPONSE(400, { error: "Invalid JSON body" });
   }
 
   const { chat_id, text, mode, chattype, voice, user_id, user_name, source } = body || {};
 
+  if (!chat_id || typeof chat_id !== "string") return JSON_RESPONSE(400, { error: "Missing or invalid field: chat_id" });
+  if (!text || typeof text !== "string") return JSON_RESPONSE(400, { error: "Missing or invalid field: text" });
+
+  // Basic structured log
   console.info(JSON.stringify({
-    event: "llm_handler_request_received",
-    request_id: requestId,
-    caller: source || "unknown",
+    event: "request_received",
+    id: requestId,
     chat_id,
+    source: source || "unknown",
     chattype,
-    chattype_type: typeof chattype,
-    chattype_is_voice: chattype === "voice",
-    mode,
-    text_length: text?.length || 0
+    text_length: text.length,
+    model: ENV.GEMINI_MODEL,
+    key: maskKey(ENV.GOOGLE_API_KEY)
   }));
 
-  if (!chat_id || typeof chat_id !== "string") return json(400, { error: "Missing or invalid field: chat_id" });
-  if (!text || typeof text !== "string") return json(400, { error: "Missing or invalid field: text" });
-
-  // Fetch context data
-  const HISTORY_LIMIT = 8; // Last 6-8 messages for emotional flow
-
-  type MessageRow = {
-    role: string;
-    text: string;
-    created_at: string;
-  };
-
+  // Parallel fetch: cache, system message, conversation meta, latest summary, recent history
   let systemText = "";
-  let history: MessageRow[] = [];
-  let cacheName: string | null = null;
+  let historyRows: Array<{ role: string; text: string; created_at: string }> = [];
+  let conversationMeta: { turn_count?: number; last_summary_at_turn?: number } = {};
   let conversationSummary = "";
-  let currentTurnCount = 0;
-  let lastSummaryTurn = 0;
 
   try {
-    console.log(`[llm-handler-gemini] ⏱️  Starting context fetch (+${Date.now() - totalStartTime}ms)`);
-
-    // Parallel fetch: cache status, system message, conversation metadata, summary, history, and memories
-    const [cacheResult, systemMessageResult, conversationResult, summaryResult, historyResult, memoryResult] = await Promise.all([
-      // Check if cache exists (include hash for validation)
-      supabase
-        .from("conversation_caches")
-        .select("cache_name, expires_at, system_data_hash")
-        .eq("chat_id", chat_id)
-        .single(),
-
-      // Always fetch system message to validate hash
-      supabase
-        .from("messages")
-        .select("text")
-        .eq("chat_id", chat_id)
-        .eq("role", "system")
-        .eq("status", "complete")
-        .not("text", "is", null)
-        .neq("text", "")
-        .order("created_at", { ascending: true })
-        .limit(1)
-        .single(),
-
-      // Get conversation metadata for turn tracking
-      supabase
-        .from("conversations")
-        .select("turn_count, last_summary_at_turn")
-        .eq("id", chat_id)
-        .single(),
-
-      // Get latest summary
-      supabase
-        .from("conversation_summaries")
-        .select("summary_text")
-        .eq("chat_id", chat_id)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .single(),
-
-      // Get recent message history
-      supabase
-        .from("messages")
-        .select("role, text, created_at")
+    const [
+      cacheRes,
+      systemMessageRes,
+      conversationRes,
+      summaryRes,
+      historyRes
+    ] = await Promise.all([
+      // cache lookup
+      supabase.from("conversation_caches").select("cache_name, expires_at, system_data_hash").eq("chat_id", chat_id).single(),
+      // system message
+      supabase.from("messages").select("text").eq("chat_id", chat_id).eq("role", "system").eq("status", "complete")
+        .not("text", "is", null).neq("text", "").order("created_at", { ascending: true }).limit(1).single(),
+      // convo meta
+      supabase.from("conversations").select("turn_count, last_summary_at_turn").eq("id", chat_id).single(),
+      // latest summary
+      supabase.from("conversation_summaries").select("summary_text").eq("chat_id", chat_id).order("created_at", { ascending: false }).limit(1).single(),
+      // recent history
+      supabase.from("messages").select("role, text, created_at")
         .eq("chat_id", chat_id)
         .neq("role", "system")
         .eq("status", "complete")
@@ -341,338 +293,205 @@ Deno.serve(async (req) => {
         .limit(HISTORY_LIMIT)
     ]);
 
-    // Process system message
-    if (systemMessageResult.data) {
-      systemText = String(systemMessageResult.data.text || "");
+    if (systemMessageRes?.data?.text) systemText = String(systemMessageRes.data.text || "");
+
+    if (conversationRes?.data) {
+      conversationMeta.turn_count = conversationRes.data.turn_count || 0;
+      conversationMeta.last_summary_at_turn = conversationRes.data.last_summary_at_turn || 0;
     }
 
-    // Validate cache - check if exists, not expired, AND hash matches current system message
-    const cacheExists = cacheResult.data && new Date(cacheResult.data.expires_at) > new Date();
+    if (summaryRes?.data?.summary_text) conversationSummary = String(summaryRes.data.summary_text || "");
+
+    if (historyRes?.data) historyRows = historyRes.data;
+
+    // Validate cache vs system hash
+    const cacheData = cacheRes?.data;
+    const cacheExists = cacheData && new Date(cacheData.expires_at) > new Date();
     const currentHash = systemText ? hashSystemData(systemText) : "";
-    const hashMatches = cacheExists && cacheResult.data.system_data_hash === currentHash;
+    const cacheHashMatches = cacheExists && cacheData.system_data_hash === currentHash;
 
-    if (cacheExists && hashMatches) {
-      // Cache is valid and matches current system message
-      cacheName = cacheResult.data.cache_name;
-      console.log(`[llm-handler-gemini] ✅ Cache valid and hash matches, using cache`);
+    let cacheName: string | null = cacheHashMatches ? cacheData.cache_name : null;
+
+    if (!cacheName && systemText) {
+      // If there was a stale cache, remove. Then create a new cache.
+      if (cacheExists && cacheData.system_data_hash !== currentHash) {
+        await supabase.from("conversation_caches").delete().eq("chat_id", chat_id).catch(() => { });
+      }
+      cacheName = await createCache(chat_id, systemText);
+    }
+
+    // Fetch memories (store for later use)
+    const memoryResult = await fetchAndFormatMemories(supabase, chat_id).catch((e) => {
+      console.warn("[memories] fetch failed:", (e as any)?.message || e);
+      return { memoryContext: "", memoryIds: [] };
+    });
+    const { memoryContext = "", memoryIds = [] } = memoryResult;
+
+    // Build contents (oldest -> newest)
+    type GeminiContent = { role: "user" | "model"; parts: { text: string }[] };
+    const contents: GeminiContent[] = [];
+
+    if (conversationSummary) {
+      contents.push({ role: "user", parts: [{ text: `[Previous conversation context: ${conversationSummary}]` }] });
+      contents.push({ role: "model", parts: [{ text: "Understood. I'll keep that context in mind." }] });
+    }
+
+    // add recent history in chronological order
+    for (let i = historyRows.length - 1; i >= 0; i--) {
+      const m = historyRows[i];
+      const t = (m?.text || "").trim();
+      if (!t) continue;
+      contents.push({ role: m.role === "assistant" ? "model" : "user", parts: [{ text: t }] });
+    }
+
+    // add current message
+    contents.push({ role: "user", parts: [{ text: String(text) }] });
+
+    // Build request body
+    const requestBody: any = { contents };
+
+    if (cacheName) {
+      requestBody.cachedContent = cacheName;
     } else {
-      if (cacheExists && !hashMatches) {
-        console.log(`[llm-handler-gemini] ⚠️  Cache exists but hash mismatch! Invalidating and recreating cache`);
-        // Delete stale cache
-        await supabase
-          .from("conversation_caches")
-          .delete()
-          .eq("chat_id", chat_id);
+      // fallback: embed system instruction + memory
+      let combinedSystemInstruction = systemText ? `${systemPrompt}\n\n[System Data]\n${systemText}` : systemPrompt;
+      if (memoryContext) {
+        combinedSystemInstruction += `\n\n<user_memory>\nKey information about this user from past conversations:\n${memoryContext}\n</user_memory>`;
       }
-
-      // Create new cache with current system data
-      if (systemText) {
-        cacheName = await getOrCreateCache(
-          chat_id,
-          systemText,
-          supabase,
-          GOOGLE_API_KEY,
-          GEMINI_MODEL
-        );
-      }
+      combinedSystemInstruction += `\n\n[CRITICAL: Remember Your Instructions]\n${systemPrompt}`;
+      requestBody.system_instruction = { role: "system", parts: [{ text: combinedSystemInstruction }] };
+      requestBody.tools = imageGenerationTool;
     }
 
-    // Process conversation metadata
-    if (conversationResult.data) {
-      currentTurnCount = conversationResult.data.turn_count || 0;
-      lastSummaryTurn = conversationResult.data.last_summary_at_turn || 0;
-    }
+    requestBody.generationConfig = { temperature: 0.7, thinkingConfig: { thinkingBudget: 0 } };
 
-    // Process summary
-    if (summaryResult.data) {
-      conversationSummary = String(summaryResult.data.summary_text || "");
-      console.log(`[llm-handler-gemini] 📝 Found summary: ${conversationSummary.substring(0, 50)}...`);
-    }
+    // Gemini API call with timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), GEMINI_TIMEOUT_MS);
 
-    // Process history
-    if (historyResult.data) {
-      history = historyResult.data as MessageRow[];
-    }
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${ENV.GEMINI_MODEL}:generateContent`;
 
-    console.log(`[llm-handler-gemini] ⏱️  Context fetch complete (+${Date.now() - totalStartTime}ms)`);
-  } catch (e: any) {
-    console.warn("[llm-handler-gemini] Context fetch exception:", e?.message || String(e));
-  }
-
-  // Fetch memories
-  const { memoryContext, memoryIds } = await fetchAndFormatMemories(supabase, chat_id);
-  console.log(`[llm-handler-gemini] 📝 Loaded ${memoryIds.length} memories`);
-
-  // Build Gemini request contents (oldest -> newest)
-  type GeminiContent = {
-    role: "user" | "model";
-    parts: { text: string }[];
-  };
-
-  const contents: GeminiContent[] = [];
-
-  // Add summary if available (as a user message for context)
-  if (conversationSummary) {
-    contents.push({
-      role: "user",
-      parts: [{ text: `[Previous conversation context: ${conversationSummary}]` }]
-    });
-    contents.push({
-      role: "model",
-      parts: [{ text: "Understood. I'll keep that context in mind." }]
-    });
-  }
-
-  // Add recent history (oldest first)
-  for (let i = history.length - 1; i >= 0; i--) {
-    const m = history[i];
-    const t = typeof m.text === "string" ? m.text.trim() : "";
-    if (!t) continue;
-    contents.push({
-      role: m.role === "assistant" ? "model" : "user",
-      parts: [{ text: t }]
-    });
-  }
-
-  // Add current user message
-  contents.push({ role: "user", parts: [{ text: String(text) }] });
-
-  // Prepare request body
-  const requestBody: any = { contents };
-
-  if (cacheName) {
-    // Use cached content (system message and tools already in cache)
-    requestBody.cachedContent = cacheName;
-    // Don't add tools here - they're already in the cached content
-  } else {
-    // Fallback: include system instruction directly (bookend with prompt for better attention)
-    let combinedSystemInstruction = systemText
-      ? `${systemPrompt}\n\n[System Data]\n${systemText}`
-      : systemPrompt;
-    
-    // Inject memory context
-    if (memoryContext) {
-      combinedSystemInstruction += `\n\n<user_memory>\nKey information about this user from past conversations:\n${memoryContext}\n</user_memory>`;
-    }
-    
-    combinedSystemInstruction += `\n\n[CRITICAL: Remember Your Instructions]\n${systemPrompt}`;
-    
-    requestBody.system_instruction = {
-      role: "system",
-      parts: [{ text: combinedSystemInstruction }]
-    };
-    
-    // Add tools only when NOT using cached content (tools are in cache)
-    requestBody.tools = imageGenerationTool;
-  }
-
-  requestBody.generationConfig = {
-    temperature: 0.7,
-    thinkingConfig: { thinkingBudget: 0 }
-  };
-
-  // Make Gemini API call
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), GEMINI_TIMEOUT_MS);
-
-  const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
-
-  let llmStartedAt = Date.now();
-  let data;
-  try {
-    console.log(`[llm-handler-gemini] ⏱️  Starting Gemini API call (+${Date.now() - totalStartTime}ms)`, {
-      model: GEMINI_MODEL,
-      cached: !!cacheName,
-      chat_id: chat_id
-    });
-
-    const resp = await fetch(geminiUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "x-goog-api-key": GOOGLE_API_KEY },
-      body: JSON.stringify(requestBody),
-      signal: controller.signal
-    });
-    clearTimeout(timeout);
-
-    const geminiLatency = Date.now() - llmStartedAt;
-    console.log(`[llm-handler-gemini] ⏱️  Gemini API responded (+${Date.now() - totalStartTime}ms) - Gemini took ${geminiLatency}ms - Status: ${resp.status}`);
-
-    if (!resp.ok) {
-      const errText = await resp.text().catch(() => "");
-      console.error("[llm-handler-gemini] ❌ Gemini API error:", {
-        status: resp.status,
-        statusText: resp.statusText,
-        error: errText
-      });
-      return json(502, { error: `Gemini API request failed: ${resp.status} - ${errText}` });
-    }
-
-    data = await resp.json();
-    console.log("[llm-handler-gemini] ✅ Gemini API success, response time:", Date.now() - llmStartedAt, "ms");
-  } catch (e) {
-    clearTimeout(timeout);
-    console.error("[llm-handler-gemini] ❌ Gemini request exception:", {
-      error: (e as any)?.message || String(e),
-      name: (e as any)?.name
-    });
-    return json(504, { error: `Gemini request error: ${(e as any)?.message || String(e)}` });
-  }
-
-  const llmLatencyMs = Date.now() - llmStartedAt;
-
-  // Check if Gemini wants to call a tool
-  const functionCall = data?.candidates?.[0]?.content?.parts?.find(
-    (p: any) => p.functionCall
-  )?.functionCall;
-
-  // Declare assistantText in outer scope so it's available after if/else
-  let assistantText = "";
-
-  // Handle image generation tool call
-  if (functionCall && functionCall.name === "generate_image") {
-    console.log("[llm-handler-gemini] 🎨 Image generation requested:", functionCall.args?.prompt);
-    
+    let geminiResponseJson: any;
     try {
-      // Call image-generate edge function
-      const imageGenResponse = await fetch(`${SUPABASE_URL}/functions/v1/image-generate`, {
+      const resp = await fetch(geminiUrl, {
         method: "POST",
-        headers: {
-          "Authorization": `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          chat_id,
-          prompt: functionCall.args?.prompt || "",
-          user_id,
-          mode
-        })
+        headers: { "Content-Type": "application/json", "x-goog-api-key": ENV.GOOGLE_API_KEY! },
+        body: JSON.stringify(requestBody),
+        signal: controller.signal
       });
-      
-      if (!imageGenResponse.ok) {
-        const errorData = await imageGenResponse.json().catch(() => ({}));
-        if (imageGenResponse.status === 429) {
-          console.log("[llm-handler-gemini] ⚠️ Rate limit hit for image generation");
-          assistantText = "I've reached the daily limit of 3 images. You can generate more images tomorrow!";
-        } else {
-          console.error("[llm-handler-gemini] ❌ Image generation failed:", errorData);
-          assistantText = "I tried to generate an image but encountered an error. Please try again.";
-        }
-      } else {
-        // Image generation succeeded - image-generate already created the message
-        console.log("[llm-handler-gemini] ✅ Image generated successfully, message already created by image-generate");
-        
-        return json(200, {
-          success: true,
-          message: "Image generated and message created",
-          skip_message_creation: true,
-          llm_latency_ms: llmLatencyMs,
-          total_latency_ms: Date.now() - totalStartTime
+      clearTimeout(timeoutId);
+
+      if (!resp.ok) {
+        const errText = await resp.text().catch(() => "");
+        console.error("[gemini] error:", resp.status, errText);
+        return JSON_RESPONSE(502, { error: `Gemini API request failed: ${resp.status}` });
+      }
+      geminiResponseJson = await resp.json();
+    } catch (err) {
+      clearTimeout(timeoutId);
+      console.error("[gemini] request failed:", (err as any)?.message || err);
+      return JSON_RESPONSE(504, { error: "Gemini request error" });
+    }
+
+    // detect function call (image generation)
+    const candidateParts = geminiResponseJson?.candidates?.[0]?.content?.parts || [];
+    const functionCall = candidateParts.find((p: any) => p?.functionCall)?.functionCall;
+
+    let assistantText = "";
+
+    if (functionCall && functionCall.name === "generate_image") {
+      // handle image generation via internal edge function
+      const prompt = functionCall.args?.prompt || "";
+      try {
+        const imageGenResp = await fetch(`${ENV.SUPABASE_URL}/functions/v1/image-generate`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${ENV.SUPABASE_SERVICE_ROLE_KEY}`,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ chat_id, prompt, user_id, mode })
         });
+
+        if (!imageGenResp.ok) {
+          const errBody = await imageGenResp.json().catch(() => ({}));
+          if (imageGenResp.status === 429) {
+            assistantText = "I've reached the daily limit of 3 images. You can generate more images tomorrow!";
+          } else {
+            console.error("[image-gen] failure:", imageGenResp.status, errBody);
+            assistantText = "I tried to generate an image but encountered an error. Please try again.";
+          }
+        } else {
+          // image-generate will create the assistant message itself — skip new message creation
+          return JSON_RESPONSE(200, {
+            success: true,
+            message: "Image generated and message created",
+            skip_message_creation: true,
+            llm_latency_ms: geminiResponseJson?.latencyMs ?? null,
+            total_latency_ms: Date.now() - startMs
+          });
+        }
+      } catch (e) {
+        console.error("[image-gen] exception:", (e as any)?.message || e);
+        assistantText = "I tried to generate an image but encountered an error. Please try again.";
       }
-    } catch (error) {
-      console.error("[llm-handler-gemini] ❌ Image generation exception:", error);
-      assistantText = "I tried to generate an image but encountered an error. Please try again.";
-    }
-  } else {
-    // Extract assistant text normally if no tool call
-    try {
-      const parts = data?.candidates?.[0]?.content?.parts || [];
-      assistantText = parts.map((p: any) => p?.text || "").filter(Boolean).join(" ").trim();
-    } catch {
-      // ignore
-    }
-    if (!assistantText) return json(502, { error: "No response text from Gemini" });
-  }
-
-  // Sanitize text for TTS only (strip markdown for voice)
-  const sanitizedTextForTTS = sanitizePlainText(assistantText) || assistantText;
-
-  // Usage metadata (if present)
-  const usage = {
-    total_tokens: data?.usageMetadata?.totalTokenCount ?? null,
-    input_tokens: data?.usageMetadata?.promptTokenCount ?? null,
-    output_tokens: data?.usageMetadata?.candidatesTokenCount ?? null,
-    cached_tokens: data?.usageMetadata?.cachedContentTokenCount ?? null
-  };
-
-  // Increment turn count
-  const newTurnCount = currentTurnCount + 1;
-
-  // Update conversation metadata (fire-and-forget)
-  supabase
-    .from("conversations")
-    .update({ turn_count: newTurnCount })
-    .eq("id", chat_id)
-    .then(({ error }) => {
-      if (error) {
-        console.error("[llm-handler-gemini] ❌ Failed to update turn count:", error);
-      } else {
-        console.log(`[llm-handler-gemini] 📊 Turn count updated: ${newTurnCount}`);
+    } else {
+      // normal text extraction
+      assistantText = candidateParts.map((p: any) => p?.text || "").join(" ").trim();
+      if (!assistantText) {
+        console.error("[gemini] no assistant text returned");
+        return JSON_RESPONSE(502, { error: "No response text from Gemini" });
       }
-    });
+    }
 
-  // Check if summary should be generated
-  if (newTurnCount > 0 && newTurnCount % SUMMARY_INTERVAL === 0 && newTurnCount > lastSummaryTurn) {
-    console.log(`[llm-handler-gemini] 📝 Triggering summary at turn ${newTurnCount}`);
-    triggerSummaryGeneration(chat_id, lastSummaryTurn + 1, newTurnCount);
+    const sanitizedTextForTTS = sanitizePlainText(assistantText) || assistantText;
+    const usage = {
+      total_tokens: geminiResponseJson?.usageMetadata?.totalTokenCount ?? null,
+      input_tokens: geminiResponseJson?.usageMetadata?.promptTokenCount ?? null,
+      output_tokens: geminiResponseJson?.usageMetadata?.candidatesTokenCount ?? null,
+      cached_tokens: geminiResponseJson?.usageMetadata?.cachedContentTokenCount ?? null
+    };
 
-    // Update last_summary_at_turn (fire-and-forget)
-    supabase
-      .from("conversations")
-      .update({ last_summary_at_turn: newTurnCount })
-      .eq("id", chat_id)
-      .then(({ error }) => {
-        if (error) console.error("[llm-handler-gemini] ❌ Failed to update last_summary_at_turn:", error);
-      });
-  }
+    // Update turn count (fire-and-forget)
+    const newTurnCount = (conversationMeta.turn_count || 0) + 1;
+    supabase.from("conversations").update({ turn_count: newTurnCount }).eq("id", chat_id)
+      .then(({ error }) => { if (error) console.warn("[supabase] update turn_count failed:", error); });
 
-  // Fire-and-forget: TTS (voice only) and save messages via chat-send
-  const headers = {
-    "Content-Type": "application/json",
-    "Authorization": `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-    "x-internal-key": Deno.env.get("INTERNAL_API_KEY") || ""
-  };
+    // Trigger summary if interval reached
+    const lastSummaryTurn = conversationMeta.last_summary_at_turn || 0;
+    if (newTurnCount > 0 && newTurnCount % SUMMARY_INTERVAL === 0 && newTurnCount > lastSummaryTurn) {
+      triggerSummaryGeneration(chat_id, lastSummaryTurn + 1, newTurnCount);
+      supabase.from("conversations").update({ last_summary_at_turn: newTurnCount }).eq("id", chat_id)
+        .then(({ error }) => { if (error) console.warn("[supabase] update last_summary_at_turn failed:", error); });
+    }
 
-  const assistantClientId = crypto.randomUUID();
-  const userClientId = crypto.randomUUID();
+    // Prepare tasks: save messages + optional TTS
+    const headers = {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${ENV.SUPABASE_SERVICE_ROLE_KEY}`,
+      "x-internal-key": ENV.INTERNAL_API_KEY
+    };
 
-  const tasks = [];
+    const assistantClientId = crypto.randomUUID();
+    const userClientId = crypto.randomUUID();
 
-  // For voice mode: send both user and assistant messages together
-  if (chattype === "voice") {
-    tasks.push(
-      fetch(`${SUPABASE_URL}/functions/v1/chat-send`, {
+    const tasks: Promise<Response>[] = [];
+
+    if (chattype === "voice") {
+      tasks.push(fetch(`${ENV.SUPABASE_URL}/functions/v1/chat-send`, {
         method: "POST",
         headers,
         body: JSON.stringify({
           chat_id,
           mode,
           messages: [
-            {
-              text,
-              role: "user",
-              client_msg_id: userClientId,
-              mode,
-              user_id,
-              user_name
-            },
-            {
-              text: assistantText,
-              role: "assistant",
-              client_msg_id: assistantClientId,
-              mode,
-              user_id,
-              user_name
-            }
+            { text, role: "user", client_msg_id: userClientId, mode, user_id, user_name },
+            { text: assistantText, role: "assistant", client_msg_id: assistantClientId, mode, user_id, user_name }
           ],
           chattype
         })
-      })
-    );
-  } else {
-    // For regular text: only send assistant message
-    tasks.push(
-      fetch(`${SUPABASE_URL}/functions/v1/chat-send`, {
+      }));
+    } else {
+      tasks.push(fetch(`${ENV.SUPABASE_URL}/functions/v1/chat-send`, {
         method: "POST",
         headers,
         body: JSON.stringify({
@@ -685,59 +504,46 @@ Deno.serve(async (req) => {
           user_name,
           chattype
         })
-      })
-    );
-  }
+      }));
+    }
 
-  console.info(JSON.stringify({
-    event: "checking_tts_trigger",
-    chattype,
-    chattype_type: typeof chattype,
-    chattype_is_voice: chattype === "voice",
-    will_call_tts: chattype === "voice"
-  }));
-
-  if (chattype === "voice") {
-    console.info(JSON.stringify({
-      event: "calling_tts",
-      chattype,
-      voice,
-      chat_id,
-      text_length: sanitizedTextForTTS.length
-    }));
-
-    const selectedVoice = typeof voice === "string" && voice.trim() ? voice : "Puck";
-    tasks.push(
-      fetch(`${SUPABASE_URL}/functions/v1/google-text-to-speech`, {
+    if (chattype === "voice") {
+      const selectedVoice = typeof voice === "string" && voice.trim() ? voice : "Puck";
+      tasks.push(fetch(`${ENV.SUPABASE_URL}/functions/v1/google-text-to-speech`, {
         method: "POST",
         headers,
         body: JSON.stringify({ text: sanitizedTextForTTS, voice: selectedVoice, chat_id, user_id })
-      })
-    );
-  } else {
+      }));
+    }
+
+    // Fire-and-forget; no need to await
+    Promise.allSettled(tasks).catch(() => { /* silent */ });
+
+    // Update memory usage (fire-and-forget) - reuse memoryIds from earlier fetch
+    if (memoryIds.length > 0) {
+      updateMemoryUsage(supabase, memoryIds).catch((e) => console.warn("[memory] update failed:", e?.message || e));
+    }
+
+    const totalLatencyMs = Date.now() - startMs;
     console.info(JSON.stringify({
-      event: "tts_skipped",
-      chattype,
-      reason: chattype === "voice" ? "unknown" : "chattype_not_voice"
+      event: "response_sent",
+      id: requestId,
+      chat_id,
+      llm_latency_ms: geminiResponseJson?.latencyMs ?? null,
+      total_latency_ms: totalLatencyMs,
+      usage,
+      memories: (memoryIds || []).length
     }));
+
+    return JSON_RESPONSE(200, {
+      text: assistantText,
+      usage,
+      llm_latency_ms: geminiResponseJson?.latencyMs ?? null,
+      total_latency_ms: totalLatencyMs
+    });
+
+  } catch (err) {
+    console.error("[handler] unexpected error:", (err as any)?.message || err);
+    return JSON_RESPONSE(500, { error: "Internal server error" });
   }
-
-  Promise.allSettled(tasks).catch(() => { });
-
-  // Update memory usage (fire-and-forget)
-  if (memoryIds.length > 0) {
-    updateMemoryUsage(supabase, memoryIds).catch(e => 
-      console.error('[memory] Update failed:', e)
-    );
-  }
-
-  const totalLatencyMs = Date.now() - startedAt;
-  console.log(`[llm-handler-gemini] ⏱️  Returning response (+${Date.now() - totalStartTime}ms) TOTAL - LLM: ${llmLatencyMs}ms - Memories: ${memoryIds.length}`);
-
-  return json(200, {
-    text: assistantText,
-    usage,
-    llm_latency_ms: llmLatencyMs,
-    total_latency_ms: totalLatencyMs
-  });
 });
