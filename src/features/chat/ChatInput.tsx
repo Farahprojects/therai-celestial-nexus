@@ -69,8 +69,13 @@ export const ChatInput = () => {
         .from('conversations')
         .select('mode')
         .eq('id', chat_id)
-        .single()
-        .then(({ data }) => {
+        .maybeSingle()
+        .then(({ data, error }) => {
+          // If conversation doesn't exist (deleted), use default mode
+          // Only log errors other than PGRST116 (not found)
+          if (error && error.code !== 'PGRST116') {
+            console.error('[ChatInput] Error fetching conversation mode:', error);
+          }
           setConversationMode(data?.mode || 'chat');
         });
     }
