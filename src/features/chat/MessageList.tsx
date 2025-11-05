@@ -59,16 +59,6 @@ const AssistantMessage = React.memo(({ message }: { message: Message }) => {
             onClick={() => window.open(imageUrl, '_blank')}
             loading="lazy"
           />
-          {imagePrompt && (
-            <p className="text-xs text-gray-600 mt-2 px-2 italic font-light">
-              "{imagePrompt}"
-            </p>
-          )}
-          {text && (
-            <div className="px-2 mt-2 text-sm font-light text-gray-700">
-              {text}
-            </div>
-          )}
         </div>
       </div>
     );
