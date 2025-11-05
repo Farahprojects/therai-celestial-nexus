@@ -230,6 +230,11 @@ if (role === "user" && user_id && !isInternalCall) {
 const messageId = body?.id || null;
 const isUpdate = !!messageId;
 
+// Validate text (allow empty for updates)
+if (!isUpdate && (!text || typeof text !== "string")) {
+  return json(400, { error: "Missing or invalid field: text" });
+}
+
 const message = {
 chat_id,
 role,
