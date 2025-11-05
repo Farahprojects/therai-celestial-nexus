@@ -267,19 +267,25 @@ Deno.serve(async (req) => {
     // Don't block the user if audit logging fails - continue with message creation
   }
 
-  // Broadcast removed - using database UPDATE instead
+  // Update placeholder message via chat-send (single source of truth for DB writes)
   console.log(JSON.stringify({
     event: "image_generate_updating_message",
     request_id: requestId,
     image_id: image_id,
-    note: "Updating placeholder message with final image data"
+    note: "Updating placeholder message via chat-send with final image data"
   }));
 
-  // Update placeholder message with final image data
-  // Use maybeSingle() to handle case where message might not exist yet (race condition)
-  const { data: updatedMessage, error: messageError } = await supabase
-    .from('messages')
-    .update({
+  const updateResponse = await fetch(`${SUPABASE_URL}/functions/v1/chat-send`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      id: image_id,
+      chat_id,
+      role: 'assistant',
+      text: '', // Keep empty for image messages
       status: 'complete',
       is_generating_image: false, // 🔑 Clear generating flag - skeleton will be replaced with image
       meta: {
@@ -293,43 +299,28 @@ Deno.serve(async (req) => {
         cost_usd: 0.04
       }
     })
-    .eq('id', image_id)
-    .select()
-    .maybeSingle();
+  });
 
-  if (messageError) {
+  if (!updateResponse.ok) {
+    const errorBody = await updateResponse.json().catch(() => ({}));
     console.error(JSON.stringify({
       event: "image_generate_message_update_failed",
       request_id: requestId,
-      error: messageError.message,
-      error_code: messageError.code,
+      status: updateResponse.status,
+      error: errorBody,
       image_id: image_id || 'none'
     }));
     // Image is uploaded but message update failed - user won't see image
     // Return error since message update is critical
-    return json(500, { error: `Failed to update message: ${messageError.message}` });
+    return json(500, { error: `Failed to update message: ${updateResponse.status} ${JSON.stringify(errorBody)}` });
   }
 
-  if (!updatedMessage) {
-    // Message doesn't exist - this shouldn't happen but handle gracefully
-    console.warn(JSON.stringify({
-      event: "image_generate_message_not_found",
-      request_id: requestId,
-      image_id: image_id,
-      note: "Placeholder message not found - may have been deleted or never created",
-      action: "Image uploaded successfully but message update failed - user may need to refresh"
-    }));
-    // Don't fail - image is uploaded and available, just log the warning
-  } else {
-    console.log(JSON.stringify({
-      event: "image_generate_message_updated",
-      request_id: requestId,
-      image_id: image_id,
-      message_id: updatedMessage.id,
-      is_generating_image: updatedMessage.is_generating_image,
-      note: "Successfully updated message with is_generating_image=false"
-    }));
-  }
+  console.log(JSON.stringify({
+    event: "image_generate_message_updated",
+    request_id: requestId,
+    image_id: image_id,
+    note: "Successfully updated message via chat-send with is_generating_image=false"
+  }));
 
   console.info(JSON.stringify({
     event: "image_generate_complete",

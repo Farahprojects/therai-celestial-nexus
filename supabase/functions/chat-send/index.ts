@@ -224,6 +224,10 @@ if (role === "user" && user_id && !isInternalCall) {
   }
 }
 
+// Support message update if id is provided (for image generation flow)
+const messageId = req.body?.id || null;
+const isUpdate = !!messageId;
+
 const message = {
 chat_id,
 role,
@@ -233,12 +237,19 @@ status: "complete",
 mode,
 user_id: user_id ?? null,
 user_name: user_name ?? null,
-meta: {}
+meta: req.body?.meta || {},
+is_generating_image: req.body?.is_generating_image ?? null // Support boolean flag for image generation
 };
+
+// If id is provided, include it for update
+if (messageId) {
+  (message as any).id = messageId;
+}
 
 // ⚡ FIRE-AND-FORGET: Start LLM immediately (non-blocking)
 // For "together" mode, only trigger LLM if @therai is present (analyze = true)
-let shouldStartLLM = role === "user" && chattype !== "voice";
+// Skip LLM for updates (image generation flow)
+let shouldStartLLM = role === "user" && chattype !== "voice" && !isUpdate;
 let shouldExtractMemory = false;
 
 if (shouldStartLLM) {
@@ -350,31 +361,56 @@ determineLLMHandler().then((llmHandler) => {
   }
 }
 
-// ⚡ AWAIT DB insert to ensure message is saved before returning
+// ⚡ AWAIT DB insert/update to ensure message is saved before returning
 console.info(JSON.stringify({
-  event: "chat_send_db_insert_start",
-  request_id: requestId
+  event: isUpdate ? "chat_send_db_update_start" : "chat_send_db_insert_start",
+  request_id: requestId,
+  message_id: messageId || 'new',
+  is_update: isUpdate
 }));
 
-const { data: insertedMessage, error: dbError } = await supabase
-  .from("messages")
-  .insert(message)
-  .select("id")
-  .single();
+let insertedMessage;
+let dbError;
+
+if (isUpdate) {
+  // Update existing message
+  const { id, ...updateData } = message as any;
+  const { data, error } = await supabase
+    .from("messages")
+    .update(updateData)
+    .eq('id', id)
+    .select("id")
+    .maybeSingle();
+  
+  insertedMessage = data;
+  dbError = error;
+} else {
+  // Insert new message
+  const { data, error } = await supabase
+    .from("messages")
+    .insert(message)
+    .select("id")
+    .single();
+  
+  insertedMessage = data;
+  dbError = error;
+}
 
 if (dbError) {
   console.error(JSON.stringify({
-    event: "chat_send_db_insert_failed",
+    event: isUpdate ? "chat_send_db_update_failed" : "chat_send_db_insert_failed",
     request_id: requestId,
-    error: dbError.message
+    error: dbError.message,
+    message_id: messageId || 'new'
   }));
-  return json(500, { error: "Failed to save message", details: dbError.message });
+  return json(500, { error: `Failed to ${isUpdate ? 'update' : 'save'} message`, details: dbError.message });
 }
 
 console.info(JSON.stringify({
-  event: "chat_send_db_insert_complete",
+  event: isUpdate ? "chat_send_db_update_complete" : "chat_send_db_insert_complete",
   request_id: requestId,
-  duration_ms: Date.now() - startTime
+  duration_ms: Date.now() - startTime,
+  message_id: insertedMessage?.id || messageId
 }));
 
 // Trigger memory extraction if needed (fire-and-forget)
