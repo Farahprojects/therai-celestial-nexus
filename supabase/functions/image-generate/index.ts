@@ -1,7 +1,7 @@
 // @ts-nocheck - Deno runtime, types checked at deployment
-// Image generation edge function using Google Imagen 4 Standard
+// Image generation edge function using Google Imagen 4
 // - Rate limiting: 3 images per user per 24 hours
-// - Calls Google Imagen 4 API via Gemini endpoint
+// - Calls Google Imagen 4 API via Generative Language API (generateContent endpoint)
 // - Uploads to Supabase Storage
 // - Creates message with image metadata
 
@@ -120,18 +120,19 @@ Deno.serve(async (req) => {
     });
   }
 
-  // Use Imagen model for image generation (as recommended)
-  // Try imagen-3 first (cost-effective), fallback to imagen-4.0-generate-001 if needed
+  // Use Imagen 4 model for image generation
+  // imagen-4.0-generate-001 is the standard model for Generative Language API
+  // Use generateContent endpoint (not generateImages) for Imagen models via Generative Language API
   const generationStartTime = Date.now();
-  const IMAGEN_MODEL = 'imagen-3'; // Cost-effective option, or use 'imagen-4.0-generate-001' for latest
-  // Use generateImages endpoint (not generateContent) for Imagen models
-  const imagenUrl = `https://generativelanguage.googleapis.com/v1beta/models/${IMAGEN_MODEL}:generateImages`;
+  const IMAGEN_MODEL = 'imagen-4.0-generate-001';
+  const imagenUrl = `https://generativelanguage.googleapis.com/v1beta/models/${IMAGEN_MODEL}:generateContent`;
 
   let imageData;
   try {
     console.info(JSON.stringify({
       event: "image_generate_api_call_start",
-      request_id: requestId
+      request_id: requestId,
+      model: IMAGEN_MODEL
     }));
 
     const response = await fetch(imagenUrl, {
@@ -141,9 +142,21 @@ Deno.serve(async (req) => {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        prompt: prompt,
-        config: {
-          numberOfImages: 1
+        contents: [
+          {
+            parts: [
+              {
+                text: prompt
+              }
+            ]
+          }
+        ],
+        generationConfig: {
+          temperature: 1.0,
+          topP: 0.95,
+          topK: 40,
+          maxOutputTokens: 8192,
+          responseMimeType: "image/png"
         }
       })
     });
@@ -189,27 +202,16 @@ Deno.serve(async (req) => {
   }
 
   // Extract base64 image from Imagen API response
-  // Imagen API can return in different formats:
-  // 1. Imagen format: { generatedImages: [{ image: { imageBytes: "..." } }] }
-  // 2. Gemini-style: { candidates: [{ content: { parts: [{ inlineData: { data: "..." } }] } }] }
-  // 3. Vertex AI format: { predictions: [{ bytesBase64Encoded: "..." }] }
+  // Imagen via generateContent endpoint returns: { candidates: [{ content: { parts: [{ inlineData: { mimeType: "image/png", data: "..." } }] } }] }
   
   let base64Image: string | undefined;
   
-  // Try Imagen format first (generatedImages) - this is the primary format for Imagen API
-  if (imageData?.generatedImages?.[0]?.image?.imageBytes) {
-    base64Image = imageData.generatedImages[0].image.imageBytes;
-  }
-  // Try Gemini/candidates format
-  else if (imageData?.candidates?.[0]?.content?.parts) {
+  // Extract from generateContent response (primary format for Generative Language API)
+  if (imageData?.candidates?.[0]?.content?.parts) {
     const imagePart = imageData.candidates[0].content.parts.find(
       (part: any) => part.inlineData?.mimeType?.startsWith('image/')
     );
     base64Image = imagePart?.inlineData?.data;
-  }
-  // Try predictions format (Vertex AI)
-  else if (imageData?.predictions?.[0]?.bytesBase64Encoded) {
-    base64Image = imageData.predictions[0].bytesBase64Encoded;
   }
   
   if (!base64Image) {
@@ -218,14 +220,12 @@ Deno.serve(async (req) => {
       request_id: requestId,
       full_response: JSON.stringify(imageData),
       response_keys: Object.keys(imageData || {}),
-      candidates_structure: imageData?.candidates ? JSON.stringify(imageData.candidates) : 'no candidates',
-      predictions_structure: imageData?.predictions ? JSON.stringify(imageData.predictions) : 'no predictions',
-      generatedImages_structure: imageData?.generatedImages ? JSON.stringify(imageData.generatedImages) : 'no generatedImages'
+      candidates_structure: imageData?.candidates ? JSON.stringify(imageData.candidates) : 'no candidates'
     }));
     return json(502, { 
       error: "No image data in API response",
       response_structure: JSON.stringify(imageData).substring(0, 2000),
-      note: "Please check the actual response format from Imagen API"
+      note: "Expected generateContent response with candidates[0].content.parts[].inlineData"
     });
   }
 
@@ -289,10 +289,10 @@ Deno.serve(async (req) => {
       image_url: publicUrl,
       image_path: filePath,
       image_prompt: prompt,
-      image_model: 'imagen-3',
+      image_model: 'imagen-4.0-generate-001',
       image_size: '1024x1024',
       generation_time_ms: generationTime,
-      cost_usd: 0.04
+      cost_usd: 0.04 // Cost per image (may vary based on model)
     }
   };
 
