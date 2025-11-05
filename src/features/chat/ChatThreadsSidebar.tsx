@@ -470,7 +470,14 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
         {isAuthenticated ? (
           <div className="px-2 pb-2">
             {isMobile ? (
-              <Button variant="ghost" className="w-full justify-start p-0 h-auto rounded-none bg-transparent hover:bg-gray-100">
+              <Button 
+                variant="ghost" 
+                className="w-full justify-start p-0 h-auto rounded-none bg-transparent hover:bg-gray-100"
+                onClick={() => {
+                  onCloseMobileSidebar?.();
+                  openSettings('general');
+                }}
+              >
                 <div className="flex items-center gap-3 px-3 py-2 w-full">
                   <UserAvatar size="xs" />
                   <div className="flex-1 text-left min-w-0">
