@@ -153,14 +153,7 @@ if (messages && Array.isArray(messages) && messages.length > 0) {
 }
 
 // Regular single message mode
-// Support message update if id is provided (for image generation flow)
-const messageId = req.body?.id || null;
-const isUpdate = !!messageId;
-
-// Allow empty text for image generation placeholder updates
-if (!isUpdate && (!text || typeof text !== "string")) {
-return json(400, { error: "Missing or invalid field: text" });
-}
+// Note: Text validation happens after body is parsed (line 236+)
 if (!mode || typeof mode !== "string") {
 return json(400, { error: "Missing or invalid field: mode" });
 }
