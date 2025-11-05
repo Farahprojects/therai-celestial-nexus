@@ -61,7 +61,7 @@ const MobileDatePicker = ({ value, onChange }: MobileDatePickerProps) => {
 
   // Validate date string format
   const isValidDate = useCallback((dateStr: string): boolean => {
-    if (!dateStr) return false;
+    if (!dateStr || typeof dateStr !== 'string') return false;
     // Only validate format, don't use new Date() for parsing
     return !!dateStr.match(/^\d{4}-\d{2}-\d{2}$/);
   }, []);
