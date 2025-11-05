@@ -150,8 +150,13 @@ if (messages && Array.isArray(messages) && messages.length > 0) {
 }
 
 // Regular single message mode
-if (!text || typeof text !== "string") {
+// Allow empty text for updates (image generation placeholder)
+if (!isUpdate && (!text || typeof text !== "string")) {
 return json(400, { error: "Missing or invalid field: text" });
+}
+// For updates, allow empty text (will be set to empty string if undefined)
+if (isUpdate && text === undefined) {
+  text = '';
 }
 if (!mode || typeof mode !== "string") {
 return json(400, { error: "Missing or invalid field: mode" });
