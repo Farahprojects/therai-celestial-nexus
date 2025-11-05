@@ -125,16 +125,17 @@ Deno.serve(async (req) => {
   // Format: https://{REGION}-aiplatform.googleapis.com/v1/projects/{PROJECT}/locations/{REGION}/publishers/google/models/{MODEL}:predict
   const generationStartTime = Date.now();
   
-  // Get Google Cloud project ID from environment (or use default)
-  const GOOGLE_CLOUD_PROJECT = Deno.env.get("GOOGLE_CLOUD_PROJECT") || Deno.env.get("GCP_PROJECT_ID");
+  // Get Google Cloud project ID from environment (user saved it as GOOGLE_ID)
+  const GOOGLE_CLOUD_PROJECT = Deno.env.get("GOOGLE_ID") || Deno.env.get("GOOGLE_CLOUD_PROJECT") || Deno.env.get("GCP_PROJECT_ID");
   const VERTEX_AI_REGION = Deno.env.get("VERTEX_AI_REGION") || "us-central1";
   
   if (!GOOGLE_CLOUD_PROJECT) {
     console.error(JSON.stringify({
       event: "image_generate_missing_project_id",
-      request_id: requestId
+      request_id: requestId,
+      checked_env_vars: ["GOOGLE_ID", "GOOGLE_CLOUD_PROJECT", "GCP_PROJECT_ID"]
     }));
-    return json(500, { error: "Missing GOOGLE_CLOUD_PROJECT environment variable" });
+    return json(500, { error: "Missing GOOGLE_ID environment variable (Google Cloud Project ID)" });
   }
   
   const imagenUrl = `https://${VERTEX_AI_REGION}-aiplatform.googleapis.com/v1/projects/${GOOGLE_CLOUD_PROJECT}/locations/${VERTEX_AI_REGION}/publishers/google/models/imagen-4.0-generate-001:predict`;
