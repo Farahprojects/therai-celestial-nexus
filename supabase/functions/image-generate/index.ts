@@ -232,6 +232,7 @@ Deno.serve(async (req) => {
     chat_id,
     role: 'assistant',
     text: '', // Empty text, image is in meta
+    status: 'complete', // Required field - message is complete when image is generated
     mode: mode || 'chat',
     user_id,
     client_msg_id: crypto.randomUUID(),
