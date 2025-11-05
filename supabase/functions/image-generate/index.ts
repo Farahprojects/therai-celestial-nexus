@@ -44,6 +44,65 @@ function decodeBase64(base64: string): Uint8Array {
   return bytes;
 }
 
+// Get OAuth 2 access token for Vertex AI
+// Vertex AI requires OAuth tokens, not API keys
+async function getAccessToken(): Promise<string> {
+  // Option 1: Use service account JSON (if available)
+  const SERVICE_ACCOUNT_JSON = Deno.env.get("GOOGLE_SERVICE_ACCOUNT_JSON");
+  if (SERVICE_ACCOUNT_JSON) {
+    try {
+      const serviceAccount = JSON.parse(SERVICE_ACCOUNT_JSON);
+      const jwt = await createJWT(serviceAccount);
+      const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
+          assertion: jwt
+        })
+      });
+      const tokenData = await tokenResponse.json();
+      return tokenData.access_token;
+    } catch (error) {
+      console.error("[image-generate] Failed to get token from service account:", error);
+    }
+  }
+  
+  // Option 2: Try using API key to get token (may not work, but worth trying)
+  // This is a fallback - Vertex AI typically needs service account
+  throw new Error("OAuth token required. Please set GOOGLE_SERVICE_ACCOUNT_JSON environment variable with service account JSON.");
+}
+
+// Create JWT for service account authentication
+async function createJWT(serviceAccount: any): Promise<string> {
+  // Use jose library for JWT signing (Deno-compatible)
+  try {
+    const { SignJWT, importPKCS8 } = await import("https://deno.land/x/jose@v5.14.3/index.ts");
+    
+    const now = Math.floor(Date.now() / 1000);
+    const privateKey = serviceAccount.private_key.replace(/\\n/g, '\n');
+    
+    // Import the private key using jose's helper
+    const key = await importPKCS8(privateKey, "RS256");
+    
+    const jwt = await new SignJWT({
+      iss: serviceAccount.client_email,
+      sub: serviceAccount.client_email,
+      aud: "https://oauth2.googleapis.com/token",
+      scope: "https://www.googleapis.com/auth/cloud-platform"
+    })
+      .setProtectedHeader({ alg: "RS256" })
+      .setIssuedAt(now)
+      .setExpirationTime(now + 3600)
+      .sign(key);
+    
+    return jwt;
+  } catch (error) {
+    console.error("[image-generate] JWT signing error:", error);
+    throw new Error(`JWT signing failed: ${error instanceof Error ? error.message : String(error)}`);
+  }
+}
+
 Deno.serve(async (req) => {
   const startTime = Date.now();
   const requestId = crypto.randomUUID().substring(0, 8);
@@ -147,9 +206,22 @@ Deno.serve(async (req) => {
       request_id: requestId
     }));
 
-    // Vertex AI uses OAuth2 token
-    // For now using API key in Bearer format (may need proper OAuth2 token)
-    const authHeader = `Bearer ${GOOGLE_API_KEY}`;
+    // Vertex AI requires OAuth2 token (not API key)
+    // Try to get access token, fallback to API key if token generation fails
+    let authHeader: string;
+    try {
+      const accessToken = await getAccessToken();
+      authHeader = `Bearer ${accessToken}`;
+    } catch (tokenError) {
+      console.error(JSON.stringify({
+        event: "image_generate_token_failed",
+        request_id: requestId,
+        error: tokenError instanceof Error ? tokenError.message : String(tokenError),
+        fallback_note: "Vertex AI requires OAuth2 token. API key will likely fail."
+      }));
+      // Fallback to API key (will probably fail, but try anyway)
+      authHeader = `Bearer ${GOOGLE_API_KEY}`;
+    }
     
     const response = await fetch(imagenUrl, {
       method: 'POST',
