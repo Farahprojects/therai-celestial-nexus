@@ -46,6 +46,20 @@ const AssistantMessage = React.memo(({ message }: { message: Message }) => {
   const isImageMessage = meta?.message_type === 'image';
   const imageUrl = meta?.image_url;
   const imagePrompt = meta?.image_prompt;
+  const isGenerating = isImageMessage && !imageUrl;
+
+  // 🆕 RENDER LOADING SKELETON IF GENERATING
+  if (isGenerating) {
+    return (
+      <div className="flex items-end gap-3 justify-start mb-8">
+        <div className="relative rounded-xl max-w-2xl overflow-hidden">
+          <div className="w-full aspect-square bg-gray-100 animate-pulse">
+            <div className="w-full h-full bg-gradient-to-br from-gray-200 via-gray-100 to-gray-200" />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // 🆕 RENDER IMAGE IF PRESENT
   if (isImageMessage && imageUrl) {
@@ -164,7 +178,8 @@ const AssistantMessage = React.memo(({ message }: { message: Message }) => {
          prevProps.message.source === nextProps.message.source &&
          prevProps.message.meta?.together_mode_analysis === nextProps.message.meta?.together_mode_analysis &&
          prevProps.message.meta?.message_type === nextProps.message.meta?.message_type &&
-         prevProps.message.meta?.image_url === nextProps.message.meta?.image_url;
+         prevProps.message.meta?.image_url === nextProps.message.meta?.image_url &&
+         prevProps.message.meta?.status === nextProps.message.meta?.status;
 });
 AssistantMessage.displayName = 'AssistantMessage';
 

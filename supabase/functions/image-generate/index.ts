@@ -70,7 +70,7 @@ Deno.serve(async (req) => {
     return json(400, { error: "Invalid JSON body" });
   }
 
-  const { chat_id, prompt, user_id, mode } = body || {};
+  const { chat_id, prompt, user_id, mode, message_id } = body || {};
 
   if (!chat_id || typeof chat_id !== "string") {
     return json(400, { error: "Missing or invalid field: chat_id" });
@@ -245,18 +245,13 @@ Deno.serve(async (req) => {
     // Don't block the user if audit logging fails - continue with message creation
   }
 
-  // Create message with image meta
+  // Update placeholder message or create new one if placeholder doesn't exist
   const messageData = {
-    chat_id,
-    role: 'assistant',
-    status: 'complete', // Required field - message is complete when image is generated
-    mode: mode || 'chat',
-    user_id,
-    client_msg_id: crypto.randomUUID(),
     meta: {
       message_type: 'image',
       image_url: publicUrl,
       image_path: filePath,
+      image_prompt: prompt,
       image_model: 'imagen-4.0-fast-generate-001',
       image_size: '1024x1024',
       generation_time_ms: generationTime,
@@ -264,21 +259,50 @@ Deno.serve(async (req) => {
     }
   };
 
-  const { data: insertedMessage, error: messageError } = await supabase
-    .from('messages')
-    .insert([messageData])
-    .select()
-    .single();
+  let insertedMessage;
+  let messageError;
+
+  if (message_id) {
+    // Update existing placeholder message
+    const { data, error } = await supabase
+      .from('messages')
+      .update(messageData)
+      .eq('id', message_id)
+      .select()
+      .single();
+    
+    insertedMessage = data;
+    messageError = error;
+  } else {
+    // Create new message if no placeholder exists
+    const { data, error } = await supabase
+      .from('messages')
+      .insert([{
+        chat_id,
+        role: 'assistant',
+        status: 'complete',
+        mode: mode || 'chat',
+        user_id,
+        client_msg_id: crypto.randomUUID(),
+        ...messageData
+      }])
+      .select()
+      .single();
+    
+    insertedMessage = data;
+    messageError = error;
+  }
 
   if (messageError) {
     console.error(JSON.stringify({
-      event: "image_generate_message_insert_failed",
+      event: "image_generate_message_update_failed",
       request_id: requestId,
-      error: messageError.message
+      error: messageError.message,
+      message_id: message_id || 'none'
     }));
     // Image is uploaded but message failed - this is problematic but we'll return success
     // The image exists in storage but won't show in chat
-    return json(500, { error: `Message insert failed: ${messageError.message}` });
+    return json(500, { error: `Message update failed: ${messageError.message}` });
   }
 
   console.info(JSON.stringify({

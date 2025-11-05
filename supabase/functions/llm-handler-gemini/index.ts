@@ -402,6 +402,31 @@ Deno.serve(async (req: Request) => {
     if (functionCall && functionCall.name === "generate_image") {
       // handle image generation via internal edge function
       const prompt = functionCall.args?.prompt || "";
+      
+      // Create placeholder message immediately for better UX
+      const placeholderMessageId = crypto.randomUUID();
+      const { error: placeholderError } = await supabase
+        .from('messages')
+        .insert({
+          id: placeholderMessageId,
+          chat_id,
+          role: 'assistant',
+          status: 'complete',
+          mode: mode || 'chat',
+          user_id,
+          client_msg_id: crypto.randomUUID(),
+          meta: {
+            message_type: 'image',
+            image_prompt: prompt,
+            status: 'generating'
+          }
+        });
+      
+      if (placeholderError) {
+        console.error("[image-gen] placeholder insert failed:", placeholderError);
+        // Continue anyway - image-generate will create its own message
+      }
+      
       try {
         const imageGenResp = await fetch(`${ENV.SUPABASE_URL}/functions/v1/image-generate`, {
           method: "POST",
@@ -409,11 +434,17 @@ Deno.serve(async (req: Request) => {
             Authorization: `Bearer ${ENV.SUPABASE_SERVICE_ROLE_KEY}`,
             "Content-Type": "application/json"
           },
-          body: JSON.stringify({ chat_id, prompt, user_id, mode })
+          body: JSON.stringify({ chat_id, prompt, user_id, mode, message_id: placeholderMessageId })
         });
 
         if (!imageGenResp.ok) {
           const errBody = await imageGenResp.json().catch(() => ({}));
+          
+          // Delete placeholder message on error
+          if (placeholderMessageId) {
+            await supabase.from('messages').delete().eq('id', placeholderMessageId);
+          }
+          
           if (imageGenResp.status === 429) {
             assistantText = "I've reached the daily limit of 3 images. You can generate more images tomorrow!";
           } else {
@@ -432,6 +463,12 @@ Deno.serve(async (req: Request) => {
         }
       } catch (e) {
         console.error("[image-gen] exception:", (e as any)?.message || e);
+        
+        // Delete placeholder message on exception
+        if (placeholderMessageId) {
+          await supabase.from('messages').delete().eq('id', placeholderMessageId);
+        }
+        
         assistantText = "I tried to generate an image but encountered an error. Please try again.";
       }
     } else {
