@@ -51,7 +51,7 @@ const MobileTimePicker = ({ value, onChange }: MobileTimePickerProps) => {
 
   // Validate time string format
   const isValidTime = useCallback((timeStr: string): boolean => {
-    if (!timeStr) return false;
+    if (!timeStr || typeof timeStr !== 'string') return false;
     return !!timeStr.match(/^\d{2}:\d{2}$/);
   }, []);
 

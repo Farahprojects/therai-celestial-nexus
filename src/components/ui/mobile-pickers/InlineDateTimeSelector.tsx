@@ -135,7 +135,7 @@ const InlineDateTimeSelector = ({
   };
 
   const formatDisplayValue = (val: string) => {
-    if (!val) return placeholder;
+    if (!val || typeof val !== 'string') return placeholder;
     
     if (type === 'date') {
       // Handle both ISO format (YYYY-MM-DD) and DD/MM/YYYY format

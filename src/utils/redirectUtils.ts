@@ -84,6 +84,10 @@ export function clearRedirectPath() {
  * Extracts folder or chat ID from a redirect path
  */
 export function extractIdFromPath(path: string): { type: 'folder' | 'chat' | 'unknown', id: string | null } {
+  if (!path || typeof path !== 'string') {
+    return { type: 'unknown', id: null };
+  }
+  
   // Match /folder/:id or /folders/:id
   const folderMatch = path.match(/\/folders?\/([^/?]+)/);
   if (folderMatch) {

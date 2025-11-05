@@ -19,7 +19,7 @@ const InlineDateWheel = ({ value, onChange }: InlineDateWheelProps) => {
   }, []);
 
   const parseDate = useCallback((dateValue: string) => {
-    if (!dateValue) {
+    if (!dateValue || typeof dateValue !== 'string') {
       const now = new Date();
       return {
         month: now.getMonth() + 1,

@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
  * Normalizes storage URLs to use the correct Supabase domain and removes double slashes
  */
 export const normalizeStorageUrl = (url: string): string => {
-  if (!url) return url;
+  if (!url || typeof url !== 'string') return url;
   
   // If it's already using the correct domain, just fix double slashes
   if (url.includes('api.therai.co')) {

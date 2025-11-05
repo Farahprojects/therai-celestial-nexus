@@ -22,7 +22,7 @@ const MobileDatePicker = ({ value, onChange }: MobileDatePickerProps) => {
 
   // Helper function to parse initial date from value prop
   const parseInitialDate = useCallback((dateValue: string) => {
-    if (!dateValue) {
+    if (!dateValue || typeof dateValue !== 'string') {
       const now = new Date();
       return {
         month: now.getMonth() + 1,
