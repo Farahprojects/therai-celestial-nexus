@@ -208,12 +208,13 @@ Deno.serve(async (req) => {
     return json(504, { error: `Imagen API error: ${error instanceof Error ? error.message : String(error)}` });
   }
 
-  // Extract base64 image from response - try multiple possible response formats
-  let base64Image = imageData?.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+  // Extract base64 image from response - Vertex AI format (primary)
+  // Vertex AI returns: { predictions: [{ bytesBase64Encoded: "..." }] }
+  let base64Image = imageData?.predictions?.[0]?.bytesBase64Encoded;
   
-  // Alternative response format: check for bytesBase64Encoded (Vertex AI format)
+  // Fallback: Gemini API format (if using Gemini endpoint)
   if (!base64Image) {
-    base64Image = imageData?.predictions?.[0]?.bytesBase64Encoded;
+    base64Image = imageData?.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
   }
   
   // Another alternative: check for imageData field
