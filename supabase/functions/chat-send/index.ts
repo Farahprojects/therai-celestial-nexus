@@ -230,9 +230,7 @@ if (role === "user" && user_id && !isInternalCall) {
   }
 }
 
-// Support message update if id is provided (for image generation flow)
-const messageId = body?.id || null;
-const isUpdate = !!messageId;
+// messageId and isUpdate already defined above
 
 const message = {
 chat_id,
