@@ -91,12 +91,12 @@ Deno.serve(async (req) => {
   }));
 
   // Rate limiting: 3 images per user per 24 hours (cost control for $10 subscription)
+  // Uses immutable audit table to prevent bypass via chat deletion
   const { count, error: countError } = await supabase
-    .from('messages')
+    .from('image_generation_log')
     .select('id', { count: 'exact', head: true })
     .eq('user_id', user_id)
-    .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
-    .eq('meta->>message_type', 'image');
+    .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
 
   if (countError) {
     console.error(JSON.stringify({
@@ -225,6 +225,25 @@ Deno.serve(async (req) => {
   const publicUrl = `${CUSTOM_DOMAIN}/storage/v1/object/public/generated-images/${filePath}`;
 
   const generationTime = Date.now() - generationStartTime;
+
+  // Log to audit table (immutable, persists even if chat is deleted)
+  const { error: logError } = await supabase
+    .from('image_generation_log')
+    .insert({
+      user_id,
+      chat_id,
+      image_url: publicUrl,
+      model: IMAGEN_MODEL
+    });
+
+  if (logError) {
+    console.error(JSON.stringify({
+      event: "image_generate_audit_log_failed",
+      request_id: requestId,
+      error: logError.message
+    }));
+    // Don't block the user if audit logging fails - continue with message creation
+  }
 
   // Create message with image meta
   const messageData = {
