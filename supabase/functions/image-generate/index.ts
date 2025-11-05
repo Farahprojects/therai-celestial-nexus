@@ -230,7 +230,6 @@ Deno.serve(async (req) => {
   const messageData = {
     chat_id,
     role: 'assistant',
-    text: '', // Empty text, image is in meta
     status: 'complete', // Required field - message is complete when image is generated
     mode: mode || 'chat',
     user_id,
@@ -239,7 +238,6 @@ Deno.serve(async (req) => {
       message_type: 'image',
       image_url: publicUrl,
       image_path: filePath,
-      image_prompt: prompt,
       image_model: 'imagen-3.0-generate-002',
       image_size: '1024x1024',
       generation_time_ms: generationTime,
