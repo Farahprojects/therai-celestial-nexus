@@ -357,7 +357,12 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
             <Button variant="ghost" className="w-full justify-start gap-2 px-3 py-1.5 text-sm font-light" onClick={() => setShowSearchModal(true)}>
               <Search className="w-4 h-4" /> Search Chat
             </Button>
-            <Button variant="ghost" className="w-full justify-start gap-2 px-3 py-1.5 text-sm font-light" onClick={() => setShowImageGallery(true)}>
+            <Button 
+              variant="ghost" 
+              className="w-full justify-start gap-2 px-3 py-1.5 text-sm font-light" 
+              onClick={() => setShowImageGallery(true)}
+              data-image-gallery-button
+            >
               <Image className="w-4 h-4" /> Images
             </Button>
           </div>

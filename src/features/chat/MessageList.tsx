@@ -3,7 +3,7 @@ import { useChatStore } from '@/core/store';
 import { useMessageStore } from '@/stores/messageStore';
 import { Message } from '@/core/types';
 import { useConversationUIStore } from '@/features/chat/conversation-ui-store';
-import { RefreshCw, AlertTriangle, Sparkles } from 'lucide-react';
+import { RefreshCw, AlertTriangle, Sparkles, Share2, Download } from 'lucide-react';
 import { useAutoScroll } from '@/hooks/useAutoScroll';
 import { useWordAnimation } from '@/hooks/useWordAnimation';
 import { Button } from '@/components/ui/button';
@@ -49,16 +49,71 @@ const AssistantMessage = React.memo(({ message }: { message: Message }) => {
 
   // 🆕 RENDER IMAGE IF PRESENT
   if (isImageMessage && imageUrl) {
+    const handleShare = async () => {
+      try {
+        await navigator.clipboard.writeText(imageUrl);
+      } catch (error) {
+        console.error('Failed to copy to clipboard:', error);
+      }
+    };
+
+    const handleDownload = async () => {
+      try {
+        const response = await fetch(imageUrl);
+        const blob = await response.blob();
+        const imagePath = meta?.image_path || '';
+        const filename = imagePath.split('/').pop() || 'image.png';
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+      } catch (error) {
+        console.error('Failed to download image:', error);
+      }
+    };
+
     return (
       <div className="flex items-end gap-3 justify-start mb-8">
-        <div className="rounded-2xl max-w-2xl overflow-hidden">
+        <div className="relative group rounded-2xl max-w-2xl overflow-hidden">
           <img 
             src={imageUrl} 
             alt={imagePrompt || 'Generated image'}
-            className="w-full rounded-xl shadow-md hover:shadow-lg transition-shadow cursor-pointer"
-            onClick={() => window.open(imageUrl, '_blank')}
+            className="w-full rounded-xl shadow-md cursor-pointer"
+            onClick={() => {
+              const sidebarButton = document.querySelector('[data-image-gallery-button]') as HTMLButtonElement;
+              if (sidebarButton) sidebarButton.click();
+            }}
             loading="lazy"
           />
+          {/* Hover overlay with icons */}
+          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all duration-200 flex items-center justify-center gap-3">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="opacity-0 group-hover:opacity-100 text-white hover:text-white hover:bg-white/20 rounded-full transition-opacity"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleDownload();
+              }}
+            >
+              <Download className="w-4 h-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="opacity-0 group-hover:opacity-100 text-white hover:text-white hover:bg-white/20 rounded-full transition-opacity"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleShare();
+              }}
+            >
+              <Share2 className="w-4 h-4" />
+            </Button>
+          </div>
         </div>
       </div>
     );
