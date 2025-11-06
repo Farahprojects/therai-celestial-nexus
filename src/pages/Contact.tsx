@@ -249,7 +249,7 @@ const Contact = () => {
           <ThankYouMessage />
         ) : (
           <>
-            <section className="bg-white py-20 text-center">
+            <section className="bg-white pt-32 pb-20 text-center">
               <h1 className="text-4xl font-light text-gray-900 md:text-5xl mb-4 tracking-tight">
                 Get in Touch
               </h1>
