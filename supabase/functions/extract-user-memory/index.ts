@@ -110,6 +110,37 @@ Deno.serve(async (req) => {
       return json(200, { message: "Not primary profile or user mismatch", skipped: true });
     }
 
+    // Rate limit: Only extract every 3-5 assistant messages
+    const { count: assistantCountResult, error: assistantCountError } = await supabase
+      .from("messages")
+      .select("id", { count: "exact", head: true })
+      .eq("chat_id", conversation_id)
+      .eq("role", "assistant");
+
+    if (assistantCountError) {
+      console.error("[extract-user-memory] Failed to count assistant messages", assistantCountError);
+      return json(500, { error: "Failed to count assistant messages" });
+    }
+
+    const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+    const { count: recentExtractionsResult, error: recentExtractionsError } = await supabase
+      .from("user_memory")
+      .select("id", { count: "exact", head: true })
+      .eq("conversation_id", conversation_id)
+      .gte("created_at", tenMinutesAgo);
+
+    if (recentExtractionsError) {
+      console.error("[extract-user-memory] Failed to count recent extractions", recentExtractionsError);
+      return json(500, { error: "Failed to count recent extractions" });
+    }
+
+    const assistantMessageCount = assistantCountResult ?? 0;
+    const recentExtractionsCount = recentExtractionsResult ?? 0;
+
+    if (recentExtractionsCount > 0 && assistantMessageCount < 5) {
+      return json(200, { message: "Rate limited: too soon after last extraction", skipped: true });
+    }
+
     // Get the message and previous context (last 4 messages)
     const { data: messages } = await supabase
       .from("messages")
@@ -182,13 +213,13 @@ Deno.serve(async (req) => {
 
     const memoriesToInsert = [];
 
-    for (const mem of memories.slice(0, 3)) {
+    for (const mem of memories.slice(0, 3).filter((m: any) => (m.confidence ?? 0) >= 0.85)) {
       // Check similarity (simple text overlap)
       let isDuplicate = false;
       if (recentMemories) {
         for (const existing of recentMemories) {
           const similarity = textSimilarity(mem.text, existing.memory_text);
-          if (similarity > 0.85) {
+          if (similarity > 0.65) {
             // Increment reference_count instead
             await supabase
               .from("user_memory")
@@ -211,7 +242,7 @@ Deno.serve(async (req) => {
           source_message_id: message_id,
           memory_text: mem.text,
           memory_type: mem.type,
-          confidence_score: mem.confidence || 0.8,
+          confidence_score: mem.confidence || 0.85,
           origin_mode: conv.mode,
           created_at: new Date().toISOString()
         });
