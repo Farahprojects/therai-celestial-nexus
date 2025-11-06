@@ -128,7 +128,7 @@ export const ImageGallery = ({
             </div> : <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
               {images.map(image => <div key={image.id} className="relative group cursor-pointer rounded-xl overflow-hidden bg-gray-100 aspect-square" onClick={() => setSelectedImage(image)}>
                   <img src={image.meta.image_url} alt={image.meta.image_prompt} className="w-full h-full object-cover md:transition-transform md:group-hover:scale-105" />
-                  <div className="hidden md:flex absolute bottom-0 left-0 right-0 bg-black/0 group-hover:bg-black/60 transition-all duration-200 items-center justify-center h-12">
+                  <div className="hidden md:flex absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/0 group-hover:from-black/60 group-hover:to-transparent transition-all duration-200 items-center justify-center h-12">
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>

@@ -89,8 +89,8 @@ const AssistantMessage = React.memo(({ message }: { message: Message }) => {
             }}
             loading="lazy"
           />
-          {/* Bottom bar with icons */}
-          <div className="absolute bottom-0 left-0 right-0 h-12 bg-black/0 group-hover:bg-black/60 transition-all duration-200 flex items-center justify-center gap-3 rounded-b-2xl pointer-events-none">
+          {/* Bottom bar with icons - gradient from dark to transparent */}
+          <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-black/0 group-hover:from-black/60 group-hover:to-transparent transition-all duration-200 flex items-center justify-center gap-3 rounded-b-2xl pointer-events-none">
             <Button
               variant="ghost"
               size="icon"
