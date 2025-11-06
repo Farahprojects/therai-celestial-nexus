@@ -8,7 +8,7 @@ import { AstroDataForm } from '@/components/chat/AstroDataForm';
 import { ReportFormData } from '@/types/public-report';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
-import type { Tables, TablesInsert, TablesUpdate } from '@/integrations/supabase/types';
+import type { TablesInsert } from '@/integrations/supabase/types';
 
 const extractId = (value: unknown): string | null => {
   if (value && typeof value === 'object' && 'id' in value) {
@@ -48,16 +48,16 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
       return;
     }
 
+    const userId = user.id;
+
     setIsLoading(true);
     try {
-      const updatePayload: TablesUpdate<'profiles'> = {
-        display_name: displayName.trim(),
-      };
-
       const { error } = await supabase
         .from('profiles')
-        .update(updatePayload)
-        .eq('id' as never, user.id);
+        .update({
+          display_name: displayName.trim(),
+        })
+        .eq('id', userId);
 
       if (error) throw error;
 
@@ -77,14 +77,16 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
       return;
     }
 
+    const userId = user.id;
+
     setIsLoading(true);
     try {
       // Check if primary profile already exists
       const { data: existingProfile, error: checkError } = await supabase
         .from('user_profile_list')
         .select('id')
-        .eq('user_id' as never, user.id)
-        .eq('is_primary' as never, true)
+        .eq('user_id', userId)
+        .eq('is_primary', true)
         .maybeSingle();
       
       // Ignore "not found" errors - that's fine, we'll insert
@@ -93,7 +95,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
       }
 
       const profileInsertData: TablesInsert<'user_profile_list'> = {
-        user_id: user.id,
+        user_id: userId,
         profile_name: 'My Main Profile',
         name: data.name,
         birth_date: data.birthDate,
@@ -107,7 +109,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
         is_primary: true,
       };
 
-      const profileUpdateData: TablesUpdate<'user_profile_list'> = {
+      const profileUpdateData = {
         profile_name: profileInsertData.profile_name,
         name: profileInsertData.name,
         birth_date: profileInsertData.birth_date,
@@ -131,14 +133,13 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
         const { error } = await supabase
           .from('user_profile_list')
           .update(profileUpdateData)
-          .eq('id' as never, existingProfileId);
+          .eq('id', existingProfileId);
         profileError = error;
       } else {
         // Insert new primary profile
-        const insertRows: TablesInsert<'user_profile_list'>[] = [profileInsertData];
         const { error } = await supabase
           .from('user_profile_list')
-          .insert(insertRows);
+          .insert(profileInsertData);
         profileError = error;
       }
 
@@ -148,8 +149,8 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
       const { data: createdProfile } = await supabase
         .from('user_profile_list')
         .select('id')
-        .eq('user_id' as never, user.id)
-        .eq('is_primary' as never, true)
+        .eq('user_id', userId)
+        .eq('is_primary', true)
         .maybeSingle();
 
       const createdProfileId = extractId(createdProfile) ?? existingProfileId;
@@ -160,7 +161,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
         'conversation-manager?action=create_conversation',
         {
           body: {
-            user_id: user.id,
+            user_id: userId,
             title: 'Profile',
             mode: 'profile', // Set mode to "profile"
             profile_mode: true, // KEY FLAG
@@ -209,14 +210,14 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
         return;
       }
 
-      const onboardingCompletePayload: TablesUpdate<'profiles'> = {
-        has_profile_setup: true,
-      };
+      const userId = user.id;
 
       const { error } = await supabase
         .from('profiles')
-        .update(onboardingCompletePayload)
-        .eq('id' as never, user.id);
+        .update({
+          has_profile_setup: true,
+        })
+        .eq('id', userId);
 
       if (error) throw error;
 

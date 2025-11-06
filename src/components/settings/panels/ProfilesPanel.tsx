@@ -10,24 +10,9 @@ import { CleanPlaceAutocomplete } from '@/components/shared/forms/place-input/Cl
 import { PlaceData } from '@/components/shared/forms/place-input/utils/extractPlaceData';
 import InlineDateTimeSelector from '@/components/ui/mobile-pickers/InlineDateTimeSelector';
 import { SimpleDateTimePicker } from '@/components/ui/SimpleDateTimePicker';
+import type { Tables, TablesInsert } from '@/integrations/supabase/types';
 
-interface SavedProfile {
-  id: string;
-  user_id: string;
-  profile_name: string;
-  name: string;
-  birth_date: string;
-  birth_time: string;
-  birth_location: string;
-  birth_latitude?: number;
-  birth_longitude?: number;
-  birth_place_id?: string;
-  timezone?: string;
-  house_system?: string;
-  notes?: string;
-  created_at: string;
-  updated_at: string;
-}
+type SavedProfile = Tables<'user_profile_list'>;
 
 export const ProfilesPanel = () => {
   const { user } = useAuth();
@@ -64,19 +49,22 @@ export const ProfilesPanel = () => {
 
   const loadProfiles = async () => {
     if (!user) return;
+    const userId = user.id;
     
     setIsLoading(true);
     try {
       const { data, error } = await supabase
         .from('user_profile_list')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .order('created_at', { ascending: false });
 
       if (error) {
         console.error('[ProfilesPanel] Failed to load profiles:', error);
+      } else if (data) {
+        setProfiles(data as SavedProfile[]);
       } else {
-        setProfiles(data || []);
+        setProfiles([]);
       }
     } catch (err) {
       console.error('[ProfilesPanel] Error loading profiles:', err);
@@ -114,6 +102,8 @@ export const ProfilesPanel = () => {
       return;
     }
 
+    const userId = user.id;
+
     if (!birthLatitude || !birthLongitude) {
       alert('Please select a valid location from the dropdown');
       return;
@@ -124,20 +114,22 @@ export const ProfilesPanel = () => {
 
     setIsSaving(true);
     try {
+      const insertPayload: TablesInsert<'user_profile_list'> = {
+        user_id: userId,
+        profile_name: finalProfileName,
+        name,
+        birth_date: birthDate,
+        birth_time: birthTime,
+        birth_location: birthLocation,
+        birth_latitude: birthLatitude ?? null,
+        birth_longitude: birthLongitude ?? null,
+        birth_place_id: birthPlaceId || null,
+        notes: notes || null,
+      };
+
       const { data, error } = await supabase
         .from('user_profile_list')
-        .insert({
-          user_id: user.id,
-          profile_name: finalProfileName,
-          name: name,
-          birth_date: birthDate,
-          birth_time: birthTime,
-          birth_location: birthLocation,
-          birth_latitude: birthLatitude,
-          birth_longitude: birthLongitude,
-          birth_place_id: birthPlaceId || null,
-          notes: notes || null,
-        })
+        .insert(insertPayload)
         .select()
         .single();
 
@@ -165,13 +157,16 @@ export const ProfilesPanel = () => {
   const handleDelete = async () => {
     if (!profileToDelete) return;
 
+    const userId = user?.id;
+    if (!userId) return;
+
     setIsDeleting(true);
     try {
       const { error } = await supabase
         .from('user_profile_list')
         .delete()
         .eq('id', profileToDelete)
-        .eq('user_id', user?.id);
+        .eq('user_id', userId);
 
       if (error) {
         console.error('[ProfilesPanel] Failed to delete profile:', error);

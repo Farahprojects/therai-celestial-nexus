@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { useUserMemory } from '@/hooks/useUserMemory';
 import { supabase } from '@/integrations/supabase/client';
-import type { TablesUpdate } from '@/integrations/supabase/types';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -27,15 +26,13 @@ export function MemoryPanel() {
   });
 
   const handleDelete = async (id: string) => {
-    const updatePayload: TablesUpdate<'user_memory'> = {
-      deleted_at: new Date().toISOString(),
-      is_active: false,
-    };
-
     const { error } = await supabase
       .from('user_memory')
-      .update(updatePayload)
-      .eq('id' as never, id);
+      .update({
+        deleted_at: new Date().toISOString(),
+        is_active: false,
+      })
+      .eq('id', id);
 
     if (error) {
       toast.error('Failed to delete memory');
