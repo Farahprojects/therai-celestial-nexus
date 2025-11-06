@@ -335,6 +335,7 @@ determineLLMHandler().then((llmHandler) => {
     error: err instanceof Error ? err.message : String(err)
   }));
 });
+}
 
 // ⚡ AWAIT DB insert to ensure message is saved before returning
 console.info(JSON.stringify({
