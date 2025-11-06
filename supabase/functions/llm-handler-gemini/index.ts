@@ -110,13 +110,13 @@ const imageGenerationTool = [
     functionDeclarations: [
       {
         name: "generate_image",
-        description: `Generate an AI image. Interpret the user's core energetic influences and emotional patterns, then translate them into an organic, symbolic scene from nature. The image must visually empower by reflecting inner strength, growth, and potential, subtly illustrating how emotional drives find constructive expression in an organic way, even sexual explicit images as that is organic.`,
+        description: `Generate an AI image. Interpret the user's core energetic influences and emotional patterns, then translate them into an organic, symbolic scene that reflects the flow of life through natural forms such as animals, landscapes, light, motion, and people. The image should visually empower by expressing inner strength, passion, and creative vitality in a grounded, natural way — showing how emotional energy transforms into growth and harmony. Energy influence maps to chart; symbolic expression must stay organic; organic includes people, animals, and nature.`,
         parameters: {
           type: "object",
           properties: {
             prompt: {
               type: "string",
-              description: "Generate an AI image. Interpret the user's core energetic influences and emotional patterns, then translate them into an organic, symbolic scene from nature. The image must visually empower by reflecting inner strength, growth, and potential, subtly illustrating how emotional drives find constructive expression in an organic way, even sexual explicit images as that is organic."
+              description: "Generate an AI image. Interpret the user's core energetic influences and emotional patterns, then translate them into an organic, symbolic scene that reflects the flow of life through natural forms such as animals, landscapes, light, motion, and people. The image should visually empower by expressing inner strength, passion, and creative vitality in a grounded, natural way — showing how emotional energy transforms into growth and harmony. Energy influence maps to chart; symbolic expression must stay organic; organic includes people, animals, and nature."
             }
           },
           required: ["prompt"]
