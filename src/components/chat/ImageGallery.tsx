@@ -125,7 +125,7 @@ export const ImageGallery = ({
         <div className="overflow-y-auto h-[calc(100vh-88px)] px-8 py-8">
           {loading ? <div className="text-center py-16 text-gray-500 font-light">Loading images...</div> : images.length === 0 ? <div className="text-center py-16 text-gray-500 font-light">
               No images generated yet. Try asking to create an image!
-            </div> : <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            </div> : <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
               {images.map(image => <div key={image.id} className="relative group cursor-pointer rounded-xl overflow-hidden bg-gray-100 aspect-square" onClick={() => setSelectedImage(image)}>
                   <img src={image.meta.image_url} alt={image.meta.image_prompt} className="w-full h-full object-cover md:transition-transform md:group-hover:scale-105" />
                   <div className="hidden md:flex absolute bottom-0 left-0 right-0 bg-black/0 group-hover:bg-black/60 transition-all duration-200 items-center justify-center h-12">
