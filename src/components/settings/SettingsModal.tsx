@@ -274,6 +274,29 @@ export const SettingsModal = () => {
                   </Button>
                 ))}
               </nav>
+
+              <div className="mt-4 border-t pt-4 space-y-1">
+                <Button
+                  variant="ghost"
+                  className="w-full justify-start hover:bg-gray-100 hover:text-gray-900 text-gray-700"
+                  onClick={handleLegalTerms}
+                >
+                  <LifeBuoy className="mr-2 h-4 w-4" />
+                  Legal & Terms
+                </Button>
+
+                {user && (
+                  <Button
+                    variant="ghost"
+                    className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50"
+                    onClick={handleLogout}
+                    disabled={loggingOut}
+                  >
+                    <LogOut className="mr-2 h-4 w-4" />
+                    {loggingOut ? "Logging out..." : "Logout"}
+                  </Button>
+                )}
+              </div>
             </div>
 
             <div className="flex-1 overflow-y-auto p-6">

@@ -12,6 +12,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -137,6 +138,10 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
   // Auth / user
   const { isAuthenticated, user, signOut } = useAuth();
   const { openSettings } = useSettingsModal();
+  const handleLegalTerms = () => {
+    window.open('/legal', '_blank');
+  };
+
   const { displayName } = useUserData();
 
   // Stores
@@ -499,9 +504,15 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
                 <DropdownMenuContent align="end" className="min-w-48 rounded-xl border border-gray-200 shadow-lg p-1">
                   <DropdownMenuItem onClick={() => openSettings('general')}>General</DropdownMenuItem>
                   <DropdownMenuItem onClick={() => openSettings('account')}>Account Settings</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => openSettings('profiles')}>Profiles</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => openSettings('memory')}>Memory</DropdownMenuItem>
                   <DropdownMenuItem onClick={() => openSettings('billing')}>Billing</DropdownMenuItem>
                   <DropdownMenuItem onClick={() => openSettings('notifications')}>Notifications</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => openSettings('delete')}>Delete Account</DropdownMenuItem>
+                  <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={() => openSettings('support')}>Contact Support</DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleLegalTerms}>Legal & Terms</DropdownMenuItem>
+                  <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={() => signOut()} className="text-red-600 hover:text-red-700 hover:bg-red-50">Logout</DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
