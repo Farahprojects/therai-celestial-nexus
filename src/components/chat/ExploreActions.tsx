@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { AppWindow, Blend, Sparkles } from 'lucide-react';
+import { LayoutGrid, Blend, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useChatCreation } from '@/components/chat/ChatCreationProvider';
 
@@ -15,7 +15,7 @@ export const ExploreActions: React.FC = () => {
         className="flex w-full items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-light text-gray-900 transition-colors hover:bg-gray-100"
         aria-expanded={isExpanded}
       >
-        <AppWindow className="h-4 w-4" />
+        <LayoutGrid className="h-4 w-4" />
         Explore
       </button>
 
