@@ -77,12 +77,12 @@ const AssistantMessage = React.memo(({ message }: { message: Message }) => {
     };
 
     return (
-      <div className="flex items-end gap-3 justify-start mb-8">
-        <div className="relative group rounded-xl max-w-2xl overflow-hidden">
-          <img 
-            src={imageUrl} 
+      <div className="flex justify-center mb-8">
+        <div className="relative group rounded-xl overflow-hidden w-full max-w-[80%]">
+          <img
+            src={imageUrl}
             alt={imagePrompt || 'Generated image'}
-            className="w-full rounded-xl shadow-md cursor-pointer"
+            className="w-full max-h-[80vh] object-contain rounded-xl shadow-md cursor-pointer mx-auto"
             onClick={() => {
               const sidebarButton = document.querySelector('[data-image-gallery-button]') as HTMLButtonElement;
               if (sidebarButton) sidebarButton.click();
