@@ -169,6 +169,11 @@ export const ImageGallery = ({
     return <div className="fixed inset-0 z-50 bg-white md:left-64 font-['Inter'] flex flex-col">
         {/* Top Controls */}
         <div className="border-b border-gray-200 px-8 py-4 flex items-center justify-between">
+            <Button variant="ghost" onClick={() => setSelectedImage(null)} className="rounded-full hover:bg-gray-100 gap-2">
+              <ArrowLeft className="w-5 h-5" />
+              <span>Back to Images</span>
+            </Button>
+
             <div className="flex items-center gap-3">
               <TooltipProvider>
                 <Tooltip>
@@ -209,11 +214,6 @@ export const ImageGallery = ({
                 </Tooltip>
               </TooltipProvider>
             </div>
-
-            <Button variant="ghost" onClick={() => setSelectedImage(null)} className="rounded-full hover:bg-gray-100 gap-2">
-              <ArrowLeft className="w-5 h-5" />
-              <span>Back to Images</span>
-            </Button>
           </div>
 
           {/* Image Display */}
