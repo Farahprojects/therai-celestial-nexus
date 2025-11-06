@@ -155,7 +155,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
       const { data: messages, error: msgError } = await supabase
         .from('messages')
         .select('id, chat_id, text, role, created_at')
-        .in('chat_id', conversationIds)
+        .in('chat_id' as never, conversationIds as string[])
         .ilike('text', `%${searchQuery}%`)
         .order('created_at', { ascending: false })
         .limit(100);

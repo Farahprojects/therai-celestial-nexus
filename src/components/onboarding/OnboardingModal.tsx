@@ -50,9 +50,13 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
 
     setIsLoading(true);
     try {
+      const updatePayload: TablesUpdate<'profiles'> = {
+        display_name: displayName.trim(),
+      };
+
       const { error } = await supabase
         .from('profiles')
-        .update({ display_name: displayName.trim() } as TablesUpdate<'profiles'>)
+        .update(updatePayload)
         .eq('id' as never, user.id);
 
       if (error) throw error;
@@ -133,7 +137,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
         // Insert new primary profile
         const { error } = await supabase
           .from('user_profile_list')
-          .insert(profileInsertData as TablesInsert<'user_profile_list'>);
+          .insert([profileInsertData]);
         profileError = error;
       }
 
@@ -204,9 +208,13 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
         return;
       }
 
+      const completePayload: TablesUpdate<'profiles'> = {
+        has_profile_setup: true,
+      };
+
       const { error } = await supabase
         .from('profiles')
-        .update({ has_profile_setup: true } as TablesUpdate<'profiles'>)
+        .update(completePayload)
         .eq('id' as never, user.id);
 
       if (error) throw error;

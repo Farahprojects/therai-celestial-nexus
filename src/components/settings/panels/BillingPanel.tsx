@@ -14,6 +14,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
+import type { Tables } from '@/integrations/supabase/types';
 
 const CREDIT_PRICE = 0.10;
 
@@ -48,6 +49,18 @@ interface PlanData {
   stripe_price_id: string;
 }
 
+const isCreditRow = (value: unknown): value is Tables<'user_credits'> => {
+  return !!value && typeof value === 'object' && 'credits' in value;
+};
+
+const isTransactionRow = (value: unknown): value is Tables<'credit_transactions'> => {
+  return !!value && typeof value === 'object' && 'type' in value && 'credits' in value && 'created_at' in value;
+};
+
+const isPlanRow = (value: unknown): value is Tables<'price_list'> => {
+  return !!value && typeof value === 'object' && 'id' in value && 'name' in value && 'description' in value;
+};
+
 export const BillingPanel: React.FC = () => {
   const { user } = useAuth();
   const { closeSettings } = useSettingsModal();
@@ -74,14 +87,20 @@ export const BillingPanel: React.FC = () => {
       const { data: creditsData, error: creditsError } = await supabase
         .from('user_credits')
         .select('credits, auto_topup_enabled, auto_topup_threshold, auto_topup_amount')
-        .eq('user_id', user.id)
+        .eq('user_id' as never, user.id)
         .maybeSingle();
 
       if (creditsError && creditsError.code !== 'PGRST116') {
         throw creditsError;
       }
 
-      setCreditData(creditsData || {
+      const creditRow = isCreditRow(creditsData) ? creditsData : null;
+      setCreditData(creditRow ? {
+        credits: creditRow.credits,
+        auto_topup_enabled: creditRow.auto_topup_enabled ?? false,
+        auto_topup_threshold: creditRow.auto_topup_threshold ?? 7,
+        auto_topup_amount: creditRow.auto_topup_amount ?? 34,
+      } : {
         credits: 0,
         auto_topup_enabled: false,
         auto_topup_threshold: 7,
@@ -92,26 +111,36 @@ export const BillingPanel: React.FC = () => {
       const { data: transactionsData, error: transactionsError } = await supabase
         .from('credit_transactions')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('user_id' as never, user.id)
         .order('created_at', { ascending: false })
         .limit(20);
 
       if (!transactionsError && transactionsData) {
-        setTransactions(transactionsData);
+        const normalizedTransactions: Transaction[] = Array.isArray(transactionsData)
+          ? transactionsData.filter(isTransactionRow).map((row) => ({
+              id: row.id,
+              type: row.type,
+              credits: row.credits,
+              amount_usd: row.amount_usd,
+              description: row.description,
+              created_at: row.created_at,
+            }))
+          : [];
+        setTransactions(normalizedTransactions);
         }
       } else {
         // Fetch subscription data
         const { data: subData, error: subError } = await supabase
           .from('profiles')
           .select('subscription_active, subscription_status, subscription_plan, subscription_next_charge')
-          .eq('id', user.id)
+          .eq('id' as never, user.id)
           .single();
 
         if (subError) {
           throw subError;
         }
 
-        setSubscriptionData(subData || {
+        setSubscriptionData(subData && !('code' in subData) ? subData as SubscriptionData : {
           subscription_active: false,
           subscription_status: null,
           subscription_plan: null,
@@ -122,16 +151,24 @@ export const BillingPanel: React.FC = () => {
         const { data: plansData, error: plansError } = await supabase
           .from('price_list')
           .select('id, name, description, unit_price_usd, stripe_price_id')
-          .eq('endpoint', 'subscription')
+          .eq('endpoint' as never, 'subscription')
           .order('unit_price_usd', { ascending: true });
 
         if (!plansError && plansData) {
-          setAllPlans(plansData);
+          const planRows = Array.isArray(plansData) ? plansData.filter(isPlanRow) : [];
+          const normalizedPlans: PlanData[] = planRows.map((plan) => ({
+            id: plan.id,
+            name: plan.name,
+            description: plan.description,
+            unit_price_usd: plan.unit_price_usd,
+            stripe_price_id: plan.stripe_price_id ?? '',
+          }));
+          setAllPlans(normalizedPlans);
           
           // Find current plan details
-          if (subData?.subscription_plan) {
-            const currentPlan = plansData.find(p => p.id === subData.subscription_plan);
-            setCurrentPlanData(currentPlan || null);
+          if (subData && !('code' in subData) && subData.subscription_plan) {
+            const currentPlan = normalizedPlans.find(p => p.id === subData.subscription_plan) || null;
+            setCurrentPlanData(currentPlan);
           }
         }
       }
@@ -162,7 +199,7 @@ export const BillingPanel: React.FC = () => {
         (payload) => {
           console.log('Credit balance updated:', payload);
           // Update credit data with new balance
-          if (payload.new && 'credits' in payload.new) {
+          if (payload.new && isCreditRow(payload.new)) {
             setCreditData((prev) => prev ? { ...prev, credits: payload.new.credits } : null);
           }
         }

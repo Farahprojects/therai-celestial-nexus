@@ -54,17 +54,18 @@ const PaywallModal: React.FC<PaywallModalProps> = ({ isOpen, onClose, onSuccess 
             .order('unit_price_usd', { ascending: true });
 
           if (!error && data) {
-            const filtered = (Array.isArray(data) ? data : [])
-              .filter(isPricingPlan)
-              .map(plan => ({
-                id: plan.id,
-                name: plan.name,
-                description: plan.description,
-                unit_price_usd: plan.unit_price_usd,
-                product_code: plan.product_code,
-                stripe_price_id: plan.stripe_price_id,
-              }));
-            setSubscriptionPlans(filtered);
+            const normalizedPlans: PricingPlan[] = [];
+
+            if (Array.isArray(data)) {
+              for (const plan of data) {
+                if (isPricingPlan(plan)) {
+                  const typedPlan: PricingPlan = plan;
+                  normalizedPlans.push(typedPlan);
+                }
+              }
+            }
+
+            setSubscriptionPlans(normalizedPlans);
           }
         } catch (err) {
           console.error('Error fetching plans:', err);
