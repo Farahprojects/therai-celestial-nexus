@@ -221,7 +221,7 @@ export const ImageGallery = ({
             <img
               src={selectedImage.meta.image_url}
               alt={selectedImage.meta.image_prompt}
-              className="max-w-[80%] max-h-[80%] rounded-xl shadow-2xl mx-auto"
+              className="max-w-[92%] max-h-[92%] rounded-xl shadow-2xl mx-auto"
             />
           </div>
 
