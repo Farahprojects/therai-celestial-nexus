@@ -1,6 +1,7 @@
 import React from 'react';
 import { ChatThreadsSidebar } from './ChatThreadsSidebar';
 import Logo from '@/components/Logo';
+import { ChatCreationProvider } from '@/components/chat/ChatCreationProvider';
 
 interface ChatSidebarControlsProps {
   className?: string;
@@ -15,20 +16,22 @@ export const ChatSidebarControls: React.FC<ChatSidebarControlsProps> = ({
   conversationType = 'chat' // Default to chat
 }) => {
   return (
-    <div className="w-full h-full flex flex-col">
-      {/* Logo at the top */}
-      <div className="px-4 py-4">
-        <Logo className="h-8" />
+    <ChatCreationProvider>
+      <div className="w-full h-full flex flex-col">
+        {/* Logo at the top */}
+        <div className="px-4 py-4">
+          <Logo className="h-8" />
+        </div>
+        
+        {/* Chat Threads */}
+        <ChatThreadsSidebar 
+          className="flex-1 min-h-0" 
+          onDelete={onDelete} 
+          onCloseMobileSidebar={onCloseMobileSidebar}
+          conversationType={conversationType}
+        />
       </div>
-      
-      {/* Chat Threads */}
-      <ChatThreadsSidebar 
-        className="flex-1 min-h-0" 
-        onDelete={onDelete} 
-        onCloseMobileSidebar={onCloseMobileSidebar}
-        conversationType={conversationType}
-      />
-    </div>
+    </ChatCreationProvider>
   );
 };
 

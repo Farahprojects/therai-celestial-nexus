@@ -23,6 +23,7 @@ import { SearchModal } from '@/components/search/SearchModal';
 import { AddFolderButton } from '@/components/folders/AddFolderButton';
 import { NewChatDropdown } from '@/components/chat/NewChatDropdown';
 import { ImageGallery } from '@/components/chat/ImageGallery';
+import { ExploreActions } from '@/components/chat/ExploreActions';
 import { FoldersList } from '@/components/folders/FoldersList';
 import { FolderModal } from '@/components/folders/FolderModal';
 import { useSettingsModal } from '@/contexts/SettingsModalContext';
@@ -363,6 +364,7 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
             <Button variant="ghost" className="w-full justify-start gap-2 px-3 py-1.5 text-sm font-light" onClick={() => setShowSearchModal(true)}>
               <Search className="w-4 h-4" /> Search Chat
             </Button>
+            <ExploreActions />
             <Button 
               variant="ghost" 
               className="w-full justify-start gap-2 px-3 py-1.5 text-sm font-light" 

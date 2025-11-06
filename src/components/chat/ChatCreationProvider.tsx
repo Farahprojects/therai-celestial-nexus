@@ -1,0 +1,200 @@
+import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
+import { useSubscription } from '@/contexts/SubscriptionContext';
+import { getBillingMode } from '@/utils/billingMode';
+import { useChatStore } from '@/core/store';
+import { useMessageStore } from '@/stores/messageStore';
+import { InsightsModal } from '@/components/insights/InsightsModal';
+import { AstroChartSelector } from '@/components/chat/AstroChartSelector';
+import { AstroDataForm } from '@/components/chat/AstroDataForm';
+import { ReportFormData } from '@/types/public-report';
+import { AuthModal } from '@/components/auth/AuthModal';
+
+type ChatMode = 'chat' | 'astro' | 'insight' | 'together';
+
+interface ChatCreationContextValue {
+  startChat: () => Promise<void>;
+  startTogetherMode: () => Promise<void>;
+  openAstroFlow: () => void;
+  openInsightsFlow: () => void;
+}
+
+const ChatCreationContext = createContext<ChatCreationContextValue | undefined>(undefined);
+
+export const useChatCreation = (): ChatCreationContextValue => {
+  const ctx = useContext(ChatCreationContext);
+  if (!ctx) {
+    throw new Error('useChatCreation must be used within a ChatCreationProvider');
+  }
+  return ctx;
+};
+
+export const ChatCreationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user } = useAuth();
+  const { isSubscriptionActive } = useSubscription();
+  const billingMode = getBillingMode();
+  const navigate = useNavigate();
+
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [showInsightsModal, setShowInsightsModal] = useState(false);
+  const [showAstroChartSelector, setShowAstroChartSelector] = useState(false);
+  const [showAstroModal, setShowAstroModal] = useState(false);
+  const [selectedChartType, setSelectedChartType] = useState<string | null>(null);
+
+  const requireEligibleUser = useCallback((): boolean => {
+    if (!user) {
+      setShowAuthModal(true);
+      return false;
+    }
+
+    if (billingMode === 'SUBSCRIPTION' && !isSubscriptionActive) {
+      navigate('/subscription-paywall');
+      return false;
+    }
+
+    return true;
+  }, [billingMode, isSubscriptionActive, navigate, user]);
+
+  const handleNewConversation = useCallback(async (mode: ChatMode) => {
+    if (!requireEligibleUser()) return;
+    if (!user) return;
+
+    try {
+      const title =
+        mode === 'insight'
+          ? 'New Insight Chat'
+          : mode === 'together'
+          ? 'Together Mode'
+          : 'New Chat';
+
+      const conversationMode: 'chat' | 'astro' | 'insight' | 'swiss' =
+        mode === 'together' ? 'chat' : mode;
+
+      const { addThread } = useChatStore.getState();
+      const newChatId = await addThread(user.id, conversationMode, title);
+
+      const { setChatId } = useMessageStore.getState();
+      setChatId(newChatId);
+
+      const { startConversation } = useChatStore.getState();
+      startConversation(newChatId);
+
+      const { chatController } = await import('@/features/chat/ChatController');
+      await chatController.switchToChat(newChatId);
+
+      navigate(`/c/${newChatId}`, { replace: true });
+    } catch (error) {
+      console.error('[ChatCreationProvider] Failed to create conversation:', error);
+    }
+  }, [navigate, requireEligibleUser, user]);
+
+  const openAstroFlow = useCallback(() => {
+    if (!requireEligibleUser()) return;
+    setShowAstroChartSelector(true);
+  }, [requireEligibleUser]);
+
+  const openInsightsFlow = useCallback(() => {
+    if (!requireEligibleUser()) return;
+    setShowInsightsModal(true);
+  }, [requireEligibleUser]);
+
+  const handleSelectChart = useCallback((chartId: string) => {
+    setSelectedChartType(chartId);
+    setShowAstroChartSelector(false);
+    setShowAstroModal(true);
+  }, []);
+
+  const handleAstroFormSubmit = useCallback(
+    async (data: ReportFormData & { chat_id?: string }) => {
+      if (!user) return;
+      try {
+        const newChatId = data.chat_id;
+        if (!newChatId) {
+          console.error('[ChatCreationProvider] Missing chat_id from astro submission');
+          return;
+        }
+
+        const { setChatId } = useMessageStore.getState();
+        setChatId(newChatId);
+
+        const { startConversation } = useChatStore.getState();
+        startConversation(newChatId);
+
+        const { chatController } = await import('@/features/chat/ChatController');
+        await chatController.switchToChat(newChatId);
+
+        setShowAstroModal(false);
+        setSelectedChartType(null);
+        navigate(`/c/${newChatId}`, { replace: true });
+      } catch (error) {
+        console.error('[ChatCreationProvider] Failed to open astro conversation:', error);
+      }
+    },
+    [navigate, user]
+  );
+
+  const closeAstroModal = useCallback(() => {
+    setShowAstroModal(false);
+    setSelectedChartType(null);
+  }, []);
+
+  const backToChartSelector = useCallback(() => {
+    setShowAstroModal(false);
+    setShowAstroChartSelector(true);
+  }, []);
+
+  const contextValue: ChatCreationContextValue = useMemo(
+    () => ({
+      startChat: () => handleNewConversation('chat'),
+      startTogetherMode: () => handleNewConversation('together'),
+      openAstroFlow,
+      openInsightsFlow,
+    }),
+    [handleNewConversation, openAstroFlow, openInsightsFlow]
+  );
+
+  return (
+    <ChatCreationContext.Provider value={contextValue}>
+      {children}
+
+      <InsightsModal
+        isOpen={showInsightsModal}
+        onClose={() => setShowInsightsModal(false)}
+      />
+
+      {showAstroChartSelector && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-3xl bg-white shadow-2xl">
+            <AstroChartSelector
+              onSelectChart={handleSelectChart}
+              onClose={() => setShowAstroChartSelector(false)}
+            />
+          </div>
+        </div>
+      )}
+
+      {showAstroModal && selectedChartType && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="w-full max-w-2xl max-h-[90vh] overflow-hidden rounded-3xl bg-white shadow-2xl">
+            <AstroDataForm
+              onClose={closeAstroModal}
+              onSubmit={handleAstroFormSubmit}
+              onBack={backToChartSelector}
+              mode="astro"
+              preselectedType={selectedChartType}
+              reportType={selectedChartType}
+            />
+          </div>
+        </div>
+      )}
+
+      <AuthModal
+        isOpen={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+        defaultMode="login"
+      />
+    </ChatCreationContext.Provider>
+  );
+};
+
