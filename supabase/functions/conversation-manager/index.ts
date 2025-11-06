@@ -1,5 +1,5 @@
 // @ts-nocheck - Deno runtime, types checked at deployment
-import { createClient, type SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2?target=deno&deno-std=0.224.0';
+import { createClient, type SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { checkSubscriptionAccess, checkPremiumAccess } from '../_shared/subscriptionCheck.ts';
 
 type Json = Record<string, unknown> | Array<unknown> | string | number | boolean | null;
