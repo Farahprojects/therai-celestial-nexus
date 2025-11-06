@@ -38,7 +38,7 @@ const PaywallModal: React.FC<PaywallModalProps> = ({ isOpen, onClose, onSuccess 
           const { data, error } = await supabase
             .from('price_list')
             .select('id, name, description, unit_price_usd, product_code, stripe_price_id')
-            .eq('endpoint', 'subscription')
+            .eq('endpoint' as never, 'subscription')
             .order('unit_price_usd', { ascending: true });
 
           if (!error && data) {

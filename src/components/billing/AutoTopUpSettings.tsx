@@ -45,7 +45,7 @@ export const AutoTopUpSettings: React.FC<AutoTopUpSettingsProps> = ({ onSettings
       const { data, error } = await supabase
         .from('user_credits')
         .select('auto_topup_enabled, auto_topup_threshold, auto_topup_amount')
-        .eq('user_id', user.id as Tables<'user_credits'>['user_id'])
+        .eq('user_id' as never, user.id as Tables<'user_credits'>['user_id'])
         .maybeSingle();
 
       if (error) {

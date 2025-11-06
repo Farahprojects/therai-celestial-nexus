@@ -24,8 +24,8 @@ export const OnboardingGuard: React.FC<OnboardingGuardProps> = ({ children }) =>
         const { data, error } = await supabase
           .from('profiles')
           .select('has_profile_setup')
-          .eq('id', user.id)
-          .single();
+          .eq('id' as never, user.id)
+          .maybeSingle();
 
         if (error) {
           console.error('Error checking onboarding status:', error);
@@ -34,7 +34,8 @@ export const OnboardingGuard: React.FC<OnboardingGuardProps> = ({ children }) =>
           return;
         }
 
-        const needs = !data?.has_profile_setup;
+        const hasSetup = data && 'has_profile_setup' in data ? data.has_profile_setup : false;
+        const needs = !hasSetup;
         setNeedsOnboarding(needs);
         setShowModal(needs);
       } catch (error) {

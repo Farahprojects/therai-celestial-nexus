@@ -35,7 +35,7 @@ const sanitizerConfig = {
   SANITIZE_NAMED_PROPS: true,
   RETURN_DOM: false,
   RETURN_DOM_FRAGMENT: false,
-} as DOMPurify.Config;
+} satisfies DOMPurify.Config;
 
 export const BlogPost: React.FC<BlogPostProps> = ({ post }) => {
   const timeAgo = formatDistanceToNow(new Date(post.created_at), { addSuffix: true });

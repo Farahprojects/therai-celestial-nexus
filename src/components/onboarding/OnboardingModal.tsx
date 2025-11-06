@@ -8,6 +8,7 @@ import { AstroDataForm } from '@/components/chat/AstroDataForm';
 import { ReportFormData } from '@/types/public-report';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
+import type { TablesInsert } from '@/integrations/supabase/types';
 
 interface OnboardingModalProps {
   isOpen: boolean;
@@ -34,12 +35,17 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
       return;
     }
 
+    if (!user?.id) {
+      toast.error('Please sign in again');
+      return;
+    }
+
     setIsLoading(true);
     try {
       const { error } = await supabase
         .from('profiles')
         .update({ display_name: displayName.trim() })
-        .eq('id', user?.id);
+        .eq('id' as never, user.id);
 
       if (error) throw error;
 
@@ -54,14 +60,19 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
 
   // Step 2: Astro Profile
   const handleAstroFormSubmit = async (data: ReportFormData) => {
+    if (!user?.id) {
+      toast.error('Please sign in again');
+      return;
+    }
+
     setIsLoading(true);
     try {
       // Check if primary profile already exists
       const { data: existingProfile, error: checkError } = await supabase
         .from('user_profile_list')
         .select('id')
-        .eq('user_id', user?.id)
-        .eq('is_primary', true)
+        .eq('user_id' as never, user.id)
+        .eq('is_primary' as never, true)
         .maybeSingle();
       
       // Ignore "not found" errors - that's fine, we'll insert
@@ -69,8 +80,8 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
         throw checkError;
       }
 
-      const profileData = {
-        user_id: user?.id,
+      const profileData: TablesInsert<'user_profile_list'> = {
+        user_id: user.id,
         profile_name: 'My Main Profile',
         name: data.name,
         birth_date: data.birthDate,
@@ -79,25 +90,27 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
         birth_latitude: data.birthLatitude,
         birth_longitude: data.birthLongitude,
         birth_place_id: data.birthPlaceId,
-        timezone: data.birthLocation, // Use location as timezone for now
+        timezone: data.birthLocation,
         house_system: 'placidus',
         is_primary: true
       };
 
       // Update existing primary profile or insert new one
       let profileError;
-      if (existingProfile) {
+      const existingProfileId = existingProfile && !('code' in existingProfile) ? existingProfile.id : null;
+
+      if (existingProfileId) {
         // Update existing primary profile
         const { error } = await supabase
           .from('user_profile_list')
           .update(profileData)
-          .eq('id', existingProfile.id);
+          .eq('id' as never, existingProfileId);
         profileError = error;
       } else {
         // Insert new primary profile
         const { error } = await supabase
           .from('user_profile_list')
-          .insert(profileData);
+          .insert([profileData]);
         profileError = error;
       }
 
@@ -107,9 +120,11 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
       const { data: createdProfile } = await supabase
         .from('user_profile_list')
         .select('id')
-        .eq('user_id', user?.id)
-        .eq('is_primary', true)
-        .single();
+        .eq('user_id' as never, user.id)
+        .eq('is_primary' as never, true)
+        .maybeSingle();
+
+      const createdProfileId = createdProfile && !('code' in createdProfile) ? createdProfile.id : existingProfileId;
 
       // Create conversation with profile_mode flag to generate chart data
       // Convert camelCase to snake_case and structure as person_a (same as buildReportPayload)
@@ -117,11 +132,11 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
         'conversation-manager?action=create_conversation',
         {
           body: {
-            user_id: user?.id,
+            user_id: user.id,
             title: 'Profile',
             mode: 'profile', // Set mode to "profile"
             profile_mode: true, // KEY FLAG
-            profile_id: createdProfile?.id, // Link profile for memory tracking
+            profile_id: createdProfileId,
             report_data: {
               request: 'essence', // translator-edge requires 'request' field
               // Note: reportType is NOT included - it's only for insights mode, not profile mode
@@ -161,10 +176,15 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
   // Step 3: Subscription (or skip)
   const markOnboardingComplete = async () => {
     try {
+      if (!user?.id) {
+        toast.error('Please sign in again');
+        return;
+      }
+
       const { error } = await supabase
         .from('profiles')
         .update({ has_profile_setup: true })
-        .eq('id', user?.id);
+        .eq('id' as never, user.id);
 
       if (error) throw error;
 
