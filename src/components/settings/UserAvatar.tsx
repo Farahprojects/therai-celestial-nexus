@@ -5,11 +5,11 @@ import { useUserData } from "@/hooks/useUserData";
 
 export const UserAvatar = ({ size = "default" }: { size?: "xs" | "sm" | "default" | "lg" }) => {
   const { user } = useAuth();
-  const { data } = useUserData();
+  const { profile } = useUserData();
   
   const getInitial = () => {
     // Try display_name first, then email
-    const displayName = data?.profile?.display_name;
+    const displayName = profile?.display_name;
     if (displayName) {
       return displayName.charAt(0).toUpperCase();
     }

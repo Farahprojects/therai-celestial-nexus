@@ -60,7 +60,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
   const navigate = useNavigate();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<ConversationGroup[]>([]);
-  const [recentConversations, setRecentConversations] = useState<any[]>([]);
+  const [recentConversations, setRecentConversations] = useState<Array<{ id: string; title: string | null; created_at: string }>>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingRecent, setIsLoadingRecent] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -86,7 +86,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
         return;
       }
 
-      const normalized = Array.isArray(data) ? data.filter(hasConversationShape) : [];
+      const normalized = (Array.isArray(data) ? data.filter(hasConversationShape) : []) as Array<{ id: string; title: string | null; created_at: string }>;
       setRecentConversations(normalized);
     } catch (error) {
       console.error('Error fetching recent conversations:', error);
@@ -141,7 +141,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
         return;
       }
 
-      const conversationRows = Array.isArray(conversations) ? conversations.filter(hasConversationShape) : [];
+      const conversationRows = (Array.isArray(conversations) ? conversations.filter(hasConversationShape) : []) as Array<{ id: string; title: string | null; created_at: string }>;
 
       if (conversationRows.length === 0) {
         setResults([]);
@@ -169,9 +169,13 @@ export const SearchModal: React.FC<SearchModalProps> = ({
       const groupedResults = new Map<string, ConversationGroup>();
 
       // Create a map of conversations for quick lookup
-      const conversationMap = new Map(conversationRows.map(conv => [conv.id, conv]));
+      const conversationMap = new Map<string, { id: string; title: string | null; created_at: string }>(
+        conversationRows.map(conv => [conv.id, conv])
+      );
 
-      (Array.isArray(messages) ? messages.filter(hasMessageShape) : []).forEach((msg) => {
+      const messageRows = (Array.isArray(messages) ? messages.filter(hasMessageShape) : []) as Array<{ id: string; chat_id: string; text: string; role: string; created_at: string }>;
+
+      messageRows.forEach((msg) => {
         const chatId = msg.chat_id;
         const conversation = conversationMap.get(chatId);
         
@@ -179,19 +183,20 @@ export const SearchModal: React.FC<SearchModalProps> = ({
           if (!groupedResults.has(chatId)) {
             groupedResults.set(chatId, {
               chat_id: chatId,
-              title: conversation.title,
-              messages: [],
+              title: conversation.title ?? 'Untitled Chat',
+              messages: [] as SearchResult[],
               latest_message: conversation.created_at
             });
           }
 
           const snippet = createSnippet(msg.text, searchQuery);
-          groupedResults.get(chatId)!.messages.push({
+          const group = groupedResults.get(chatId)!;
+          group.messages.push({
             id: msg.id,
             chat_id: chatId,
-            conversation_title: conversation.title,
+            conversation_title: conversation.title ?? 'Untitled Chat',
             text: msg.text,
-            role: msg.role,
+            role: msg.role as 'user' | 'assistant' | 'system',
             created_at: msg.created_at,
             snippet
           });

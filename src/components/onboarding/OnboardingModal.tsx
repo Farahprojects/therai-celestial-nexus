@@ -52,7 +52,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
     try {
       const { error } = await supabase
         .from('profiles')
-        .update({ display_name: displayName.trim() } satisfies TablesUpdate<'profiles'>)
+        .update({ display_name: displayName.trim() } as TablesUpdate<'profiles'>)
         .eq('id' as never, user.id);
 
       if (error) throw error;
@@ -104,7 +104,18 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
       };
 
       const profileUpdateData: TablesUpdate<'user_profile_list'> = {
-        ...profileInsertData,
+        profile_name: profileInsertData.profile_name,
+        name: profileInsertData.name,
+        birth_date: profileInsertData.birth_date,
+        birth_time: profileInsertData.birth_time,
+        birth_location: profileInsertData.birth_location,
+        birth_latitude: profileInsertData.birth_latitude,
+        birth_longitude: profileInsertData.birth_longitude,
+        birth_place_id: profileInsertData.birth_place_id,
+        timezone: profileInsertData.timezone,
+        house_system: profileInsertData.house_system,
+        is_primary: profileInsertData.is_primary,
+        user_id: profileInsertData.user_id,
       };
 
       // Update existing primary profile or insert new one
@@ -122,7 +133,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
         // Insert new primary profile
         const { error } = await supabase
           .from('user_profile_list')
-          .insert([profileInsertData]);
+          .insert(profileInsertData as TablesInsert<'user_profile_list'>);
         profileError = error;
       }
 
@@ -195,7 +206,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
 
       const { error } = await supabase
         .from('profiles')
-        .update({ has_profile_setup: true } satisfies TablesUpdate<'profiles'>)
+        .update({ has_profile_setup: true } as TablesUpdate<'profiles'>)
         .eq('id' as never, user.id);
 
       if (error) throw error;
