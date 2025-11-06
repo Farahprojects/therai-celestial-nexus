@@ -1,3 +1,5 @@
+// Generated via: npx supabase gen types typescript --project-id wrvqqvqvwqmfdqvqmaar > src/integrations/supabase/types.ts
+
 export type Json =
   | string
   | number

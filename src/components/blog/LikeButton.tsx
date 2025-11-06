@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Heart } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { motion } from 'framer-motion';
-import type { Tables, TablesUpdate } from '@/integrations/supabase/types';
+import type { Database, Tables } from '@/integrations/supabase/types';
 
 type BlogPostRow = Tables<'blog_posts'>;
 
@@ -37,12 +37,16 @@ export const LikeButton: React.FC<LikeButtonProps> = ({ postId, initialLikes }) 
 
     // Update database
     try {
+      const updatePayload: Database['public']['Tables']['blog_posts']['Update'] = {
+        like_count: nextLikes,
+      };
+
+      const idColumn: keyof BlogPostRow = 'id';
+
       await supabase
         .from('blog_posts')
-        .update({
-          like_count: nextLikes,
-        } satisfies TablesUpdate<'blog_posts'>)
-        .eq('id' satisfies keyof BlogPostRow, postId as BlogPostRow['id']);
+        .update(updatePayload)
+        .eq(idColumn, postId);
     } catch (error) {
       console.error('Error updating like count:', error);
       // Rollback optimistic update

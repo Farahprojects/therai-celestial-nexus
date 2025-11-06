@@ -8,7 +8,7 @@ import { AstroDataForm } from '@/components/chat/AstroDataForm';
 import { ReportFormData } from '@/types/public-report';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
-import type { Tables, TablesInsert, TablesUpdate } from '@/integrations/supabase/types';
+import type { Database, Tables } from '@/integrations/supabase/types';
 type ProfileRow = Tables<'profiles'>;
 type UserProfileRow = Tables<'user_profile_list'>;
 
@@ -56,14 +56,16 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
 
     setIsLoading(true);
     try {
-      const updatePayload: TablesUpdate<'profiles'> = {
+      const updatePayload: Database['public']['Tables']['profiles']['Update'] = {
         display_name: displayName.trim(),
       };
+
+      const idColumn: keyof ProfileRow = 'id';
 
       const { error } = await supabase
         .from('profiles')
         .update(updatePayload)
-        .eq('id' satisfies keyof ProfileRow, userProfileId);
+        .eq(idColumn, userProfileId);
 
       if (error) throw error;
 
@@ -89,18 +91,21 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
     setIsLoading(true);
     try {
       // Check if primary profile already exists
+      const userIdColumn: keyof UserProfileRow = 'user_id';
+      const isPrimaryColumn: keyof UserProfileRow = 'is_primary';
+
       const { data: existingProfile, error: checkError } = await supabase
         .from('user_profile_list')
         .select('id')
-        .eq('user_id' satisfies keyof UserProfileRow, profileUserId)
-        .eq('is_primary' satisfies keyof UserProfileRow, true as UserProfileRow['is_primary']);
+        .eq(userIdColumn, profileUserId)
+        .eq(isPrimaryColumn, true);
       
       // Ignore "not found" errors - that's fine, we'll insert
       if (checkError && checkError.code !== 'PGRST116') {
         throw checkError;
       }
 
-      const profileInsertData: TablesInsert<'user_profile_list'> = {
+      const profileInsertData: Database['public']['Tables']['user_profile_list']['Insert'] = {
         user_id: profileUserId,
         profile_name: 'My Main Profile',
         name: data.name,
@@ -115,7 +120,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
         is_primary: true,
       };
 
-      const profileUpdateData = {
+      const profileUpdateData: Database['public']['Tables']['user_profile_list']['Update'] = {
         profile_name: profileInsertData.profile_name,
         name: profileInsertData.name,
         birth_date: profileInsertData.birth_date,
@@ -135,10 +140,12 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
 
       if (existingProfileId) {
         const existingProfileIdValue = existingProfileId as UserProfileRow['id'];
+        const idColumn: keyof UserProfileRow = 'id';
+
         const { error } = await supabase
           .from('user_profile_list')
           .update(profileUpdateData)
-          .eq('id' satisfies keyof UserProfileRow, existingProfileIdValue);
+          .eq(idColumn, existingProfileIdValue);
         profileError = error;
       } else {
         // Insert new primary profile
@@ -154,8 +161,8 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
       const { data: createdProfile } = await supabase
         .from('user_profile_list')
         .select('id')
-        .eq('user_id' satisfies keyof UserProfileRow, profileUserId)
-        .eq('is_primary' satisfies keyof UserProfileRow, true as UserProfileRow['is_primary'])
+        .eq(userIdColumn, profileUserId)
+        .eq(isPrimaryColumn, true)
         .maybeSingle();
 
       const createdProfileId = extractId(createdProfile) ?? existingProfileId;
@@ -218,14 +225,16 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
       const userId = user.id;
       const userProfileId = userId as ProfileRow['id'];
 
-      const onboardingUpdate: TablesUpdate<'profiles'> = {
+      const onboardingUpdate: Database['public']['Tables']['profiles']['Update'] = {
         has_profile_setup: true,
       };
+
+      const idColumn: keyof ProfileRow = 'id';
 
       const { error } = await supabase
         .from('profiles')
         .update(onboardingUpdate)
-        .eq('id' satisfies keyof ProfileRow, userProfileId);
+        .eq(idColumn, userProfileId);
 
       if (error) throw error;
 
