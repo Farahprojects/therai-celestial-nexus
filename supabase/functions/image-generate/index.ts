@@ -245,47 +245,45 @@ Deno.serve(async (req) => {
     // Continue to log - this is rare race condition, audit log still matters
   }
 
-  // Log to audit table (immutable, persists even if chat is deleted)
-  const { error: logError } = await supabase
-    .from('image_generation_log')
-    .insert({
-      user_id,
-      chat_id,
-      image_url: publicUrl,
-      model: IMAGEN_MODEL
-    });
+  const [logResult, messageResult] = await Promise.all([
+    supabase
+      .from('image_generation_log')
+      .insert({
+        user_id,
+        chat_id,
+        image_url: publicUrl,
+        model: IMAGEN_MODEL
+      }),
+    supabase
+      .from('messages')
+      .update({
+        status: 'complete',
+        meta: {
+          message_type: 'image',
+          image_url: publicUrl,
+          image_path: filePath,
+          image_prompt: prompt,
+          image_model: 'imagen-4.0-fast-generate-001',
+          image_size: '1024x1024',
+          generation_time_ms: generationTime,
+          cost_usd: 0.04
+        }
+      })
+      .eq('id', image_id)
+      .select()
+      .single()
+  ]);
 
+  const { error: logError } = logResult;
   if (logError) {
     console.error(JSON.stringify({
       event: "image_generate_audit_log_failed",
       request_id: requestId,
       error: logError.message
     }));
-    // Don't block the user if audit logging fails - continue with message creation
   }
 
-  // Update placeholder message with final image data
-  // Remove 'status: generating' from meta to trigger image display
-  const { data: updatedMessage, error: messageError } = await supabase
-    .from('messages')
-    .update({
-      status: 'complete',
-      meta: {
-        message_type: 'image',
-        image_url: publicUrl,
-        image_path: filePath,
-        image_prompt: prompt,
-        image_model: 'imagen-4.0-fast-generate-001',
-        image_size: '1024x1024',
-        generation_time_ms: generationTime,
-        cost_usd: 0.04 // Cost per image (may vary based on model)
-        // Note: 'status: generating' removed by not including it
-      }
-    })
-    .eq('id', image_id)
-    .select()
-    .single();
-
+  const { data: updatedMessage, error: messageError } = messageResult;
   if (messageError) {
     console.error(JSON.stringify({
       event: "image_generate_message_update_failed",
@@ -293,8 +291,6 @@ Deno.serve(async (req) => {
       error: messageError.message,
       image_id: image_id
     }));
-    // Image is uploaded but message update failed - user will still see placeholder
-    // This is a critical error but image is available
   }
 
   console.info(JSON.stringify({

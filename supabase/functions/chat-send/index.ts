@@ -364,55 +364,38 @@ console.info(JSON.stringify({
   duration_ms: Date.now() - startTime
 }));
 
-// Check if we should extract memory (only for assistant messages in profile-based conversations)
-if (role === "assistant" && insertedMessage?.id) {
-  const { data: convCheck } = await supabase
-    .from('conversations')
-    .select('profile_id')
-    .eq('id', chat_id)
-    .single();
-  
-  if (convCheck?.profile_id) {
-    // Verify it's a primary profile
-    const { data: profileCheck } = await supabase
-      .from('user_profile_list')
-      .select('is_primary, user_id')
-      .eq('id', convCheck.profile_id)
-      .single();
-    
-    if (profileCheck?.is_primary && profileCheck.user_id === user_id) {
-      shouldExtractMemory = true;
-      console.info(JSON.stringify({
-        event: "memory_extraction_eligible",
-        request_id: requestId,
-        conversation_id: chat_id,
-        profile_id: convCheck.profile_id,
-        message_id: insertedMessage.id
-      }));
-    }
-  }
-}
-
 // Trigger memory extraction if needed (fire-and-forget)
-if (shouldExtractMemory && insertedMessage?.id) {
-  fetch(`${SUPABASE_URL}/functions/v1/extract-user-memory`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`
-    },
-    body: JSON.stringify({
-      conversation_id: chat_id,
-      message_id: insertedMessage.id,
-      user_id: user_id
+if (role === "assistant" && insertedMessage?.id) {
+  shouldExtractMemory = true;
+  const payload = {
+    conversation_id: chat_id,
+    message_id: insertedMessage.id,
+    user_id: user_id
+  };
+
+  console.info(JSON.stringify({
+    event: "memory_extraction_triggered",
+    request_id: requestId,
+    conversation_id: chat_id,
+    message_id: insertedMessage.id
+  }));
+
+  Promise.resolve().then(() =>
+    fetch(`${SUPABASE_URL}/functions/v1/extract-user-memory`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`
+      },
+      body: JSON.stringify(payload)
+    }).catch(err => {
+      console.error(JSON.stringify({
+        event: "memory_extraction_trigger_failed",
+        request_id: requestId,
+        error: err instanceof Error ? err.message : String(err)
+      }));
     })
-  }).catch(err => {
-    console.error(JSON.stringify({
-      event: "memory_extraction_trigger_failed",
-      request_id: requestId,
-      error: err instanceof Error ? err.message : String(err)
-    }));
-  });
+  );
 }
 
 // Flush logs before returning response
