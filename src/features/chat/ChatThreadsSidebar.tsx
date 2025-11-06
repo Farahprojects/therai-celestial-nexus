@@ -360,22 +360,22 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
       <div className="flex-1 overflow-y-auto min-h-0">
         {/* New Chat + Search */}
         {conversationType !== 'swiss' && (
-          <div className="space-y-1 p-2">
+          <div className="space-y-0.5 px-2 pt-2 pb-0">
             <Button
               variant="ghost"
-              className="w-full justify-start gap-2 px-3 py-1.5 text-sm font-light"
+              className="w-full justify-start gap-2 px-3 py-1 text-sm font-light"
               onClick={() => { void startChat(); }}
             >
               <SquarePen className="w-4 h-4" />
               New Chat
             </Button>
-            <Button variant="ghost" className="w-full justify-start gap-2 px-3 py-1.5 text-sm font-light" onClick={() => setShowSearchModal(true)}>
+            <Button variant="ghost" className="w-full justify-start gap-2 px-3 py-1 text-sm font-light" onClick={() => setShowSearchModal(true)}>
               <Search className="w-4 h-4" /> Search Chat
             </Button>
             <ExploreActions />
             <Button 
               variant="ghost" 
-              className="w-full justify-start gap-2 px-3 py-1.5 text-sm font-light" 
+              className="w-full justify-start gap-2 px-3 py-1 text-sm font-light" 
               onClick={() => setShowImageGallery(true)}
               data-image-gallery-button
             >
@@ -430,7 +430,7 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
                 const isPending = (c.meta as any)?.isPending || pendingInsightThreads.has(c.id);
 
                 return (
-                  <div key={c.id} className={cn('group flex items-center gap-2 p-2 rounded-lg transition-colors', isActive ? 'bg-gray-100' : 'hover:bg-gray-100', isPending && 'opacity-60') }>
+                  <div key={c.id} className={cn('group flex items-center gap-2 p-1.5 rounded-lg transition-colors', isActive ? 'bg-gray-100' : 'hover:bg-gray-100', isPending && 'opacity-60') }>
                     {isPending && (
                       <svg className="w-4 h-4 animate-spin text-gray-600" viewBox="0 0 24 24">
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />

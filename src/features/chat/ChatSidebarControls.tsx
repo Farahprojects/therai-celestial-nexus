@@ -22,11 +22,11 @@ export const ChatSidebarControls: React.FC<ChatSidebarControlsProps> = ({
         <div className="px-4 py-4">
           <Logo className="h-8" />
         </div>
-        
+
         {/* Chat Threads */}
-        <ChatThreadsSidebar 
-          className="flex-1 min-h-0" 
-          onDelete={onDelete} 
+        <ChatThreadsSidebar
+          className="flex-1 min-h-0"
+          onDelete={onDelete}
           onCloseMobileSidebar={onCloseMobileSidebar}
           conversationType={conversationType}
         />

@@ -37,13 +37,13 @@ export const ChatHeader: React.FC = () => {
                 disabled={!chat_id && viewMode !== 'folder'}
                 className={`flex items-center justify-center w-8 h-8 rounded-lg transition-colors ${
                   (chat_id || viewMode === 'folder')
-                    ? 'text-gray-700 hover:text-gray-900 hover:bg-gray-50' 
+                    ? 'text-gray-700 hover:text-gray-900 hover:bg-gray-50'
                     : 'text-gray-300 cursor-not-allowed'
                 }`}
               >
                 <Share2 className="w-4 h-4" />
               </button>
-              
+
               {/* 3 Dots Menu */}
               <ChatMenuButton />
             </div>

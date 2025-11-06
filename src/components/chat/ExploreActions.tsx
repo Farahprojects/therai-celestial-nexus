@@ -8,11 +8,11 @@ export const ExploreActions: React.FC = () => {
   const [isExpanded, setIsExpanded] = useState(true);
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-0">
       <button
         type="button"
         onClick={() => setIsExpanded((prev) => !prev)}
-        className="flex w-full items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-light text-gray-900 transition-colors hover:bg-gray-100"
+        className="flex w-full items-center gap-1.5 rounded-lg px-3 py-1 text-sm font-light text-gray-900 transition-colors hover:bg-gray-100"
         aria-expanded={isExpanded}
       >
         <LayoutGrid className="h-4 w-4" />
@@ -20,10 +20,11 @@ export const ExploreActions: React.FC = () => {
       </button>
 
       {isExpanded && (
-        <div className="space-y-1 pl-2">
+        <div className="space-y-0 pl-2">
           <Button
             variant="ghost"
-            className="w-full justify-start gap-2 px-3 py-1.5 text-sm font-light"
+            size="sm"
+            className="w-full justify-start gap-1.5 px-3 py-1 text-sm font-light h-auto"
             onClick={openAstroFlow}
           >
             <Orbit className="h-4 w-4" />
@@ -31,7 +32,8 @@ export const ExploreActions: React.FC = () => {
           </Button>
           <Button
             variant="ghost"
-            className="w-full justify-start gap-2 px-3 py-1.5 text-sm font-light"
+            size="sm"
+            className="w-full justify-start gap-1.5 px-3 py-1 text-sm font-light h-auto"
             onClick={openInsightsFlow}
           >
             <Sparkles className="h-4 w-4" />
@@ -39,7 +41,8 @@ export const ExploreActions: React.FC = () => {
           </Button>
           <Button
             variant="ghost"
-            className="w-full justify-start gap-2 px-3 py-1.5 text-sm font-light"
+            size="sm"
+            className="w-full justify-start gap-1.5 px-3 py-1 text-sm font-light h-auto"
             onClick={() => { void startTogetherMode(); }}
           >
             <Blend className="h-4 w-4" />

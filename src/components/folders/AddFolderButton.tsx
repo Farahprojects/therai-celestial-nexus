@@ -20,7 +20,7 @@ export const AddFolderButton: React.FC<AddFolderButtonProps> = ({
       <Button
         onClick={onClick}
         variant="ghost"
-        className={`flex-1 flex items-center justify-start gap-2 px-3 py-1.5 text-sm text-black hover:bg-gray-100 rounded-lg transition-colors font-light ${className || ''}`}
+        className={`flex-1 flex items-center justify-start gap-2 px-3 py-1 text-sm text-black hover:bg-gray-100 rounded-lg transition-colors font-light ${className || ''}`}
       >
         <FolderPlus className="w-4 h-4" />
         New Folder

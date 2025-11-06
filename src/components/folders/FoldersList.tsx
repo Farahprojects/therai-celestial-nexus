@@ -63,7 +63,7 @@ export const FoldersList: React.FC<FoldersListProps> = ({
   }
 
   return (
-    <div className="space-y-1">
+    <div className="space-y-0.5">
       {folders.map((folder) => {
         const isExpanded = expandedFolders.has(folder.id);
         
@@ -80,7 +80,7 @@ export const FoldersList: React.FC<FoldersListProps> = ({
                     toggleFolder(folder.id);
                   }
                 }}
-                className="flex-1 flex items-center gap-2 px-3 py-1.5 text-sm text-black hover:bg-gray-100 rounded-lg transition-colors font-light"
+                className="flex-1 flex items-center gap-2 px-3 py-1 text-sm text-black hover:bg-gray-100 rounded-lg transition-colors font-light"
               >
                 {!onFolderClick && (isExpanded ? (
                   <ChevronDown className="w-3 h-3 text-gray-500" />
@@ -132,7 +132,7 @@ export const FoldersList: React.FC<FoldersListProps> = ({
                       key={chat.id}
                       className="relative group"
                     >
-                      <div className={`flex items-center gap-2 p-2 rounded-lg transition-colors ${
+                      <div className={`flex items-center gap-2 p-1.5 rounded-lg transition-colors ${
                         isActive 
                           ? 'bg-gray-100' 
                           : 'hover:bg-gray-100'
