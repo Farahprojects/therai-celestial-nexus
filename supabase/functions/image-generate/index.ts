@@ -264,56 +264,37 @@ Deno.serve(async (req) => {
     // Don't block the user if audit logging fails - continue with message creation
   }
 
-  // Send image-complete broadcast event for real-time UI update
-  const channel = supabase.channel(`unified-messages:${chat_id}`);
-  channel.send({
-    type: "broadcast",
-    event: "image-complete",
-    payload: {
-      id: image_id || crypto.randomUUID(),
-      chat_id,
-      image_url: publicUrl,
-      image_path: filePath,
-      image_prompt: prompt
-    }
-  }, { httpSend: true })
-    .then(() => channel.unsubscribe())
-    .catch(() => channel.unsubscribe());
-
-  // Create final message with image metadata
-  const messageData = {
-    chat_id,
-    role: 'assistant',
-    status: 'complete',
-    mode: mode || 'chat',
-    user_id,
-    client_msg_id: crypto.randomUUID(),
-    meta: {
-      message_type: 'image',
-      image_url: publicUrl,
-      image_path: filePath,
-      image_prompt: prompt,
-      image_model: 'imagen-4.0-fast-generate-001',
-      image_size: '1024x1024',
-      generation_time_ms: generationTime,
-      cost_usd: 0.04 // Cost per image (may vary based on model)
-    }
-  };
-
-  const { data: insertedMessage, error: messageError } = await supabase
+  // Update placeholder message with final image data
+  // Remove 'status: generating' from meta to trigger image display
+  const { data: updatedMessage, error: messageError } = await supabase
     .from('messages')
-    .insert([messageData])
+    .update({
+      status: 'complete',
+      meta: {
+        message_type: 'image',
+        image_url: publicUrl,
+        image_path: filePath,
+        image_prompt: prompt,
+        image_model: 'imagen-4.0-fast-generate-001',
+        image_size: '1024x1024',
+        generation_time_ms: generationTime,
+        cost_usd: 0.04 // Cost per image (may vary based on model)
+        // Note: 'status: generating' removed by not including it
+      }
+    })
+    .eq('id', image_id)
     .select()
     .single();
 
   if (messageError) {
     console.error(JSON.stringify({
-      event: "image_generate_message_insert_failed",
+      event: "image_generate_message_update_failed",
       request_id: requestId,
-      error: messageError.message
+      error: messageError.message,
+      image_id: image_id
     }));
-    // Image is uploaded and broadcast sent, but message failed - user will see image via broadcast
-    // Still return success since image is available
+    // Image is uploaded but message update failed - user will still see placeholder
+    // This is a critical error but image is available
   }
 
   console.info(JSON.stringify({
@@ -322,7 +303,7 @@ Deno.serve(async (req) => {
     total_duration_ms: Date.now() - startTime,
     generation_time_ms: generationTime,
     file_path: filePath,
-    message_id: insertedMessage?.id,
+    message_id: updatedMessage?.id,
     image_id: image_id || 'none'
   }));
 

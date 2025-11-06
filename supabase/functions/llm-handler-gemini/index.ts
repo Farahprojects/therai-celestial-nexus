@@ -437,19 +437,28 @@ Deno.serve(async (req: Request) => {
         // Generate unique ID for this image generation
         const imageId = crypto.randomUUID();
         
-        // Send image-start broadcast event for real-time UI update
-        const channel = supabase.channel(`unified-messages:${chat_id}`);
-        channel.send({
-          type: "broadcast",
-          event: "image-start",
-          payload: {
-            id: imageId,
-            chat_id,
-            prompt
+        // Insert placeholder message into database for skeleton rendering
+        console.log(`[image-start] Inserting placeholder message ${imageId}`);
+        const { error: placeholderError } = await supabase.from('messages').insert({
+          id: imageId,
+          chat_id,
+          role: 'assistant',
+          text: '',
+          status: 'pending',
+          mode: mode || 'chat',
+          user_id,
+          client_msg_id: crypto.randomUUID(),
+          meta: {
+            status: 'generating',  // 🔑 Key field for skeleton detection
+            image_prompt: prompt,
+            message_type: 'image'
           }
-        }, { httpSend: true })
-          .then(() => channel.unsubscribe())
-          .catch(() => channel.unsubscribe());
+        });
+        
+        if (placeholderError) {
+          console.error("[image-start] Failed to insert placeholder:", placeholderError);
+          // Continue anyway - image generation will still work
+        }
         
       try {
         const imageGenResp = await fetch(`${ENV.SUPABASE_URL}/functions/v1/image-generate`, {
@@ -461,33 +470,31 @@ Deno.serve(async (req: Request) => {
             body: JSON.stringify({ chat_id, prompt, user_id, mode, image_id: imageId })
         });
 
-        if (!imageGenResp.ok) {
-          const errBody = await imageGenResp.json().catch(() => ({}));
+          if (!imageGenResp.ok) {
+            const errBody = await imageGenResp.json().catch(() => ({}));
             
-            // Send image-error broadcast
-            const errorChannel = supabase.channel(`unified-messages:${chat_id}`);
-            errorChannel.send({
-              type: "broadcast",
-              event: "image-error",
-              payload: {
-                id: imageId,
-                chat_id,
-                error: imageGenResp.status === 429 
-                  ? "I've reached the daily limit of 3 images. You can generate more images tomorrow!"
-                  : "I tried to generate an image but encountered an error. Please try again."
+            // Update placeholder message with error
+            const errorMessage = imageGenResp.status === 429 
+              ? "I've reached the daily limit of 3 images. You can generate more images tomorrow!"
+              : "I tried to generate an image but encountered an error. Please try again.";
+            
+            await supabase.from('messages').update({
+              text: errorMessage,
+              status: 'complete',
+              meta: {
+                message_type: 'text',
+                image_error: true
               }
-            }, { httpSend: true })
-              .then(() => errorChannel.unsubscribe())
-              .catch(() => errorChannel.unsubscribe());
+            }).eq('id', imageId);
             
           if (imageGenResp.status === 429) {
-            assistantText = "I've reached the daily limit of 3 images. You can generate more images tomorrow!";
+              assistantText = "I've reached the daily limit of 3 images. You can generate more images tomorrow!";
+            } else {
+              console.error("[image-gen] failure:", imageGenResp.status, errBody);
+              assistantText = "I tried to generate an image but encountered an error. Please try again.";
+            }
           } else {
-            console.error("[image-gen] failure:", imageGenResp.status, errBody);
-            assistantText = "I tried to generate an image but encountered an error. Please try again.";
-          }
-        } else {
-            // image-generate will send image-complete broadcast and create message
+            // image-generate will UPDATE the placeholder message with image data
           return JSON_RESPONSE(200, {
             success: true,
               message: "Image generation started",
