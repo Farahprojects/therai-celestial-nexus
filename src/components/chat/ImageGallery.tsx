@@ -103,10 +103,13 @@ export const ImageGallery = ({
   if (!selectedImage) {
     return <div className="fixed inset-0 z-50 bg-white md:left-[14rem] font-['Inter']">
         {/* Header */}
-        <div className="border-b border-gray-200 px-8 py-6">
-          <div className="flex items-center justify-between">
-            <h2 className="text-3xl font-light italic text-gray-900">Images </h2>
-            <Button variant="ghost" size="icon" onClick={onClose} className="rounded-full hover:bg-gray-100">
+        <div className="border-b border-gray-200 px-4 md:px-8 py-4 md:py-6">
+          <div className="flex items-center gap-3">
+            <Button variant="ghost" size="icon" onClick={onClose} className="md:hidden -ml-2">
+              <X className="w-6 h-6" />
+            </Button>
+            <h2 className="text-xl md:text-3xl font-light md:italic text-gray-900">Images</h2>
+            <Button variant="ghost" size="icon" onClick={onClose} className="hidden md:flex rounded-full hover:bg-gray-100 ml-auto">
               <X className="w-5 h-5" />
             </Button>
           </div>
@@ -252,6 +255,16 @@ export const ImageGallery = ({
 
   // Mobile Single Image View
   return <div className="fixed inset-0 z-50 bg-white font-['Inter'] flex flex-col">
+      {/* Mobile Header */}
+      <div className="border-b border-gray-200 px-4 py-4">
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="icon" onClick={() => setSelectedImage(null)} className="-ml-2">
+            <X className="w-6 h-6" />
+          </Button>
+          <h2 className="text-xl font-light text-gray-900">Image</h2>
+        </div>
+      </div>
+
       {/* Image Display */}
       <div className="flex-1 flex items-center justify-center p-4 overflow-auto">
         <img src={selectedImage.meta.image_url} alt={selectedImage.meta.image_prompt} className="max-w-full max-h-full rounded-xl" />
