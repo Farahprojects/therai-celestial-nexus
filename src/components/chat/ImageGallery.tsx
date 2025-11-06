@@ -233,7 +233,11 @@ export const ImageGallery = ({
 
           {/* Image Display */}
           <div className="flex-1 flex items-center justify-center p-12 overflow-auto">
-            <img src={selectedImage.meta.image_url} alt={selectedImage.meta.image_prompt} className="max-w-full max-h-full rounded-xl shadow-2xl" />
+            <img
+              src={selectedImage.meta.image_url}
+              alt={selectedImage.meta.image_prompt}
+              className="max-w-[80%] max-h-[80%] rounded-xl shadow-2xl mx-auto"
+            />
           </div>
 
           {/* Image Prompt */}
