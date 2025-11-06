@@ -145,6 +145,16 @@ class UnifiedWebSocketService {
             // Emit global event with full message data (no DB refetch needed)
             if (DEBUG) console.log(`[UnifiedWebSocket] 🔔 Emitting message event with data`);
             
+            // Debug: Check if meta is in payload for assistant messages
+            if (role === 'assistant') {
+              console.log('[UnifiedWebSocket] 📦 Raw payload.new for assistant:', {
+                has_meta: 'meta' in (payload.new || {}),
+                meta: payload.new?.meta,
+                meta_type: typeof payload.new?.meta,
+                all_keys: Object.keys(payload.new || {})
+              });
+            }
+            
             window.dispatchEvent(new CustomEvent('assistant-message', { 
               detail: { 
                 chat_id, 

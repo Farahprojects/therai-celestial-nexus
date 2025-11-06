@@ -204,11 +204,22 @@ const renderMessages = (messages: Message[], currentUserId?: string) => {
     // Render assistant messages
     if (message.role === 'assistant') {
       // Check if this is a generating image placeholder (skeleton)
-      if (message.meta?.status === 'generating' && message.meta?.message_type === 'image') {
+      // Show skeleton if status is 'generating' OR if it's an image message without image_url yet
+      const isGenerating = message.meta?.status === 'generating' && message.meta?.message_type === 'image';
+      const isImageWithoutUrl = message.meta?.message_type === 'image' && !message.meta?.image_url;
+      
+      if (isGenerating || isImageWithoutUrl) {
+        console.log('[renderMessages] ✅ Rendering skeleton for generating image:', {
+          id: message.id,
+          status: message.meta?.status,
+          message_type: message.meta?.message_type,
+          has_image_url: !!message.meta?.image_url,
+          prompt: message.meta?.image_prompt
+        });
         elements.push(
           <ImageSkeleton 
             key={message.id} 
-            prompt={message.meta.image_prompt || 'Generating image...'} 
+            prompt={message.meta?.image_prompt || 'Generating image...'} 
           />
         );
         continue; // Skip normal rendering

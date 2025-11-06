@@ -325,9 +325,18 @@ if (typeof window !== 'undefined' && !(window as any).__msgStoreListenerInstalle
       const message = mapDbToMessage(messageData);
       const messageWithSource = { ...message, source: 'websocket' as const };
       
+      // Debug: Log generating status for skeleton detection
+      if (role === 'assistant' && messageData.meta) {
+        console.log('[MessageStore] Assistant message meta:', {
+          status: messageData.meta.status,
+          message_type: messageData.meta.message_type,
+          is_generating: messageData.meta.status === 'generating' && messageData.meta.message_type === 'image'
+        });
+      }
+      
       // Always call addMessage - it handles both INSERT (new) and UPDATE (existing) cases
       // The addMessage function checks if message exists by ID and updates it if needed
-      addMessage(messageWithSource);
+        addMessage(messageWithSource);
       
       // ⚡ OPTIMIZED: Handle side-effects ONLY for assistant messages
       if (role === 'assistant') {
