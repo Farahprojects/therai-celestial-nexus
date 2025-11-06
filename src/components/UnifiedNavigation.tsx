@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Menu, X, Settings, User, Bell, LifeBuoy, LogOut, CreditCard, Eye, Globe, Calendar, Home, BookOpen } from 'lucide-react';
+import { Menu, X, Settings, User, Bell, LifeBuoy, LogOut, CreditCard, Eye, Globe, Calendar, Home, BookOpen, Users, Brain, Shield } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { UserAvatar } from '@/components/settings/UserAvatar';
 import Logo from '@/components/Logo';
@@ -112,7 +112,7 @@ const UnifiedNavigation = ({
   };
 
   const handleOpenSettings = (panel: string) => {
-    openSettings(panel as "general" | "account" | "notifications" | "support" | "billing");
+    openSettings(panel as "general" | "account" | "profiles" | "memory" | "billing" | "notifications" | "delete" | "support");
   };
 
   // Mobile auth handlers
@@ -341,6 +341,14 @@ const UnifiedNavigation = ({
                         <User className="mr-2 h-4 w-4" />
                         Account Settings
                       </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleOpenSettings('profiles')}>
+                        <Users className="mr-2 h-4 w-4" />
+                        Profiles
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleOpenSettings('memory')}>
+                        <Brain className="mr-2 h-4 w-4" />
+                        Memory
+                      </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => handleOpenSettings('billing')}>
                         <CreditCard className="mr-2 h-4 w-4" />
                         Billing
@@ -351,7 +359,11 @@ const UnifiedNavigation = ({
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => handleOpenSettings('support')}>
                         <LifeBuoy className="mr-2 h-4 w-4" />
-                        Support
+                        Contact Support
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleOpenSettings('delete')}>
+                        <Shield className="mr-2 h-4 w-4" />
+                        Delete
                       </DropdownMenuItem>
                       
                       <DropdownMenuSeparator />

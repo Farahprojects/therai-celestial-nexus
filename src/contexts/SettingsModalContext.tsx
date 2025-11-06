@@ -3,7 +3,7 @@ import React, { createContext, useContext, useState } from "react";
 import { SettingsModal } from "@/components/settings/SettingsModal";
 
 
-type SettingsPanelType = "general" | "account" | "profiles" | "notifications" | "delete" | "support" | "billing";
+type SettingsPanelType = "general" | "account" | "profiles" | "memory" | "notifications" | "delete" | "support" | "billing";
 
 interface SettingsModalContextProps {
   isOpen: boolean;
