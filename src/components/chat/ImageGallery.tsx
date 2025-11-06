@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { MessageCircle, Share2, Download, X } from 'lucide-react';
+import { MessageCircle, Share2, Download, X, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 interface ImageMessage {
@@ -166,18 +166,9 @@ export const ImageGallery = ({
 
   // Desktop Single Image View
   if (!isMobile) {
-    return <div className="fixed inset-0 z-50 bg-white md:left-[14rem] font-['Inter'] flex">
-        {/* Left Thumbnail Strip */}
-        <div className="w-32 border-r border-gray-200 overflow-y-auto p-4 space-y-4">
-          {images.map((image, index) => <div key={image.id} className={`cursor-pointer rounded-lg overflow-hidden border-2 transition-all ${selectedImage.id === image.id ? 'border-gray-900 shadow-md' : 'border-transparent hover:border-gray-300'}`} onClick={() => setSelectedImage(image)}>
-              <img src={image.meta.image_url} alt={image.meta.image_prompt} className="w-full aspect-square object-cover" />
-            </div>)}
-        </div>
-
-        {/* Main Image Area */}
-        <div className="flex-1 flex flex-col">
-          {/* Top Controls */}
-          <div className="border-b border-gray-200 px-8 py-4 flex items-center justify-between">
+    return <div className="fixed inset-0 z-50 bg-white md:left-[14rem] font-['Inter'] flex flex-col">
+        {/* Top Controls */}
+        <div className="border-b border-gray-200 px-8 py-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <TooltipProvider>
                 <Tooltip>
@@ -219,8 +210,9 @@ export const ImageGallery = ({
               </TooltipProvider>
             </div>
 
-            <Button variant="ghost" size="icon" onClick={() => setSelectedImage(null)} className="rounded-full hover:bg-gray-100">
-              <X className="w-5 h-5" />
+            <Button variant="ghost" onClick={() => setSelectedImage(null)} className="rounded-full hover:bg-gray-100 gap-2">
+              <ArrowLeft className="w-5 h-5" />
+              <span>Back to Images</span>
             </Button>
           </div>
 
@@ -234,7 +226,6 @@ export const ImageGallery = ({
           </div>
 
           {/* Image Prompt - Hidden per user request */}
-        </div>
 
         {/* Share success notification */}
         {shareSuccess && <div className="fixed bottom-8 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white px-6 py-3 rounded-full font-light">
@@ -248,8 +239,9 @@ export const ImageGallery = ({
       {/* Mobile Header */}
       <div className="border-b border-gray-200 px-4 py-4">
         <div className="flex items-center justify-between">
-          <Button variant="ghost" size="icon" onClick={() => setSelectedImage(null)} className="-ml-2">
-            <X className="w-6 h-6" />
+          <Button variant="ghost" onClick={() => setSelectedImage(null)} className="-ml-2 gap-2">
+            <ArrowLeft className="w-5 h-5" />
+            <span>Back to Images</span>
           </Button>
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="icon" onClick={() => handleOpenChat(selectedImage)}>
@@ -268,15 +260,6 @@ export const ImageGallery = ({
       {/* Image Display - Fullscreen */}
       <div className="flex-1 flex items-center justify-center bg-white overflow-auto">
         <img src={selectedImage.meta.image_url} alt={selectedImage.meta.image_prompt} className="max-w-full max-h-full object-contain" />
-      </div>
-
-      {/* Thumbnail Strip */}
-      <div className="border-t border-gray-200 p-3 overflow-x-auto bg-white">
-        <div className="flex gap-2 pb-safe">
-          {images.map((image, index) => <div key={image.id} className={`flex-shrink-0 cursor-pointer rounded-lg overflow-hidden border-2 transition-all ${selectedImage.id === image.id ? 'border-gray-900' : 'border-gray-200'}`} onClick={() => setSelectedImage(image)}>
-              <img src={image.meta.image_url} alt={image.meta.image_prompt} className="w-14 h-14 object-cover" />
-            </div>)}
-        </div>
       </div>
 
       {/* Share success notification */}
