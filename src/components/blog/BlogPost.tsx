@@ -25,6 +25,18 @@ interface BlogPostProps {
   post: BlogPost;
 }
 
+const sanitizerConfig = {
+  ALLOWED_TAGS: ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'a', 'ul', 'ol', 'li', 'strong', 'em', 'code', 'pre', 'blockquote', 'br', 'img'],
+  ALLOWED_ATTR: ['href', 'src', 'alt', 'title', 'class'],
+  ALLOWED_URI_REGEXP: /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|sms|cid|xmpp):|[^a-z]|[a-z+.-]+(?:[^a-z+.\-:]|$))/i,
+  FORBID_TAGS: ['script', 'object', 'embed', 'iframe', 'form', 'input', 'button'],
+  FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover', 'onfocus', 'onblur', 'onchange', 'onsubmit'],
+  SANITIZE_DOM: true,
+  SANITIZE_NAMED_PROPS: true,
+  RETURN_DOM: false,
+  RETURN_DOM_FRAGMENT: false,
+} as DOMPurify.Config;
+
 export const BlogPost: React.FC<BlogPostProps> = ({ post }) => {
   const timeAgo = formatDistanceToNow(new Date(post.created_at), { addSuffix: true });
   const defaultImage = "https://images.unsplash.com/photo-1499750310107-5fef28a66643?w=1200&h=600&fit=crop";
@@ -34,18 +46,7 @@ export const BlogPost: React.FC<BlogPostProps> = ({ post }) => {
     if (!post.content) return '';
     
     try {
-      return DOMPurify.sanitize(post.content, {
-        ALLOWED_TAGS: ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'a', 'ul', 'ol', 'li', 'strong', 'em', 'code', 'pre', 'blockquote', 'br', 'img'],
-        ALLOWED_ATTR: ['href', 'src', 'alt', 'title', 'class'],
-        ALLOWED_URI_REGEXP: /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|sms|cid|xmpp):|[^a-z]|[a-z+.-]+(?:[^a-z+.\-:]|$))/i,
-        FORBID_TAGS: ['script', 'object', 'embed', 'iframe', 'form', 'input', 'button'],
-        FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover', 'onfocus', 'onblur', 'onchange', 'onsubmit'],
-        SANITIZE_DOM: true,
-        SANITIZE_NAMED_PROPS: true,
-        RETURN_DOM: false,
-        RETURN_DOM_FRAGMENT: false,
-        RETURN_DOM_IMPORT: false
-      });
+      return DOMPurify.sanitize(post.content, sanitizerConfig);
     } catch (error) {
       console.error('Content sanitization failed:', error);
       // Fallback: strip all HTML tags and return plain text

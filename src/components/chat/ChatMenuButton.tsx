@@ -12,6 +12,10 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { getUserFolders, getFolderConversations, moveConversationToFolder, createFolder } from '@/services/folders';
 import { FolderModal } from '@/components/folders/FolderModal';
+import type { Tables } from '@/integrations/supabase/types';
+
+type MessageRow = Tables<'messages'>;
+type ConversationRow = Tables<'conversations'>;
 
 interface ChatMenuButtonProps {
   className?: string;
@@ -101,14 +105,14 @@ export const ChatMenuButton: React.FC<ChatMenuButtonProps> = ({
       await supabase
         .from('messages')
         .delete()
-        .eq('chat_id', chat_id);
+        .eq('chat_id' as never, chat_id as MessageRow['chat_id']);
 
       // Delete conversation
       await supabase
         .from('conversations')
         .delete()
-        .eq('id', chat_id)
-        .eq('user_id', user.id);
+        .eq('id' as never, chat_id as ConversationRow['id'])
+        .eq('user_id' as never, user.id as ConversationRow['user_id']);
 
       // Update local state
       removeThread(chat_id);

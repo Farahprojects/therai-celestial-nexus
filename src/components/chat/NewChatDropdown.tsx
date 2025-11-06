@@ -50,10 +50,12 @@ export const NewChatDropdown: React.FC<NewChatDropdownProps> = ({ className = ""
 
     try{
       const title = mode === 'insight' ? 'New Insight Chat' : mode === 'together' ? 'Together Mode' : 'New Chat';
+      const conversationMode: 'chat' | 'astro' | 'insight' | 'swiss' =
+        mode === 'together' ? 'chat' : mode;
       
       // Create conversation through conversation-manager edge function
       const { addThread } = useChatStore.getState();
-      const newChatId = await addThread(user.id, mode, title);
+      const newChatId = await addThread(user.id, conversationMode, title);
       
       // Set chat_id and fetch messages
       const { setChatId } = useMessageStore.getState();

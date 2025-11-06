@@ -52,9 +52,15 @@ export const ImageGallery = ({
       const {
         data,
         error
-      } = await supabase.from('messages').select('id, chat_id, created_at, meta').eq('role', 'assistant').eq('meta->>message_type', 'image').eq('user_id', user.id).order('created_at', {
+      } = await supabase
+        .from('messages')
+        .select('id, chat_id, created_at, meta')
+        .eq('role' as never, 'assistant')
+        .eq('meta->>message_type' as never, 'image')
+        .eq('user_id' as never, user.id)
+        .order('created_at', {
         ascending: false
-      });
+        });
       if (error) {
         console.error('Failed to load images:', error);
         setImages([]);

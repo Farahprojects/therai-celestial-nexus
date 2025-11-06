@@ -6,6 +6,12 @@ import { Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
+import type { Tables } from '@/integrations/supabase/types';
+
+type AutoTopUpRow = Pick<
+  Tables<'user_credits'>,
+  'auto_topup_enabled' | 'auto_topup_threshold' | 'auto_topup_amount'
+>;
 
 const CREDIT_PRICE = 0.10;
 const TOPUP_OPTIONS = [
@@ -39,13 +45,20 @@ export const AutoTopUpSettings: React.FC<AutoTopUpSettingsProps> = ({ onSettings
       const { data, error } = await supabase
         .from('user_credits')
         .select('auto_topup_enabled, auto_topup_threshold, auto_topup_amount')
-        .eq('user_id', user.id)
+        .eq('user_id', user.id as Tables<'user_credits'>['user_id'])
         .maybeSingle();
 
-      if (!error && data) {
-        setEnabled(data.auto_topup_enabled ?? false);
-        setThreshold(data.auto_topup_threshold ?? 10);
-        setAmount(data.auto_topup_amount ?? 50);
+      if (error) {
+        console.error('Error loading auto top-up settings:', error);
+        return;
+      }
+
+      const settings = (data ?? null) as AutoTopUpRow | null;
+
+      if (settings) {
+        setEnabled(settings.auto_topup_enabled ?? false);
+        setThreshold(settings.auto_topup_threshold ?? 10);
+        setAmount(settings.auto_topup_amount ?? 50);
       }
     } catch (error) {
       console.error('Error loading auto top-up settings:', error);

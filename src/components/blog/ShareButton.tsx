@@ -2,9 +2,12 @@ import React, { useState } from 'react';
 import { Share2, Twitter, Linkedin, Copy, Check } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { motion, AnimatePresence } from 'framer-motion';
+import type { Tables, TablesUpdate } from '@/integrations/supabase/types';
+
+type BlogPostRow = Tables<'blog_posts'>;
 
 interface ShareButtonProps {
-  postId: string;
+  postId: BlogPostRow['id'];
   postTitle: string;
   postSlug: string;
   initialShares: number;
@@ -23,12 +26,17 @@ export const ShareButton: React.FC<ShareButtonProps> = ({
   const postUrl = `${window.location.origin}/blog/${postSlug}`;
 
   const updateShareCount = async () => {
-    setShares(prev => prev + 1);
+    const nextShares = shares + 1;
+    setShares(nextShares);
     try {
+      const updatePayload: TablesUpdate<'blog_posts'> = {
+        share_count: nextShares,
+      };
+
       await supabase
         .from('blog_posts')
-        .update({ share_count: shares + 1 })
-        .eq('id', postId);
+        .update(updatePayload)
+        .eq('id' as never, postId as BlogPostRow['id']);
     } catch (error) {
       console.error('Error updating share count:', error);
       setShares(prev => prev - 1);

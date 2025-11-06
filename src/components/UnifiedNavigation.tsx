@@ -68,7 +68,7 @@ const UnifiedNavigation = ({
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
   const { user, signOut } = useAuth();
-  const { data } = useUserData();
+  const { profile, displayName: computedDisplayName } = useUserData();
   const navigate = useNavigate();
   const location = useLocation();
   const isMobile = useIsMobile();
@@ -77,7 +77,7 @@ const UnifiedNavigation = ({
   const { isAuthModalOpen, openAuthModal, closeAuthModal, authModalMode } = useAuthModal();
   
   const isLoggedIn = !!user;
-  const displayName = data?.profile?.display_name || user?.email?.split('@')[0] || 'User';
+  const displayName = computedDisplayName || profile?.display_name || user?.email?.split('@')[0] || 'User';
   const isCalendarPage = location.pathname === '/calendar';
   
   // Dashboard pages are now cleaned up - only calendar remains
@@ -327,7 +327,7 @@ const UnifiedNavigation = ({
                     <DropdownMenuContent align="end" className="min-w-48">
                       <div className="px-4 py-2 text-sm">
                         <p className="font-medium">{displayName}</p>
-                        {data?.profile?.display_name && user?.email && (
+                        {profile?.display_name && user?.email && (
                           <p className="text-xs text-gray-500 mt-0.5">{user.email}</p>
                         )}
                       </div>
