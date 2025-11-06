@@ -12,11 +12,11 @@ const corsHeaders = {
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-const GOOGLE_API_KEY = Deno.env.get("GOOGLE_API_KEY");
+const GOOGLE_API_KEY = Deno.env.get("GOOGLE-LLM-NEW");
 const GEMINI_MODEL = "gemini-2.0-flash-exp";
 
 if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY || !GOOGLE_API_KEY) {
-  throw new Error("Missing required environment variables");
+  throw new Error("Missing required environment variables (SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, or GOOGLE-LLM-NEW)");
 }
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
