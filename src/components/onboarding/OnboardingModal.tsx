@@ -8,7 +8,7 @@ import { AstroDataForm } from '@/components/chat/AstroDataForm';
 import { ReportFormData } from '@/types/public-report';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
-import type { TablesInsert, TablesUpdate } from '@/integrations/supabase/types';
+import type { Tables, TablesInsert, TablesUpdate } from '@/integrations/supabase/types';
 
 const extractId = (value: unknown): string | null => {
   if (value && typeof value === 'object' && 'id' in value) {
@@ -208,13 +208,13 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
         return;
       }
 
-      const completePayload: TablesUpdate<'profiles'> = {
+      const onboardingCompletePayload: TablesUpdate<'profiles'> = {
         has_profile_setup: true,
       };
 
       const { error } = await supabase
         .from('profiles')
-        .update(completePayload)
+        .update(onboardingCompletePayload)
         .eq('id' as never, user.id);
 
       if (error) throw error;

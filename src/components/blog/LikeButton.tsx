@@ -37,7 +37,7 @@ export const LikeButton: React.FC<LikeButtonProps> = ({ postId, initialLikes }) 
 
     // Update database
     try {
-      const updatePayload: TablesUpdate<'blog_posts'> = {
+      const updatePayload: Partial<BlogPostRow> = {
         like_count: nextLikes,
       };
 

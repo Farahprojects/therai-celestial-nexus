@@ -116,16 +116,22 @@ export const BillingPanel: React.FC = () => {
         .limit(20);
 
       if (!transactionsError && transactionsData) {
-        const normalizedTransactions: Transaction[] = Array.isArray(transactionsData)
-          ? transactionsData.filter(isTransactionRow).map((row) => ({
-              id: row.id,
-              type: row.type,
-              credits: row.credits,
-              amount_usd: row.amount_usd,
-              description: row.description,
-              created_at: row.created_at,
-            }))
-          : [];
+        const transactionRows = (Array.isArray(transactionsData)
+          ? transactionsData.filter(isTransactionRow)
+          : []) as Tables<'credit_transactions'>[];
+        const normalizedTransactions: Transaction[] = [];
+
+        for (const row of transactionRows) {
+          normalizedTransactions.push({
+            id: row.id,
+            type: row.type,
+            credits: row.credits,
+            amount_usd: row.amount_usd,
+            description: row.description,
+            created_at: row.created_at,
+          });
+        }
+
         setTransactions(normalizedTransactions);
         }
       } else {
@@ -140,7 +146,16 @@ export const BillingPanel: React.FC = () => {
           throw subError;
         }
 
-        setSubscriptionData(subData && !('code' in subData) ? subData as SubscriptionData : {
+        const subscriptionRow = subData && !('code' in subData)
+          ? (subData as Tables<'profiles'>)
+          : null;
+
+        setSubscriptionData(subscriptionRow ? {
+          subscription_active: subscriptionRow.subscription_active ?? false,
+          subscription_status: subscriptionRow.subscription_status,
+          subscription_plan: subscriptionRow.subscription_plan,
+          subscription_next_charge: subscriptionRow.subscription_next_charge,
+        } : {
           subscription_active: false,
           subscription_status: null,
           subscription_plan: null,
@@ -155,19 +170,27 @@ export const BillingPanel: React.FC = () => {
           .order('unit_price_usd', { ascending: true });
 
         if (!plansError && plansData) {
-          const planRows = Array.isArray(plansData) ? plansData.filter(isPlanRow) : [];
-          const normalizedPlans: PlanData[] = planRows.map((plan) => ({
-            id: plan.id,
-            name: plan.name,
-            description: plan.description,
-            unit_price_usd: plan.unit_price_usd,
-            stripe_price_id: plan.stripe_price_id ?? '',
-          }));
+          const normalizedPlans: PlanData[] = [];
+
+          if (Array.isArray(plansData)) {
+            for (const plan of plansData) {
+              if (isPlanRow(plan)) {
+                normalizedPlans.push({
+                  id: plan.id,
+                  name: plan.name,
+                  description: plan.description,
+                  unit_price_usd: plan.unit_price_usd,
+                  stripe_price_id: plan.stripe_price_id ?? '',
+                });
+              }
+            }
+          }
+
           setAllPlans(normalizedPlans);
-          
+
           // Find current plan details
-          if (subData && !('code' in subData) && subData.subscription_plan) {
-            const currentPlan = normalizedPlans.find(p => p.id === subData.subscription_plan) || null;
+          if (subscriptionRow?.subscription_plan) {
+            const currentPlan = normalizedPlans.find(p => p.id === subscriptionRow.subscription_plan) || null;
             setCurrentPlanData(currentPlan);
           }
         }
@@ -256,7 +279,7 @@ export const BillingPanel: React.FC = () => {
         // Handle structured error responses
         const errorMessage = error.error?.message || error.message || 'Failed to upgrade subscription';
         const errorType = error.error?.type || error.type;
-        
+
         if (errorType === 'CurrencyMismatchError') {
           toast.error('Currency mismatch: Cannot upgrade to a plan with a different currency. Please contact support.');
         } else {
@@ -279,7 +302,7 @@ export const BillingPanel: React.FC = () => {
   // Get upgrade options (plans more expensive than current)
   const getUpgradeOptions = () => {
     if (!currentPlanData || allPlans.length === 0) return [];
-    return allPlans.filter(plan => 
+    return allPlans.filter(plan =>
       plan.unit_price_usd > currentPlanData.unit_price_usd
     );
   };
@@ -294,10 +317,10 @@ export const BillingPanel: React.FC = () => {
 
   // Render subscription management UI
   if (billingMode === 'SUBSCRIPTION') {
-    const isActive = subscriptionData?.subscription_active && 
+    const isActive = subscriptionData?.subscription_active &&
                      ['active', 'trialing'].includes(subscriptionData?.subscription_status || '');
     const upgradeOptions = getUpgradeOptions();
-    
+
     return (
       <div className="space-y-8">
         {/* Current Plan */}

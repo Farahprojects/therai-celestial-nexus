@@ -29,7 +29,7 @@ export const ShareButton: React.FC<ShareButtonProps> = ({
     const nextShares = shares + 1;
     setShares(nextShares);
     try {
-      const updatePayload: TablesUpdate<'blog_posts'> = {
+      const updatePayload: Partial<BlogPostRow> = {
         share_count: nextShares,
       };
 
