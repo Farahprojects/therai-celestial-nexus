@@ -107,7 +107,7 @@ export const ImageGallery = ({
 
   // Gallery Grid View
   if (!selectedImage) {
-    return <div className="fixed inset-0 z-50 bg-white md:left-[14rem] font-['Inter']">
+    return <div className="fixed inset-0 z-50 bg-white md:left-64 font-['Inter']">
         {/* Header */}
         <div className="border-b border-gray-200 px-4 md:px-8 py-2 md:py-3">
           <div className="flex items-center gap-3">
@@ -166,7 +166,7 @@ export const ImageGallery = ({
 
   // Desktop Single Image View
   if (!isMobile) {
-    return <div className="fixed inset-0 z-50 bg-white md:left-[14rem] font-['Inter'] flex flex-col">
+    return <div className="fixed inset-0 z-50 bg-white md:left-64 font-['Inter'] flex flex-col">
         {/* Top Controls */}
         <div className="border-b border-gray-200 px-8 py-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
