@@ -159,7 +159,7 @@ export const ConversationActionsMenuContent: React.FC<ConversationActionsMenuPro
         {onDelete && (
           <DropdownMenuItem
             onClick={handleDeleteClick}
-            className="px-3 py-1.5 text-sm text-black hover:bg-gray-100 hover:text-black focus:bg-gray-100 focus:text-black cursor-pointer rounded-full"
+            className="px-3 py-1.5 text-sm text-black hover:bg-red-50 hover:text-red-600 focus:bg-red-50 focus:text-red-600 cursor-pointer rounded-full"
           >
             <div className="flex items-center gap-2">
               <Trash2 className="w-4 h-4" />
