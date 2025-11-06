@@ -233,6 +233,7 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
 
   /** Actions **/
   const switchToChat = async (conversationId: string) => {
+    setShowImageGallery(false); // Close image gallery when switching chats
     const c = threads.find(t => t.id === conversationId);
     if (c?.mode === 'swiss') {
       navigate(`/astro?chat_id=${conversationId}`, { replace: true });
