@@ -182,12 +182,21 @@ const Pricing: React.FC = () => {
                         transition={{ delay: 0.4 + index * 0.1, duration: 0.5 }}
                         className="pt-2"
                       >
-                        <Button
-                          disabled
-                          className="w-full bg-gray-300 text-gray-500 font-light py-3 rounded-full text-base cursor-not-allowed"
-                        >
-                          Coming Soon
-                        </Button>
+                        {getPlanTier(plan.id) === 'Premium' ? (
+                          <Button
+                            disabled
+                            className="w-full bg-gray-300 text-gray-500 font-light py-3 rounded-full text-base cursor-not-allowed"
+                          >
+                            Coming Soon
+                          </Button>
+                        ) : (
+                          <Button
+                            onClick={() => handleGetStarted(plan.id)}
+                            className="w-full bg-gray-900 hover:bg-gray-800 text-white font-light py-3 rounded-full text-base transition-all duration-200 shadow-sm hover:shadow-md"
+                          >
+                            {getButtonText(plan.id)}
+                          </Button>
+                        )}
                       </motion.div>
 
                       {/* Security note */}
