@@ -4,6 +4,28 @@ import { X, Search, MessageSquare, Clock, ChevronRight } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useChatStore } from '@/core/store';
 import { supabase } from '@/integrations/supabase/client';
+
+const hasConversationShape = (value: unknown): value is { id: string; title: string | null; created_at: string; mode?: string | null } => {
+  if (!value || typeof value !== 'object') return false;
+  const candidate = value as { id?: unknown; title?: unknown; created_at?: unknown; mode?: unknown };
+  return (
+    typeof candidate.id === 'string' &&
+    (typeof candidate.title === 'string' || candidate.title === null || typeof candidate.title === 'undefined') &&
+    typeof candidate.created_at === 'string'
+  );
+};
+
+const hasMessageShape = (value: unknown): value is { id: string; chat_id: string; text: string; role: string; created_at: string } => {
+  if (!value || typeof value !== 'object') return false;
+  const candidate = value as { id?: unknown; chat_id?: unknown; text?: unknown; role?: unknown; created_at?: unknown };
+  return (
+    typeof candidate.id === 'string' &&
+    typeof candidate.chat_id === 'string' &&
+    typeof candidate.text === 'string' &&
+    typeof candidate.role === 'string' &&
+    typeof candidate.created_at === 'string'
+  );
+};
 import { cn } from '@/lib/utils';
 
 interface SearchResult {
@@ -54,8 +76,8 @@ export const SearchModal: React.FC<SearchModalProps> = ({
       const { data, error } = await supabase
         .from('conversations')
         .select('id, title, created_at')
-        .eq('user_id', user.id)
-        .neq('mode', 'profile') // Exclude Profile conversations (internal use only)
+        .eq('user_id' as never, user.id)
+        .neq('mode' as never, 'profile') // Exclude Profile conversations (internal use only)
         .order('created_at', { ascending: false })
         .limit(20); // Show last 20 conversations
 
@@ -64,7 +86,8 @@ export const SearchModal: React.FC<SearchModalProps> = ({
         return;
       }
 
-      setRecentConversations(data || []);
+      const normalized = Array.isArray(data) ? data.filter(hasConversationShape) : [];
+      setRecentConversations(normalized);
     } catch (error) {
       console.error('Error fetching recent conversations:', error);
     } finally {
@@ -109,8 +132,8 @@ export const SearchModal: React.FC<SearchModalProps> = ({
       const { data: conversations, error: convError } = await supabase
         .from('conversations')
         .select('id, title, created_at')
-        .eq('user_id', user?.id)
-        .neq('mode', 'profile') // Exclude Profile conversations (internal use only)
+        .eq('user_id' as never, user?.id ?? null)
+        .neq('mode' as never, 'profile') // Exclude Profile conversations (internal use only)
         .order('created_at', { ascending: false });
 
       if (convError) {
@@ -118,13 +141,15 @@ export const SearchModal: React.FC<SearchModalProps> = ({
         return;
       }
 
-      if (!conversations || conversations.length === 0) {
+      const conversationRows = Array.isArray(conversations) ? conversations.filter(hasConversationShape) : [];
+
+      if (conversationRows.length === 0) {
         setResults([]);
         return;
       }
 
       // Get conversation IDs
-      const conversationIds = conversations.map(conv => conv.id);
+      const conversationIds = conversationRows.map(conv => conv.id);
       
       // Search messages in those conversations
       const { data: messages, error: msgError } = await supabase
@@ -144,9 +169,9 @@ export const SearchModal: React.FC<SearchModalProps> = ({
       const groupedResults = new Map<string, ConversationGroup>();
 
       // Create a map of conversations for quick lookup
-      const conversationMap = new Map(conversations.map(conv => [conv.id, conv]));
+      const conversationMap = new Map(conversationRows.map(conv => [conv.id, conv]));
 
-      messages?.forEach((msg: any) => {
+      (Array.isArray(messages) ? messages.filter(hasMessageShape) : []).forEach((msg) => {
         const chatId = msg.chat_id;
         const conversation = conversationMap.get(chatId);
         

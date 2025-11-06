@@ -8,7 +8,15 @@ import { AstroDataForm } from '@/components/chat/AstroDataForm';
 import { ReportFormData } from '@/types/public-report';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
-import type { TablesInsert } from '@/integrations/supabase/types';
+import type { TablesInsert, TablesUpdate } from '@/integrations/supabase/types';
+
+const extractId = (value: unknown): string | null => {
+  if (value && typeof value === 'object' && 'id' in value) {
+    const id = (value as { id?: unknown }).id;
+    return typeof id === 'string' ? id : null;
+  }
+  return null;
+};
 
 interface OnboardingModalProps {
   isOpen: boolean;
@@ -44,7 +52,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
     try {
       const { error } = await supabase
         .from('profiles')
-        .update({ display_name: displayName.trim() })
+        .update({ display_name: displayName.trim() } satisfies TablesUpdate<'profiles'>)
         .eq('id' as never, user.id);
 
       if (error) throw error;
@@ -80,37 +88,41 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
         throw checkError;
       }
 
-      const profileData: TablesInsert<'user_profile_list'> = {
+      const profileInsertData: TablesInsert<'user_profile_list'> = {
         user_id: user.id,
         profile_name: 'My Main Profile',
         name: data.name,
         birth_date: data.birthDate,
         birth_time: data.birthTime,
         birth_location: data.birthLocation,
-        birth_latitude: data.birthLatitude,
-        birth_longitude: data.birthLongitude,
-        birth_place_id: data.birthPlaceId,
+        birth_latitude: data.birthLatitude ?? null,
+        birth_longitude: data.birthLongitude ?? null,
+        birth_place_id: data.birthPlaceId ?? null,
         timezone: data.birthLocation,
         house_system: 'placidus',
-        is_primary: true
+        is_primary: true,
+      };
+
+      const profileUpdateData: TablesUpdate<'user_profile_list'> = {
+        ...profileInsertData,
       };
 
       // Update existing primary profile or insert new one
       let profileError;
-      const existingProfileId = existingProfile && !('code' in existingProfile) ? existingProfile.id : null;
+      const existingProfileId = extractId(existingProfile);
 
       if (existingProfileId) {
         // Update existing primary profile
         const { error } = await supabase
           .from('user_profile_list')
-          .update(profileData)
+          .update(profileUpdateData)
           .eq('id' as never, existingProfileId);
         profileError = error;
       } else {
         // Insert new primary profile
         const { error } = await supabase
           .from('user_profile_list')
-          .insert([profileData]);
+          .insert([profileInsertData]);
         profileError = error;
       }
 
@@ -124,7 +136,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
         .eq('is_primary' as never, true)
         .maybeSingle();
 
-      const createdProfileId = createdProfile && !('code' in createdProfile) ? createdProfile.id : existingProfileId;
+      const createdProfileId = extractId(createdProfile) ?? existingProfileId;
 
       // Create conversation with profile_mode flag to generate chart data
       // Convert camelCase to snake_case and structure as person_a (same as buildReportPayload)
@@ -183,7 +195,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
 
       const { error } = await supabase
         .from('profiles')
-        .update({ has_profile_setup: true })
+        .update({ has_profile_setup: true } satisfies TablesUpdate<'profiles'>)
         .eq('id' as never, user.id);
 
       if (error) throw error;

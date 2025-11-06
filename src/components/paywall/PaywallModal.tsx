@@ -22,6 +22,18 @@ interface PricingPlan {
   stripe_price_id?: string;
 }
 
+const isPricingPlan = (value: unknown): value is PricingPlan => {
+  if (!value || typeof value !== 'object') return false;
+  const candidate = value as Partial<PricingPlan>;
+  return (
+    typeof candidate.id === 'string' &&
+    typeof candidate.name === 'string' &&
+    typeof candidate.description === 'string' &&
+    typeof candidate.unit_price_usd === 'number' &&
+    typeof candidate.product_code === 'string'
+  );
+};
+
 const PaywallModal: React.FC<PaywallModalProps> = ({ isOpen, onClose, onSuccess }) => {
   const [showPurchaseModal, setShowPurchaseModal] = React.useState(false);
   const [subscriptionPlans, setSubscriptionPlans] = React.useState<PricingPlan[]>([]);
@@ -42,7 +54,17 @@ const PaywallModal: React.FC<PaywallModalProps> = ({ isOpen, onClose, onSuccess 
             .order('unit_price_usd', { ascending: true });
 
           if (!error && data) {
-            setSubscriptionPlans(data);
+            const filtered = (Array.isArray(data) ? data : [])
+              .filter(isPricingPlan)
+              .map(plan => ({
+                id: plan.id,
+                name: plan.name,
+                description: plan.description,
+                unit_price_usd: plan.unit_price_usd,
+                product_code: plan.product_code,
+                stripe_price_id: plan.stripe_price_id,
+              }));
+            setSubscriptionPlans(filtered);
           }
         } catch (err) {
           console.error('Error fetching plans:', err);

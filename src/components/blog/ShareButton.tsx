@@ -29,13 +29,9 @@ export const ShareButton: React.FC<ShareButtonProps> = ({
     const nextShares = shares + 1;
     setShares(nextShares);
     try {
-      const updatePayload: TablesUpdate<'blog_posts'> = {
-        share_count: nextShares,
-      };
-
       await supabase
         .from('blog_posts')
-        .update(updatePayload)
+        .update({ share_count: nextShares } satisfies TablesUpdate<'blog_posts'>)
         .eq('id' as never, postId as BlogPostRow['id']);
     } catch (error) {
       console.error('Error updating share count:', error);
