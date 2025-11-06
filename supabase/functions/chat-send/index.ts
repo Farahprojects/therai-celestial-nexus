@@ -336,20 +336,6 @@ determineLLMHandler().then((llmHandler) => {
   }));
 });
 
-  // Check if we should extract memory (profile-based conversation)
-  if (shouldStartLLM) {
-    const { data: convCheck } = await supabase
-      .from('conversations')
-      .select('profile_id')
-      .eq('id', chat_id)
-      .single();
-    
-    if (convCheck?.profile_id) {
-      shouldExtractMemory = true;
-    }
-  }
-}
-
 // ⚡ AWAIT DB insert to ensure message is saved before returning
 console.info(JSON.stringify({
   event: "chat_send_db_insert_start",
@@ -376,6 +362,35 @@ console.info(JSON.stringify({
   request_id: requestId,
   duration_ms: Date.now() - startTime
 }));
+
+// Check if we should extract memory (only for assistant messages in profile-based conversations)
+if (role === "assistant" && insertedMessage?.id) {
+  const { data: convCheck } = await supabase
+    .from('conversations')
+    .select('profile_id')
+    .eq('id', chat_id)
+    .single();
+  
+  if (convCheck?.profile_id) {
+    // Verify it's a primary profile
+    const { data: profileCheck } = await supabase
+      .from('user_profile_list')
+      .select('is_primary, user_id')
+      .eq('id', convCheck.profile_id)
+      .single();
+    
+    if (profileCheck?.is_primary && profileCheck.user_id === user_id) {
+      shouldExtractMemory = true;
+      console.info(JSON.stringify({
+        event: "memory_extraction_eligible",
+        request_id: requestId,
+        conversation_id: chat_id,
+        profile_id: convCheck.profile_id,
+        message_id: insertedMessage.id
+      }));
+    }
+  }
+}
 
 // Trigger memory extraction if needed (fire-and-forget)
 if (shouldExtractMemory && insertedMessage?.id) {
