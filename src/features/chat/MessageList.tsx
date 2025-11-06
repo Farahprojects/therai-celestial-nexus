@@ -78,11 +78,11 @@ const AssistantMessage = React.memo(({ message }: { message: Message }) => {
 
     return (
       <div className="flex justify-center mb-8">
-        <div className="relative group rounded-xl overflow-hidden w-full max-w-[80%]">
+        <div className="relative group rounded-2xl overflow-hidden w-full max-w-[80%]">
           <img
             src={imageUrl}
             alt={imagePrompt || 'Generated image'}
-            className="w-full max-h-[80vh] object-contain rounded-xl shadow-md cursor-pointer mx-auto"
+            className="w-full max-h-[80vh] object-contain rounded-2xl shadow-md cursor-pointer mx-auto"
             onClick={() => {
               const sidebarButton = document.querySelector('[data-image-gallery-button]') as HTMLButtonElement;
               if (sidebarButton) sidebarButton.click();
@@ -90,11 +90,11 @@ const AssistantMessage = React.memo(({ message }: { message: Message }) => {
             loading="lazy"
           />
           {/* Bottom bar with icons */}
-          <div className="absolute bottom-0 left-0 right-0 h-12 bg-black/0 group-hover:bg-black/60 transition-all duration-200 flex items-center justify-center gap-3 rounded-b-xl">
+          <div className="absolute bottom-0 left-0 right-0 h-12 bg-black/0 group-hover:bg-black/60 transition-all duration-200 flex items-center justify-center gap-3 rounded-b-2xl pointer-events-none">
             <Button
               variant="ghost"
               size="icon"
-              className="opacity-0 group-hover:opacity-100 text-white hover:text-white hover:bg-white/20 rounded-full transition-opacity"
+              className="opacity-0 group-hover:opacity-100 text-white hover:text-white hover:bg-white/20 rounded-full transition-opacity pointer-events-auto"
               onClick={(e) => {
                 e.stopPropagation();
                 handleDownload();
@@ -105,7 +105,7 @@ const AssistantMessage = React.memo(({ message }: { message: Message }) => {
             <Button
               variant="ghost"
               size="icon"
-              className="opacity-0 group-hover:opacity-100 text-white hover:text-white hover:bg-white/20 rounded-full transition-opacity"
+              className="opacity-0 group-hover:opacity-100 text-white hover:text-white hover:bg-white/20 rounded-full transition-opacity pointer-events-auto"
               onClick={(e) => {
                 e.stopPropagation();
                 handleShare();
