@@ -49,7 +49,7 @@ export const ProfilesPanel = () => {
 
   const loadProfiles = async () => {
     if (!user) return;
-    const userId = user.id;
+    const userId = user.id as SavedProfile['user_id'];
     
     setIsLoading(true);
     try {
@@ -61,10 +61,9 @@ export const ProfilesPanel = () => {
 
       if (error) {
         console.error('[ProfilesPanel] Failed to load profiles:', error);
-      } else if (data) {
-        setProfiles(data as SavedProfile[]);
       } else {
-        setProfiles([]);
+        const typedData = (data ?? []) as unknown as SavedProfile[];
+        setProfiles(typedData);
       }
     } catch (err) {
       console.error('[ProfilesPanel] Error loading profiles:', err);
@@ -102,7 +101,7 @@ export const ProfilesPanel = () => {
       return;
     }
 
-    const userId = user.id;
+    const userId = user.id as SavedProfile['user_id'];
 
     if (!birthLatitude || !birthLongitude) {
       alert('Please select a valid location from the dropdown');
@@ -137,7 +136,8 @@ export const ProfilesPanel = () => {
         console.error('[ProfilesPanel] Failed to save profile:', error);
         alert('Failed to save profile');
       } else {
-        setProfiles([data, ...profiles]);
+        const newProfile = data as unknown as SavedProfile;
+        setProfiles([newProfile, ...profiles]);
         setShowForm(false);
         resetForm();
       }
@@ -157,15 +157,15 @@ export const ProfilesPanel = () => {
   const handleDelete = async () => {
     if (!profileToDelete) return;
 
-    const userId = user?.id;
-    if (!userId) return;
+    const userId = user?.id as SavedProfile['user_id'] | undefined;
+    if (!userId || !profileToDelete) return;
 
     setIsDeleting(true);
     try {
       const { error } = await supabase
         .from('user_profile_list')
         .delete()
-        .eq('id', profileToDelete)
+        .eq('id', profileToDelete as SavedProfile['id'])
         .eq('user_id', userId);
 
       if (error) {
