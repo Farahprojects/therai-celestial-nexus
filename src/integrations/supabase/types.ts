@@ -726,6 +726,41 @@ export type Database = {
         }
         Relationships: []
       }
+      image_generation_log: {
+        Row: {
+          chat_id: string | null
+          created_at: string
+          id: string
+          image_url: string | null
+          model: string
+          user_id: string
+        }
+        Insert: {
+          chat_id?: string | null
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          model: string
+          user_id: string
+        }
+        Update: {
+          chat_id?: string | null
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          model?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "image_generation_log_chat_id_fkey"
+            columns: ["chat_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       insights: {
         Row: {
           completed_at: string | null

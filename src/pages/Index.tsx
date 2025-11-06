@@ -56,13 +56,7 @@ const Index = () => {
       <main className="flex-grow overflow-hidden">
         {/* Hero Section with Know Your [rotating words] */}
         <section className="relative h-screen w-full flex items-center justify-center bg-white overflow-hidden">
-          {/* Subtle animated background */}
-          <div className="absolute inset-0">
-            <div className="absolute top-1/4 left-8 w-2 h-2 bg-primary/20 rounded-full animate-pulse"></div>
-            <div className="absolute top-1/3 right-12 w-1 h-1 bg-primary/30 rounded-full animate-ping" style={{animationDelay: '1s'}}></div>
-            <div className="absolute bottom-1/4 left-1/4 w-1.5 h-1.5 bg-primary/25 rounded-full animate-pulse" style={{animationDelay: '2s'}}></div>
-            <div className="absolute bottom-1/3 right-1/4 w-2 h-2 bg-primary/15 rounded-full animate-ping" style={{animationDelay: '0.5s'}}></div>
-          </div>
+          {/* Subtle animated background removed for cleaner hero */}
 
           <div className="relative z-10 w-full md:px-4 md:container md:mx-auto text-center">
             <motion.div
