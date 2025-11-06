@@ -44,9 +44,9 @@ interface SubscriptionData {
 interface PlanData {
   id: string;
   name: string;
-  description: string;
+  description: string | null;
   unit_price_usd: number;
-  stripe_price_id: string;
+  stripe_price_id: string | null;
 }
 
 const isCreditRow = (value: unknown): value is Tables<'user_credits'> => {
@@ -115,21 +115,20 @@ export const BillingPanel: React.FC = () => {
         .order('created_at', { ascending: false })
         .limit(20);
 
-      if (!transactionsError && transactionsData) {
-        const transactionRows = (Array.isArray(transactionsData)
-          ? transactionsData.filter(isTransactionRow)
-          : []) as Tables<'credit_transactions'>[];
+      if (!transactionsError && Array.isArray(transactionsData)) {
         const normalizedTransactions: Transaction[] = [];
 
-        for (const row of transactionRows) {
-          normalizedTransactions.push({
-            id: row.id,
-            type: row.type,
-            credits: row.credits,
-            amount_usd: row.amount_usd,
-            description: row.description,
-            created_at: row.created_at,
-          });
+        for (const row of transactionsData) {
+          if (isTransactionRow(row)) {
+            normalizedTransactions.push({
+              id: row.id,
+              type: row.type,
+              credits: row.credits,
+              amount_usd: row.amount_usd,
+              description: row.description,
+              created_at: row.created_at,
+            });
+          }
         }
 
         setTransactions(normalizedTransactions);
@@ -169,20 +168,18 @@ export const BillingPanel: React.FC = () => {
           .eq('endpoint' as never, 'subscription')
           .order('unit_price_usd', { ascending: true });
 
-        if (!plansError && plansData) {
+        if (!plansError && Array.isArray(plansData)) {
           const normalizedPlans: PlanData[] = [];
 
-          if (Array.isArray(plansData)) {
-            for (const plan of plansData) {
-              if (isPlanRow(plan)) {
-                normalizedPlans.push({
-                  id: plan.id,
-                  name: plan.name,
-                  description: plan.description,
-                  unit_price_usd: plan.unit_price_usd,
-                  stripe_price_id: plan.stripe_price_id ?? '',
-                });
-              }
+          for (const plan of plansData) {
+            if (isPlanRow(plan)) {
+              normalizedPlans.push({
+                id: plan.id,
+                name: plan.name,
+                description: plan.description,
+                unit_price_usd: plan.unit_price_usd,
+                stripe_price_id: plan.stripe_price_id,
+              });
             }
           }
 
@@ -223,7 +220,12 @@ export const BillingPanel: React.FC = () => {
           console.log('Credit balance updated:', payload);
           // Update credit data with new balance
           if (payload.new && isCreditRow(payload.new)) {
-            setCreditData((prev) => prev ? { ...prev, credits: payload.new.credits } : null);
+            setCreditData({
+              credits: payload.new.credits,
+              auto_topup_enabled: payload.new.auto_topup_enabled ?? false,
+              auto_topup_threshold: payload.new.auto_topup_threshold ?? 7,
+              auto_topup_amount: payload.new.auto_topup_amount ?? 34,
+            });
           }
         }
       )
@@ -390,7 +392,7 @@ export const BillingPanel: React.FC = () => {
                         <div className="text-xs text-gray-500">per month</div>
                       </div>
                       <Button
-                        onClick={() => handleUpgrade(plan.id, plan.stripe_price_id)}
+                        onClick={() => handleUpgrade(plan.id, plan.stripe_price_id ?? '')}
                         disabled={upgradingToPlan === plan.id}
                         className="bg-gray-900 hover:bg-gray-800 text-white rounded-full font-light px-6"
                       >

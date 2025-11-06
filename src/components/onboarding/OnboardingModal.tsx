@@ -135,9 +135,10 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
         profileError = error;
       } else {
         // Insert new primary profile
+        const insertRows: TablesInsert<'user_profile_list'>[] = [profileInsertData];
         const { error } = await supabase
           .from('user_profile_list')
-          .insert([profileInsertData]);
+          .insert(insertRows);
         profileError = error;
       }
 
