@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { LayoutGrid, Blend, Sparkles } from 'lucide-react';
+import { LayoutGrid, Blend, Sparkles, Orbit } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useChatCreation } from '@/components/chat/ChatCreationProvider';
 
 export const ExploreActions: React.FC = () => {
-  const { openInsightsFlow, startTogetherMode } = useChatCreation();
+  const { openInsightsFlow, startTogetherMode, openAstroFlow } = useChatCreation();
   const [isExpanded, setIsExpanded] = useState(true);
 
   return (
@@ -21,6 +21,14 @@ export const ExploreActions: React.FC = () => {
 
       {isExpanded && (
         <div className="space-y-1 pl-2">
+          <Button
+            variant="ghost"
+            className="w-full justify-start gap-2 px-3 py-1.5 text-sm font-light"
+            onClick={openAstroFlow}
+          >
+            <Orbit className="h-4 w-4" />
+            Astro
+          </Button>
           <Button
             variant="ghost"
             className="w-full justify-start gap-2 px-3 py-1.5 text-sm font-light"
