@@ -195,7 +195,7 @@ const Footer = ({ hideMobileAstroToggle = false }: FooterProps) => {
           </div>
         )}
         
-        <div className="border-t border-gray-200/50 mt-8 pt-8 text-sm text-left">
+        <div className="border-t border-gray-200/50 mt-8 pt-8 text-sm text-center">
           <p className="text-gray-400 font-light">&copy; {new Date().getFullYear()} Therai Astro. All rights reserved.</p>
         </div>
       </div>
