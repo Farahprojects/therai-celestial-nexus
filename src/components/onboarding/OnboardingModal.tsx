@@ -63,7 +63,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
       const { error } = await supabase
         .from('profiles')
         .update(updatePayload)
-        .eq('id', userProfileId);
+        .eq('id' satisfies keyof ProfileRow, userProfileId);
 
       if (error) throw error;
 
@@ -92,8 +92,8 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
       const { data: existingProfile, error: checkError } = await supabase
         .from('user_profile_list')
         .select('id')
-        .eq('user_id', profileUserId as UserProfileRow['user_id'])
-        .eq('is_primary', true as UserProfileRow['is_primary']);
+        .eq('user_id' satisfies keyof UserProfileRow, profileUserId)
+        .eq('is_primary' satisfies keyof UserProfileRow, true as UserProfileRow['is_primary']);
       
       // Ignore "not found" errors - that's fine, we'll insert
       if (checkError && checkError.code !== 'PGRST116') {
@@ -134,10 +134,11 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
       const existingProfileId = extractId(existingProfile);
 
       if (existingProfileId) {
+        const existingProfileIdValue = existingProfileId as UserProfileRow['id'];
         const { error } = await supabase
           .from('user_profile_list')
           .update(profileUpdateData)
-          .eq('id', existingProfileId as UserProfileRow['id']);
+          .eq('id' satisfies keyof UserProfileRow, existingProfileIdValue);
         profileError = error;
       } else {
         // Insert new primary profile
@@ -153,8 +154,8 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
       const { data: createdProfile } = await supabase
         .from('user_profile_list')
         .select('id')
-        .eq('user_id', profileUserId as UserProfileRow['user_id'])
-        .eq('is_primary', true as UserProfileRow['is_primary'])
+        .eq('user_id' satisfies keyof UserProfileRow, profileUserId)
+        .eq('is_primary' satisfies keyof UserProfileRow, true as UserProfileRow['is_primary'])
         .maybeSingle();
 
       const createdProfileId = extractId(createdProfile) ?? existingProfileId;
@@ -165,7 +166,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
         'conversation-manager?action=create_conversation',
         {
           body: {
-            user_id: userProfileId,
+            user_id: profileUserId,
             title: 'Profile',
             mode: 'profile', // Set mode to "profile"
             profile_mode: true, // KEY FLAG
@@ -224,7 +225,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
       const { error } = await supabase
         .from('profiles')
         .update(onboardingUpdate)
-        .eq('id', userProfileId);
+        .eq('id' satisfies keyof ProfileRow, userProfileId);
 
       if (error) throw error;
 

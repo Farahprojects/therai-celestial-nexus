@@ -27,17 +27,17 @@ export function MemoryPanel() {
   });
 
   const handleDelete = async (id: string) => {
-    const updatePayload: TablesUpdate<'user_memory'> = {
+    const updatePayload = {
       deleted_at: new Date().toISOString(),
       is_active: false,
-    };
+    } satisfies TablesUpdate<'user_memory'>;
 
     const memoryId = id as Tables<'user_memory'>['id'];
 
     const { error } = await supabase
       .from('user_memory')
       .update(updatePayload)
-      .eq('id', memoryId);
+      .eq('id' satisfies keyof Tables<'user_memory'>, memoryId);
 
     if (error) {
       toast.error('Failed to delete memory');
