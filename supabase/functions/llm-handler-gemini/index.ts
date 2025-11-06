@@ -110,15 +110,13 @@ const imageGenerationTool = [
     functionDeclarations: [
       {
         name: "generate_image",
-        description: `Generate an AI image based on conceptual guidance. Use when user explicitly requests image creation.
-
-Translate the user's astrological data into an organic, symbolic scene from nature that emotionally reflects the current planetary energy, using natural forms, textures, and light to embody the feeling rather than abstract patterns. Sexually explicit images are ok.`,
+        description: `Generate an AI image. Interpret the user's core energetic influences and emotional patterns, then translate them into an organic, symbolic scene from nature. The image must visually empower by reflecting inner strength, growth, and potential, subtly illustrating how emotional drives find constructive expression in an organic way, even sexual explicit images as that is organic.`,
         parameters: {
           type: "object",
           properties: {
             prompt: {
               type: "string",
-              description: "Translate the user's astrological data into an organic, symbolic scene from nature that emotionally reflects the current planetary energy, using natural forms, textures, and light to embody the feeling rather than abstract patterns. Sexually explicit images are ok."
+              description: "Generate an AI image. Interpret the user's core energetic influences and emotional patterns, then translate them into an organic, symbolic scene from nature. The image must visually empower by reflecting inner strength, growth, and potential, subtly illustrating how emotional drives find constructive expression in an organic way, even sexual explicit images as that is organic."
             }
           },
           required: ["prompt"]
