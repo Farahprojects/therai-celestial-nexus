@@ -15,6 +15,7 @@ import { SignInPrompt } from '@/components/auth/SignInPrompt';
 import { useNavigate, useSearchParams, useParams } from 'react-router-dom';
 import { ShareConversationModal } from '@/components/chat/ShareConversationModal';
 import { ShareFolderModal } from '@/components/folders/ShareFolderModal';
+import { ChatCreationProvider } from '@/components/chat/ChatCreationProvider';
  
 
 // Lazy load components for better performance
@@ -193,69 +194,71 @@ export const ChatBox: React.FC<ChatBoxProps> = ({ onDelete }) => {
             <div className="max-w-6xl mx-auto w-full h-full flex flex-col md:border-x border-gray-100">
 
               {/* Mobile Header */}
-              <div className="md:hidden p-3 bg-white border-b border-gray-100 pt-safe">
-                <div className="max-w-3xl mx-auto w-full flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
-                  <Sheet open={isMobileSidebarOpen} onOpenChange={setIsMobileSidebarOpen}>
-                    <SheetTrigger asChild>
-                      <button
-                        aria-label="Open menu"
-                        className="p-2 rounded-md border border-gray-200 bg-white"
+              <ChatCreationProvider>
+                <div className="md:hidden p-3 bg-white border-b border-gray-100 pt-safe">
+                  <div className="max-w-3xl mx-auto w-full flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <Sheet open={isMobileSidebarOpen} onOpenChange={setIsMobileSidebarOpen}>
+                      <SheetTrigger asChild>
+                        <button
+                          aria-label="Open menu"
+                          className="p-2 rounded-md border border-gray-200 bg-white"
+                        >
+                          <Menu className="w-5 h-5" />
+                        </button>
+                      </SheetTrigger>
+                      <SheetContent 
+                        side="left" 
+                        className="w-[85%] sm:max-w-xs p-0"
+                        style={{
+                          paddingTop: 'env(safe-area-inset-top)',
+                          paddingBottom: 'env(safe-area-inset-bottom)',
+                        }}
                       >
-                        <Menu className="w-5 h-5" />
-                      </button>
-                    </SheetTrigger>
-                    <SheetContent 
-                      side="left" 
-                      className="w-[85%] sm:max-w-xs p-0"
-                      style={{
-                        paddingTop: 'env(safe-area-inset-top)',
-                        paddingBottom: 'env(safe-area-inset-bottom)',
-                      }}
-                    >
-                      <div className="h-full flex flex-col bg-gray-50/50">
-                        <div className="p-4 flex flex-col h-full bg-white">
-                          <Suspense fallback={<div className="space-y-4"><div className="h-8 bg-gray-200 rounded animate-pulse"></div><div className="h-6 bg-gray-200 rounded animate-pulse"></div><div className="h-6 bg-gray-200 rounded animate-pulse"></div></div>}>
-                            <ChatSidebarControls onDelete={onDelete} onCloseMobileSidebar={() => setIsMobileSidebarOpen(false)} conversationType="chat" />
-                          </Suspense>
+                        <div className="h-full flex flex-col bg-gray-50/50">
+                          <div className="p-4 flex flex-col h-full bg-white">
+                            <Suspense fallback={<div className="space-y-4"><div className="h-8 bg-gray-200 rounded animate-pulse"></div><div className="h-6 bg-gray-200 rounded animate-pulse"></div><div className="h-6 bg-gray-200 rounded animate-pulse"></div></div>}>
+                              <ChatSidebarControls onDelete={onDelete} onCloseMobileSidebar={() => setIsMobileSidebarOpen(false)} conversationType="chat" />
+                            </Suspense>
+                          </div>
                         </div>
-                      </div>
-                    </SheetContent>
-                  </Sheet>
+                      </SheetContent>
+                    </Sheet>
+                    
+                    {/* New Chat Button on left */}
+                    <Suspense fallback={<div className="h-8 w-8 bg-gray-200 rounded-lg animate-pulse" />}>
+                      <NewChatButton />
+                    </Suspense>
+                  </div>
                   
-                  {/* New Chat Button on left */}
-                  <Suspense fallback={<div className="h-8 w-8 bg-gray-200 rounded-lg animate-pulse" />}>
-                    <NewChatButton />
-                  </Suspense>
+                  <div className="flex items-center gap-2">
+                    {/* Share Button - Works for both folders and chats */}
+                    <button
+                      onClick={() => {
+                        if (viewMode === 'folder' && (selectedFolderId || urlFolderId)) {
+                          setShowFolderShareModal(true);
+                        } else if (chat_id) {
+                          setShowShareModal(true);
+                        }
+                      }}
+                      disabled={!chat_id && viewMode !== 'folder'}
+                      className={`flex items-center justify-center w-8 h-8 rounded-lg transition-colors ${
+                        (chat_id || viewMode === 'folder')
+                          ? 'text-gray-700 hover:text-gray-900 hover:bg-gray-50' 
+                          : 'text-gray-300 cursor-not-allowed'
+                      }`}
+                    >
+                      <Share2 className="w-4 h-4" />
+                    </button>
+                    
+                    {/* 3 Dots Menu */}
+                    <Suspense fallback={<div className="h-8 w-8 bg-gray-200 rounded-lg animate-pulse" />}>
+                      <ChatMenuButton />
+                    </Suspense>
+                  </div>
+                  </div>
                 </div>
-                
-                <div className="flex items-center gap-2">
-                  {/* Share Button - Works for both folders and chats */}
-                  <button
-                    onClick={() => {
-                      if (viewMode === 'folder' && (selectedFolderId || urlFolderId)) {
-                        setShowFolderShareModal(true);
-                      } else if (chat_id) {
-                        setShowShareModal(true);
-                      }
-                    }}
-                    disabled={!chat_id && viewMode !== 'folder'}
-                    className={`flex items-center justify-center w-8 h-8 rounded-lg transition-colors ${
-                      (chat_id || viewMode === 'folder')
-                        ? 'text-gray-700 hover:text-gray-900 hover:bg-gray-50' 
-                        : 'text-gray-300 cursor-not-allowed'
-                    }`}
-                  >
-                    <Share2 className="w-4 h-4" />
-                  </button>
-                  
-                  {/* 3 Dots Menu */}
-                  <Suspense fallback={<div className="h-8 w-8 bg-gray-200 rounded-lg animate-pulse" />}>
-                    <ChatMenuButton />
-                  </Suspense>
-                </div>
-                </div>
-              </div>
+              </ChatCreationProvider>
 
               {/* Chat Header - Desktop only */}
               <div className="hidden md:block">
