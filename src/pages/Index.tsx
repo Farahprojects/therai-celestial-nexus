@@ -55,7 +55,7 @@ const Index = () => {
 
       <main className="flex-grow overflow-hidden">
         {/* Hero Section with Know Your [rotating words] */}
-        <section className="relative h-screen w-full flex items-center justify-center bg-white overflow-hidden">
+        <section className="relative h-screen w-full flex items-center justify-center bg-white overflow-hidden pt-24">
           {/* Subtle animated background removed for cleaner hero */}
 
           <div className="relative z-10 w-full md:px-4 md:container md:mx-auto text-center">
