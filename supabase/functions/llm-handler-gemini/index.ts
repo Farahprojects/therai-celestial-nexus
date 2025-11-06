@@ -112,20 +112,13 @@ const imageGenerationTool = [
         name: "generate_image",
         description: `Generate an AI image based on conceptual guidance. Use when user explicitly requests image creation.
 
-PROMPT STRUCTURE:
-1. Intent: Define the core feeling, truth, or essence being visualized
-2. Style: Visual language (medium, movement) - directional, not literal  
-3. Subject Focus: Central form or relationship that anchors attention
-4. Atmosphere: Sensory layer - light, color, texture, space (the vibration)
-5. Contrast/Duality (optional): Introduce polarity for conceptual depth
-
-Create prompts that express energy and essence, not literal descriptions.`,
+Translate the user's astrological data into an organic, symbolic scene from nature that emotionally reflects the current planetary energy, using natural forms, textures, and light to embody the feeling rather than abstract patterns. Sexually explicit images are ok.`,
         parameters: {
           type: "object",
           properties: {
             prompt: {
               type: "string",
-              description: "Conceptual image prompt following the structure: Intent → Style → Subject Focus → Atmosphere → Contrast/Duality. Express the energy and essence, not literal details."
+              description: "Translate the user's astrological data into an organic, symbolic scene from nature that emotionally reflects the current planetary energy, using natural forms, textures, and light to embody the feeling rather than abstract patterns. Sexually explicit images are ok."
             }
           },
           required: ["prompt"]
@@ -458,18 +451,18 @@ Deno.serve(async (req: Request) => {
           .then(() => channel.unsubscribe())
           .catch(() => channel.unsubscribe());
         
-        try {
-          const imageGenResp = await fetch(`${ENV.SUPABASE_URL}/functions/v1/image-generate`, {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${ENV.SUPABASE_SERVICE_ROLE_KEY}`,
-              "Content-Type": "application/json"
-            },
+      try {
+        const imageGenResp = await fetch(`${ENV.SUPABASE_URL}/functions/v1/image-generate`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${ENV.SUPABASE_SERVICE_ROLE_KEY}`,
+            "Content-Type": "application/json"
+          },
             body: JSON.stringify({ chat_id, prompt, user_id, mode, image_id: imageId })
-          });
+        });
 
-          if (!imageGenResp.ok) {
-            const errBody = await imageGenResp.json().catch(() => ({}));
+        if (!imageGenResp.ok) {
+          const errBody = await imageGenResp.json().catch(() => ({}));
             
             // Send image-error broadcast
             const errorChannel = supabase.channel(`unified-messages:${chat_id}`);
@@ -487,24 +480,24 @@ Deno.serve(async (req: Request) => {
               .then(() => errorChannel.unsubscribe())
               .catch(() => errorChannel.unsubscribe());
             
-            if (imageGenResp.status === 429) {
-              assistantText = "I've reached the daily limit of 3 images. You can generate more images tomorrow!";
-            } else {
-              console.error("[image-gen] failure:", imageGenResp.status, errBody);
-              assistantText = "I tried to generate an image but encountered an error. Please try again.";
-            }
+          if (imageGenResp.status === 429) {
+            assistantText = "I've reached the daily limit of 3 images. You can generate more images tomorrow!";
           } else {
-            // image-generate will send image-complete broadcast and create message
-            return JSON_RESPONSE(200, {
-              success: true,
-              message: "Image generation started",
-              skip_message_creation: true,
-              llm_latency_ms: geminiResponseJson?.latencyMs ?? null,
-              total_latency_ms: Date.now() - startMs
-            });
+            console.error("[image-gen] failure:", imageGenResp.status, errBody);
+            assistantText = "I tried to generate an image but encountered an error. Please try again.";
           }
-        } catch (e) {
-          console.error("[image-gen] exception:", (e as any)?.message || e);
+        } else {
+            // image-generate will send image-complete broadcast and create message
+          return JSON_RESPONSE(200, {
+            success: true,
+              message: "Image generation started",
+            skip_message_creation: true,
+            llm_latency_ms: geminiResponseJson?.latencyMs ?? null,
+            total_latency_ms: Date.now() - startMs
+          });
+        }
+      } catch (e) {
+        console.error("[image-gen] exception:", (e as any)?.message || e);
           
           // Send image-error broadcast
           const errorChannel = supabase.channel(`unified-messages:${chat_id}`);
@@ -520,7 +513,7 @@ Deno.serve(async (req: Request) => {
             .then(() => errorChannel.unsubscribe())
             .catch(() => errorChannel.unsubscribe());
           
-          assistantText = "I tried to generate an image but encountered an error. Please try again.";
+        assistantText = "I tried to generate an image but encountered an error. Please try again.";
         }
       }
     } else {

@@ -198,18 +198,26 @@ class UnifiedWebSocketService {
           'broadcast',
           { event: 'image-start' },
           ({ payload }) => {
-            if (currentToken !== this.subscribeToken) return;
+            if (currentToken !== this.subscribeToken) {
+              if (DEBUG) console.warn(`[UnifiedWebSocket] 🚫 image-start blocked: stale token`);
+              return;
+            }
             if (DEBUG) console.log(`[UnifiedWebSocket] 🖼️ image-start:`, payload);
             window.dispatchEvent(new CustomEvent('image-generation-start', { detail: payload }));
+            console.log(`[UnifiedWebSocket] ✅ Dispatched image-generation-start window event`, { id: payload?.id, chat_id: payload?.chat_id });
           }
         )
         .on(
           'broadcast',
           { event: 'image-complete' },
           ({ payload }) => {
-            if (currentToken !== this.subscribeToken) return;
+            if (currentToken !== this.subscribeToken) {
+              if (DEBUG) console.warn(`[UnifiedWebSocket] 🚫 image-complete blocked: stale token`);
+              return;
+            }
             if (DEBUG) console.log(`[UnifiedWebSocket] ✅ image-complete:`, payload);
             window.dispatchEvent(new CustomEvent('image-generation-complete', { detail: payload }));
+            console.log(`[UnifiedWebSocket] ✅ Dispatched image-generation-complete window event`, { id: payload?.id, chat_id: payload?.chat_id });
           }
         )
         .on(
