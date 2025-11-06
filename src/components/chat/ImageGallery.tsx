@@ -240,12 +240,7 @@ export const ImageGallery = ({
             />
           </div>
 
-          {/* Image Prompt */}
-          {selectedImage.meta.image_prompt && <div className="border-t border-gray-200 px-8 py-6">
-              <p className="text-sm text-gray-600 italic font-light text-center">
-                "{selectedImage.meta.image_prompt}"
-              </p>
-            </div>}
+          {/* Image Prompt - Hidden per user request */}
         </div>
 
         {/* Share success notification */}
