@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, ChevronDown, Sparkles, X, MessageCircle, Orbit, Blend } from 'lucide-react';
+import { SquarePen, ChevronDown, Sparkles, X, MessageCircle, Orbit, Blend } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSubscription } from '@/contexts/SubscriptionContext';
@@ -164,7 +164,7 @@ export const NewChatDropdown: React.FC<NewChatDropdownProps> = ({ className = ""
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <button className={`flex items-center gap-2 px-3 py-1.5 text-sm font-light text-black hover:bg-gray-100 rounded-lg transition-colors justify-start ${className}`}>
-            <Plus className="w-4 h-4" />
+            <SquarePen className="w-4 h-4" />
             New Chat
             <ChevronDown className="w-3 h-3" />
           </button>
