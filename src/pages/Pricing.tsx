@@ -183,10 +183,10 @@ const Pricing: React.FC = () => {
                         className="pt-2"
                       >
                         <Button
-                          onClick={() => handleGetStarted(plan.id)}
-                          className="w-full bg-gray-900 hover:bg-gray-800 text-white font-light py-3 rounded-full text-base transition-all duration-200 shadow-sm hover:shadow-md"
+                          disabled
+                          className="w-full bg-gray-300 text-gray-500 font-light py-3 rounded-full text-base cursor-not-allowed"
                         >
-                          {getButtonText(plan.id)}
+                          Coming Soon
                         </Button>
                       </motion.div>
 
