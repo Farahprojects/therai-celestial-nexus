@@ -121,8 +121,8 @@ export const ImageGallery = ({
               No images generated yet. Try asking to create an image!
             </div> : <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
               {images.map(image => <div key={image.id} className="relative group cursor-pointer rounded-xl overflow-hidden bg-gray-100 aspect-square" onClick={() => setSelectedImage(image)}>
-                  <img src={image.meta.image_url} alt={image.meta.image_prompt} className="w-full h-full object-cover transition-transform group-hover:scale-105" />
-                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all duration-200 flex items-center justify-center gap-3">
+                  <img src={image.meta.image_url} alt={image.meta.image_prompt} className="w-full h-full object-cover md:transition-transform md:group-hover:scale-105" />
+                  <div className="hidden md:flex absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all duration-200 items-center justify-center gap-3">
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
@@ -257,54 +257,40 @@ export const ImageGallery = ({
   return <div className="fixed inset-0 z-50 bg-white font-['Inter'] flex flex-col">
       {/* Mobile Header */}
       <div className="border-b border-gray-200 px-4 py-4">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center justify-between">
           <Button variant="ghost" size="icon" onClick={() => setSelectedImage(null)} className="-ml-2">
             <X className="w-6 h-6" />
           </Button>
-          <h2 className="text-xl font-light text-gray-900">Image</h2>
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="icon" onClick={() => handleOpenChat(selectedImage)}>
+              <MessageCircle className="w-5 h-5" />
+            </Button>
+            <Button variant="ghost" size="icon" onClick={() => handleShare(selectedImage)}>
+              <Share2 className="w-5 h-5" />
+            </Button>
+            <Button variant="ghost" size="icon" onClick={() => handleDownload(selectedImage)}>
+              <Download className="w-5 h-5" />
+            </Button>
+          </div>
         </div>
       </div>
 
-      {/* Image Display */}
-      <div className="flex-1 flex items-center justify-center p-4 overflow-auto">
-        <img src={selectedImage.meta.image_url} alt={selectedImage.meta.image_prompt} className="max-w-full max-h-full rounded-xl" />
+      {/* Image Display - Fullscreen */}
+      <div className="flex-1 flex items-center justify-center bg-white overflow-auto">
+        <img src={selectedImage.meta.image_url} alt={selectedImage.meta.image_prompt} className="max-w-full max-h-full object-contain" />
       </div>
 
       {/* Thumbnail Strip */}
-      <div className="border-t border-gray-200 p-4 overflow-x-auto">
-        <div className="flex gap-3 pb-2">
-          {images.map((image, index) => <div key={image.id} className={`flex-shrink-0 cursor-pointer rounded-lg overflow-hidden border-2 transition-all ${selectedImage.id === image.id ? 'border-gray-900' : 'border-transparent'}`} onClick={() => setSelectedImage(image)}>
-              <img src={image.meta.image_url} alt={image.meta.image_prompt} className="w-16 h-16 object-cover" />
+      <div className="border-t border-gray-200 p-3 overflow-x-auto bg-white">
+        <div className="flex gap-2 pb-safe">
+          {images.map((image, index) => <div key={image.id} className={`flex-shrink-0 cursor-pointer rounded-lg overflow-hidden border-2 transition-all ${selectedImage.id === image.id ? 'border-gray-900' : 'border-gray-200'}`} onClick={() => setSelectedImage(image)}>
+              <img src={image.meta.image_url} alt={image.meta.image_prompt} className="w-14 h-14 object-cover" />
             </div>)}
         </div>
       </div>
 
-      {/* Mobile Footer Controls */}
-      <div className="border-t border-gray-200 p-4 pb-safe bg-white">
-        <div className="flex items-center justify-between gap-3">
-          <Button variant="outline" size="sm" onClick={() => handleOpenChat(selectedImage)} className="flex-1 rounded-full gap-2 font-light">
-            <MessageCircle className="w-4 h-4" />
-            Open Chat
-          </Button>
-
-          <Button variant="outline" size="sm" onClick={() => handleShare(selectedImage)} className="flex-1 rounded-full gap-2 font-light">
-            <Share2 className="w-4 h-4" />
-            Share
-          </Button>
-
-          <Button variant="outline" size="sm" onClick={() => handleDownload(selectedImage)} className="flex-1 rounded-full gap-2 font-light">
-            <Download className="w-4 h-4" />
-            Save
-          </Button>
-
-          <Button variant="outline" size="icon" onClick={() => setSelectedImage(null)} className="rounded-full">
-            <X className="w-4 h-4" />
-          </Button>
-        </div>
-      </div>
-
       {/* Share success notification */}
-      {shareSuccess && <div className="fixed bottom-24 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white px-6 py-3 rounded-full font-light">
+      {shareSuccess && <div className="fixed bottom-24 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white px-6 py-3 rounded-full font-light z-50">
           Link copied to clipboard
         </div>}
     </div>;
