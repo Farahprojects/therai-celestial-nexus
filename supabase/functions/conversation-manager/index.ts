@@ -230,6 +230,41 @@ if (report_data) {
   is_generating_report = true;
 }
 
+// Auto-inject profile astro data for chat mode
+if (mode === 'chat') {
+  console.log('[conversation-manager] Chat mode detected, looking up profile conversation for auto-injection');
+  
+  // Query for user's primary profile conversation
+  const { data: profileConversation } = await admin
+    .from('conversations')
+    .select('id')
+    .eq('user_id', userId)
+    .eq('mode', 'profile')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (profileConversation) {
+    console.log('[conversation-manager] Found profile conversation:', profileConversation.id);
+    
+    // Call context-injector with profile data (fire-and-forget)
+    fetch(`${SUPABASE_URL}/functions/v1/context-injector`, {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': req.headers.get('Authorization') || ''
+      },
+      body: JSON.stringify({
+        chat_id: id,
+        profile_chat_id: profileConversation.id,
+        mode: 'chat'
+      })
+    }).catch((e) => console.error('[conversation-manager] context-injector call failed:', e));
+  } else {
+    console.log('[conversation-manager] No profile conversation found, skipping auto-injection');
+  }
+}
+
 return json({
   ...data,
   is_generating_report,

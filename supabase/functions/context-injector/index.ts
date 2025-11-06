@@ -93,7 +93,7 @@ Deno.serve(async (req) => {
       return new Response("Warm-up", { status: 200, headers: corsHeaders });
     }
 
-        const { chat_id, mode, report_text, injection_type } = requestBody;
+        const { chat_id, mode, report_text, injection_type, profile_chat_id } = requestBody;
 
     // Basic chat_id validation
     if (!chat_id || typeof chat_id !== 'string') {
@@ -121,7 +121,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log(`[context-injector][${requestId}] 📋 Processing context injection for injection_type: ${injection_type || 'swiss_data'}`);
+    console.log(`[context-injector][${requestId}] 📋 Processing context injection for injection_type: ${injection_type || 'swiss_data'}${profile_chat_id ? ` (from profile: ${profile_chat_id})` : ''}`);
 
     // Initialize Supabase client
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
@@ -137,12 +137,15 @@ Deno.serve(async (req) => {
       console.log(`[context-injector][${requestId}] 📄 Injecting report text (${report_text.length} chars)...`);
       contextContent = `AI Report generated for this conversation:\n\n${report_text}`;
     } else {
-      // Called from translator-edge - inject Swiss data (original behavior)
-      console.log(`[context-injector][${requestId}] 🔍 Fetching Swiss data...`);
+      // Called from translator-edge or conversation-manager - inject Swiss data
+      // If profile_chat_id is provided, fetch from that conversation instead
+      const sourceChatId = profile_chat_id || chat_id;
+      console.log(`[context-injector][${requestId}] 🔍 Fetching Swiss data from chat_id: ${sourceChatId}...`);
+      
       const { data: translatorLogs } = await supabase
         .from("translator_logs")
         .select("swiss_data")
-        .eq("chat_id", chat_id)
+        .eq("chat_id", sourceChatId)
         .single();
 
       if (translatorLogs?.swiss_data) {
