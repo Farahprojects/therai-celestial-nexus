@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { MessageCircle, Orbit, Sparkles, MoreHorizontal, Search, Image } from 'lucide-react';
+import { MessageCircle, Orbit, Sparkles, MoreHorizontal, Search, Image, Blend } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { useChatStore } from '@/core/store';
