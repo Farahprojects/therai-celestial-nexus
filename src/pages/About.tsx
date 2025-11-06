@@ -24,11 +24,10 @@ const About = () => {
           <div className="container relative z-10 mx-auto px-4">
             <div className="max-w-3xl mx-auto text-center">
               <h1 className="text-4xl md:text-5xl font-light mb-6 text-gray-900 tracking-tight">
-                Revolutionizing Astrological Technology
+                Advancing the Future of Astrological Insight
               </h1>
               <p className="text-xl text-gray-700 mb-8 font-light">
-                Building the future of astrological calculations through advanced technology
-                and innovative solutions.
+                We build intelligent systems that refine, calculate, and decode the patterns behind astrology. Bridging ancient wisdom with modern technology.
               </p>
             </div>
           </div>
