@@ -8,6 +8,7 @@
 // Dynamically routes to correct LLM handler based on system config
 // Updated: SEO improvements and routing fixes
 
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { createPooledClient } from "../_shared/supabaseClient.ts";
 import { getLLMHandler } from "../_shared/llmConfig.ts";
 import { queryCache } from "../_shared/queryCache.ts";
