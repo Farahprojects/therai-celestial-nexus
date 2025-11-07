@@ -134,11 +134,13 @@ export const useMessageStore = create<MessageStore>()((set, get) => ({
         if (idx >= 0) {
           const updated = [...state.messages];
           // Replace optimistic with persisted message; clear pending
+          // Preserve position to avoid visual glitch
           updated[idx] = { 
-            ...updated[idx], 
             ...message, 
             pending: false, 
-            source: message.source || updated[idx].source 
+            source: message.source || updated[idx].source,
+            // Preserve any UI state from optimistic message
+            tempId: updated[idx].tempId
           };
           // ⚡ OPTIMIZED: No sort needed - messages already in order from DB
           return { messages: updated };
@@ -146,9 +148,9 @@ export const useMessageStore = create<MessageStore>()((set, get) => ({
       }
 
       // Check if message already exists by id
-      const exists = state.messages.some(m => m.id === message.id);
+      const existsById = state.messages.some(m => m.id === message.id);
       
-      if (exists) {
+      if (existsById) {
         // Update existing - preserve WebSocket source
         const updatedMessages = state.messages.map(m => {
           if (m.id === message.id) {
@@ -165,6 +167,26 @@ export const useMessageStore = create<MessageStore>()((set, get) => ({
       }
       
       // ⚡ OPTIMIZED: Add new message - no sort needed, messages arrive ordered from DB
+      // But check if there's a pending optimistic message that should be replaced first
+      // (This handles edge case where client_msg_id match didn't work above)
+      const hasPendingWithSameContent = state.messages.some(m => 
+        m.pending && 
+        m.role === message.role && 
+        m.text === message.text &&
+        m.chat_id === message.chat_id
+      );
+      
+      if (hasPendingWithSameContent) {
+        // Replace the first pending message with same content
+        const updated = state.messages.map(m => {
+          if (m.pending && m.role === message.role && m.text === message.text && m.chat_id === message.chat_id) {
+            return { ...message, pending: false, source: message.source || m.source };
+          }
+          return m;
+        });
+        return { messages: updated };
+      }
+      
       const newMessages = [...state.messages, message];
       
       return { messages: newMessages };
