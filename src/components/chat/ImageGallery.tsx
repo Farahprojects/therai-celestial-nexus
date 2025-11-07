@@ -53,19 +53,28 @@ export const ImageGallery = ({
         data,
         error
       } = await supabase
-        .from('messages')
-        .select('id, chat_id, created_at, meta')
-        .eq('role' as never, 'assistant')
-        .eq('meta->>message_type' as never, 'image')
-        .eq('user_id' as never, user.id)
+        .from('user_images')
+        .select('id, chat_id, created_at, image_url, prompt, image_path')
+        .eq('user_id', user.id)
         .order('created_at', {
-        ascending: false
+          ascending: false
         });
       if (error) {
         console.error('Failed to load images:', error);
         setImages([]);
       } else {
-        setImages(data as ImageMessage[] || []);
+        // Transform user_images format to ImageMessage format for compatibility
+        const transformedImages: ImageMessage[] = (data || []).map((img: any) => ({
+          id: img.id,
+          chat_id: img.chat_id || '',
+          created_at: img.created_at,
+          meta: {
+            image_url: img.image_url,
+            image_prompt: img.prompt || '',
+            image_path: img.image_path || ''
+          }
+        }));
+        setImages(transformedImages);
       }
     } catch (error) {
       console.error('Error loading images:', error);
@@ -75,8 +84,13 @@ export const ImageGallery = ({
     }
   };
   const handleOpenChat = (image: ImageMessage) => {
-    navigate(`/c/${image.chat_id}`);
-    onClose();
+    if (image.chat_id) {
+      navigate(`/c/${image.chat_id}`);
+      onClose();
+    } else {
+      // Chat was deleted - can't navigate to it
+      console.warn('Cannot open chat - chat was deleted');
+    }
   };
   const handleShare = async (image: ImageMessage) => {
     try {

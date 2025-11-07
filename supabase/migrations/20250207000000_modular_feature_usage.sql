@@ -70,3 +70,4 @@ GRANT EXECUTE ON FUNCTION increment_voice_seconds(UUID, INTEGER, TEXT) TO servic
 GRANT EXECUTE ON FUNCTION increment_insights_count(UUID, INTEGER, TEXT) TO authenticated;
 GRANT EXECUTE ON FUNCTION increment_insights_count(UUID, INTEGER, TEXT) TO service_role;
 
+

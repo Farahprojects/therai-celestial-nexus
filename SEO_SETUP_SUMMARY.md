@@ -149,3 +149,4 @@ Your site is now properly configured for Google indexing. Just:
 4. Wait for Google to crawl and index your pages (can take a few days to weeks)
 
 The more quality content you add (especially blog posts), the better your SEO will be!
+

@@ -199,3 +199,4 @@ SELECT increment_voice_seconds('user-id', 10, '2025-02');
 SELECT increment_insights_count('user-id', 1, '2025-02');
 ```
 
+

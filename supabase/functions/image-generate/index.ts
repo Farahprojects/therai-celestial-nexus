@@ -245,7 +245,7 @@ Deno.serve(async (req) => {
     // Continue to log - this is rare race condition, audit log still matters
   }
 
-  const [logResult, messageResult] = await Promise.all([
+  const [logResult, messageResult, userImageResult] = await Promise.all([
     supabase
       .from('image_generation_log')
       .insert({
@@ -271,7 +271,20 @@ Deno.serve(async (req) => {
       })
       .eq('id', image_id)
       .select()
-      .single()
+      .single(),
+    // Save to user_images table for persistent gallery (survives chat/message deletion)
+    supabase
+      .from('user_images')
+      .insert({
+        user_id,
+        chat_id,
+        message_id: image_id,
+        image_url: publicUrl,
+        image_path: filePath,
+        prompt: prompt,
+        model: 'imagen-4.0-fast-generate-001',
+        size: '1024x1024'
+      })
   ]);
 
   const { error: logError } = logResult;
@@ -289,6 +302,16 @@ Deno.serve(async (req) => {
       event: "image_generate_message_update_failed",
       request_id: requestId,
       error: messageError.message,
+      image_id: image_id
+    }));
+  }
+
+  const { error: userImageError } = userImageResult;
+  if (userImageError) {
+    console.error(JSON.stringify({
+      event: "image_generate_user_image_save_failed",
+      request_id: requestId,
+      error: userImageError.message,
       image_id: image_id
     }));
   }

@@ -176,3 +176,4 @@ GRANT EXECUTE ON FUNCTION check_and_increment_insights_count(UUID, INTEGER, TEXT
 COMMENT ON FUNCTION check_and_increment_voice_seconds IS 'Atomically checks limit and increments voice seconds. Returns JSONB with success status and usage details.';
 COMMENT ON FUNCTION check_and_increment_insights_count IS 'Atomically checks limit and increments insights count. Returns JSONB with success status and usage details.';
 
+
