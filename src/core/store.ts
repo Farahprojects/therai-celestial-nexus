@@ -395,49 +395,22 @@ export const useChatStore = create<ChatState>()((set, get) => ({
       return;
     }
 
-    const channel = supabase
-      .channel(`conversations:user:${userId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'conversations',
-          filter: `user_id=eq.${userId}`
-        },
-        (payload) => {
-          switch (payload.eventType) {
-            case 'INSERT':
-              get().addConversation(payload.new as Conversation);
-              break;
-            case 'UPDATE':
-              get().updateConversation(payload.new as Conversation);
-              break;
-            case 'DELETE':
-              get().removeConversation(payload.old.id);
-              break;
-          }
-        }
-      )
-      .subscribe((status) => {
-        if (status === 'SUBSCRIBED') {
-          set({ isConversationSyncActive: true });
-        }
-      });
-
-    set({ conversationChannel: channel });
+    // Note: Unified channel subscription is now handled globally in messageStore
+    // This just sets the flag so we know it's "initialized"
+    // Conversation updates will come through the unified channel's 'conversation-update' event
+    set({ isConversationSyncActive: true });
+    
+    // The actual event handling for conversation updates is in the message store
+    // where we subscribe to the unified channel once per user
   },
 
   cleanupConversationSync: () => {
-    const state = get();
-    
-    if (state.conversationChannel) {
-      supabase.removeChannel(state.conversationChannel);
-      set({ 
-        conversationChannel: null, 
-        isConversationSyncActive: false 
-      });
-    }
+    // Note: Don't cleanup the unified channel here - it's shared across the app
+    // Just mark as inactive
+    set({ 
+      conversationChannel: null, 
+      isConversationSyncActive: false 
+    });
   },
 
   setViewMode: (mode: 'chat' | 'folder', folderId?: string | null) => {

@@ -109,7 +109,7 @@ try {
 const body = await req.json();
 console.log('[google-tts] 📦 RAW PAYLOAD:', JSON.stringify(body, null, 2));
 
-const { chat_id, text, voice } = body;
+const { chat_id, text, voice, user_id } = body;
 
 if (!chat_id || !text) {
   throw new Error("Missing 'chat_id' or 'text' in request body.");
@@ -149,33 +149,37 @@ if (!audioBase64) {
 
 const processingTime = Date.now() - startTime;
 
-// Fire-and-forget HTTP broadcast (explicit REST API delivery)
+// Fire-and-forget HTTP broadcast to unified channel (WebSocket optimization)
 // Note: TTS usage is not tracked separately - STT gating is sufficient since TTS requires STT
-const channel = supabase.channel(`conversation:${chat_id}`);
-fireAndForget(
-  channel.send({
-      type: "broadcast",
-      event: "tts-ready",
-      payload: {
-        audioBase64: audioBase64, // base64 MP3 data
-        audioUrl: null, // no storage
-        text,
-        chat_id,
-        mimeType: "audio/mpeg",
-      },
-    }, { httpSend: true })
-    .then((response) => {
-      if (response === 'ok') {
-        console.log("[google-tts] Broadcast successful");
-      }
-      // Clean up channel
-      channel.unsubscribe();
-    })
-    .catch((e: unknown) => {
+if (user_id) {
+  const channel = supabase.channel(`user-realtime:${user_id}`);
+  fireAndForget(
+    channel.send({
+        type: "broadcast",
+        event: "voice-tts-ready",
+        payload: {
+          audioBase64: audioBase64, // base64 MP3 data
+          audioUrl: null, // no storage
+          text,
+          chat_id,
+          mimeType: "audio/mpeg",
+        },
+      }, { httpSend: true })
+      .then((response) => {
+        if (response === 'ok') {
+          console.log("[google-tts] Broadcast successful to unified channel");
+        }
+        // Clean up channel
+        channel.unsubscribe();
+      })
+      .catch((e: unknown) => {
       console.error("[google-tts] Broadcast error:", e);
       channel.unsubscribe();
     })
-);
+  );
+} else {
+  console.warn("[google-tts] No user_id provided, skipping broadcast");
+}
 
 // Minimal response
 const responseData = { success: true, audioUrl: null, storagePath: null };

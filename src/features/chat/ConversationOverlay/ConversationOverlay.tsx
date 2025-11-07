@@ -17,6 +17,7 @@ import { STTLimitExceededError } from '@/services/voice/stt';
 import { v4 as uuidv4 } from 'uuid';
 import { supabase } from '@/integrations/supabase/client';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from '@/integrations/supabase/config';
+import { unifiedChannel } from '@/services/websocket/UnifiedChannelService';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Mic } from 'lucide-react';
 import { UpgradeNotification } from '@/components/subscription/UpgradeNotification';
@@ -74,7 +75,7 @@ export const ConversationOverlay: React.FC = () => {
     // Cleanup WebSocket connection
     if (connectionRef.current) {
       try {
-        connectionRef.current.unsubscribe();
+        connectionRef.current.cleanup();
       } catch (e) {
         // Ignore WebSocket cleanup errors
       }
@@ -122,10 +123,10 @@ export const ConversationOverlay: React.FC = () => {
     };
   }, [audioContext, isAudioUnlocked, initializeAudioContext, resumeAudioContext]);
 
-  // WebSocket connection setup
+  // WebSocket connection setup - now uses unified channel
   const establishConnection = useCallback(async () => {
-    if (!chat_id) {
-      console.error('[ConversationOverlay] ❌ No chat_id available for WebSocket connection');
+    if (!chat_id || !user) {
+      console.error('[ConversationOverlay] ❌ No chat_id or user available for unified channel');
       return false;
     }
     
@@ -134,11 +135,11 @@ export const ConversationOverlay: React.FC = () => {
     }
     
     try {
+      // Use unified channel - subscribe if not already subscribed
+      await unifiedChannel.subscribe(user.id);
       
-      
-      const connection = supabase.channel(`conversation:${chat_id}`);
-      
-      connection.on('broadcast', { event: 'tts-ready' }, ({ payload }) => {
+      // Register voice event listeners
+      const handleTTSReady = (payload: any) => {
         if (isShuttingDown.current) return;
         if (payload.audioBase64) {
           setState('replying');
@@ -162,61 +163,34 @@ export const ConversationOverlay: React.FC = () => {
           setState('replying');
           playAudioImmediately(payload.audioBytes);
         }
-      });
+      };
       
-      connection.on('broadcast', { event: 'thinking-mode' }, ({ payload }) => {
+      const handleThinking = () => {
         if (!isShuttingDown.current) {
           setState('thinking');
         }
-      });
+      };
       
-      return new Promise<boolean>((resolve, reject) => {
-        let settled = false;
-        wasSubscribedRef.current = false;
-        
-        const timeout = setTimeout(() => {
-          if (settled) return;
-          settled = true;
-          try { connection.unsubscribe(); } catch {}
-          reject(new Error('subscribe timeout'));
-        }, 8000);
-        
-        connection.subscribe((status) => {
-          
-          if (status === 'SUBSCRIBED') {
-            wasSubscribedRef.current = true;
-            clearTimeout(timeout);
-            if (settled) return;
-            settled = true;
-            connectionRef.current = connection;
-            resolve(true);
-          } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-            clearTimeout(timeout);
-            if (settled) return;
-            settled = true;
-            reject(new Error(status));
-          } else if (status === 'CLOSED') {
-            // If we never got SUBSCRIBED, treat as connect failure; don't reset UI here.
-            if (!wasSubscribedRef.current) {
-              clearTimeout(timeout);
-              if (settled) return;
-              settled = true;
-              reject(new Error('closed before subscribed'));
-            } else {
-              // Closed after being active: only then reset.
-              if (isActiveRef.current && !isShuttingDown.current) {
-                resetToTapToStart('Unexpected WebSocket close');
-              }
-            }
-          }
-        });
-      });
+      // Register listeners
+      const unsubscribeTTS = unifiedChannel.on('voice-tts-ready', handleTTSReady);
+      const unsubscribeThinking = unifiedChannel.on('voice-thinking', handleThinking);
+      
+      // Store cleanup functions
+      connectionRef.current = {
+        cleanup: () => {
+          unsubscribeTTS();
+          unsubscribeThinking();
+        }
+      };
+      
+      wasSubscribedRef.current = true;
+      return true;
     } catch (error) {
       console.error('[ConversationOverlay] Connection failed:', error);
       resetToTapToStart('WebSocket connection failed');
       return false;
     }
-  }, [chat_id]);
+  }, [chat_id, user]);
 
   // TTS playback
   const playAudioImmediately = useCallback(async (audioBytes: number[]) => {
@@ -375,7 +349,7 @@ export const ConversationOverlay: React.FC = () => {
     // Fire-and-forget WebSocket cleanup
     if (connectionRef.current) {
       try {
-        connectionRef.current.unsubscribe();
+        connectionRef.current.cleanup();
       } catch (e) {
         // Ignore WebSocket cleanup errors
       }
@@ -419,7 +393,9 @@ export const ConversationOverlay: React.FC = () => {
 
       // Idempotent cleanup when returning to tap-to-start
       if (connectionRef.current) {
-        connectionRef.current.unsubscribe().catch(() => {});
+        try {
+          connectionRef.current.cleanup();
+        } catch {}
         connectionRef.current = null;
       }
       try { recorderRef.current?.dispose(); } catch {}

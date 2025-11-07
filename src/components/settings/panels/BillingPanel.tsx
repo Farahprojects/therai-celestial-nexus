@@ -202,38 +202,8 @@ export const BillingPanel: React.FC = () => {
 
   useEffect(() => {
     fetchBillingData();
-
-    // Set up real-time subscription for credit balance updates (credit mode only)
-    if (!user || billingMode !== 'CREDIT') return;
-
-    const channel = supabase
-      .channel('user_credits_realtime')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'user_credits',
-          filter: `user_id=eq.${user.id}`,
-        },
-        (payload) => {
-          console.log('Credit balance updated:', payload);
-          // Update credit data with new balance
-          if (payload.new && isCreditRow(payload.new)) {
-            setCreditData({
-              credits: payload.new.credits,
-              auto_topup_enabled: payload.new.auto_topup_enabled ?? false,
-              auto_topup_threshold: payload.new.auto_topup_threshold ?? 7,
-              auto_topup_amount: payload.new.auto_topup_amount ?? 34,
-            });
-          }
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    // WebSocket optimization: Removed credit balance realtime subscription
+    // Credit balance updates now refresh on mount and user actions only
   }, [user, billingMode]);
 
   const formatDate = (dateString: string) => {

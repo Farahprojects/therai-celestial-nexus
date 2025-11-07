@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { supabase } from '@/integrations/supabase/client';
 import { useChatStore } from '@/core/store';
+import { unifiedChannel } from '@/services/websocket/UnifiedChannelService';
 import type { Message } from '@/core/types';
 
 // Debug flag for production logging
@@ -293,17 +294,42 @@ export const triggerMessageStoreSelfClean = async () => {
   await useMessageStore.getState().selfClean();
 };
 
-// 🔒 Initialize message store - listen for WebSocket events (one-time guard)
+// 🔒 Initialize message store - listen for unified channel events (one-time guard)
 if (typeof window !== 'undefined' && !(window as any).__msgStoreListenerInstalled) {
   (window as any).__msgStoreListenerInstalled = true;
   
-  // Listen for message events from WebSocket
-  window.addEventListener('assistant-message', async (event: any) => {
-    const { chat_id, role, message: messageData } = event.detail;
+  // Subscribe to unified channel when user is available
+  const initializeUnifiedChannel = () => {
+    // Get user from supabase auth directly (async)
+    supabase.auth.getUser().then(({ data }) => {
+      if (data?.user) {
+        if (DEBUG) console.log('[MessageStore] 🔌 Subscribing to unified channel for user:', data.user.id);
+        unifiedChannel.subscribe(data.user.id);
+      }
+    });
+  };
+  
+  // Initialize on load
+  initializeUnifiedChannel();
+  
+  // Re-initialize on auth state changes
+  supabase.auth.onAuthStateChange((event, session) => {
+    if (event === 'SIGNED_IN' && session?.user) {
+      if (DEBUG) console.log('[MessageStore] 🔌 Auth changed, subscribing to unified channel');
+      unifiedChannel.subscribe(session.user.id);
+    } else if (event === 'SIGNED_OUT') {
+      if (DEBUG) console.log('[MessageStore] 🔌 User signed out, cleaning up unified channel');
+      unifiedChannel.cleanup();
+    }
+  });
+  
+  // Listen for message-insert events from unified channel
+  unifiedChannel.on('message-insert', (payload: any) => {
+    const { chat_id, message: messageData } = payload;
     
     if (DEBUG) {
-      console.log('[MessageStore] 🔔 Message event received:', { 
-        role,
+      console.log('[MessageStore] 🔔 Message event received from unified channel:', { 
+        chat_id,
         hasMessageData: !!messageData
       });
     }
@@ -319,14 +345,14 @@ if (typeof window !== 'undefined' && !(window as any).__msgStoreListenerInstalle
     
     // Only process if this is for the current chat
     if (chat_id === currentChatId && messageData) {
-      if (DEBUG) console.log('[MessageStore] ⚡ Using WebSocket payload directly (no DB refetch)');
+      if (DEBUG) console.log('[MessageStore] ⚡ Using unified channel payload directly (no DB refetch)');
       
-      // Use message data directly from WebSocket payload
+      // Use message data directly from unified channel payload
       const message = mapDbToMessage(messageData);
       const messageWithSource = { ...message, source: 'websocket' as const };
       
       // Debug: Log generating status for skeleton detection
-      if (role === 'assistant' && messageData.meta) {
+      if (messageData.role === 'assistant' && messageData.meta) {
         console.log('[MessageStore] Assistant message meta:', {
           status: messageData.meta.status,
           message_type: messageData.meta.message_type,
@@ -335,11 +361,10 @@ if (typeof window !== 'undefined' && !(window as any).__msgStoreListenerInstalle
       }
       
       // Always call addMessage - it handles both INSERT (new) and UPDATE (existing) cases
-      // The addMessage function checks if message exists by ID and updates it if needed
-        addMessage(messageWithSource);
+      addMessage(messageWithSource);
       
       // ⚡ OPTIMIZED: Handle side-effects ONLY for assistant messages
-      if (role === 'assistant') {
+      if (messageData.role === 'assistant') {
         // Clear typing immediately - guard to prevent unnecessary state update
         const chatState = useChatStore.getState();
         if (chatState.isAssistantTyping) {
@@ -348,6 +373,54 @@ if (typeof window !== 'undefined' && !(window as any).__msgStoreListenerInstalle
       }
     } else if (DEBUG && chat_id !== currentChatId) {
       console.log('[MessageStore] Chat ID mismatch, ignoring event');
+    }
+  });
+  
+  // Also listen for message-update events (for image generation status updates)
+  unifiedChannel.on('message-update', (payload: any) => {
+    const { chat_id, message: messageData } = payload;
+    
+    if (DEBUG) {
+      console.log('[MessageStore] 🔄 Message update received from unified channel:', {
+        chat_id,
+        message_id: messageData?.id
+      });
+    }
+    
+    const { addMessage, chat_id: currentChatId } = useMessageStore.getState();
+    
+    // Only process if this is for the current chat
+    if (chat_id === currentChatId && messageData) {
+      const message = mapDbToMessage(messageData);
+      const messageWithSource = { ...message, source: 'websocket' as const };
+      addMessage(messageWithSource);
+    }
+  });
+  
+  // Listen for conversation-update events for sidebar updates
+  unifiedChannel.on('conversation-update', (payload: any) => {
+    const { eventType, data } = payload;
+    
+    if (DEBUG) {
+      console.log('[MessageStore] 🔄 Conversation update received:', {
+        eventType,
+        conversation_id: data?.id
+      });
+    }
+    
+    // Forward to chat store for sidebar updates
+    const chatStore = useChatStore.getState();
+    
+    switch (eventType) {
+      case 'INSERT':
+        chatStore.addConversation(data);
+        break;
+      case 'UPDATE':
+        chatStore.updateConversation(data);
+        break;
+      case 'DELETE':
+        chatStore.removeConversation(data.id);
+        break;
     }
   });
 }
