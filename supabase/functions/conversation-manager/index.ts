@@ -121,6 +121,18 @@ async update_conversation_profile({ admin, body, userId }: HandlerCtx) {
 // Create a new conversation
 async create_conversation({ req, admin, body, userId }: HandlerCtx) {
 const { title, mode, report_data, email, name, profile_mode, profile_id } = body;
+
+// DEBUG: Log incoming parameters
+console.log('[conversation-manager] create_conversation called with:', {
+  title,
+  mode,
+  mode_type: typeof mode,
+  profile_mode,
+  profile_mode_type: typeof profile_mode,
+  has_report_data: !!report_data,
+  userId
+});
+
 if (!mode) return errorJson('mode is required for conversation creation');
 
 // Check if profile_mode flag is present
@@ -162,14 +174,27 @@ if (isProfileMode) {
   meta.profile_mode = true;
 }
 
-const { data, error } = await admin
+// Determine the final mode value
+const finalMode = isProfileMode ? 'profile' : mode;
+
+// DEBUG: Log what we're about to insert
+console.log('[conversation-manager] About to insert conversation with:', {
+  id,
+  title: isProfileMode ? 'Profile' : (title || 'New Conversation'),
+  mode: finalMode,
+  mode_type: typeof finalMode,
+  isProfileMode,
+  profile_id: profile_id || null
+});
+
+const { data, error} = await admin
   .from('conversations')
   .insert({
     id,
     user_id: userId,
     owner_user_id: userId,
     title: isProfileMode ? 'Profile' : (title || 'New Conversation'),
-    mode: isProfileMode ? 'profile' : mode,
+    mode: finalMode,
     profile_id: profile_id || null,
     meta,
   })
