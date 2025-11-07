@@ -1,29 +1,18 @@
 -- Database Optimization: Composite Indexes for Hot Query Paths
--- Impact: Significantly faster queries for conversation lists, message history, and feature usage lookups
+-- Impact: Significantly faster queries for conversation lists and memory lookups
 -- Run this on production during low-traffic period
+-- 
+-- NOTE: Some indexes already exist (messages, feature_usage) - those are skipped
+-- This migration only adds NEW indexes that don't already exist
 
 -- 1. Conversations: user_id + mode + created_at (for conversation list queries)
 -- Speeds up: Fetching conversations by user and mode with date ordering
 CREATE INDEX IF NOT EXISTS idx_conversations_user_mode_created 
 ON conversations(user_id, mode, created_at DESC);
 
--- 2. Messages: Optimize history queries with status and role filters
--- Speeds up: Message history fetches in LLM handlers with status='complete' and role filtering
--- Covers: chat_id + created_at + role + status queries
-CREATE INDEX IF NOT EXISTS idx_messages_history_optimized 
-ON messages(chat_id, created_at DESC, role, status) 
-WHERE status = 'complete' AND role != 'system';
-
--- 3. Messages: Optimize system message lookups
--- Speeds up: Fetching the latest system message for a conversation
-CREATE INDEX IF NOT EXISTS idx_messages_system_lookup
-ON messages(chat_id, created_at DESC)
-WHERE role = 'system' AND status = 'complete';
-
--- 4. Feature usage: user_id + feature_key + period (hot lookup for rate limiting)
--- Speeds up: Feature usage checks in featureGating/featureLimits
-CREATE INDEX IF NOT EXISTS idx_feature_usage_user_key_period 
-ON feature_usage(user_id, feature_key, period_start DESC);
+-- 2. SKIPPED - idx_messages_history_optimized already exists
+-- 3. SKIPPED - idx_messages_system_optimized already exists  
+-- 4. SKIPPED - idx_feature_usage_user_period already exists
 
 -- 5. User memory: Optimize memory injection queries
 -- Speeds up: Fetching active memories for a user+profile with reference count ordering
@@ -43,16 +32,19 @@ ON conversation_summaries(chat_id, created_at DESC);
 
 -- Analyze tables to update query planner statistics
 ANALYZE conversations;
-ANALYZE messages;
-ANALYZE feature_usage;
 ANALYZE user_memory;
 ANALYZE conversation_caches;
 ANALYZE conversation_summaries;
 
--- Query to verify index creation
+-- Query to verify new index creation
 -- Run this after migration to confirm:
 -- SELECT schemaname, tablename, indexname, indexdef 
 -- FROM pg_indexes 
--- WHERE indexname LIKE 'idx_%_optimized' OR indexname LIKE 'idx_%_user_%'
+-- WHERE indexname IN (
+--   'idx_conversations_user_mode_created',
+--   'idx_user_memory_profile_active', 
+--   'idx_conversation_caches_chat_id',
+--   'idx_conversation_summaries_latest'
+-- )
 -- ORDER BY tablename, indexname;
 

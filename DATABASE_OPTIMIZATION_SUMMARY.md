@@ -85,7 +85,7 @@ Created centralized client factory with two modes:
 
 **File**: `supabase/migrations/optimize_hot_queries.sql`
 
-Created composite indexes for hot query paths:
+Created **4 new composite indexes** for hot query paths:
 
 ### Conversations
 ```sql
@@ -93,27 +93,6 @@ CREATE INDEX idx_conversations_user_mode_created
 ON conversations(user_id, mode, created_at DESC);
 ```
 **Speeds up**: Conversation list queries filtered by user and mode
-
-### Messages
-```sql
--- History queries with status/role filters
-CREATE INDEX idx_messages_history_optimized 
-ON messages(chat_id, created_at DESC, role, status) 
-WHERE status = 'complete' AND role != 'system';
-
--- System message lookups
-CREATE INDEX idx_messages_system_lookup
-ON messages(chat_id, created_at DESC)
-WHERE role = 'system' AND status = 'complete';
-```
-**Speeds up**: LLM handler message history fetches
-
-### Feature Usage
-```sql
-CREATE INDEX idx_feature_usage_user_key_period 
-ON feature_usage(user_id, feature_key, period_start DESC);
-```
-**Speeds up**: Rate limiting checks in feature gating
 
 ### User Memory
 ```sql
@@ -134,6 +113,12 @@ CREATE INDEX idx_conversation_summaries_latest
 ON conversation_summaries(chat_id, created_at DESC);
 ```
 **Speeds up**: Gemini handler cache lookups and summary fetches
+
+### Skipped (Already Exist)
+These indexes were found to already exist in the database:
+- ✅ `idx_messages_history_optimized` - Message history queries
+- ✅ `idx_messages_system_optimized` - System message lookups
+- ✅ `idx_feature_usage_user_period` - Feature usage lookups
 
 ## Performance Gains
 
