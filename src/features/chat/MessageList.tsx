@@ -213,8 +213,10 @@ const renderMessages = (messages: Message[], currentUserId?: string) => {
       
       // Treat missing user_id as own message to avoid mis-coloring older rows
       const isOwn = message.user_id ? (currentUserId === message.user_id) : true;
+      // Use client_msg_id as key if available to prevent glitch when optimistic message is replaced
+      const messageKey = message.client_msg_id || message.id;
       elements.push(
-        <UserMessage key={message.id} message={message} isOwn={isOwn} />
+        <UserMessage key={messageKey} message={message} isOwn={isOwn} />
       );
     }
     
@@ -233,23 +235,29 @@ const renderMessages = (messages: Message[], currentUserId?: string) => {
           has_image_url: !!message.meta?.image_url,
           prompt: message.meta?.image_prompt
         });
+        // Use client_msg_id as key if available to prevent glitch when optimistic message is replaced
+        const messageKey = message.client_msg_id || message.id;
         elements.push(
           <ImageSkeleton 
-            key={message.id} 
+            key={messageKey} 
             prompt={message.meta?.image_prompt || 'Generating image...'} 
           />
         );
         continue; // Skip normal rendering
       }
+      // Use client_msg_id as key if available to prevent glitch when optimistic message is replaced
+      const messageKey = message.client_msg_id || message.id;
       elements.push(
-        <AssistantMessage key={message.id} message={message} />
+        <AssistantMessage key={messageKey} message={message} />
       );
     }
     
     // Render system messages as assistant messages
     if (message.role === 'system') {
+      // Use client_msg_id as key if available to prevent glitch when optimistic message is replaced
+      const messageKey = message.client_msg_id || message.id;
       elements.push(
-        <AssistantMessage key={message.id} message={message} />
+        <AssistantMessage key={messageKey} message={message} />
       );
     }
   }
