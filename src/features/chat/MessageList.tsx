@@ -181,9 +181,12 @@ AssistantMessage.displayName = 'AssistantMessage';
 // Image skeleton component
 const ImageSkeleton = ({ prompt }: { prompt: string }) => (
   <div className="flex items-end gap-3 justify-start mb-8">
-    <div className="relative rounded-xl max-w-2xl overflow-hidden">
+    <div className="relative rounded-xl w-96 overflow-hidden">
       <div className="w-full aspect-square bg-gray-100 animate-pulse">
         <div className="w-full h-full bg-gradient-to-br from-gray-200 via-gray-100 to-gray-200" />
+      </div>
+      <div className="absolute inset-0 flex items-center justify-center">
+        <p className="text-gray-400 text-sm px-4 text-center">{prompt}</p>
       </div>
     </div>
   </div>
