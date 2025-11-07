@@ -183,10 +183,11 @@ export const AstroDataForm: React.FC<AstroDataFormProps> = ({
         await moveConversationToFolder(conversationId, folder.id);
         console.log('[AstroDataForm] Conversation moved to folder');
         
-        // Dispatch event with both folder and conversation IDs
-        window.dispatchEvent(new CustomEvent('onboarding:chat-ready', {
-          detail: { folderId: folder.id, conversationId }
-        }));
+        // Store chat ID for onboarding flow
+        localStorage.setItem('onboarding_chat_id', conversationId);
+        
+        // Navigate to the new chat with ?new=true flag
+        navigate(`/c/${conversationId}?new=true`, { replace: true });
         
       } catch (error) {
         console.error('[AstroDataForm] Profile submission error:', error);

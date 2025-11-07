@@ -3,10 +3,14 @@ import { ChatBox } from '@/features/chat/ChatBox';
 import { ReportModalProvider } from '@/contexts/ReportModalContext';
 import { useChatInitialization } from '@/hooks/useChatInitialization';
 import { AuthModal } from '@/components/auth/AuthModal';
+import { StarterQuestionsPopup } from '@/components/onboarding/StarterQuestionsPopup';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { useSearchParams, useNavigate, useLocation } from 'react-router-dom';
+import { useSearchParams, useNavigate, useLocation, useParams } from 'react-router-dom';
 import { getRedirectPath, clearRedirectPath, extractIdFromPath } from '@/utils/redirectUtils';
+import { useChatStore } from '@/core/store';
+import { useMessageStore } from '@/stores/messageStore';
+import { toast } from 'sonner';
 
 /**
  * Streamlined ChatContainer - Single Responsibility
@@ -19,12 +23,31 @@ import { getRedirectPath, clearRedirectPath, extractIdFromPath } from '@/utils/r
 const ChatContainerContent: React.FC = () => {
   const { user } = useAuth();
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [showStarterQuestions, setShowStarterQuestions] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const location = useLocation();
+  const { threadId } = useParams<{ threadId: string }>();
+  const { chat_id } = useChatStore();
 
   // Single responsibility: Initialize chat when threadId changes
   useChatInitialization();
+  
+  // Check for onboarding flow - show starter questions if ?new=true
+  useEffect(() => {
+    const isNew = searchParams.get('new') === 'true';
+    const onboardingChatId = localStorage.getItem('onboarding_chat_id');
+    
+    if (isNew && chat_id && onboardingChatId === chat_id) {
+      console.log('[ChatContainer] Onboarding flow detected, showing starter questions');
+      setShowStarterQuestions(true);
+      
+      // Remove ?new from URL
+      const newSearchParams = new URLSearchParams(searchParams);
+      newSearchParams.delete('new');
+      setSearchParams(newSearchParams, { replace: true });
+    }
+  }, [searchParams, chat_id, setSearchParams]);
   
   // Clear redirect persistence after successful navigation
   useEffect(() => {
@@ -233,6 +256,72 @@ const ChatContainerContent: React.FC = () => {
     handlePendingJoins();
   }, [user, searchParams, setSearchParams, navigate]);
 
+  // Handle starter question selection
+  const handleQuestionSelect = async (question: string) => {
+    setShowStarterQuestions(false);
+    
+    if (!chat_id || !user) {
+      console.error('[ChatContainer] Missing chat_id or user for starter question');
+      return;
+    }
+
+    try {
+      // Get user profile data for display name
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('display_name')
+        .eq('id', user.id)
+        .maybeSingle();
+      
+      const displayName = profile?.display_name || 'User';
+      
+      // Send the selected question as a message
+      const { llmService } = await import('@/services/llm/chat');
+      
+      // Ensure chat_id is set in message store
+      useMessageStore.getState().setChatId(chat_id);
+      useChatStore.getState().startConversation(chat_id);
+      
+      // Create optimistic message
+      const client_msg_id = crypto.randomUUID();
+      const optimisticMessage = {
+        id: client_msg_id,
+        chat_id: chat_id,
+        role: 'user' as const,
+        text: question,
+        createdAt: new Date().toISOString(),
+        status: 'thinking' as const,
+        client_msg_id,
+        mode: 'chat',
+        user_id: user.id,
+        user_name: displayName
+      };
+      
+      // Add message to UI immediately
+      const { addOptimisticMessage } = useMessageStore.getState();
+      addOptimisticMessage(optimisticMessage);
+      
+      // Send message to backend
+      await llmService.sendMessage({
+        chat_id: chat_id,
+        text: question,
+        mode: 'chat',
+        chattype: 'text',
+        client_msg_id,
+        user_id: user.id,
+        user_name: displayName
+      });
+      
+      // Clear onboarding chat ID from localStorage
+      localStorage.removeItem('onboarding_chat_id');
+      
+      console.log('[ChatContainer] Starter question sent successfully');
+    } catch (error) {
+      console.error('[ChatContainer] Error sending starter question:', error);
+      toast.error('Failed to send message. Please try again.');
+    }
+  };
+
   return (
     <div 
       className="flex flex-col" 
@@ -254,6 +343,12 @@ const ChatContainerContent: React.FC = () => {
         isOpen={showAuthModal}
         onClose={() => setShowAuthModal(false)}
         defaultMode="login"
+      />
+      
+      {/* Starter questions popup for onboarding */}
+      <StarterQuestionsPopup
+        isOpen={showStarterQuestions}
+        onQuestionSelect={handleQuestionSelect}
       />
     </div>
   );
