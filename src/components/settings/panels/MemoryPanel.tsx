@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useUserMemory } from '@/hooks/useUserMemory';
 import { supabase } from '@/integrations/supabase/client';
 import type { Tables, TablesUpdate } from '@/integrations/supabase/types';
@@ -19,14 +19,40 @@ export function MemoryPanel() {
   const { memories, summaries, loading, refetch } = useUserMemory();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<string>('all');
+  // Optimistic updates: track deleted IDs to hide them immediately
+  const [deletedIds, setDeletedIds] = useState<Set<string>>(new Set());
 
-  const filteredMemories = memories.filter(m => {
+  // Clean up deletedIds when memories are refetched (remove IDs that are no longer in memories)
+  useEffect(() => {
+    if (deletedIds.size > 0) {
+      const memoryIds = new Set(memories.map(m => m.id));
+      setDeletedIds(prev => {
+        const next = new Set<string>();
+        for (const id of prev) {
+          // Only keep IDs that are still in memories (means delete hasn't completed yet or failed)
+          // If ID is not in memories, it was successfully deleted, so remove from Set
+          if (memoryIds.has(id)) {
+            next.add(id);
+          }
+        }
+        return next;
+      });
+    }
+  }, [memories]);
+
+  // Filter out optimistically deleted memories
+  const visibleMemories = memories.filter(m => !deletedIds.has(m.id));
+
+  const filteredMemories = visibleMemories.filter(m => {
     const matchesSearch = m.memory_text.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesType = filterType === 'all' || m.memory_type === filterType;
     return matchesSearch && matchesType;
   });
 
   const handleDelete = async (id: string) => {
+    // Optimistically remove from UI immediately
+    setDeletedIds(prev => new Set(prev).add(id));
+
     const updatePayload = {
       deleted_at: new Date().toISOString(),
       is_active: false,
@@ -40,10 +66,17 @@ export function MemoryPanel() {
       .eq('id' satisfies keyof Tables<'user_memory'>, memoryId);
 
     if (error) {
+      // Restore memory on error
+      setDeletedIds(prev => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
       toast.error('Failed to delete memory');
     } else {
       toast.success('Memory deleted');
-      refetch();
+      // No refetch needed - memory is already removed optimistically
+      // The cleanup effect will remove the ID from deletedIds when memories are next fetched
     }
   };
 
