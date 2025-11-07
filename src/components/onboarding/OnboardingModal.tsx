@@ -292,7 +292,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
                     value={displayName}
                     onChange={(e) => setDisplayName(e.target.value)}
                     placeholder="Your name"
-                    className="w-full px-6 py-3 rounded-full border border-gray-200 text-base font-light focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent text-center"
+                    className="w-full px-6 py-2 rounded-full border border-gray-200 text-base font-light focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent text-center"
                     autoFocus
                     disabled={isLoading}
                   />
