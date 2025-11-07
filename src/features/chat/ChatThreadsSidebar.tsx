@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { MessageCircle, Orbit, Sparkles, MoreHorizontal, Search, Image, Blend, SquarePen } from 'lucide-react';
+import { MessageCircle, Orbit, Sparkles, MoreHorizontal, Search, Image, Blend, SquarePen, ChevronRight, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { useChatStore } from '@/core/store';
@@ -400,20 +400,25 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
           <button
             type="button"
             onClick={() => setExpanded((prev) => !prev)}
-            className="flex w-full items-center px-3 py-1 text-xs text-gray-600 font-medium"
+            className="flex w-full items-center gap-1 px-3 py-1 text-xs text-gray-600 font-medium hover:text-gray-900 transition-colors"
             aria-expanded={expanded}
           >
+            {expanded ? (
+              <ChevronDown className="h-3 w-3" />
+            ) : (
+              <ChevronRight className="h-3 w-3" />
+            )}
             Folders
           </button>
-          <div>
-            <AddFolderButton
-              onClick={() => {
-                if (!isAuthenticated) return setShowAuthModal(true);
-                setEditingFolder(null);
-                setShowFolderModal(true);
-              }}
-            />
-            {expanded && (
+          {expanded && (
+            <div>
+              <AddFolderButton
+                onClick={() => {
+                  if (!isAuthenticated) return setShowAuthModal(true);
+                  setEditingFolder(null);
+                  setShowFolderModal(true);
+                }}
+              />
               <FoldersList
               folders={folders}
               onFolderClick={(id) => { navigate(`/folders/${id}`, { replace: true }); onCloseMobileSidebar?.(); }}
@@ -428,8 +433,8 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
               activeChatId={chat_id}
               activeFolderId={selectedFolderId}
             />
+            </div>
           )}
-          </div>
         </div>
 
         {/* Threads */}
