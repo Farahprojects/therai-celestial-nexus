@@ -7,7 +7,7 @@ interface ThreadsContextType {
   loading: boolean;
   error: string | null;
   loadThreads: () => Promise<void>;
-  addThread: (userId: string, mode: 'chat' | 'astro' | 'insight', title?: string) => Promise<string>;
+  addThread: (userId: string, mode: 'chat' | 'astro' | 'insight' | 'swiss' | 'together', title?: string) => Promise<string>;
   removeThread: (threadId: string) => Promise<void>;
   updateThreadTitle: (threadId: string, title: string) => Promise<void>;
   clearThreadsError: () => void;
@@ -59,7 +59,7 @@ export const ThreadsProvider: React.FC<ThreadsProviderProps> = ({ children }) =>
     }
   };
 
-  const addThread = async (userId: string, mode: 'chat' | 'astro' | 'insight' | 'swiss', title?: string) => {
+  const addThread = async (userId: string, mode: 'chat' | 'astro' | 'insight' | 'swiss' | 'together', title?: string) => {
     if (!user) throw new Error('User not authenticated');
     
     setLoading(true);

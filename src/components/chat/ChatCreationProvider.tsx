@@ -68,8 +68,7 @@ export const ChatCreationProvider: React.FC<{ children: React.ReactNode }> = ({ 
           ? 'Together Mode'
           : 'New Chat';
 
-      const conversationMode: 'chat' | 'astro' | 'insight' | 'swiss' =
-        mode === 'together' ? 'chat' : mode;
+      const conversationMode: 'chat' | 'astro' | 'insight' | 'swiss' | 'together' = mode;
 
       const { addThread } = useChatStore.getState();
       const newChatId = await addThread(user.id, conversationMode, title);

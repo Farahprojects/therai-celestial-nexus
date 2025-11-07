@@ -230,8 +230,8 @@ if (report_data) {
   is_generating_report = true;
 }
 
-// Auto-inject profile astro data for chat mode
-if (mode === 'chat') {
+// Auto-inject profile astro data for chat/together modes
+if (mode === 'chat' || mode === 'together') {
   console.log('[conversation-manager] Chat mode detected, looking up profile conversation for auto-injection');
   
   // Query for user's primary profile conversation
@@ -257,7 +257,7 @@ if (mode === 'chat') {
       body: JSON.stringify({
         chat_id: id,
         profile_chat_id: profileConversation.id,
-        mode: 'chat'
+        mode
       })
     }).catch((e) => console.error('[conversation-manager] context-injector call failed:', e));
   } else {

@@ -57,7 +57,7 @@ interface ChatState {
 
   // Thread actions
   loadThreads: (userId?: string) => Promise<void>;
-  addThread: (userId: string, mode: 'chat' | 'astro' | 'insight', title?: string, reportData?: {
+  addThread: (userId: string, mode: 'chat' | 'astro' | 'insight' | 'swiss' | 'together', title?: string, reportData?: {
     reportType?: string;
     report_data?: any;
     email?: string;
@@ -268,7 +268,7 @@ export const useChatStore = create<ChatState>()((set, get) => ({
     }
   },
 
-  addThread: async (userId: string, mode: 'chat' | 'astro' | 'insight' | 'swiss', title?: string, reportData?: {
+  addThread: async (userId: string, mode: 'chat' | 'astro' | 'insight' | 'swiss' | 'together', title?: string, reportData?: {
     reportType?: string;
     report_data?: any;
     email?: string;

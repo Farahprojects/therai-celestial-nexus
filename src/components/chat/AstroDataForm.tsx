@@ -26,14 +26,14 @@ import { AstroSecondPersonStep } from './AstroForm/AstroSecondPersonStep';
 
 interface AstroDataFormProps {
   onClose: () => void;
-  onSubmit: (data: ReportFormData) => void;
+  onSubmit: (data: ReportFormData & { chat_id?: string }) => void;
   onBack?: () => void;
-  preselectedType?: string;
-  reportType?: string;
+  preselectedType?: ReportType;
+  reportType?: ReportType;
   contextId?: string;
   isProfileFlow?: boolean;
   variant?: 'standalone' | 'insights';
-  mode?: 'chat' | 'astro' | 'insight' | 'swiss';
+  mode?: 'chat' | 'astro' | 'insight' | 'swiss' | 'together';
   defaultName?: string;
 }
 
