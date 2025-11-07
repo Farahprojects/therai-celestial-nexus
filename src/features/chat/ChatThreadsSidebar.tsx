@@ -400,15 +400,15 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
           <button
             type="button"
             onClick={() => setExpanded((prev) => !prev)}
-            className="flex w-full items-center gap-1 px-3 py-1 text-xs text-gray-600 font-medium hover:text-gray-900 transition-colors"
+            className="flex w-full items-center justify-between px-3 py-1 text-xs text-gray-600 font-medium hover:text-gray-900 transition-colors"
             aria-expanded={expanded}
           >
+            <span>Folders</span>
             {expanded ? (
               <ChevronDown className="h-3 w-3" />
             ) : (
               <ChevronRight className="h-3 w-3" />
             )}
-            Folders
           </button>
           {expanded && (
             <div>
