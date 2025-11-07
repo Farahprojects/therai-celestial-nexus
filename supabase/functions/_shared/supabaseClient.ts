@@ -1,7 +1,6 @@
-// Supabase client with connection pooling
-// Uses pooler URL instead of direct connections
-// Pro tier: 200 connection pool vs 60 direct connections
-// Critical: Prevents "too many connections" errors at scale
+// Supabase client factory for edge functions
+// Connection pooling is handled automatically by Supabase infrastructure
+// when using service role key in edge functions
 
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -12,28 +11,13 @@ if (!SUPABASE_URL) throw new Error("Missing env: SUPABASE_URL");
 if (!SUPABASE_SERVICE_ROLE_KEY) throw new Error("Missing env: SUPABASE_SERVICE_ROLE_KEY");
 
 /**
- * Convert direct Supabase URL to pooler URL
- * Example: https://abc.supabase.co -> https://abc.pooler.supabase.com:6543
- */
-function getPoolerUrl(url: string): string {
-  try {
-    const urlObj = new URL(url);
-    const projectRef = urlObj.hostname.split('.')[0];
-    return `https://${projectRef}.pooler.supabase.com:6543`;
-  } catch (error) {
-    console.warn('Failed to parse pooler URL, using direct connection:', error);
-    return url;
-  }
-}
-
-/**
- * Create Supabase client with connection pooling
- * Use this instead of createClient directly in edge functions
+ * Create optimized Supabase client for edge functions
+ * - Uses service role key (bypasses RLS for better performance)
+ * - Disables unnecessary features (session persistence, auto-refresh)
+ * - Connection pooling handled automatically by Supabase infrastructure
  */
 export function createPooledClient(): SupabaseClient {
-  const poolerUrl = getPoolerUrl(SUPABASE_URL);
-  
-  return createClient(poolerUrl, SUPABASE_SERVICE_ROLE_KEY, {
+  return createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
     auth: { 
       persistSession: false,
       autoRefreshToken: false,
@@ -46,17 +30,10 @@ export function createPooledClient(): SupabaseClient {
 }
 
 /**
- * Create standard client (for auth operations that can't use pooler)
- * Only use when pooler is incompatible (e.g., auth admin operations)
+ * Alias for backward compatibility
  */
 export function createDirectClient(): SupabaseClient {
-  return createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
-    auth: { 
-      persistSession: false,
-      autoRefreshToken: false,
-      detectSessionInUrl: false
-    }
-  });
+  return createPooledClient();
 }
 
 // Export for backward compatibility

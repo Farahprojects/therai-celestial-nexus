@@ -20,13 +20,14 @@ Implemented comprehensive database optimizations across edge functions and datab
 
 **Impact**: Dramatically reduces redundant database queries for frequently accessed data.
 
-## 2. Connection Pooling ✅
+## 2. Optimized Client Factory ✅
 
 **File**: `supabase/functions/_shared/supabaseClient.ts`
 
-Created centralized client factory with two modes:
-- `createPooledClient()`: Uses `pooler.supabase.com:6543` (200 connections on Pro tier)
-- `createDirectClient()`: Direct connection for auth operations only
+Created centralized client factory for edge functions:
+- `createPooledClient()`: Optimized Supabase client with disabled unnecessary features
+- Connection pooling handled automatically by Supabase infrastructure
+- Service role key bypasses RLS for better performance
 
 ### Updated Functions (High-Traffic)
 
@@ -53,7 +54,7 @@ Created centralized client factory with two modes:
 **Memory System**:
 - ✅ `memoryInjection.ts` - Memory fetching with caching
 
-**Impact**: Prevents "too many connections" errors at scale, improves connection reuse.
+**Impact**: Centralized, optimized client creation across all edge functions.
 
 ## 3. Query Optimizations ✅
 
@@ -124,12 +125,12 @@ These indexes were found to already exist in the database:
 
 ### Expected Improvements
 
-1. **Query Reduction**: 40-50% fewer database queries
-2. **Connection Utilization**: 200 pooled connections vs 60 direct
-3. **Response Time**: 
+1. **Query Reduction**: 40-50% fewer database queries (via caching)
+2. **Response Time**: 
    - Cached queries: ~1-2ms (memory) vs ~10-50ms (database)
    - Index-optimized queries: 50-80% faster
-4. **Scalability**: Prevents connection exhaustion under high load
+3. **Consistency**: Centralized client creation prevents configuration drift
+4. **Performance**: Optimized client settings (no session persistence, auto-refresh disabled)
 
 ### Monitoring Metrics
 
