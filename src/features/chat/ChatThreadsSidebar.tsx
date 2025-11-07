@@ -153,6 +153,7 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
     pendingInsightThreads,
     startConversation,
     updateConversation,
+    setViewMode,
   } = useChatStore();
   const { setChatId, messages } = useMessageStore();
 
@@ -239,7 +240,7 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
   };
 
   /** Actions **/
-  const switchToChat = async (conversationId: string) => {
+  const switchToChat = async (conversationId: string, folderId?: string) => {
     setShowImageGallery(false); // Close image gallery when switching chats
     const c = threads.find(t => t.id === conversationId);
     if (c?.mode === 'swiss') {
@@ -247,6 +248,13 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
       onCloseMobileSidebar?.();
       return;
     }
+    
+    // If clicking from a folder, expand it and keep folder view mode
+    if (folderId) {
+      setExpanded(new Set([folderId]));
+      setViewMode('folder', folderId);
+    }
+    
     setChatId(conversationId);
     startConversation(conversationId);
     try {
@@ -399,7 +407,7 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
             <FoldersList
               folders={folders}
               onFolderClick={(id) => { navigate(`/folders/${id}`, { replace: true }); onCloseMobileSidebar?.(); }}
-              onChatClick={(_, chatId) => switchToChat(chatId)}
+              onChatClick={(folderId, chatId) => switchToChat(chatId, folderId)}
               onEditFolder={isAuthenticated ? (id, name) => { setEditingFolder({ id, name }); setShowFolderModal(true); } : undefined}
               onDeleteFolder={isAuthenticated ? handleDeleteFolder : undefined}
               onEditChat={isAuthenticated ? (id, current) => { setEditTitleFor(id); setEditTitle(current || ''); } : undefined}
