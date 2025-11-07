@@ -71,3 +71,4 @@ GRANT EXECUTE ON FUNCTION increment_insights_count(UUID, INTEGER, TEXT) TO authe
 GRANT EXECUTE ON FUNCTION increment_insights_count(UUID, INTEGER, TEXT) TO service_role;
 
 
+

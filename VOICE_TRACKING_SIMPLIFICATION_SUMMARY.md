@@ -200,3 +200,4 @@ SELECT increment_insights_count('user-id', 1, '2025-02');
 ```
 
 
+

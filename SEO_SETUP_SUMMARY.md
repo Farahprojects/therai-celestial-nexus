@@ -150,3 +150,4 @@ Your site is now properly configured for Google indexing. Just:
 
 The more quality content you add (especially blog posts), the better your SEO will be!
 
+
