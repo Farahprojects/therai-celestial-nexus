@@ -31,6 +31,8 @@ const json = (status: number, data: any) =>
     headers: { ...corsHeaders, "Content-Type": "application/json" }
   });
 
+// # deployment-note: non-functional comment to trigger redeploy
+
 function mapMimeToGoogleEncoding(mimeType = "") {
   const lower = mimeType.toLowerCase();
   if (lower.includes("webm")) return { encoding: "WEBM_OPUS" };
