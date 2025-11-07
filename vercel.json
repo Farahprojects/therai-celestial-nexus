@@ -7,10 +7,10 @@
       "has": [
         {
           "type": "host",
-          "value": "www.therai.co"
+          "value": "therai.co"
         }
       ],
-      "destination": "https://therai.co/:path*",
+      "destination": "https://www.therai.co/:path*",
       "permanent": true
     }
   ],
