@@ -191,6 +191,17 @@ Deno.serve(async (req) => {
     return json(500, { error: "Failed to decode image data" });
   }
 
+  // Note: Image compression placeholder added but not yet active
+  // To enable compression, implement compressToWebP in _shared/imageCompression.ts
+  // This would reduce storage by 50-70% and bandwidth by similar amounts
+  const originalSize = imageBytes.length;
+  console.info(JSON.stringify({
+    event: "image_generate_compression_info",
+    request_id: requestId,
+    original_size_bytes: originalSize,
+    note: "Compression not yet implemented - see _shared/imageCompression.ts"
+  }));
+
   // Upload to Storage
   const timestamp = Date.now();
   const fileName = `${timestamp}-${crypto.randomUUID()}.png`;
@@ -199,7 +210,8 @@ Deno.serve(async (req) => {
   console.info(JSON.stringify({
     event: "image_generate_upload_start",
     request_id: requestId,
-    file_path: filePath
+    file_path: filePath,
+    file_size_bytes: originalSize
   }));
 
   const { error: uploadError } = await supabase.storage

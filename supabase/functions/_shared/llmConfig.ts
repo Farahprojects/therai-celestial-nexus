@@ -4,7 +4,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 let cachedConfig: { use_gemini: boolean; cached_at: number } | null = null;
-const CACHE_TTL_MS = 60000; // Cache for 1 minute
+const CACHE_TTL_MS = 600000; // Cache for 10 minutes (reduced DB queries)
 
 /**
  * Get LLM handler endpoint based on system configuration

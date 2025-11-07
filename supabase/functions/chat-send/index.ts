@@ -11,7 +11,8 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { createPooledClient } from "../_shared/supabaseClient.ts";
 import { getLLMHandler } from "../_shared/llmConfig.ts";
-import { queryCache } from "../_shared/queryCache.ts";
+import { getConversationMetadata } from "../_shared/queryCache.ts";
+import { checkRateLimit, RateLimits } from "../_shared/rateLimiting.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -274,7 +275,7 @@ let shouldExtractMemory = false;
 // Fetch conversation metadata once with caching (consolidates duplicate fetches)
 let conversationMode: string | null = null;
 if (shouldStartLLM) {
-  conversationMode = await queryCache.getConversationMetadata(
+  conversationMode = await getConversationMetadata(
     chat_id,
     async () => {
       const { data: conv } = await supabase
@@ -420,37 +421,86 @@ if (insertedMessage && user_id) {
 }
 
 // Trigger memory extraction if needed (fire-and-forget)
+// Optimized with sampling to reduce edge function invocations by 70-80%
 if (role === "assistant" && insertedMessage?.id) {
-  shouldExtractMemory = true;
-  const payload = {
-    conversation_id: chat_id,
-    message_id: insertedMessage.id,
-    user_id: user_id
-  };
-
-  console.info(JSON.stringify({
-    event: "memory_extraction_triggered",
-    request_id: requestId,
-    conversation_id: chat_id,
-    message_id: insertedMessage.id
-  }));
-
-  Promise.resolve().then(() =>
-    fetch(`${SUPABASE_URL}/functions/v1/extract-user-memory`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`
-      },
-      body: JSON.stringify(payload)
-    }).catch(err => {
-      console.error(JSON.stringify({
-        event: "memory_extraction_trigger_failed",
+  // Check if we should extract memories based on heuristics
+  const shouldSampleExtraction = await (async () => {
+    // Skip short responses (< 50 chars) - likely generic acknowledgments
+    if (!text || text.length < 50) {
+      console.info(JSON.stringify({
+        event: "memory_extraction_skipped_short_response",
         request_id: requestId,
-        error: err instanceof Error ? err.message : String(err)
+        text_length: text?.length || 0
       }));
-    })
-  );
+      return false;
+    }
+
+    // Check conversation message count - skip early conversations
+    const { count: messageCount, error: countError } = await supabase
+      .from('messages')
+      .select('id', { count: 'exact', head: true })
+      .eq('chat_id', chat_id);
+
+    if (countError || !messageCount || messageCount < 3) {
+      console.info(JSON.stringify({
+        event: "memory_extraction_skipped_early_conversation",
+        request_id: requestId,
+        message_count: messageCount || 0
+      }));
+      return false;
+    }
+
+    // Sampling strategy: 20-30% of messages, weighted by conversation turn
+    // Higher probability for later turns (more context = better memories)
+    const baseRate = 0.20; // 20% base sampling rate
+    const turnBonus = Math.min(0.10, (messageCount / 100) * 0.10); // +10% max for mature conversations
+    const samplingRate = baseRate + turnBonus;
+    
+    const shouldExtract = Math.random() < samplingRate;
+    
+    console.info(JSON.stringify({
+      event: "memory_extraction_sampling_decision",
+      request_id: requestId,
+      message_count: messageCount,
+      sampling_rate: samplingRate,
+      will_extract: shouldExtract
+    }));
+
+    return shouldExtract;
+  })();
+
+  if (shouldSampleExtraction) {
+    shouldExtractMemory = true;
+    const payload = {
+      conversation_id: chat_id,
+      message_id: insertedMessage.id,
+      user_id: user_id
+    };
+
+    console.info(JSON.stringify({
+      event: "memory_extraction_triggered",
+      request_id: requestId,
+      conversation_id: chat_id,
+      message_id: insertedMessage.id
+    }));
+
+    Promise.resolve().then(() =>
+      fetch(`${SUPABASE_URL}/functions/v1/extract-user-memory`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`
+        },
+        body: JSON.stringify(payload)
+      }).catch(err => {
+        console.error(JSON.stringify({
+          event: "memory_extraction_trigger_failed",
+          request_id: requestId,
+          error: err instanceof Error ? err.message : String(err)
+        }));
+      })
+    );
+  }
 }
 
 // Flush logs before returning response

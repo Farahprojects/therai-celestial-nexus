@@ -1,145 +1,150 @@
-// Query cache utility with TTL-based caching
-// Reduces database load by caching frequently accessed data
-// Impact: 40-50% reduction in DB queries
+// Query result caching to reduce database queries
+// Uses in-memory cache with TTL for frequently accessed data
 
 interface CacheEntry<T> {
   data: T;
-  expiresAt: number;
+  cachedAt: number;
 }
 
 class QueryCache {
-  private cache: Map<string, CacheEntry<any>> = new Map();
+  private cache: Map<string, CacheEntry<any>>;
+  private readonly defaultTTL = 300000; // 5 minutes default
 
-  // TTL durations in milliseconds
-  private readonly TTL = {
-    CONVERSATION_METADATA: 5 * 60 * 1000,    // 5 minutes
-    SUBSCRIPTION_STATUS: 10 * 60 * 1000,     // 10 minutes
-    FEATURE_USAGE: 1 * 60 * 1000,            // 1 minute
-  };
+  constructor() {
+    this.cache = new Map();
+  }
 
   /**
-   * Get cached data or execute factory function
+   * Get cached value or null if expired/missing
    */
-  async get<T>(
-    key: string,
-    ttl: number,
-    factory: () => Promise<T>
-  ): Promise<T> {
+  get<T>(key: string, ttlMs?: number): T | null {
     const entry = this.cache.get(key);
+    if (!entry) return null;
+
+    const ttl = ttlMs || this.defaultTTL;
+    const isExpired = Date.now() - entry.cachedAt > ttl;
     
-    // Return cached data if still valid
-    if (entry && entry.expiresAt > Date.now()) {
-      return entry.data as T;
+    if (isExpired) {
+      this.cache.delete(key);
+      return null;
     }
 
-    // Fetch fresh data
-    const data = await factory();
-    
-    // Cache with TTL
+    return entry.data;
+  }
+
+  /**
+   * Set cache value
+   */
+  set<T>(key: string, data: T): void {
     this.cache.set(key, {
       data,
-      expiresAt: Date.now() + ttl
+      cachedAt: Date.now()
     });
-
-    return data;
   }
 
   /**
-   * Cache conversation metadata (mode, profile_id, etc.)
+   * Delete cache entry
    */
-  async getConversationMetadata<T>(
-    conversationId: string,
-    factory: () => Promise<T>
-  ): Promise<T> {
-    return this.get(
-      `conversation:${conversationId}`,
-      this.TTL.CONVERSATION_METADATA,
-      factory
-    );
-  }
-
-  /**
-   * Cache user subscription status
-   */
-  async getSubscriptionStatus<T>(
-    userId: string,
-    factory: () => Promise<T>
-  ): Promise<T> {
-    return this.get(
-      `subscription:${userId}`,
-      this.TTL.SUBSCRIPTION_STATUS,
-      factory
-    );
-  }
-
-  /**
-   * Cache feature usage counters
-   */
-  async getFeatureUsage<T>(
-    userId: string,
-    featureKey: string,
-    factory: () => Promise<T>
-  ): Promise<T> {
-    return this.get(
-      `feature_usage:${userId}:${featureKey}`,
-      this.TTL.FEATURE_USAGE,
-      factory
-    );
-  }
-
-  /**
-   * Invalidate specific cache entry
-   */
-  invalidate(key: string): void {
+  delete(key: string): void {
     this.cache.delete(key);
   }
 
   /**
-   * Invalidate all cache entries matching pattern
-   */
-  invalidatePattern(pattern: string): void {
-    for (const key of this.cache.keys()) {
-      if (key.includes(pattern)) {
-        this.cache.delete(key);
-      }
-    }
-  }
-
-  /**
-   * Clear expired entries (run periodically)
-   */
-  cleanup(): void {
-    const now = Date.now();
-    for (const [key, entry] of this.cache.entries()) {
-      if (entry.expiresAt <= now) {
-        this.cache.delete(key);
-      }
-    }
-  }
-
-  /**
-   * Clear all cache
+   * Clear all cached entries
    */
   clear(): void {
     this.cache.clear();
   }
 
   /**
-   * Get cache statistics
+   * Get cache size
    */
-  stats(): { size: number; keys: string[] } {
-    return {
-      size: this.cache.size,
-      keys: Array.from(this.cache.keys())
-    };
+  size(): number {
+    return this.cache.size;
   }
 }
 
 // Singleton instance
-export const queryCache = new QueryCache();
+const queryCache = new QueryCache();
 
-// Periodic cleanup (every 5 minutes)
-setInterval(() => {
-  queryCache.cleanup();
-}, 5 * 60 * 1000);
+// Cache key generators
+export const CacheKeys = {
+  conversationMetadata: (chatId: string) => `conv:meta:${chatId}`,
+  conversationMode: (chatId: string) => `conv:mode:${chatId}`,
+  userSubscription: (userId: string) => `user:sub:${userId}`,
+  featureUsage: (userId: string, featureKey: string, period: string) => 
+    `feature:${userId}:${featureKey}:${period}`,
+  profileData: (profileId: string) => `profile:${profileId}`,
+};
 
+// Cache TTL constants (in milliseconds)
+export const CacheTTL = {
+  conversationMetadata: 300000,  // 5 minutes
+  userSubscription: 600000,      // 10 minutes
+  featureUsage: 60000,           // 1 minute
+  profileData: 300000,           // 5 minutes
+};
+
+/**
+ * Helper: Get conversation metadata with caching
+ */
+export async function getConversationMetadata<T>(
+  chatId: string,
+  fetchFn: () => Promise<T>,
+  ttlMs: number = CacheTTL.conversationMetadata
+): Promise<T> {
+  const key = CacheKeys.conversationMetadata(chatId);
+  const cached = queryCache.get<T>(key, ttlMs);
+  
+  if (cached !== null) {
+    return cached;
+  }
+
+  const data = await fetchFn();
+  queryCache.set(key, data);
+  return data;
+}
+
+/**
+ * Helper: Get user subscription status with caching
+ */
+export async function getUserSubscription<T>(
+  userId: string,
+  fetchFn: () => Promise<T>,
+  ttlMs: number = CacheTTL.userSubscription
+): Promise<T> {
+  const key = CacheKeys.userSubscription(userId);
+  const cached = queryCache.get<T>(key, ttlMs);
+  
+  if (cached !== null) {
+    return cached;
+  }
+
+  const data = await fetchFn();
+  queryCache.set(key, data);
+  return data;
+}
+
+/**
+ * Helper: Get feature usage with caching
+ */
+export async function getFeatureUsage<T>(
+  userId: string,
+  featureKey: string,
+  period: string,
+  fetchFn: () => Promise<T>,
+  ttlMs: number = CacheTTL.featureUsage
+): Promise<T> {
+  const key = CacheKeys.featureUsage(userId, featureKey, period);
+  const cached = queryCache.get<T>(key, ttlMs);
+  
+  if (cached !== null) {
+    return cached;
+  }
+
+  const data = await fetchFn();
+  queryCache.set(key, data);
+  return data;
+}
+
+export { queryCache };
