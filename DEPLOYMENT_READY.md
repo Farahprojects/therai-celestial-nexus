@@ -31,6 +31,9 @@
 - Removed insights_count display from UI
 - Only shows voice seconds usage
 
+### ✅ Conversation Mode Voice UI
+- Conversation overlay now subscribes to unified `message-insert` events so text replies appear during voice sessions
+
 ### ✅ Guest Logic Removal
 - Removed all `is_guest` checks
 - Simplified age check to use `chartData.birthDate`
@@ -95,4 +98,5 @@
 ## Ready to Push ✅
 
 All changes are complete, tested, and ready for deployment.
+
 
