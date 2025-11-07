@@ -2,7 +2,7 @@
 // Centralized endpoint for incrementing feature usage with comprehensive logging
 // Called by: google-whisper, google-text-to-speech, standard-report engines
 
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { createPooledClient } from "../_shared/supabaseClient.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -23,9 +23,7 @@ if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
   throw new Error("Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY");
 }
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
-  auth: { persistSession: false }
-});
+const supabase = createPooledClient();
 
 Deno.serve(async (req) => {
   const requestId = crypto.randomUUID().substring(0, 8);

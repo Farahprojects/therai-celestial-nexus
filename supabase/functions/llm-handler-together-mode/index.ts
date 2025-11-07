@@ -1,7 +1,7 @@
 // Together Mode LLM Handler
 // Dedicated handler for multi-participant relationship insights
 
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createPooledClient } from "../_shared/supabaseClient.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -18,9 +18,7 @@ if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY || !GOOGLE_API_KEY) {
   throw new Error("Missing environment variables");
 }
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
-  auth: { persistSession: false }
-});
+const supabase = createPooledClient();
 
 const json = (status: number, data: any) =>
   new Response(JSON.stringify(data), {

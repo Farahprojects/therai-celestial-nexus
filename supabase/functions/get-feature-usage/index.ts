@@ -1,7 +1,7 @@
 // @ts-nocheck - Deno runtime, types checked at deployment
 // Get Feature Usage - Returns current monthly usage for authenticated user
 
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { createPooledClient } from "../_shared/supabaseClient.ts";
 import { FEATURE_LIMITS } from "../_shared/featureLimits.ts";
 
 const corsHeaders = {
@@ -21,11 +21,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const supabaseClient = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
-      { auth: { persistSession: false } }
-    );
+    const supabaseClient = createPooledClient();
 
     // Authenticate user
     const authHeader = req.headers.get("Authorization");

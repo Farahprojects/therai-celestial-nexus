@@ -1,5 +1,6 @@
-// Shared memory injection logic for LLM handlers
+// Shared memory injection logic for LLM handlers with smart caching
 import { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { queryCache } from './queryCache.ts';
 
 type Memory = {
   id: string;
@@ -28,52 +29,59 @@ export async function fetchAndFormatMemories(
   chatId: string
 ): Promise<MemoryResult> {
   try {
-    // Check if conversation has profile_id
-    const { data: conv } = await supabase
-      .from('conversations')
-      .select('profile_id, user_id')
-      .eq('id', chatId)
-      .single();
+    // Use cache to avoid repeated memory fetches (2 minute TTL)
+    return await queryCache.get(
+      `memories:${chatId}`,
+      2 * 60 * 1000, // 2 minutes
+      async () => {
+        // Check if conversation has profile_id
+        const { data: conv } = await supabase
+          .from('conversations')
+          .select('profile_id, user_id')
+          .eq('id', chatId)
+          .single();
 
-    if (!conv?.profile_id) {
-      return { memoryContext: '', memoryIds: [] };
-    }
+        if (!conv?.profile_id) {
+          return { memoryContext: '', memoryIds: [] };
+        }
 
-    // Fetch user memories
-    const { data: memories } = await supabase
-      .from('user_memory')
-      .select('id, memory_text, memory_type, confidence_score, created_at, reference_count')
-      .eq('user_id', conv.user_id)
-      .eq('profile_id', conv.profile_id)
-      .eq('is_active', true)
-      .order('reference_count', { ascending: false })
-      .order('created_at', { ascending: false })
-      .limit(20);
+        // Fetch user memories
+        const { data: memories } = await supabase
+          .from('user_memory')
+          .select('id, memory_text, memory_type, confidence_score, created_at, reference_count')
+          .eq('user_id', conv.user_id)
+          .eq('profile_id', conv.profile_id)
+          .eq('is_active', true)
+          .order('reference_count', { ascending: false })
+          .order('created_at', { ascending: false })
+          .limit(20);
 
-    if (!memories || memories.length === 0) {
-      return { memoryContext: '', memoryIds: [] };
-    }
+        if (!memories || memories.length === 0) {
+          return { memoryContext: '', memoryIds: [] };
+        }
 
-    // Score and rank memories
-    const now = Date.now();
-    const scoredMemories = memories.map(m => {
-      const typeWeight = TYPE_WEIGHTS[m.memory_type] || 0.5;
-      const recencyFactor = 1 / (1 + (now - new Date(m.created_at).getTime()) / (1000 * 60 * 60 * 24 * 30));
-      const usageBoost = 1 + Math.log(1 + m.reference_count);
-      
-      return {
-        ...m,
-        score: typeWeight * m.confidence_score * usageBoost * recencyFactor
-      };
-    });
+        // Score and rank memories
+        const now = Date.now();
+        const scoredMemories = memories.map(m => {
+          const typeWeight = TYPE_WEIGHTS[m.memory_type] || 0.5;
+          const recencyFactor = 1 / (1 + (now - new Date(m.created_at).getTime()) / (1000 * 60 * 60 * 24 * 30));
+          const usageBoost = 1 + Math.log(1 + m.reference_count);
+          
+          return {
+            ...m,
+            score: typeWeight * m.confidence_score * usageBoost * recencyFactor
+          };
+        });
 
-    scoredMemories.sort((a, b) => b.score - a.score);
-    const topMemories = scoredMemories.slice(0, 10);
-    
-    const memoryContext = topMemories.map(m => `• ${m.memory_text}`).join('\n');
-    const memoryIds = topMemories.map(m => m.id);
+        scoredMemories.sort((a, b) => b.score - a.score);
+        const topMemories = scoredMemories.slice(0, 10);
+        
+        const memoryContext = topMemories.map(m => `• ${m.memory_text}`).join('\n');
+        const memoryIds = topMemories.map(m => m.id);
 
-    return { memoryContext, memoryIds };
+        return { memoryContext, memoryIds };
+      }
+    );
   } catch (error) {
     console.error('[memoryInjection] Error fetching memories:', error);
     return { memoryContext: '', memoryIds: [] };

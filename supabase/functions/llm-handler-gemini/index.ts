@@ -9,7 +9,8 @@ declare const Deno: {
   serve(handler: (req: Request) => Response | Promise<Response>): void;
 };
 
-import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createPooledClient } from "../_shared/supabaseClient.ts";
 import { fetchAndFormatMemories, updateMemoryUsage } from "../_shared/memoryInjection.ts";
 
 /* ----------------------------- Configuration ----------------------------- */
@@ -127,9 +128,7 @@ const imageGenerationTool = [
 ];
 
 /* ----------------------------- Supabase client --------------------------- */
-const supabase = createClient(ENV.SUPABASE_URL!, ENV.SUPABASE_SERVICE_ROLE_KEY!, {
-  auth: { persistSession: false }
-});
+const supabase = createPooledClient();
 
 /* --------------------------- Cache Management ---------------------------- */
 async function getCacheIfValid(chat_id: string) {

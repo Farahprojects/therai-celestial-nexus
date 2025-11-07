@@ -8,8 +8,9 @@
 // Dynamically routes to correct LLM handler based on system config
 // Updated: SEO improvements and routing fixes
 
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createPooledClient } from "../_shared/supabaseClient.ts";
 import { getLLMHandler } from "../_shared/llmConfig.ts";
+import { queryCache } from "../_shared/queryCache.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -25,10 +26,8 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 if (!SUPABASE_URL) throw new Error("Missing env: SUPABASE_URL");
 if (!SUPABASE_SERVICE_ROLE_KEY) throw new Error("Missing env: SUPABASE_SERVICE_ROLE_KEY");
 
-// Create Supabase client once
-const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
-auth: { persistSession: false }
-});
+// Create Supabase client with connection pooling
+const supabase = createPooledClient();
 
 const json = (status: number, data: any) =>
 new Response(JSON.stringify(data), {
@@ -271,15 +270,20 @@ meta: {}
 let shouldStartLLM = role === "user" && chattype !== "voice";
 let shouldExtractMemory = false;
 
+// Fetch conversation metadata once with caching (consolidates duplicate fetches)
+let conversationMode: string | null = null;
 if (shouldStartLLM) {
-  // Check conversation mode to determine if we should skip LLM
-  const { data: conv } = await supabase
-    .from('conversations')
-    .select('mode')
-    .eq('id', chat_id)
-    .single();
-  
-  const conversationMode = conv?.mode || 'chat';
+  conversationMode = await queryCache.getConversationMetadata(
+    chat_id,
+    async () => {
+      const { data: conv } = await supabase
+        .from('conversations')
+        .select('mode')
+        .eq('id', chat_id)
+        .single();
+      return conv?.mode || 'chat';
+    }
+  );
   
   // Together mode: only trigger LLM if @therai is present
   if (conversationMode === 'together' && analyze !== true) {
@@ -309,17 +313,8 @@ console.info(JSON.stringify({
   analyze: analyze
 }));
 
-// Determine which LLM handler to use
+// Determine which LLM handler to use (reuses cached conversation mode)
 const determineLLMHandler = async () => {
-  // Check conversation mode for Together Mode routing
-  const { data: conv } = await supabase
-    .from('conversations')
-    .select('mode')
-    .eq('id', chat_id)
-    .single();
-  
-  const conversationMode = conv?.mode || 'chat';
-  
   if (conversationMode === 'together' && analyze === true) {
     console.info(JSON.stringify({
       event: "chat_send_together_mode_routing",

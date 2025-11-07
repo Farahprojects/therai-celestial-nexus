@@ -13,7 +13,7 @@ declare const Deno: {
 };
 
 // @ts-ignore - ESM import works in Deno runtime
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createPooledClient } from "../_shared/supabaseClient.ts";
 
 const corsHeaders = {
 "Access-Control-Allow-Origin": "*",
@@ -46,8 +46,8 @@ if (!OPENAI_API_KEY) {
 console.log("[llm-handler-chatgpt] ✅ API Key loaded:", OPENAI_API_KEY.substring(0, 4) + "..." + OPENAI_API_KEY.substring(OPENAI_API_KEY.length - 4));
 console.log("[llm-handler-chatgpt] 📊 Using model:", OPENAI_MODEL);
 
-// Supabase client (module scope)
-const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } });
+// Supabase client with connection pooling
+const supabase = createPooledClient();
 
 // Simple sanitizer: strips common markdown and extra whitespace
 function sanitizePlainText(input: string) {
@@ -121,29 +121,48 @@ let history: MessageRow[] = [];
 try {
   console.log(`[llm-handler-chatgpt] ⏱️  Starting DB fetch for history (+${Date.now() - totalStartTime}ms)`);
   
-  // Single query: fetch all messages at once (index handles chat_id + created_at)
-  const { data: allMessages, error: fetchError } = await supabase
-    .from("messages")
-    .select("role, text, created_at")
-    .eq("chat_id", chat_id)
-    .order("created_at", { ascending: true });
+  // Fetch system message and history in parallel with proper filtering and limits
+  const [systemRes, historyRes] = await Promise.all([
+    // System message (most recent)
+    supabase
+      .from("messages")
+      .select("text")
+      .eq("chat_id", chat_id)
+      .eq("role", "system")
+      .eq("status", "complete")
+      .not("text", "is", null)
+      .neq("text", "")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    // Recent history (excluding system messages, with limit)
+    supabase
+      .from("messages")
+      .select("role, text, created_at")
+      .eq("chat_id", chat_id)
+      .neq("role", "system")
+      .eq("status", "complete")
+      .not("text", "is", null)
+      .neq("text", "")
+      .order("created_at", { ascending: false })
+      .limit(HISTORY_LIMIT)
+  ]);
 
-  if (fetchError) {
-    console.warn("[llm-handler-chatgpt] messages fetch warning:", fetchError.message);
+  if (systemRes.error) {
+    console.warn("[llm-handler-chatgpt] system message fetch warning:", systemRes.error.message);
+  }
+  if (historyRes.error) {
+    console.warn("[llm-handler-chatgpt] history fetch warning:", historyRes.error.message);
   }
 
-  // Separate system and history messages in JavaScript
-  if (allMessages && Array.isArray(allMessages)) {
-    const systemMessages = allMessages.filter((m: any) => m.role === "system");
-    const historyMessages = allMessages.filter((m: any) => m.role !== "system");
-    
-    // Get system text (most recent system message)
-    if (systemMessages.length > 0) {
-      systemText = String(systemMessages[systemMessages.length - 1].text || "");
-    }
-    
-    // Get history (most recent first, limit to HISTORY_LIMIT)
-    history = historyMessages.reverse().slice(0, HISTORY_LIMIT);
+  // Extract system text
+  if (systemRes.data?.text) {
+    systemText = String(systemRes.data.text);
+  }
+  
+  // Extract history (reverse to get chronological order)
+  if (historyRes.data && Array.isArray(historyRes.data)) {
+    history = historyRes.data.reverse();
   }
   
   console.log(`[llm-handler-chatgpt] ⏱️  DB fetch complete (+${Date.now() - totalStartTime}ms) - Found ${history.length} history messages`);

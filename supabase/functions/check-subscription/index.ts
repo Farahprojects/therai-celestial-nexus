@@ -2,7 +2,7 @@
 
 // Swiss Data Generator - Subscription Check Function
 import Stripe from "https://esm.sh/stripe@14.21.0";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { createPooledClient } from "../_shared/supabaseClient.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -15,11 +15,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const supabaseClient = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
-      { auth: { persistSession: false } }
-    );
+    const supabaseClient = createPooledClient();
 
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) throw new Error("No authorization header");
@@ -97,10 +93,7 @@ Deno.serve(async (req) => {
     }
 
     // Update profile with subscription data using service role
-    const serviceClient = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
-    );
+    const serviceClient = createPooledClient();
 
     await serviceClient.from("profiles").upsert({
       id: user.id,

@@ -5,7 +5,7 @@
 // - Uploads to Supabase Storage
 // - Creates message with image metadata
 
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createPooledClient } from "../_shared/supabaseClient.ts";
 import { GoogleGenAI } from "https://esm.sh/@google/genai@^1.0.0";
 
 const corsHeaders = {
@@ -24,10 +24,8 @@ if (!SUPABASE_URL) throw new Error("Missing env: SUPABASE_URL");
 if (!SUPABASE_SERVICE_ROLE_KEY) throw new Error("Missing env: SUPABASE_SERVICE_ROLE_KEY");
 if (!GOOGLE_API_KEY) throw new Error("Missing env: GOOGLE-LLM-NEW");
 
-// Create Supabase client
-const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
-  auth: { persistSession: false }
-});
+// Create Supabase client with connection pooling
+const supabase = createPooledClient();
 
 const json = (status: number, data: any) =>
   new Response(JSON.stringify(data), {

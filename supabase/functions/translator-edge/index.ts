@@ -1,5 +1,5 @@
 import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createPooledClient } from "../_shared/supabaseClient.ts";
 
 /*──────────────── ENV ------------------------------------------------------*/
 const SWISS_API = Deno.env.get("SWISS_EPHEMERIS_URL")!;
@@ -12,7 +12,7 @@ const GEO_TABLE   = Deno.env.get("GEOCODE_CACHE_TABLE") ?? "geo_cache";
 // Updated: Added support for weekly chart type
 const VERSION = "translator-edge v3.4 (2025‑01‑15)"; // Updated with efficient audio pipeline
 
-const sb = createClient(SB_URL, SB_KEY);
+const sb = createPooledClient();
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",

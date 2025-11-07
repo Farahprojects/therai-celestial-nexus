@@ -1,10 +1,8 @@
 
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createPooledClient } from "../_shared/supabaseClient.ts";
 
-// Initialize Supabase client role 
-const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const sb = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+// Initialize Supabase client with connection pooling
+const sb = createPooledClient();
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
