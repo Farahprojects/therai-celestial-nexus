@@ -203,11 +203,14 @@ const renderMessages = (messages: Message[], currentUserId?: string) => {
     
     // Render user messages (own vs other user)
     if (message.role === 'user') {
-      // Skip user message if the next message is an image (hide the prompt)
+      // Skip user message only if the next message is a COMPLETED image (hide the prompt)
+      // Don't hide if it's still generating (placeholder) - user needs to see their message
       const nextMessage = messages[i + 1];
-      const nextIsImage = nextMessage?.role === 'assistant' && nextMessage?.meta?.message_type === 'image';
+      const nextIsCompletedImage = nextMessage?.role === 'assistant' && 
+                                    nextMessage?.meta?.message_type === 'image' &&
+                                    nextMessage?.meta?.image_url; // Only hide if image is ready
       
-      if (nextIsImage) {
+      if (nextIsCompletedImage) {
         continue; // Skip rendering the user's image generation prompt
       }
       
@@ -222,6 +225,17 @@ const renderMessages = (messages: Message[], currentUserId?: string) => {
     
     // Render assistant messages
     if (message.role === 'assistant') {
+      // Debug log for ALL assistant messages
+      console.log('[renderMessages] 🔍 Assistant message:', {
+        id: message.id,
+        role: message.role,
+        text: message.text?.substring(0, 30),
+        status: message.meta?.status,
+        message_type: message.meta?.message_type,
+        has_image_url: !!message.meta?.image_url,
+        meta: message.meta
+      });
+      
       // Check if this is a generating image placeholder (skeleton)
       // Show skeleton if status is 'generating' OR if it's an image message without image_url yet
       const isGenerating = message.meta?.status === 'generating' && message.meta?.message_type === 'image';
