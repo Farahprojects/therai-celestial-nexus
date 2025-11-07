@@ -154,6 +154,7 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
     startConversation,
     updateConversation,
     setViewMode,
+    selectedFolderId,
   } = useChatStore();
   const { setChatId, messages } = useMessageStore();
 
@@ -415,6 +416,7 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
               onCreateFolder={isAuthenticated ? (id) => { setConversationToMoveToNewFolder(id); setShowFolderModal(true); } : undefined}
               allFolders={folders.map(f => ({ id: f.id, name: f.name }))}
               activeChatId={chat_id}
+              activeFolderId={selectedFolderId}
             />
           )}
         </div>

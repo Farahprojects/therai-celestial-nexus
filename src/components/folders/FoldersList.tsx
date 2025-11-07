@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Folder, ChevronRight, ChevronDown, MessageSquare, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -32,6 +32,7 @@ interface FoldersListProps {
   allFolders?: Array<{ id: string; name: string }>;
   activeChatId?: string;
   initiallyExpandedFolders?: Set<string>;
+  activeFolderId?: string | null;
 }
 
 export const FoldersList: React.FC<FoldersListProps> = ({
@@ -47,8 +48,16 @@ export const FoldersList: React.FC<FoldersListProps> = ({
   allFolders = [],
   activeChatId,
   initiallyExpandedFolders,
+  activeFolderId,
 }) => {
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(initiallyExpandedFolders || new Set());
+  
+  // Auto-expand the active folder
+  useEffect(() => {
+    if (activeFolderId && !expandedFolders.has(activeFolderId)) {
+      setExpandedFolders(prev => new Set([...prev, activeFolderId]));
+    }
+  }, [activeFolderId]);
   
   // Expand folder when clicking a chat from it
   const handleChatClick = (folderId: string, chatId: string) => {
