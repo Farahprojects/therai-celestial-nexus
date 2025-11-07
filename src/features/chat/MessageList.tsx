@@ -7,11 +7,13 @@ import { RefreshCw, AlertTriangle, Sparkles, Share2, Download } from 'lucide-rea
 import { useAutoScroll } from '@/hooks/useAutoScroll';
 import { useWordAnimation } from '@/hooks/useWordAnimation';
 import { Button } from '@/components/ui/button';
+import { ShareImageModal } from '@/components/chat/ShareImageModal';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 // TypewriterText removed - keeping source field logic for future use
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 
 // ⚡ MEMOIZED USER MESSAGE - Only re-renders when message data changes
 const UserMessage = React.memo(({ message, isOwn }: { message: Message; isOwn: boolean }) => (
@@ -46,15 +48,12 @@ const AssistantMessage = React.memo(({ message }: { message: Message }) => {
   const isImageMessage = meta?.message_type === 'image';
   const imageUrl = meta?.image_url;
   const imagePrompt = meta?.image_prompt;
+  const [showShareModal, setShowShareModal] = useState(false);
 
   // 🆕 RENDER IMAGE IF PRESENT
   if (isImageMessage && imageUrl) {
-    const handleShare = async () => {
-      try {
-        await navigator.clipboard.writeText(imageUrl);
-      } catch (error) {
-        console.error('Failed to copy to clipboard:', error);
-      }
+    const handleShare = () => {
+      setShowShareModal(true);
     };
 
     const handleDownload = async () => {
@@ -71,26 +70,28 @@ const AssistantMessage = React.memo(({ message }: { message: Message }) => {
         a.click();
         window.URL.revokeObjectURL(url);
         document.body.removeChild(a);
+        toast.success('Image downloaded');
       } catch (error) {
         console.error('Failed to download image:', error);
+        toast.error('Failed to download image');
       }
     };
 
     return (
       <div className="flex justify-center mb-8">
-        <div className="relative group rounded-2xl overflow-hidden w-full max-w-[80%]">
+        <div className="relative group inline-block max-w-[80vw] rounded-2xl overflow-hidden shadow-md">
           <img
             src={imageUrl}
             alt={imagePrompt || 'Generated image'}
-            className="w-full max-h-[80vh] object-contain rounded-2xl shadow-md cursor-pointer mx-auto"
+            className="block max-w-full max-h-[80vh] object-contain cursor-pointer"
             onClick={() => {
               const sidebarButton = document.querySelector('[data-image-gallery-button]') as HTMLButtonElement;
               if (sidebarButton) sidebarButton.click();
             }}
             loading="lazy"
           />
-          {/* Bottom bar with icons - gradient from dark to transparent */}
-          <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-black/0 group-hover:from-black/60 group-hover:to-transparent transition-all duration-200 flex items-center justify-center gap-3 rounded-b-2xl pointer-events-none">
+          {/* Bottom bar with icons - gradient from dark to transparent, matches image dimensions */}
+          <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-black/0 group-hover:from-black/70 group-hover:to-transparent transition-all duration-200 flex items-end justify-center gap-3 pb-3 pointer-events-none">
             <Button
               variant="ghost"
               size="icon"
@@ -115,6 +116,14 @@ const AssistantMessage = React.memo(({ message }: { message: Message }) => {
             </Button>
           </div>
         </div>
+
+        {/* Share Modal */}
+        <ShareImageModal
+          isOpen={showShareModal}
+          onClose={() => setShowShareModal(false)}
+          imageUrl={imageUrl}
+          imagePrompt={imagePrompt}
+        />
       </div>
     );
   }
@@ -194,6 +203,14 @@ const renderMessages = (messages: Message[], currentUserId?: string) => {
     
     // Render user messages (own vs other user)
     if (message.role === 'user') {
+      // Skip user message if the next message is an image (hide the prompt)
+      const nextMessage = messages[i + 1];
+      const nextIsImage = nextMessage?.role === 'assistant' && nextMessage?.meta?.message_type === 'image';
+      
+      if (nextIsImage) {
+        continue; // Skip rendering the user's image generation prompt
+      }
+      
       // Treat missing user_id as own message to avoid mis-coloring older rows
       const isOwn = message.user_id ? (currentUserId === message.user_id) : true;
       elements.push(
