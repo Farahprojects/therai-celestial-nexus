@@ -249,9 +249,8 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
       return;
     }
     
-    // If clicking from a folder, expand it and keep folder view mode
+    // If clicking from a folder, keep folder view mode
     if (folderId) {
-      setExpanded(new Set([folderId]));
       setViewMode('folder', folderId);
     }
     

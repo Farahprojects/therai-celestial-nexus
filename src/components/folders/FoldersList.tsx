@@ -31,6 +31,7 @@ interface FoldersListProps {
   onCreateFolder?: (conversationId: string) => void;
   allFolders?: Array<{ id: string; name: string }>;
   activeChatId?: string;
+  initiallyExpandedFolders?: Set<string>;
 }
 
 export const FoldersList: React.FC<FoldersListProps> = ({
@@ -45,8 +46,17 @@ export const FoldersList: React.FC<FoldersListProps> = ({
   onCreateFolder,
   allFolders = [],
   activeChatId,
+  initiallyExpandedFolders,
 }) => {
-  const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
+  const [expandedFolders, setExpandedFolders] = useState<Set<string>>(initiallyExpandedFolders || new Set());
+  
+  // Expand folder when clicking a chat from it
+  const handleChatClick = (folderId: string, chatId: string) => {
+    if (!expandedFolders.has(folderId)) {
+      setExpandedFolders(prev => new Set([...prev, folderId]));
+    }
+    onChatClick(folderId, chatId);
+  };
 
   const toggleFolder = (folderId: string) => {
     const newExpanded = new Set(expandedFolders);
@@ -139,7 +149,7 @@ export const FoldersList: React.FC<FoldersListProps> = ({
                       }`}>
                         <div 
                           className="flex-1 min-w-0 cursor-pointer flex items-center gap-2"
-                          onClick={() => onChatClick(folder.id, chat.id)}
+                          onClick={() => handleChatClick(folder.id, chat.id)}
                         >
                           <MessageSquare className="w-3.5 h-3.5 text-gray-500" />
                           <span className="text-sm font-medium text-gray-900 truncate">{chat.title}</span>
