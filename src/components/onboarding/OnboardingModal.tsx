@@ -116,7 +116,8 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
         .from('user_profile_list')
         .select('id')
         .eq(userIdColumn, profileUserId)
-        .eq(isPrimaryColumn, true);
+        .eq(isPrimaryColumn, true)
+        .maybeSingle();
       
       // Ignore "not found" errors - that's fine, we'll insert
       if (checkError && checkError.code !== 'PGRST116') {
