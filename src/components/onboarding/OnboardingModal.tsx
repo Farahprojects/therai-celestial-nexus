@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, User, CreditCard } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { AstroDataForm } from '@/components/chat/AstroDataForm';
+import { StarterQuestionsPopup } from '@/components/onboarding/StarterQuestionsPopup';
 import { ReportFormData } from '@/types/public-report';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -34,6 +35,23 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
   const [currentStep, setCurrentStep] = useState<OnboardingStep>('name');
   const [displayName, setDisplayName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [showStarterQuestions, setShowStarterQuestions] = useState(false);
+  const [conversationId, setConversationId] = useState<string | null>(null);
+
+  // Listen for chat-ready event from AstroDataForm
+  useEffect(() => {
+    const handleChatReady = (event: CustomEvent) => {
+      const { conversationId: chatId } = event.detail;
+      setConversationId(chatId);
+      console.log('[OnboardingModal] Chat ready, navigating to:', chatId);
+    };
+
+    window.addEventListener('onboarding:chat-ready', handleChatReady as EventListener);
+
+    return () => {
+      window.removeEventListener('onboarding:chat-ready', handleChatReady as EventListener);
+    };
+  }, []);
 
   if (!isOpen) return null;
 
@@ -245,13 +263,82 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
     }
   };
 
-  const handleSubscribe = () => {
-    markOnboardingComplete();
+  const handleSubscribe = async () => {
+    await markOnboardingComplete();
     navigate('/subscription-paywall');
   };
 
-  const handleSkipSubscription = () => {
-    markOnboardingComplete();
+  const handleSkipSubscription = async () => {
+    await markOnboardingComplete();
+    
+    // Navigate to conversation and show starter questions
+    if (conversationId) {
+      // Initialize conversation and navigate
+      const { chatController } = await import('@/features/chat/ChatController');
+      await chatController.initializeConversation(conversationId);
+      
+      navigate(`/c/${conversationId}`, { replace: true });
+      
+      // Show starter questions popup after a brief delay to ensure navigation completes
+      setTimeout(() => {
+        setShowStarterQuestions(true);
+      }, 300);
+    }
+  };
+
+  const handleQuestionSelect = async (question: string) => {
+    setShowStarterQuestions(false);
+    
+    if (!conversationId || !user) {
+      console.error('[OnboardingModal] Missing conversationId or user');
+      return;
+    }
+
+    try {
+      // Send the selected question as a message
+      const { llmService } = await import('@/services/llm/chat');
+      const { useMessageStore } = await import('@/stores/messageStore');
+      const { useChatStore } = await import('@/core/store');
+      
+      // Ensure chat_id is set in message store
+      useMessageStore.getState().setChatId(conversationId);
+      useChatStore.getState().startConversation(conversationId);
+      
+      // Create optimistic message
+      const client_msg_id = crypto.randomUUID();
+      const optimisticMessage = {
+        id: client_msg_id,
+        chat_id: conversationId,
+        role: 'user' as const,
+        text: question,
+        createdAt: new Date().toISOString(),
+        status: 'thinking' as const,
+        client_msg_id,
+        mode: 'chat',
+        user_id: user.id,
+        user_name: displayName || 'User'
+      };
+      
+      // Add message to UI immediately
+      const { addOptimisticMessage } = useMessageStore.getState();
+      addOptimisticMessage(optimisticMessage);
+      
+      // Send message to backend
+      await llmService.sendMessage({
+        chat_id: conversationId,
+        text: question,
+        mode: 'chat',
+        chattype: 'text',
+        client_msg_id,
+        user_id: user.id,
+        user_name: displayName || 'User'
+      });
+      
+      console.log('[OnboardingModal] Message sent successfully');
+    } catch (error) {
+      console.error('[OnboardingModal] Error sending message:', error);
+      toast.error('Failed to send message. Please try again.');
+    }
   };
 
   return (
@@ -406,6 +493,12 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
           )}
         </AnimatePresence>
       </motion.div>
+
+      {/* Starter Questions Popup */}
+      <StarterQuestionsPopup
+        isOpen={showStarterQuestions}
+        onQuestionSelect={handleQuestionSelect}
+      />
     </div>
   );
 };

@@ -17,7 +17,8 @@ import { useAstroConversation } from '@/hooks/useAstroConversation';
 import { useAstroFormValidation } from '@/hooks/useAstroFormValidation';
 import { useAstroReportPayload } from '@/hooks/useAstroReportPayload';
 import { useProfileSaver } from '@/hooks/useProfileSaver';
-import { createFolder } from '@/services/folders';
+import { createFolder, moveConversationToFolder } from '@/services/folders';
+import { createConversation } from '@/services/conversations';
 
 // Step components
 import { AstroTypeStep } from './AstroForm/AstroTypeStep';
@@ -167,28 +168,26 @@ export const AstroDataForm: React.FC<AstroDataFormProps> = ({
     if (isProfileFlow) {
       setIsProcessing(true);
       try {
-        // Run profile/conversation creation and folder creation in parallel
-        const results = await Promise.allSettled([
-          onSubmit({ ...data, request: 'essence' }),  // Profile + conversation
-          createFolder(user.id, 'My folder')
-        ]);
+        // Step 1: Create profile (existing flow)
+        await onSubmit({ ...data, request: 'essence' });
         
-        // If folder was created successfully, dispatch event to update UI
-        const folderResult = results[1];
-        if (folderResult.status === 'fulfilled') {
-          window.dispatchEvent(new CustomEvent('folders:created', {
-            detail: { folderId: folderResult.value.id }
-          }));
-        } else {
-          // Log error but don't block - folder creation is non-critical
-          console.error('Error creating default folder during onboarding:', folderResult.reason);
-        }
+        // Step 2: Create folder
+        const folder = await createFolder(user.id, 'My folder');
+        console.log('[AstroDataForm] Folder created:', folder.id);
         
-        // Check if profile/conversation creation failed
-        const profileResult = results[0];
-        if (profileResult.status === 'rejected') {
-          throw profileResult.reason;
-        }
+        // Step 3: Create a new chat conversation
+        const conversationId = await createConversation(user.id, 'chat', 'New Chat');
+        console.log('[AstroDataForm] Conversation created:', conversationId);
+        
+        // Step 4: Move conversation to folder
+        await moveConversationToFolder(conversationId, folder.id);
+        console.log('[AstroDataForm] Conversation moved to folder');
+        
+        // Dispatch event with both folder and conversation IDs
+        window.dispatchEvent(new CustomEvent('onboarding:chat-ready', {
+          detail: { folderId: folder.id, conversationId }
+        }));
+        
       } catch (error) {
         console.error('[AstroDataForm] Profile submission error:', error);
         toast.error('Failed to submit profile data. Please try again.');
