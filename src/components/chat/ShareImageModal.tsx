@@ -1,13 +1,21 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Link as LinkIcon, Twitter, Facebook, MessageCircle, Download } from 'lucide-react';
+import { X, Link as LinkIcon, Facebook, MessageCircle, Download } from 'lucide-react';
 import { toast } from 'sonner';
+
+// X (Twitter) Icon
+const XIcon = ({ className }: { className?: string }) => (
+  <svg viewBox="0 0 24 24" className={className} fill="currentColor">
+    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+  </svg>
+);
 
 interface ShareImageModalProps {
   isOpen: boolean;
   onClose: () => void;
   imageUrl: string;
   imagePrompt?: string;
+  shareUrl?: string;
 }
 
 export const ShareImageModal: React.FC<ShareImageModalProps> = ({
@@ -15,10 +23,13 @@ export const ShareImageModal: React.FC<ShareImageModalProps> = ({
   onClose,
   imageUrl,
   imagePrompt,
+  shareUrl,
 }) => {
+  const targetUrl = shareUrl || imageUrl;
+
   const handleCopyLink = async () => {
     try {
-      await navigator.clipboard.writeText(imageUrl);
+      await navigator.clipboard.writeText(targetUrl);
       toast.success('Link copied to clipboard');
       onClose();
     } catch (error) {
@@ -28,20 +39,20 @@ export const ShareImageModal: React.FC<ShareImageModalProps> = ({
   };
 
   const handleShareTwitter = () => {
-    const text = 'www.therai.co';
-    const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(imageUrl)}`;
+    const text = 'therai.co';
+    const url = `https://twitter.com/intent/tweet?url=${encodeURIComponent(targetUrl)}&text=${encodeURIComponent(text)}`;
     window.open(url, '_blank', 'width=550,height=420');
     onClose();
   };
 
   const handleShareFacebook = () => {
-    const url = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(imageUrl)}`;
+    const url = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(targetUrl)}`;
     window.open(url, '_blank', 'width=550,height=420');
     onClose();
   };
 
   const handleShareWhatsApp = () => {
-    const text = `www.therai.co\n${imageUrl}`;
+    const text = `${targetUrl}\n\ntherai.co`;
     const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
     window.open(url, '_blank');
     onClose();
@@ -109,8 +120,8 @@ export const ShareImageModal: React.FC<ShareImageModalProps> = ({
                   onClick={handleShareTwitter}
                   className="px-4 py-3 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-900 font-light transition-colors flex flex-col items-center justify-center gap-2"
                 >
-                  <Twitter className="w-5 h-5" />
-                  <span className="text-xs">Twitter</span>
+                  <XIcon className="w-5 h-5" />
+                  <span className="text-xs">X</span>
                 </button>
 
                 <button
