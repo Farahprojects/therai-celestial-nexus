@@ -371,7 +371,7 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
       <div className="flex-1 overflow-y-auto min-h-0">
         {/* New Chat + Search */}
         {conversationType !== 'swiss' && (
-          <div className="space-y-0.5 px-2 pt-2 pb-0">
+          <div className="space-y-0.5 pt-2 pb-0">
             <Button
               variant="ghost"
               className="w-full justify-start gap-2 px-3 py-1 text-sm font-light"
@@ -383,7 +383,6 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
             <Button variant="ghost" className="w-full justify-start gap-2 px-3 py-1 text-sm font-light" onClick={() => setShowSearchModal(true)}>
               <Search className="w-4 h-4" /> Search Chat
             </Button>
-            <ExploreActions />
             <Button 
               variant="ghost" 
               className="w-full justify-start gap-2 px-3 py-1 text-sm font-light" 
@@ -392,22 +391,30 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
             >
               <Image className="w-4 h-4" /> Images
             </Button>
+            <ExploreActions />
           </div>
         )}
 
         {/* Folders */}
-        <div className="px-2">
-          <AddFolderButton
-            onClick={() => {
-              if (!isAuthenticated) return setShowAuthModal(true);
-              setEditingFolder(null);
-              setShowFolderModal(true);
-            }}
-            isExpanded={expanded}
-            onToggleExpand={() => setExpanded(!expanded)}
-          />
-          {expanded && (
-            <FoldersList
+        <div className="mt-2">
+          <button
+            type="button"
+            onClick={() => setExpanded((prev) => !prev)}
+            className="flex w-full items-center px-3 py-1 text-xs text-gray-600 font-medium"
+            aria-expanded={expanded}
+          >
+            Folders
+          </button>
+          <div>
+            <AddFolderButton
+              onClick={() => {
+                if (!isAuthenticated) return setShowAuthModal(true);
+                setEditingFolder(null);
+                setShowFolderModal(true);
+              }}
+            />
+            {expanded && (
+              <FoldersList
               folders={folders}
               onFolderClick={(id) => { navigate(`/folders/${id}`, { replace: true }); onCloseMobileSidebar?.(); }}
               onChatClick={(folderId, chatId) => switchToChat(chatId, folderId)}
@@ -422,27 +429,28 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
               activeFolderId={selectedFolderId}
             />
           )}
+          </div>
         </div>
 
         {/* Threads */}
         <div className="mt-2">
           <div className="text-xs text-gray-600 font-medium px-3 py-1">History</div>
           {isLoadingThreads ? (
-            <div className="space-y-1 px-2">
+            <div className="space-y-1">
               {Array.from({ length: 5 }).map((_, i) => (
-                <div key={i} className="p-2 rounded-lg animate-pulse bg-gray-100" />
+                <div key={i} className="py-2 px-3 rounded-lg animate-pulse bg-gray-100" />
               ))}
             </div>
           ) : filteredThreads.length === 0 ? (
             <div className="text-xs text-gray-500 px-3 py-1">No previous chats</div>
           ) : (
-            <div className="space-y-0.5 px-2">
+            <div className="space-y-0.5">
               {filteredThreads.slice(0, visible).map((c) => {
                 const isActive = c.id === chat_id;
                 const isPending = (c.meta as any)?.isPending || pendingInsightThreads.has(c.id);
 
                 return (
-                  <div key={c.id} className={cn('group flex items-center gap-2 p-1.5 rounded-lg transition-colors', isActive ? 'bg-gray-100' : 'hover:bg-gray-100', isPending && 'opacity-60') }>
+                  <div key={c.id} className={cn('group flex items-center gap-2 py-1.5 px-3 rounded-lg transition-colors', isActive ? 'bg-gray-100' : 'hover:bg-gray-100', isPending && 'opacity-60') }>
                     {isPending && (
                       <svg className="w-4 h-4 animate-spin text-gray-600" viewBox="0 0 24 24">
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />

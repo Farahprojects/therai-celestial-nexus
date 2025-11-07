@@ -114,7 +114,6 @@ export const FoldersList: React.FC<FoldersListProps> = ({
                 ))}
                 <Folder className="w-4 h-4 text-gray-600" />
                 <span className="flex-1 text-left">{folder.name}</span>
-                <span className="text-sm font-semibold text-gray-900">{folder.chatsCount}</span>
               </button>
 
               {/* Folder Actions Menu - only show for authenticated users */}

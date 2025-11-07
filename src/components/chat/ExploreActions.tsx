@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { LayoutGrid, Blend, Sparkles, Orbit } from 'lucide-react';
+import { Blend, Sparkles, Orbit } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useChatCreation } from '@/components/chat/ChatCreationProvider';
 
@@ -8,14 +8,13 @@ export const ExploreActions: React.FC = () => {
   const [isExpanded, setIsExpanded] = useState(true);
 
   return (
-    <div className="space-y-0">
+    <div className="space-y-0 mt-2">
       <button
         type="button"
         onClick={() => setIsExpanded((prev) => !prev)}
-        className="flex w-full items-center gap-1.5 rounded-lg px-3 py-1 text-sm font-light text-gray-900 transition-colors hover:bg-gray-100"
+        className="flex w-full items-center px-3 py-1 text-xs text-gray-600 font-medium"
         aria-expanded={isExpanded}
       >
-        <LayoutGrid className="h-4 w-4" />
         Explore
       </button>
 
