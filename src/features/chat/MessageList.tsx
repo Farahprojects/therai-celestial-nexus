@@ -203,17 +203,6 @@ const renderMessages = (messages: Message[], currentUserId?: string) => {
     
     // Render user messages (own vs other user)
     if (message.role === 'user') {
-      // Skip user message only if the next message is a COMPLETED image (hide the prompt)
-      // Don't hide if it's still generating (placeholder) - user needs to see their message
-      const nextMessage = messages[i + 1];
-      const nextIsCompletedImage = nextMessage?.role === 'assistant' && 
-                                    nextMessage?.meta?.message_type === 'image' &&
-                                    nextMessage?.meta?.image_url; // Only hide if image is ready
-      
-      if (nextIsCompletedImage) {
-        continue; // Skip rendering the user's image generation prompt
-      }
-      
       // Treat missing user_id as own message to avoid mis-coloring older rows
       const isOwn = message.user_id ? (currentUserId === message.user_id) : true;
       // Use client_msg_id as key if available to prevent glitch when optimistic message is replaced
