@@ -340,7 +340,7 @@ Deno.serve(async (req: Request) => {
       console.warn("[memories] fetch failed:", (e as any)?.message || e);
       return { memoryContext: "", memoryIds: [] };
     });
-    const { memoryContext = "", memoryIds = [] } = memoryResult;
+    const { memoryContext = "", memoryIds = [] } = memoryResult || { memoryContext: "", memoryIds: [] };
 
     // Build contents (oldest -> newest)
     type GeminiContent = { role: "user" | "model"; parts: { text: string }[] };
