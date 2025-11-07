@@ -7,6 +7,7 @@ import { useMode } from '@/contexts/ModeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserData } from '@/hooks/useUserData';
 import { useFeatureUsage } from '@/hooks/useFeatureUsage';
+import { useMessageStore } from '@/stores/messageStore';
 // Old audio level hook removed - using AudioWorklet + WebWorker pipeline
 import { VoiceBubble } from './VoiceBubble';
 // Universal audio pipeline
@@ -31,6 +32,7 @@ export const ConversationOverlay: React.FC = () => {
   const { user } = useAuth();
   const { displayName } = useUserData();
   const { usage } = useFeatureUsage();
+  const addMessage = useMessageStore((state) => state.addMessage);
   const [state, setState] = useState<ConversationState>('connecting');
   const [showSTTLimitNotification, setShowSTTLimitNotification] = useState(false);
   
@@ -171,15 +173,25 @@ export const ConversationOverlay: React.FC = () => {
         }
       };
       
+      const handleMessageInsert = (payload: any) => {
+        if (isShuttingDown.current) return;
+        if (payload.message && payload.chat_id === chat_id) {
+          console.log('[ConversationOverlay] Received message-insert, adding to store:', payload.message);
+          addMessage(payload.message);
+        }
+      };
+      
       // Register listeners
       const unsubscribeTTS = unifiedChannel.on('voice-tts-ready', handleTTSReady);
       const unsubscribeThinking = unifiedChannel.on('voice-thinking', handleThinking);
+      const unsubscribeMessageInsert = unifiedChannel.on('message-insert', handleMessageInsert);
       
       // Store cleanup functions
       connectionRef.current = {
         cleanup: () => {
           unsubscribeTTS();
           unsubscribeThinking();
+          unsubscribeMessageInsert();
         }
       };
       
@@ -190,7 +202,7 @@ export const ConversationOverlay: React.FC = () => {
       resetToTapToStart('WebSocket connection failed');
       return false;
     }
-  }, [chat_id, user]);
+  }, [chat_id, user, addMessage]);
 
   // TTS playback
   const playAudioImmediately = useCallback(async (audioBytes: number[]) => {
