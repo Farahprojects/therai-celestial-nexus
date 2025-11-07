@@ -178,15 +178,12 @@ const AssistantMessage = React.memo(({ message }: { message: Message }) => {
 });
 AssistantMessage.displayName = 'AssistantMessage';
 
-// Image skeleton component
+// Image skeleton component - matches the actual image container
 const ImageSkeleton = ({ prompt }: { prompt: string }) => (
-  <div className="flex items-end gap-3 justify-start mb-8">
-    <div className="relative rounded-xl w-96 overflow-hidden">
-      <div className="w-full aspect-square bg-gray-100 animate-pulse">
-        <div className="w-full h-full bg-gradient-to-br from-gray-200 via-gray-100 to-gray-200" />
-      </div>
-      <div className="absolute inset-0 flex items-center justify-center">
-        <p className="text-gray-400 text-sm px-4 text-center">{prompt}</p>
+  <div className="flex justify-center mb-8">
+    <div className="relative inline-block max-w-[80vw] rounded-2xl overflow-hidden shadow-md">
+      <div className="w-[512px] h-[512px] bg-gray-50 animate-pulse flex items-center justify-center">
+        <div className="absolute inset-0 bg-gradient-to-br from-gray-100/50 via-gray-50 to-gray-100/50 animate-pulse" />
       </div>
     </div>
   </div>
