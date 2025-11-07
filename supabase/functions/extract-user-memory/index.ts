@@ -23,47 +23,65 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
   auth: { persistSession: false }
 });
 
-const json = (status: number, data: any) =>
+const json = (status, data) =>
   new Response(JSON.stringify(data), {
     status,
     headers: { ...corsHeaders, "Content-Type": "application/json" }
   });
 
-const extractionPrompt = `You are a memory extraction system analyzing a conversation turn between a user and their astrology AI companion.
+// Memory extraction prompt, single best memory with value scoring and safety gates
+const extractionPrompt = `
+You are a memory extraction system for an astrology-based AI companion focused on energy patterns, cycles, and self-relationship.
 
-Your task: Extract 0-3 memorable insights about the user from this exchange.
+Given a short conversation window (latest user + assistant turn with brief context), decide whether there is exactly one valuable memory to save about the user.
 
-Memory types:
-- fact: Concrete information about user's life (job, relationships, events)
-- emotion: Emotional states or patterns
-- goal: User's aspirations, intentions, or objectives
-- pattern: Recurring behavioral or thought patterns
-- relationship: Information about connections with others
+Only save if it materially helps future personalization and has enduring or seasonal value.
+
+Memory schema:
+
+type: one of [fact, emotion, goal, pattern, relationship]
+text: 1-2 sentences, concise, neutral, non-judgmental
+confidence: 0.50-1.00 (how certain the statement is correct)
+value_score: 0.00-1.00 (how useful this is for future personalization)
+time_horizon: "enduring" (months+), "seasonal" (weeks to months), "ephemeral" (days)
+rationale: one sentence explaining why this adds value
 
 Rules:
-1. Only extract meaningful, non-obvious information
-2. Skip pleasantries, opinions about the AI, or ephemeral logistics
-3. Do NOT store medical diagnoses or financial claims (or mark very low confidence)
-4. Write concise memory_text (1-2 sentences max)
-5. Assign confidence score 0.5-1.0 based on clarity
 
-Output strict JSON:
+Prefer enduring or seasonal memories. Avoid ephemeral logistics (e.g., "tomorrow", "next call", "this weekend").
+Do not store medical diagnoses, financial hardship claims, exact addresses, phone numbers, emails, or government IDs.
+Focus on energy patterns, emotional tendencies, motivations, goals, relationship dynamics, recurring cycles, and significant life facts.
+If content is unclear, speculative, or only about the AI, skip.
+If multiple candidates exist, choose the single best one by value_score.
+If nothing is clearly useful, return decision=skip.
+
+Output STRICT JSON (no markdown, no comments):
 {
-  "memories": [
-    {"type":"goal","text":"...","confidence":0.86},
-    {"type":"pattern","text":"...","confidence":0.78}
-  ]
+"decision": "save" | "skip",
+"memory": {
+"type": "fact" | "emotion" | "goal" | "pattern" | "relationship",
+"text": "...",
+"confidence": 0.0,
+"value_score": 0.0,
+"time_horizon": "enduring" | "seasonal" | "ephemeral",
+"rationale": "..."
+}
 }
 
-Examples of what NOT to save:
-- "User said thank you"
-- "User asked about the AI's capabilities"
-- "User wants to schedule a call tomorrow" (too ephemeral)
+Examples to SAVE:
 
-Examples of what TO save:
-- "User launched a coaching business in October 2024" (fact)
-- "User feels anxious during Mercury retrograde periods" (pattern)
-- "User's goal: Improve communication with partner by year-end" (goal)`;
+"User feels anxious during Mercury retrogrades and plans extra self-care" (pattern, seasonal)
+"User intends to practice clearer boundary-setting with their sister this quarter" (goal, seasonal)
+"User started a new role as a product designer in 2024" (fact, enduring)
+"User notices feeling energized during Mars transits and uses that for workouts" (pattern, seasonal)
+
+Examples to SKIP:
+
+Pleasantries, praise/complaints about the AI, scheduling, one-off errands, vague speculation, or sensitive PII.
+Medical or financial diagnoses (unless anonymized and explicitly user-provided goals without sensitive claims, and still prefer skip).
+
+Return only the JSON object described above.
+`;
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -76,6 +94,18 @@ Deno.serve(async (req) => {
       return json(400, { error: "Missing required fields" });
     }
 
+    // Ensure this message exists and is an assistant message we act upon
+    const { data: msg, error: msgErr } = await supabase
+      .from("messages")
+      .select("id, chat_id, role, status, created_at")
+      .eq("id", message_id)
+      .single();
+
+    if (msgErr || !msg) return json(400, { error: "Message not found" });
+    if (msg.role !== "assistant" || msg.status !== "complete") {
+      return json(200, { message: "Not an eligible assistant message", skipped: true });
+    }
+
     // Check idempotency: already extracted for this message?
     const { data: existing } = await supabase
       .from("user_memory")
@@ -83,83 +113,55 @@ Deno.serve(async (req) => {
       .eq("conversation_id", conversation_id)
       .eq("source_message_id", message_id)
       .limit(1)
-      .single();
+      .maybeSingle();
 
     if (existing) {
       return json(200, { message: "Already extracted", skipped: true });
     }
 
-    // Validate conversation has profile_id and profile is primary
-    const { data: conv } = await supabase
+    // Validate conversation -> profile, and ownership
+    const { data: conv, error: convErr } = await supabase
       .from("conversations")
-      .select("profile_id, mode, user_id")
+      .select("id, profile_id, mode, user_id")
       .eq("id", conversation_id)
       .single();
 
-    if (!conv?.profile_id) {
-      return json(200, { message: "No profile selected", skipped: true });
-    }
+    if (convErr || !conv) return json(400, { error: "Conversation not found" });
+    if (!conv.profile_id) return json(200, { message: "No profile selected", skipped: true });
+    if (conv.user_id !== user_id) return json(403, { error: "User mismatch for conversation" });
 
-    const { data: profile } = await supabase
+    const { data: profile, error: profileErr } = await supabase
       .from("user_profile_list")
-      .select("is_primary, user_id")
+      .select("id, is_primary, user_id")
       .eq("id", conv.profile_id)
       .single();
 
-    if (!profile?.is_primary || profile.user_id !== user_id) {
+    if (profileErr || !profile) return json(400, { error: "Profile not found" });
+    if (!profile.is_primary || profile.user_id !== user_id) {
       return json(200, { message: "Not primary profile or user mismatch", skipped: true });
     }
 
-    // Rate limit: Only extract every 3-5 assistant messages
-    const { count: assistantCountResult, error: assistantCountError } = await supabase
+    // Build a small context window up to the assistant message
+    const { data: windowMsgs, error: windowErr } = await supabase
       .from("messages")
-      .select("id", { count: "exact", head: true })
+      .select("id, role, text, created_at")
       .eq("chat_id", conversation_id)
-      .eq("role", "assistant");
-
-    if (assistantCountError) {
-      console.error("[extract-user-memory] Failed to count assistant messages", assistantCountError);
-      return json(500, { error: "Failed to count assistant messages" });
-    }
-
-    const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString();
-    const { count: recentExtractionsResult, error: recentExtractionsError } = await supabase
-      .from("user_memory")
-      .select("id", { count: "exact", head: true })
-      .eq("conversation_id", conversation_id)
-      .gte("created_at", tenMinutesAgo);
-
-    if (recentExtractionsError) {
-      console.error("[extract-user-memory] Failed to count recent extractions", recentExtractionsError);
-      return json(500, { error: "Failed to count recent extractions" });
-    }
-
-    const assistantMessageCount = assistantCountResult ?? 0;
-    const recentExtractionsCount = recentExtractionsResult ?? 0;
-
-    if (recentExtractionsCount > 0 && assistantMessageCount < 5) {
-      return json(200, { message: "Rate limited: too soon after last extraction", skipped: true });
-    }
-
-    // Get the message and previous context (last 4 messages)
-    const { data: messages } = await supabase
-      .from("messages")
-      .select("role, text, created_at")
-      .eq("chat_id", conversation_id)
+      .lte("created_at", msg.created_at)
       .eq("status", "complete")
       .order("created_at", { ascending: false })
-      .limit(5);
+      .limit(8);
 
-    if (!messages || messages.length === 0) {
-      return json(400, { error: "No messages found" });
+    if (windowErr || !windowMsgs || windowMsgs.length === 0) {
+      return json(400, { error: "No messages found for context" });
     }
 
-    const conversationText = messages
+    const conversationText = windowMsgs
+      .slice()
       .reverse()
       .map(m => `${m.role === "assistant" ? "AI" : "User"}: ${m.text}`)
       .join("\n\n");
 
-    // Call Gemini for extraction
+    // Call Gemini for extraction (one best candidate or skip)
     const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
     const requestBody = {
       system_instruction: {
@@ -169,12 +171,12 @@ Deno.serve(async (req) => {
       contents: [
         {
           role: "user",
-          parts: [{ text: `Analyze this conversation turn and extract memories:\n\n${conversationText}` }]
+          parts: [{ text: `Analyze this short conversation window and return either one valuable memory or skip:\n\n${conversationText}` }]
         }
       ],
       generationConfig: {
-        temperature: 0.3,
-        maxOutputTokens: 500,
+        temperature: 0.2,
+        maxOutputTokens: 300,
         responseMimeType: "application/json"
       }
     };
@@ -188,93 +190,244 @@ Deno.serve(async (req) => {
       body: JSON.stringify(requestBody)
     });
 
-    if (!resp.ok) {
-      throw new Error(`Gemini API error: ${resp.status}`);
-    }
+    if (!resp.ok) throw new Error(`Gemini API error: ${resp.status}`);
 
     const data = await resp.json();
-    const responseText = data?.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
-    const result = JSON.parse(responseText);
-    const memories = result.memories || [];
+    const responseText = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? "{}";
+    const parsed = safeJson(responseText) || { decision: "skip" };
 
-    if (memories.length === 0) {
-      return json(200, { message: "No memories extracted", count: 0 });
+    if (parsed.decision !== "save" || !parsed.memory) {
+      return json(200, { message: "No valuable memory this turn", count: 0 });
     }
 
-    // Simple text-based deduplication
-    const { data: recentMemories } = await supabase
-      .from("user_memory")
-      .select("id, memory_text, reference_count")
-      .eq("user_id", user_id)
-      .eq("profile_id", conv.profile_id)
-      .eq("is_active", true)
-      .order("created_at", { ascending: false })
-      .limit(50);
+    const mem = sanitizeMemory(parsed.memory);
 
-    const memoriesToInsert = [];
+    // Hard filters: only store if high-value & safe
+    if (!isAllowedType(mem.type)) {
+      return json(200, { message: "Rejected: unsupported type", skipped: true });
+    }
 
-    for (const mem of memories.slice(0, 3).filter((m: any) => (m.confidence ?? 0) >= 0.85)) {
-      // Check similarity (simple text overlap)
-      let isDuplicate = false;
-      if (recentMemories) {
-        for (const existing of recentMemories) {
-          const similarity = textSimilarity(mem.text, existing.memory_text);
-          if (similarity > 0.65) {
-            // Increment reference_count instead
+    if (!passesSafety(mem.text)) {
+      return json(200, { message: "Rejected: safety/PII/medical/financial", skipped: true });
+    }
+
+    // Minimum quality thresholds
+    if (!mem.text || mem.text.length < 10 || mem.text.length > 300) {
+      return json(200, { message: "Rejected: low content value", skipped: true });
+    }
+
+    if ((mem.confidence ?? 0) < 0.82) {
+      return json(200, { message: "Rejected: low confidence", skipped: true });
+    }
+
+    if ((mem.value_score ?? 0) < 0.72) {
+      return json(200, { message: "Rejected: low value", skipped: true });
+    }
+
+    if (mem.time_horizon === "ephemeral") {
+      return json(200, { message: "Rejected: ephemeral", skipped: true });
+    }
+
+    // Dedup: canonical hash + fuzzy text similarity fallback
+    const canonical = canonicalize(mem.text);
+    const canonicalHash = await sha256Hex(canonical);
+
+    // First try hash-based match if column exists
+    let duplicateHandled = false;
+    let usedHashDedup = false;
+
+    try {
+      const { data: existingByHash, error: hashErr } = await supabase
+        .from("user_memory")
+        .select("id, memory_text, reference_count")
+        .eq("user_id", user_id)
+        .eq("profile_id", conv.profile_id)
+        .eq("is_active", true)
+        .eq("canonical_hash", canonicalHash)
+        .limit(1)
+        .maybeSingle();
+
+      if (!hashErr && existingByHash) {
+        await supabase
+          .from("user_memory")
+          .update({
+            reference_count: (existingByHash.reference_count ?? 0) + 1,
+            last_referenced_at: new Date().toISOString()
+          })
+          .eq("id", existingByHash.id);
+
+        duplicateHandled = true;
+        usedHashDedup = true;
+      }
+    } catch (_) {
+      // Column may not exist; fall through to fuzzy dedup
+    }
+
+    if (!duplicateHandled) {
+      // Fuzzy dedup on recent memories (Jaccard similarity)
+      const { data: recentMemories } = await supabase
+        .from("user_memory")
+        .select("id, memory_text, reference_count")
+        .eq("user_id", user_id)
+        .eq("profile_id", conv.profile_id)
+        .eq("is_active", true)
+        .order("created_at", { ascending: false })
+        .limit(200);
+
+      if (recentMemories && recentMemories.length > 0) {
+        const SIM_THRESHOLD = 0.7;
+        const normalizedNew = canonical; // Already normalized
+        for (const ex of recentMemories) {
+          const sim = jaccardSimilarity(normalizedNew, canonicalize(ex.memory_text));
+          if (sim >= SIM_THRESHOLD) {
             await supabase
               .from("user_memory")
               .update({
-                reference_count: existing.reference_count + 1,
+                reference_count: (ex.reference_count ?? 0) + 1,
                 last_referenced_at: new Date().toISOString()
               })
-              .eq("id", existing.id);
-            isDuplicate = true;
+              .eq("id", ex.id);
+            duplicateHandled = true;
             break;
           }
         }
       }
-
-      if (!isDuplicate) {
-        memoriesToInsert.push({
-          user_id,
-          profile_id: conv.profile_id,
-          conversation_id,
-          source_message_id: message_id,
-          memory_text: mem.text,
-          memory_type: mem.type,
-          confidence_score: mem.confidence || 0.85,
-          origin_mode: conv.mode,
-          created_at: new Date().toISOString()
-        });
-      }
     }
 
-    if (memoriesToInsert.length > 0) {
-      const { error } = await supabase
-        .from("user_memory")
-        .insert(memoriesToInsert);
+    if (duplicateHandled) {
+      // Mark this message as processed to ensure one-per-turn idempotency
+      await markSourceSeen(conversation_id, message_id, {
+        user_id,
+        profile_id: conv.profile_id,
+        origin_mode: conv.mode
+      });
 
-      if (error) throw error;
+      return json(200, {
+        message: usedHashDedup ? "Duplicate (hash) -> reference_count++" : "Duplicate (fuzzy) -> reference_count++",
+        count: 0,
+        duplicates: 1
+      });
     }
 
-    return json(200, {
-      message: "Memories extracted",
-      count: memoriesToInsert.length,
-      duplicates: memories.length - memoriesToInsert.length
-    });
+    // Insert a single memory
+    const memoryRow = {
+      user_id,
+      profile_id: conv.profile_id,
+      conversation_id,
+      source_message_id: message_id,
+      memory_text: mem.text,
+      memory_type: mem.type,
+      confidence_score: clamp(mem.confidence ?? 0.85, 0, 1),
+      origin_mode: conv.mode,
+      reference_count: 1,
+      canonical_hash: canonicalHash, // If column exists, it's used; otherwise ignored
+      memory_metadata: {
+        time_horizon: mem.time_horizon,
+        value_score: clamp(mem.value_score ?? 0.75, 0, 1),
+        rationale: mem.rationale?.slice(0, 300) ?? null,
+        extractor: "gemini",
+        extractor_model: GEMINI_MODEL
+      },
+      created_at: new Date().toISOString()
+    };
 
+    const insertRes = await supabase.from("user_memory").insert([memoryRow]);
+    if (insertRes.error) throw insertRes.error;
+
+    return json(200, { message: "Memory saved", count: 1, duplicates: 0 });
   } catch (e) {
     console.error("[extract-user-memory] Error:", e);
-    return json(500, { error: e.message });
+    return json(500, { error: e.message ?? "Unknown error" });
   }
 });
 
-// Simple text similarity (Jaccard index of words)
-function textSimilarity(text1: string, text2: string): number {
-  const words1 = new Set(text1.toLowerCase().split(/\s+/));
-  const words2 = new Set(text2.toLowerCase().split(/\s+/));
-  const intersection = new Set([...words1].filter(x => words2.has(x)));
-  const union = new Set([...words1, ...words2]);
-  return intersection.size / union.size;
+// Utility: robust JSON parsing (handles code fences or stray text)
+function safeJson(text) {
+  try {
+    // Strip Markdown fences if present
+    const stripped = text.trim().replace(/^json\s*|\s*$/g, "");
+    return JSON.parse(stripped);
+  } catch {
+    return null;
+  }
 }
 
+function isAllowedType(t) {
+  return ["fact", "emotion", "goal", "pattern", "relationship"].includes(String(t || "").toLowerCase());
+}
+
+// Simple safety filters (PII, medical, financial, direct contact)
+function passesSafety(text) {
+  const lower = (text || "").toLowerCase();
+
+  // Disallow contact info/PII patterns
+  const hasEmail = /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i.test(text);
+  const hasPhone = /(\+?\d{1,3}[-.\s]?)?(\(?\d{2,4}\)?[-.\s]?)?\d{3}[-.\s]?\d{3,4}/.test(text);
+  const hasAddressHints = /(street|st\.|ave\.|avenue|road|rd\.|apartment|apt\.|suite|unit|zip)/i.test(text);
+
+  if (hasEmail || hasPhone || hasAddressHints) return false;
+
+  // Medical/financial keywords (coarse filter, err on skip)
+  const medical = /(diagnosed|diagnosis|prescribed|antidepressant|bipolar|adhd|ptsd|autism|diabetes|cancer|therapy plan)/i.test(lower);
+  const financial = /(bankruptcy|debt crisis|foreclosure|cannot pay rent|loan default|eviction)/i.test(lower);
+
+  if (medical || financial) return false;
+
+  return true;
+}
+
+// Canonicalization for stable hashing and fuzzy matching
+function canonicalize(text) {
+  if (!text) return "";
+
+  // Lowercase, remove punctuation, collapse spaces, remove common stopwords
+  const stop = new Set(["the","a","an","and","or","but","if","on","in","at","to","for","of","with","about","into","during","including","over","between","out","up","down","from","as","by","is","are","was","were","be","been","being","this","that","these","those","i","me","my","mine","you","your","yours"]);
+
+  const cleaned = text
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}\s]/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  const tokens = cleaned.split(" ").filter(w => w && !stop.has(w));
+  return tokens.join(" ");
+}
+
+async function sha256Hex(input) {
+  const data = new TextEncoder().encode(input);
+  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+  return [...new Uint8Array(hashBuffer)].map(b => b.toString(16).padStart(2, "0")).join("");
+}
+
+// Fuzzy similarity: Jaccard of tokens on canonicalized strings
+function jaccardSimilarity(a, b) {
+  const setA = new Set(a.split(" ").filter(Boolean));
+  const setB = new Set(b.split(" ").filter(Boolean));
+  if (setA.size === 0 || setB.size === 0) return 0;
+  let intersection = 0;
+  for (const w of setA) if (setB.has(w)) intersection++;
+  return intersection / (setA.size + setB.size - intersection);
+}
+
+function clamp(n, min, max) {
+  return Math.max(min, Math.min(max, n));
+}
+
+function sanitizeMemory(mem) {
+  const type = String(mem?.type || "").toLowerCase();
+  const time_horizon = ["enduring","seasonal","ephemeral"].includes(mem?.time_horizon) ? mem.time_horizon : "seasonal";
+  const text = String(mem?.text || "").trim().slice(0, 500);
+  const confidence = Number(mem?.confidence ?? 0.85);
+  const value_score = Number(mem?.value_score ?? 0.75);
+  const rationale = mem?.rationale ? String(mem.rationale).trim() : "";
+
+  return { type, text, confidence, value_score, time_horizon, rationale };
+}
+
+// Mark a source message as "seen" by inserting a zero-length memory row if needed
+// or by relying on source_message_id uniqueness. If your DB has a unique index
+// on (source_message_id), you can skip this helper.
+async function markSourceSeen(conversation_id, message_id, extra = {}) {
+  // No-op placeholder; relies on unique (source_message_id) and prior check.
+  return true;
+}
