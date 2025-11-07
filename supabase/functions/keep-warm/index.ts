@@ -24,7 +24,17 @@ const EDGE_FUNCTIONS = [
   "initiate-report-flow",
   "get-report-data",
   "report-orchestrator",
+  "chat-send",
+  "llm-handler-gemini",
+  "conversation-manager",
 ];
+
+// Only keep critical-path edge functions warm
+const CRITICAL_FUNCTIONS = new Set([
+  "chat-send",
+  "llm-handler-gemini",
+  "conversation-manager",
+]);
 
 // Simple warm-up payload for all functions
 const WARM_PAYLOAD = { warm: true };
@@ -72,14 +82,23 @@ async function pingAllFunctions(): Promise<{
   failed: number;
   results: Record<string, { success: boolean; duration: number; error?: string }>;
 }> {
-  console.log(`[keep-warm] Starting warm ping for ${EDGE_FUNCTIONS.length} functions`);
-  
+  const functionsToPing = EDGE_FUNCTIONS.filter((name) => CRITICAL_FUNCTIONS.has(name));
+  const skippedFunctions = EDGE_FUNCTIONS.filter((name) => !CRITICAL_FUNCTIONS.has(name));
+
+  console.log(
+    `[keep-warm] Starting warm ping for ${functionsToPing.length}/${EDGE_FUNCTIONS.length} critical functions`
+  );
+
+  if (skippedFunctions.length > 0) {
+    console.log(`[keep-warm] Skipping non-critical functions: ${skippedFunctions.join(", ")}`);
+  }
+
   const results: Record<string, { success: boolean; duration: number; error?: string }> = {};
   let successful = 0;
   let failed = 0;
   
   // Ping all functions concurrently
-  const pingPromises = EDGE_FUNCTIONS.map(async (functionName) => {
+  const pingPromises = functionsToPing.map(async (functionName) => {
     const result = await pingEdgeFunction(functionName);
     results[functionName] = result;
     
@@ -95,13 +114,14 @@ async function pingAllFunctions(): Promise<{
   await Promise.all(pingPromises);
   
   const summary = {
-    total: EDGE_FUNCTIONS.length,
+    total: functionsToPing.length,
     successful,
     failed,
+    skipped: skippedFunctions,
     results,
   };
   
-  console.log(`[keep-warm] Summary: ${successful}/${EDGE_FUNCTIONS.length} successful`);
+  console.log(`[keep-warm] Summary: ${successful}/${functionsToPing.length} successful`);
   return summary;
 }
 
