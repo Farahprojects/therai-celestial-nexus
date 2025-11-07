@@ -251,8 +251,11 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
     }
     
     // If clicking from a folder, keep folder view mode
+    // If clicking from history (no folderId), switch to chat view and collapse folders
     if (folderId) {
       setViewMode('folder', folderId);
+    } else {
+      setViewMode('chat', null); // Clear folder context
     }
     
     setChatId(conversationId);

@@ -52,10 +52,16 @@ export const FoldersList: React.FC<FoldersListProps> = ({
 }) => {
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(initiallyExpandedFolders || new Set());
   
-  // Auto-expand the active folder
+  // Auto-expand the active folder, or collapse all if no active folder
   useEffect(() => {
-    if (activeFolderId && !expandedFolders.has(activeFolderId)) {
-      setExpandedFolders(prev => new Set([...prev, activeFolderId]));
+    if (activeFolderId) {
+      // Expand the active folder
+      if (!expandedFolders.has(activeFolderId)) {
+        setExpandedFolders(prev => new Set([...prev, activeFolderId]));
+      }
+    } else {
+      // No active folder - collapse all folders
+      setExpandedFolders(new Set());
     }
   }, [activeFolderId]);
   
