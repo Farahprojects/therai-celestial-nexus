@@ -437,7 +437,7 @@ Deno.serve(async (req: Request) => {
         
         // Insert placeholder message into database for skeleton rendering
         console.log(`[image-start] Inserting placeholder message ${imageId}`);
-        const { error: placeholderError } = await supabase.from('messages').insert({
+        const { data: placeholderMessage, error: placeholderError } = await supabase.from('messages').insert({
           id: imageId,
           chat_id,
           role: 'assistant',
@@ -451,11 +451,28 @@ Deno.serve(async (req: Request) => {
             image_prompt: prompt,
             message_type: 'image'
           }
-        });
+        }).select().single();
         
         if (placeholderError) {
           console.error("[image-start] Failed to insert placeholder:", placeholderError);
           // Continue anyway - image generation will still work
+        } else if (placeholderMessage) {
+          // Broadcast placeholder message to unified channel for instant loading state
+          try {
+            const channelName = `user-realtime:${user_id}`;
+            await supabase.channel(channelName).send({
+              type: 'broadcast',
+              event: 'message-insert',
+              payload: {
+                chat_id,
+                message: placeholderMessage
+              }
+            });
+            console.log(`[image-start] Broadcast placeholder to ${channelName}`);
+          } catch (broadcastError) {
+            console.error("[image-start] Broadcast failed:", broadcastError);
+            // Non-critical - continue with image generation
+          }
         }
         
       try {

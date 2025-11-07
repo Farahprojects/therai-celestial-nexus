@@ -285,6 +285,8 @@ Deno.serve(async (req) => {
         model: 'imagen-4.0-fast-generate-001',
         size: '1024x1024'
       })
+      .select()
+      .single()
   ]);
 
   const { error: logError } = logResult;
@@ -306,7 +308,7 @@ Deno.serve(async (req) => {
     }));
   }
 
-  const { error: userImageError } = userImageResult;
+  const { data: newUserImage, error: userImageError } = userImageResult;
   if (userImageError) {
     console.error(JSON.stringify({
       event: "image_generate_user_image_save_failed",
@@ -314,6 +316,57 @@ Deno.serve(async (req) => {
       error: userImageError.message,
       image_id: image_id
     }));
+  }
+
+  // Broadcast message update to unified channel for real-time chat updates
+  if (updatedMessage && !messageError) {
+    const channelName = `user-realtime:${user_id}`;
+    try {
+      await supabase.channel(channelName).send({
+        type: 'broadcast',
+        event: 'message-update',
+        payload: {
+          chat_id,
+          message: updatedMessage
+        }
+      });
+      console.info(JSON.stringify({
+        event: "image_generate_message_broadcast_sent",
+        request_id: requestId,
+        channel: channelName
+      }));
+    } catch (broadcastError) {
+      console.error(JSON.stringify({
+        event: "image_generate_message_broadcast_failed",
+        request_id: requestId,
+        error: broadcastError instanceof Error ? broadcastError.message : String(broadcastError)
+      }));
+    }
+  }
+
+  // Broadcast image insert to unified channel for real-time gallery updates
+  if (newUserImage && !userImageError) {
+    const channelName = `user-realtime:${user_id}`;
+    try {
+      await supabase.channel(channelName).send({
+        type: 'broadcast',
+        event: 'image-insert',
+        payload: {
+          image: newUserImage
+        }
+      });
+      console.info(JSON.stringify({
+        event: "image_generate_image_broadcast_sent",
+        request_id: requestId,
+        channel: channelName
+      }));
+    } catch (broadcastError) {
+      console.error(JSON.stringify({
+        event: "image_generate_image_broadcast_failed",
+        request_id: requestId,
+        error: broadcastError instanceof Error ? broadcastError.message : String(broadcastError)
+      }));
+    }
   }
 
   console.info(JSON.stringify({

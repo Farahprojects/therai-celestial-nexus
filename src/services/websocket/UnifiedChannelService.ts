@@ -11,7 +11,8 @@ export type EventType =
   | 'conversation-update' 
   | 'voice-tts-ready'
   | 'voice-thinking'
-  | 'image-update';
+  | 'image-update'
+  | 'image-insert';
 
 export interface UnifiedEvent {
   type: EventType;

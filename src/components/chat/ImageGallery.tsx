@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { MessageCircle, Share2, Download, X, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { unifiedChannel } from '@/services/websocket/UnifiedChannelService';
 interface ImageMessage {
   id: string;
   chat_id: string;
@@ -44,6 +45,38 @@ export const ImageGallery = ({
     if (isOpen && user) {
       loadImages();
     }
+  }, [isOpen, user]);
+
+  // Listen for real-time image inserts
+  useEffect(() => {
+    if (!isOpen || !user) return;
+
+    const handleImageInsert = (payload: any) => {
+      const { image } = payload;
+      
+      if (image) {
+        // Transform to ImageMessage format and prepend to list
+        const newImage: ImageMessage = {
+          id: image.id,
+          chat_id: image.chat_id || '',
+          created_at: image.created_at,
+          meta: {
+            image_url: image.image_url,
+            image_prompt: image.prompt || '',
+            image_path: image.image_path || ''
+          }
+        };
+        
+        setImages(prev => [newImage, ...prev]);
+      }
+    };
+
+    // Subscribe to unified channel image-insert events
+    const unsubscribe = unifiedChannel.on('image-insert', handleImageInsert);
+
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
   }, [isOpen, user]);
   const loadImages = async () => {
     if (!user?.id) return;
