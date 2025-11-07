@@ -15,7 +15,6 @@ interface ShareImageModalProps {
   onClose: () => void;
   imageUrl: string;
   imagePrompt?: string;
-  shareUrl?: string;
 }
 
 export const ShareImageModal: React.FC<ShareImageModalProps> = ({
@@ -23,13 +22,10 @@ export const ShareImageModal: React.FC<ShareImageModalProps> = ({
   onClose,
   imageUrl,
   imagePrompt,
-  shareUrl,
 }) => {
-  const targetUrl = shareUrl || imageUrl;
-
   const handleCopyLink = async () => {
     try {
-      await navigator.clipboard.writeText(targetUrl);
+      await navigator.clipboard.writeText(imageUrl);
       toast.success('Link copied to clipboard');
       onClose();
     } catch (error) {
@@ -39,20 +35,22 @@ export const ShareImageModal: React.FC<ShareImageModalProps> = ({
   };
 
   const handleShareTwitter = () => {
-    const text = 'therai.co';
-    const url = `https://twitter.com/intent/tweet?url=${encodeURIComponent(targetUrl)}&text=${encodeURIComponent(text)}`;
+    // Put image URL first so X fetches it for the card
+    // Add branding after with a space to prevent domain metadata fetch
+    const text = `therai .co`;  // Space in domain prevents X from fetching therai.co metadata
+    const url = `https://twitter.com/intent/tweet?url=${encodeURIComponent(imageUrl)}&text=${encodeURIComponent(text)}`;
     window.open(url, '_blank', 'width=550,height=420');
     onClose();
   };
 
   const handleShareFacebook = () => {
-    const url = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(targetUrl)}`;
+    const url = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(imageUrl)}`;
     window.open(url, '_blank', 'width=550,height=420');
     onClose();
   };
 
   const handleShareWhatsApp = () => {
-    const text = `${targetUrl}\n\ntherai.co`;
+    const text = `${imageUrl}\n\ntherai.co`;
     const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
     window.open(url, '_blank');
     onClose();

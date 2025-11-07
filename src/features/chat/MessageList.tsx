@@ -48,10 +48,6 @@ const AssistantMessage = React.memo(({ message }: { message: Message }) => {
   const isImageMessage = meta?.message_type === 'image';
   const imageUrl = meta?.image_url;
   const imagePrompt = meta?.image_prompt;
-  const imagePath = meta?.image_path;
-  const shareUrl = imagePath
-    ? `https://api.therai.co/functions/v1/share-image?path=${encodeURIComponent(imagePath)}`
-    : imageUrl;
   const [showShareModal, setShowShareModal] = useState(false);
 
   // 🆕 RENDER IMAGE IF PRESENT
@@ -127,7 +123,6 @@ const AssistantMessage = React.memo(({ message }: { message: Message }) => {
           onClose={() => setShowShareModal(false)}
           imageUrl={imageUrl}
           imagePrompt={imagePrompt}
-          shareUrl={shareUrl}
         />
       </div>
     );
