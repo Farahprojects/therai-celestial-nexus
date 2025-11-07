@@ -1,6 +1,5 @@
 // @ts-nocheck - Deno runtime, types checked at deployment
-import { type SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { createPooledClient, createDirectClient } from '../_shared/supabaseClient.ts';
+import { createClient, type SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { checkSubscriptionAccess, checkPremiumAccess } from '../_shared/subscriptionCheck.ts';
 
 type Json = Record<string, unknown> | Array<unknown> | string | number | boolean | null;
@@ -59,8 +58,11 @@ async function getAuthUserId(req: Request): Promise<string> {
 const auth = req.headers.get('Authorization');
 if (!auth) throw new Error('Missing Authorization header');
 
-// Use service role client for conversation management
-const supabase = createPooledClient();
+// Use anon client with user's JWT token to validate auth
+const supabase = createClient(SUPABASE_URL, ANON_KEY, {
+  global: { headers: { Authorization: auth } },
+  auth: { persistSession: false, autoRefreshToken: false }
+});
 const { data, error } = await supabase.auth.getUser();
 if (error || !data?.user) throw new Error('Invalid or expired token');
 return data.user.id;
