@@ -1,4 +1,4 @@
-import { serve } from "std/server";
+import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 
 const SUPABASE_BASE_URL = Deno.env.get("SUPABASE_URL") || "https://api.therai.co";
 
