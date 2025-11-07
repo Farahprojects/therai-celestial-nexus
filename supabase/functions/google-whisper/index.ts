@@ -12,10 +12,10 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { checkFreeTierSTTAccess } from "../_shared/featureGating.ts";
 
 const corsHeaders = {
-"Access-Control-Allow-Origin": "*",
-"Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, accept",
-"Access-Control-Allow-Methods": "POST, OPTIONS",
-"Vary": "Origin"
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, accept",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Vary": "Origin"
 };
 
 // Env (fail fast for STT key; Supabase vars are optional depending on voice flow)
@@ -26,106 +26,235 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 
 const json = (status: number, data: any) =>
-new Response(JSON.stringify(data), {
-status,
-headers: { ...corsHeaders, "Content-Type": "application/json" }
-});
+  new Response(JSON.stringify(data), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" }
+  });
 
 function mapMimeToGoogleEncoding(mimeType = "") {
-const lower = mimeType.toLowerCase();
-if (lower.includes("webm")) return { encoding: "WEBM_OPUS" };
-if (lower.includes("ogg")) return { encoding: "OGG_OPUS" };
-if (lower.includes("wav")) return { encoding: "LINEAR16" };
-if (lower.includes("mp3")) return { encoding: "MP3" };
-return { encoding: "ENCODING_UNSPECIFIED" };
+  const lower = mimeType.toLowerCase();
+  if (lower.includes("webm")) return { encoding: "WEBM_OPUS" };
+  if (lower.includes("ogg")) return { encoding: "OGG_OPUS" };
+  if (lower.includes("wav")) return { encoding: "LINEAR16" };
+  if (lower.includes("mp3")) return { encoding: "MP3" };
+  return { encoding: "ENCODING_UNSPECIFIED" };
 }
 
 function normalizeLanguageCode(language: string) {
-if (!language) return "en-US";
-const lower = String(language).toLowerCase();
-if (lower === "en") return "en-US";
-return language;
+  if (!language) return "en-US";
+  const lower = String(language).toLowerCase();
+  if (lower === "en") return "en-US";
+  return language;
 }
 
 // Encode Uint8Array to base64 safely in chunks
 function base64EncodeUint8(bytes: Uint8Array) {
-let binary = "";
-const chunkSize = 8192;
-for (let i = 0; i < bytes.length; i += chunkSize) {
-const sub = bytes.subarray(i, Math.min(i + chunkSize, bytes.length));
-let chunkStr = "";
-for (let j = 0; j < sub.length; j++) chunkStr += String.fromCharCode(sub[j]);
-binary += chunkStr;
-}
-return btoa(binary);
+  let binary = "";
+  const chunkSize = 8192;
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    const sub = bytes.subarray(i, Math.min(i + chunkSize, bytes.length));
+    let chunkStr = "";
+    for (let j = 0; j < sub.length; j++) chunkStr += String.fromCharCode(sub[j]);
+    binary += chunkStr;
+  }
+  return btoa(binary);
 }
 
-async function transcribeWithGoogle({ apiKey, audioBytes, mimeType, languageCode }: { 
-  apiKey: string; 
-  audioBytes: Uint8Array; 
-  mimeType: string; 
-  languageCode: string 
+async function transcribeWithGoogle({
+  apiKey,
+  audioBytes,
+  mimeType,
+  languageCode
+}: {
+  apiKey: string;
+  audioBytes: Uint8Array;
+  mimeType: string;
+  languageCode: string;
 }): Promise<{ transcript: string; durationSeconds: number }> {
-const encodingInfo = mapMimeToGoogleEncoding(mimeType) as { encoding: string; sampleRateHertz?: number };
-const audioContent = base64EncodeUint8(audioBytes);
+  const encodingInfo = mapMimeToGoogleEncoding(mimeType) as {
+    encoding: string;
+    sampleRateHertz?: number;
+  };
+  const audioContent = base64EncodeUint8(audioBytes);
 
-const config: any = {
-encoding: encodingInfo.encoding,
-languageCode,
-enableAutomaticPunctuation: true,
-...(encodingInfo.sampleRateHertz ? { sampleRateHertz: encodingInfo.sampleRateHertz } : {})
-};
+  const config: any = {
+    encoding: encodingInfo.encoding,
+    languageCode,
+    enableAutomaticPunctuation: true,
+    ...(encodingInfo.sampleRateHertz ? { sampleRateHertz: encodingInfo.sampleRateHertz } : {})
+  };
 
-const resp = await fetch(`https://speech.googleapis.com/v1/speech:recognize?key=${apiKey}`, {
-method: "POST",
-headers: { "Content-Type": "application/json" },
-body: JSON.stringify({ config, audio: { content: audioContent } })
-});
+  const resp = await fetch(`https://speech.googleapis.com/v1/speech:recognize?key=${apiKey}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ config, audio: { content: audioContent } })
+  });
 
-if (!resp.ok) {
-const errorText = await resp.text().catch(() => "");
-throw new Error(`Google STT error: ${resp.status} - ${errorText}`);
+  if (!resp.ok) {
+    const errorText = await resp.text().catch(() => "");
+    throw new Error(`Google STT error: ${resp.status} - ${errorText}`);
+  }
+
+  const result = await resp.json();
+
+  const transcript = Array.isArray(result.results)
+    ? result.results
+        .flatMap((r: any) => (Array.isArray(r.alternatives) ? r.alternatives : []))
+        .map((a: any) => a?.transcript || "")
+        .filter((t: any) => t && t.trim().length > 0)
+        .join(" ")
+    : "";
+
+  // Extract duration from Google's response (source of truth)
+  let durationSeconds = 0;
+  if (result.totalBilledTime) {
+    const match = result.totalBilledTime.match(/(\d+(?:\.\d+)?)/);
+    durationSeconds = match ? Math.ceil(parseFloat(match[1])) : 0;
+  } else if (Array.isArray(result.results) && result.results[0]?.resultEndTime) {
+    const match = result.results[0].resultEndTime.match(/(\d+(?:\.\d+)?)/);
+    durationSeconds = match ? Math.ceil(parseFloat(match[1])) : 0;
+  }
+
+  return { transcript: transcript || "", durationSeconds };
 }
 
-const result = await resp.json();
+async function runVoiceFlow({
+  chatId,
+  chattype,
+  transcript,
+  mode,
+  voice,
+  userId,
+  userName
+}: {
+  chatId: string;
+  chattype: string;
+  transcript: string;
+  mode: string;
+  voice?: string;
+  userId?: string;
+  userName?: string;
+}) {
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+    console.warn("[google-stt] Voice actions skipped: missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY");
+    return;
+  }
 
-const transcript = Array.isArray(result.results)
-? result.results
-.flatMap((r: any) => (Array.isArray(r.alternatives) ? r.alternatives : []))
-.map((a: any) => a?.transcript || "")
-.filter((t: any) => t && t.trim().length > 0)
-.join(" ")
-: "";
+  try {
+    const supabaseClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+      auth: { persistSession: false }
+    });
 
-// Extract duration from Google's response (source of truth)
-let durationSeconds = 0;
-if (result.totalBilledTime) {
-  const match = result.totalBilledTime.match(/(\d+(?:\.\d+)?)/);
-  durationSeconds = match ? Math.ceil(parseFloat(match[1])) : 0;
-} else if (Array.isArray(result.results) && result.results[0]?.resultEndTime) {
-  const match = result.results[0].resultEndTime.match(/(\d+(?:\.\d+)?)/);
-  durationSeconds = match ? Math.ceil(parseFloat(match[1])) : 0;
-}
+    const { data: conv, error: convError } = await supabaseClient
+      .from("conversations")
+      .select("mode")
+      .eq("id", chatId)
+      .single();
 
-return { transcript: transcript || "", durationSeconds };
+    if (convError) {
+      console.error(JSON.stringify({
+        event: "conversation_lookup_failed",
+        chat_id: chatId,
+        error: convError.message
+      }));
+    }
+
+    const conversationMode = conv?.mode || "chat";
+
+    if (conversationMode === "together") {
+      console.info(JSON.stringify({
+        event: "stt_together_mode_skip_llm",
+        chat_id: chatId,
+        conversation_mode: conversationMode,
+        note: "Together mode - skipping LLM handler for peer-to-peer chat"
+      }));
+      return;
+    }
+
+    const internalApiKey = Deno.env.get("INTERNAL_API_KEY") || "";
+    const headers = {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+      "x-internal-key": internalApiKey
+    };
+
+    console.info(JSON.stringify({
+      event: "preparing_internal_calls",
+      has_internal_api_key: !!internalApiKey,
+      internal_key_length: internalApiKey.length
+    }));
+
+    const llmHandler = await getLLMHandler(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    console.log(`[google-stt] Using ${llmHandler} for voice mode`);
+
+    const payload = {
+      chat_id: chatId,
+      text: transcript,
+      chattype,
+      mode,
+      voice,
+      user_id: userId,
+      user_name: userName,
+      source: "google-whisper"
+    };
+
+    console.info(JSON.stringify({
+      event: "calling_llm_handler_with_payload",
+      chat_id: chatId,
+      chattype,
+      text_length: transcript.length,
+      payload_preview: {
+        ...payload,
+        text: transcript.substring(0, 50) + (transcript.length > 50 ? "..." : "")
+      }
+    }));
+
+    const response = await fetch(`${SUPABASE_URL}/functions/v1/${llmHandler}`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(payload)
+    });
+
+    if (!response.ok) {
+      const text = await response.text().catch(() => "");
+      let body: any = text;
+      try {
+        body = JSON.parse(text);
+      } catch (_) {
+        body = text?.substring(0, 200) ?? "";
+      }
+
+      console.error(JSON.stringify({
+        event: "llm_handler_failed",
+        status: response.status,
+        error: body
+      }));
+    }
+  } catch (err) {
+    console.error(JSON.stringify({
+      event: "voice_flow_exception",
+      error: err instanceof Error ? err.message : String(err)
+    }));
+  }
 }
 
 Deno.serve(async (req) => {
-if (req.method === "OPTIONS") {
-return new Response("ok", { headers: corsHeaders });
-}
-if (req.method !== "POST") {
-return json(405, { error: "Method not allowed" });
-}
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
+  }
 
-try {
-// Warmup ping
-if (req.headers.get("X-Warmup") === "1") {
-return json(200, { status: "warmed up" });
-}
+  if (req.method !== "POST") {
+    return json(405, { error: "Method not allowed" });
+  }
 
-const form = await req.formData().catch(() => null);
-if (!form) return json(400, { error: "Expected multipart/form-data" });
+  try {
+    // Warmup ping
+    if (req.headers.get("X-Warmup") === "1") {
+      return json(200, { status: "warmed up" });
+    }
+
+    const form = await req.formData().catch(() => null);
+    if (!form) return json(400, { error: "Expected multipart/form-data" });
 
     const file = form.get("file");
     const chat_id = form.get("chat_id") || undefined;
@@ -135,501 +264,241 @@ if (!form) return json(400, { error: "Expected multipart/form-data" });
     const voice = form.get("voice") || undefined;
     const user_id = form.get("user_id");
     const user_name = form.get("user_name") || undefined;
-    
+
     console.info(JSON.stringify({
       event: "form_data_received",
-      chattype: chattype,
+      chattype,
       chattype_type: typeof chattype,
-      user_id: user_id,
+      user_id,
       user_id_type: typeof user_id,
-      mode: mode
-    }));
-    
-    // Type-safe user_id extraction
-    let authenticatedUserId = typeof user_id === 'string' ? user_id : undefined;
-
-if (!(file instanceof File)) return json(400, { error: "Missing file in form-data" });
-if (!mode || typeof mode !== "string") return json(400, { error: "Missing or invalid field: mode" });
-
-const arrayBuffer = await file.arrayBuffer();
-const audioBuffer = new Uint8Array(arrayBuffer);
-const mimeType = file.type || "audio/webm";
-
-if (!audioBuffer.length) return json(400, { error: "Empty audio data" });
-
-// Create Supabase client at request level (needed for feature checks and JWT verification)
-const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
-  auth: { persistSession: false }
-});
-
-// Get authenticated user ID from JWT (more secure than form data)
-const authHeader = req.headers.get("Authorization");
-if (authHeader) {
-  try {
-    const token = authHeader.replace("Bearer ", "");
-    const { data: userData, error: authError } = await supabase.auth.getUser(token);
-    if (!authError && userData?.user) {
-      authenticatedUserId = userData.user.id;
-    }
-  } catch (authErr) {
-    console.error("[google-whisper] Auth verification failed:", authErr);
-  }
-}
-
-// 🔒 PRE-TRANSCRIPTION CHECK: Block if user has exceeded free tier limit
-// This prevents wasting Google API calls on users who have already used their 60 seconds
-if (authenticatedUserId) {
-  const freeTierCheck = await checkFreeTierSTTAccess(supabase, authenticatedUserId, 0);
-  
-  console.info(JSON.stringify({
-    event: "free_tier_pre_check",
-    user_id: authenticatedUserId,
-    allowed: freeTierCheck.allowed,
-    current_usage: freeTierCheck.currentUsage,
-    remaining: freeTierCheck.remaining,
-    limit: freeTierCheck.limit,
-    is_premium: freeTierCheck.isPremium,
-    reason: freeTierCheck.reason
-  }));
-
-  if (!freeTierCheck.allowed) {
-    console.warn(JSON.stringify({
-      event: "usage_limit_exceeded_pre_transcription",
-      reason: freeTierCheck.reason,
-      user_id: authenticatedUserId,
-      current_usage: freeTierCheck.currentUsage,
-      limit: freeTierCheck.limit
-    }));
-    
-    // Return structured error response (200 status) - don't process audio
-    return json(200, {
-      success: false,
-      code: "STT_LIMIT_EXCEEDED",
-      message: "You've used 2 minutes of free voice transcription. Upgrade to Premium for unlimited voice features.",
-      current_usage: freeTierCheck.currentUsage,
-      limit: freeTierCheck.limit,
-      remaining: freeTierCheck.remaining,
-      transcript: "" // No transcript since we didn't process
-    });
-  }
-}
-
-const languageCode = normalizeLanguageCode(String(language));
-const { transcript, durationSeconds } = await transcribeWithGoogle({
-  apiKey: GOOGLE_STT,
-  audioBytes: audioBuffer,
-  mimeType,
-  languageCode
-});
-
-console.info(JSON.stringify({
-  event: "transcription_complete",
-  transcript_length: transcript.length,
-  duration_seconds: durationSeconds,
-  user_id: authenticatedUserId,
-  chattype,
-  condition_check: {
-    chattype_is_voice: chattype === "voice",
-    has_authenticatedUserId: !!authenticatedUserId,
-    duration_seconds_gt_zero: durationSeconds > 0,
-    will_track: chattype === "voice" && authenticatedUserId && durationSeconds > 0
-  }
-}));
-
-if (!transcript.trim()) {
-  console.info(JSON.stringify({ event: "empty_transcript_returning" }));
-  await new Promise(r => setTimeout(r, 50)); // Allow logs to flush
-  return json(200, { success: true, transcript: "" });
-}
-
-// Track voice usage after successful transcription using Google's duration (source of truth)
-// NOTE: google-whisper is ONLY used for voice transcription, so if audio is sent here, it's voice
-// We track usage regardless of chattype field since the frontend may not always send it
-if (authenticatedUserId && durationSeconds > 0) {
-  console.info(JSON.stringify({
-    event: "tracking_voice_usage",
-    user_id: authenticatedUserId,
-    duration_seconds: durationSeconds
-  }));
-
-  // 🔒 POST-TRANSCRIPTION CHECK: Verify adding this duration won't exceed limit
-  // Check again with actual duration to catch edge cases
-  const postCheck = await checkFreeTierSTTAccess(supabase, authenticatedUserId, durationSeconds);
-
-  if (!postCheck.allowed) {
-    console.warn(JSON.stringify({
-      event: "usage_limit_exceeded_post_transcription",
-      reason: postCheck.reason,
-      user_id: authenticatedUserId,
-      current_usage: postCheck.currentUsage,
-      requested_duration: durationSeconds,
-      limit: postCheck.limit
-    }));
-    
-    // Return structured error response (200 status) - don't increment usage since limit would be exceeded
-    return json(200, {
-      success: false,
-      code: "STT_LIMIT_EXCEEDED",
-      message: "You've used 2 minutes of free voice transcription. Upgrade to Premium for unlimited voice features.",
-      current_usage: postCheck.currentUsage,
-      limit: postCheck.limit,
-      remaining: postCheck.remaining,
-      transcript: "" // Don't return transcript if limit exceeded
-    });
-  }
-
-  // Only increment if user is premium (unlimited) or within free tier limit
-  if (postCheck.isPremium || postCheck.allowed) {
-    console.info(JSON.stringify({
-      event: "calling_increment_feature_usage",
-      user_id: authenticatedUserId,
-      feature_type: "voice_seconds",
-      amount: durationSeconds,
-      is_premium: postCheck.isPremium
+      mode
     }));
 
-    try {
-      const response = await fetch(`${SUPABASE_URL}/functions/v1/increment-feature-usage`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`
-        },
-        body: JSON.stringify({
-          user_id: authenticatedUserId,
-          feature_type: 'voice_seconds',
-          amount: durationSeconds,
-          source: 'google-whisper'
-        })
-      });
+    let authenticatedUserId = typeof user_id === "string" ? user_id : undefined;
+    const userIdForVoiceFlow = typeof user_id === "string" ? user_id : undefined;
+    const userNameForVoiceFlow = typeof user_name === "string" ? user_name : undefined;
 
-      const result = await response.json().catch(() => ({ error: 'Failed to parse response' }));
-      
-      if (response.ok && result.success) {
-        console.info(JSON.stringify({
-          event: "increment_feature_usage_success",
-          user_id: authenticatedUserId,
-          duration_seconds: durationSeconds,
-          result
-        }));
-      } else {
-        console.error(JSON.stringify({
-          event: "increment_feature_usage_failed",
-          user_id: authenticatedUserId,
-          status: response.status,
-          statusText: response.statusText,
-          result
-        }));
-      }
-    } catch (err) {
-      console.error(JSON.stringify({
-        event: "increment_feature_usage_exception",
-        user_id: authenticatedUserId,
-        error: err instanceof Error ? err.message : String(err)
-      }));
-    }
-  }
-}
+    if (!(file instanceof File)) return json(400, { error: "Missing file in form-data" });
+    if (!mode || typeof mode !== "string") return json(400, { error: "Missing or invalid field: mode" });
 
-// Flush logs before returning response
-await new Promise(r => setTimeout(r, 50));
+    const arrayBuffer = await file.arrayBuffer();
+    const audioBuffer = new Uint8Array(arrayBuffer);
+    const mimeType = file.type || "audio/webm";
 
-// Return success response with transcript
-return json(200, {
-  success: true,
-  transcript
-});
+    if (!audioBuffer.length) return json(400, { error: "Empty audio data" });
 
-// Voice flow: optionally save user message, call LLM, and broadcast
-// Only trigger when chattype is "voice" (from conversation mode) AND chat_id exists
-// Note: This code runs after return above, so it's currently unreachable
-// TODO: Consider moving voice flow logic before return or making it fire-and-forget
-if (false && chattype === "voice" && chat_id) {
-  console.info(JSON.stringify({
-    event: "voice_flow_triggered",
-    chattype,
-    chattype_type: typeof chattype,
-    chat_id,
-    transcript_length: transcript.length
-  }));
-
-  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
-    console.warn("[google-stt] Voice actions skipped: missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY");
-  } else {
-    const headers = {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-      "x-internal-key": Deno.env.get("INTERNAL_API_KEY") || "" // Internal API key for backend-to-backend calls
-    };
-
-    console.info(JSON.stringify({
-      event: "preparing_internal_calls",
-      has_internal_api_key: !!Deno.env.get("INTERNAL_API_KEY"),
-      internal_key_length: Deno.env.get("INTERNAL_API_KEY")?.length || 0
-    }));
-
-    // Get configured LLM handler, then fire-and-forget tasks
-    getLLMHandler(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY).then(async (llmHandler) => {
-      console.log(`[google-stt] Using ${llmHandler} for voice mode`);
-      
-      // Capture chattype in closure to ensure it's passed correctly
-      const chattypeToPass = chattype;
-      
-      console.info(JSON.stringify({
-        event: "preparing_to_call_llm_handler",
-        chattype: chattypeToPass,
-        chattype_type: typeof chattypeToPass,
-        llm_handler: llmHandler
-      }));
-      
-      const tasks = [
-        fetch(`${SUPABASE_URL}/functions/v1/${llmHandler}`, {
-          method: "POST",
-          headers,
-          body: JSON.stringify({
-            chat_id,
-            text: transcript,
-            chattype: chattypeToPass, // Use captured chattype value
-            mode,
-            voice,
-            user_id,
-            user_name,
-            source: "google-whisper" // Identify caller
-          })
-        })
-      ];
-
-      console.info(JSON.stringify({
-        event: "calling_llm_handler_with_payload",
-        chattype_in_payload: chattypeToPass,
-        chat_id,
-        text_length: transcript.length,
-        full_payload: {
-          chat_id,
-          text: transcript.substring(0, 50) + "...", // First 50 chars
-          chattype: chattypeToPass,
-          mode,
-          voice,
-          user_id,
-          user_name
-        }
-      }));
-
-      // Fire-and-forget: Start tasks without awaiting (non-blocking)
-      Promise.allSettled(tasks).then((results) => {
-        results.forEach((result, index) => {
-          const taskName = "llm-handler";
-          
-          if (result.status === "fulfilled") {
-            const response = result.value;
-            if (!response.ok) {
-              // Only log errors, not successes (to reduce log noise)
-              response.text().then(text => {
-                try {
-                  const body = JSON.parse(text);
-                  console.error(JSON.stringify({
-                    event: `${taskName}_failed`,
-                    status: response.status,
-                    error: body
-                  }));
-                } catch {
-                  console.error(JSON.stringify({
-                    event: `${taskName}_failed`,
-                    status: response.status,
-                    error_text: text.substring(0, 200)
-                  }));
-                }
-              }).catch(() => {});
-            }
-          } else {
-            console.error(JSON.stringify({
-              event: `${taskName}_rejected`,
-              error: result.reason instanceof Error ? result.reason.message : String(result.reason)
-            }));
-          }
-        });
-      }).catch(() => {});
-    }).catch((err) => {
-      console.error(JSON.stringify({
-        event: "failed_to_get_llm_handler",
-        error: err instanceof Error ? err.message : String(err)
-      }));
-    });
-  }
-} else {
-  console.info(JSON.stringify({
-    event: "voice_flow_skipped",
-    chattype,
-    chattype_type: typeof chattype,
-    chat_id: chat_id || "missing",
-    reason: !chattype ? "no_chattype" : chattype !== "voice" ? "chattype_not_voice" : "no_chat_id"
-  }));
-}
-
-// Flush logs before returning response
-await new Promise(r => setTimeout(r, 50));
-
-// Voice flow: optionally save user message, call LLM, and broadcast
-// Only trigger when chattype is "voice" (from conversation mode) AND chat_id exists
-// This runs fire-and-forget (non-blocking) so we can return immediately
-if (chattype === "voice" && chat_id) {
-  console.info(JSON.stringify({
-    event: "voice_flow_triggered",
-    chattype,
-    chattype_type: typeof chattype,
-    chat_id,
-    transcript_length: transcript.length
-  }));
-
-  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
-    console.warn("[google-stt] Voice actions skipped: missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY");
-  } else {
-    // Check conversation mode - skip LLM handler for together mode (peer-to-peer chat)
-    const supabaseClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+    // Create Supabase client at request level (needed for feature checks and JWT verification)
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
       auth: { persistSession: false }
     });
-    
-    const { data: conv } = await supabaseClient
-      .from('conversations')
-      .select('mode')
-      .eq('id', chat_id)
-      .single();
-    
-    const conversationMode = conv?.mode || 'chat';
-    
-    if (conversationMode === 'together') {
-      console.info(JSON.stringify({
-        event: "stt_together_mode_skip_llm",
-        chat_id,
-        conversation_mode: conversationMode,
-        note: "Together mode - skipping LLM handler for peer-to-peer chat"
-      }));
-      // Skip LLM handler call - transcript already saved, just exit
-    } else {
-      // Normal flow: call LLM handler
-      const headers = {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-        "x-internal-key": Deno.env.get("INTERNAL_API_KEY") || "" // Internal API key for backend-to-backend calls
-      };
 
-      console.info(JSON.stringify({
-        event: "preparing_internal_calls",
-        has_internal_api_key: !!Deno.env.get("INTERNAL_API_KEY"),
-        internal_key_length: Deno.env.get("INTERNAL_API_KEY")?.length || 0
-      }));
-
-      // Get configured LLM handler, then fire-and-forget tasks
-      getLLMHandler(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY).then(async (llmHandler) => {
-        console.log(`[google-stt] Using ${llmHandler} for voice mode`);
-        
-        // Capture chattype in closure to ensure it's passed correctly
-        const chattypeToPass = chattype;
-        
-        console.info(JSON.stringify({
-          event: "preparing_to_call_llm_handler",
-          chattype: chattypeToPass,
-          chattype_type: typeof chattypeToPass,
-          llm_handler: llmHandler
-        }));
-        
-        const tasks = [
-          fetch(`${SUPABASE_URL}/functions/v1/${llmHandler}`, {
-            method: "POST",
-            headers,
-            body: JSON.stringify({
-              chat_id,
-              text: transcript,
-              chattype: chattypeToPass, // Use captured chattype value
-              mode,
-              voice,
-              user_id,
-              user_name,
-              source: "google-whisper" // Identify caller
-            })
-          })
-        ];
-
-        console.info(JSON.stringify({
-          event: "calling_llm_handler_with_payload",
-          chattype_in_payload: chattypeToPass,
-          chat_id,
-          text_length: transcript.length,
-          full_payload: {
-            chat_id,
-            text: transcript.substring(0, 50) + "...", // First 50 chars
-            chattype: chattypeToPass,
-            mode,
-            voice,
-            user_id,
-            user_name
-          }
-        }));
-
-        // Fire-and-forget: Start tasks without awaiting (non-blocking)
-        Promise.allSettled(tasks).then((results) => {
-          results.forEach((result, index) => {
-            const taskName = "llm-handler";
-            
-            if (result.status === "fulfilled") {
-              const response = result.value;
-              if (!response.ok) {
-                // Only log errors, not successes (to reduce log noise)
-                response.text().then(text => {
-                  try {
-                    const body = JSON.parse(text);
-                    console.error(JSON.stringify({
-                      event: `${taskName}_failed`,
-                      status: response.status,
-                      error: body
-                    }));
-                  } catch {
-                    console.error(JSON.stringify({
-                      event: `${taskName}_failed`,
-                      status: response.status,
-                      error_text: text.substring(0, 200)
-                    }));
-                  }
-                }).catch(() => {});
-              }
-            } else {
-              console.error(JSON.stringify({
-                event: `${taskName}_rejected`,
-                error: result.reason instanceof Error ? result.reason.message : String(result.reason)
-              }));
-            }
-          });
-        }).catch(() => {});
-      }).catch((err) => {
-        console.error(JSON.stringify({
-          event: "failed_to_get_llm_handler",
-          error: err instanceof Error ? err.message : String(err)
-        }));
-      });
+    // Get authenticated user ID from JWT (more secure than form data)
+    const authHeader = req.headers.get("Authorization");
+    if (authHeader) {
+      try {
+        const token = authHeader.replace("Bearer ", "");
+        const { data: userData, error: authError } = await supabase.auth.getUser(token);
+        if (!authError && userData?.user) {
+          authenticatedUserId = userData.user.id;
+        }
+      } catch (authErr) {
+        console.error("[google-whisper] Auth verification failed:", authErr);
+      }
     }
-  }
-} else {
-  console.info(JSON.stringify({
-    event: "voice_flow_skipped",
-    chattype,
-    chattype_type: typeof chattype,
-    chat_id: chat_id || "missing",
-    reason: !chattype ? "no_chattype" : chattype !== "voice" ? "chattype_not_voice" : "no_chat_id"
-  }));
-}
 
-// Return success response with transcript
-return json(200, {
-  success: true,
-  transcript
+    // 🔒 PRE-TRANSCRIPTION CHECK: Block if user has exceeded free tier limit
+    if (authenticatedUserId) {
+      const freeTierCheck = await checkFreeTierSTTAccess(supabase, authenticatedUserId, 0);
+
+      console.info(JSON.stringify({
+        event: "free_tier_pre_check",
+        user_id: authenticatedUserId,
+        allowed: freeTierCheck.allowed,
+        current_usage: freeTierCheck.currentUsage,
+        remaining: freeTierCheck.remaining,
+        limit: freeTierCheck.limit,
+        is_premium: freeTierCheck.isPremium,
+        reason: freeTierCheck.reason
+      }));
+
+      if (!freeTierCheck.allowed) {
+        console.warn(JSON.stringify({
+          event: "usage_limit_exceeded_pre_transcription",
+          reason: freeTierCheck.reason,
+          user_id: authenticatedUserId,
+          current_usage: freeTierCheck.currentUsage,
+          limit: freeTierCheck.limit
+        }));
+
+        return json(200, {
+          success: false,
+          code: "STT_LIMIT_EXCEEDED",
+          message: "You've used 2 minutes of free voice transcription. Upgrade to Premium for unlimited voice features.",
+          current_usage: freeTierCheck.currentUsage,
+          limit: freeTierCheck.limit,
+          remaining: freeTierCheck.remaining,
+          transcript: ""
+        });
+      }
+    }
+
+    const languageCode = normalizeLanguageCode(String(language));
+    const { transcript, durationSeconds } = await transcribeWithGoogle({
+      apiKey: GOOGLE_STT,
+      audioBytes: audioBuffer,
+      mimeType,
+      languageCode
+    });
+
+    console.info(JSON.stringify({
+      event: "transcription_complete",
+      transcript_length: transcript.length,
+      duration_seconds: durationSeconds,
+      user_id: authenticatedUserId,
+      chattype,
+      condition_check: {
+        chattype_is_voice: chattype === "voice",
+        has_authenticatedUserId: !!authenticatedUserId,
+        duration_seconds_gt_zero: durationSeconds > 0,
+        will_track: chattype === "voice" && authenticatedUserId && durationSeconds > 0
+      }
+    }));
+
+    if (!transcript.trim()) {
+      console.info(JSON.stringify({ event: "empty_transcript_returning" }));
+      await new Promise((r) => setTimeout(r, 50));
+      return json(200, { success: true, transcript: "" });
+    }
+
+    // Track voice usage after successful transcription using Google's duration (source of truth)
+    if (authenticatedUserId && durationSeconds > 0) {
+      console.info(JSON.stringify({
+        event: "tracking_voice_usage",
+        user_id: authenticatedUserId,
+        duration_seconds: durationSeconds
+      }));
+
+      const postCheck = await checkFreeTierSTTAccess(supabase, authenticatedUserId, durationSeconds);
+
+      if (!postCheck.allowed) {
+        console.warn(JSON.stringify({
+          event: "usage_limit_exceeded_post_transcription",
+          reason: postCheck.reason,
+          user_id: authenticatedUserId,
+          current_usage: postCheck.currentUsage,
+          requested_duration: durationSeconds,
+          limit: postCheck.limit
+        }));
+
+        return json(200, {
+          success: false,
+          code: "STT_LIMIT_EXCEEDED",
+          message: "You've used 2 minutes of free voice transcription. Upgrade to Premium for unlimited voice features.",
+          current_usage: postCheck.currentUsage,
+          limit: postCheck.limit,
+          remaining: postCheck.remaining,
+          transcript: ""
+        });
+      }
+
+      if (postCheck.isPremium || postCheck.allowed) {
+        console.info(JSON.stringify({
+          event: "calling_increment_feature_usage",
+          user_id: authenticatedUserId,
+          feature_type: "voice_seconds",
+          amount: durationSeconds,
+          is_premium: postCheck.isPremium
+        }));
+
+        try {
+          const response = await fetch(`${SUPABASE_URL}/functions/v1/increment-feature-usage`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`
+            },
+            body: JSON.stringify({
+              user_id: authenticatedUserId,
+              feature_type: "voice_seconds",
+              amount: durationSeconds,
+              source: "google-whisper"
+            })
+          });
+
+          const result = await response.json().catch(() => ({ error: "Failed to parse response" }));
+
+          if (response.ok && result.success) {
+            console.info(JSON.stringify({
+              event: "increment_feature_usage_success",
+              user_id: authenticatedUserId,
+              duration_seconds: durationSeconds,
+              result
+            }));
+          } else {
+            console.error(JSON.stringify({
+              event: "increment_feature_usage_failed",
+              user_id: authenticatedUserId,
+              status: response.status,
+              statusText: response.statusText,
+              result
+            }));
+          }
+        } catch (err) {
+          console.error(JSON.stringify({
+            event: "increment_feature_usage_exception",
+            user_id: authenticatedUserId,
+            error: err instanceof Error ? err.message : String(err)
+          }));
+        }
+      }
+    }
+
+    if (chattype === "voice" && chat_id) {
+      console.info(JSON.stringify({
+        event: "voice_flow_triggered",
+        chattype,
+        chattype_type: typeof chattype,
+        chat_id,
+        transcript_length: transcript.length
+      }));
+
+      void runVoiceFlow({
+        chatId: String(chat_id),
+        chattype: String(chattype),
+        transcript,
+        mode: String(mode),
+        voice: typeof voice === "string" ? voice : undefined,
+        userId: userIdForVoiceFlow,
+        userName: userNameForVoiceFlow
+      });
+    } else {
+      console.info(JSON.stringify({
+        event: "voice_flow_skipped",
+        chattype,
+        chattype_type: typeof chattype,
+        chat_id: chat_id || "missing",
+        reason: !chattype
+          ? "no_chattype"
+          : chattype !== "voice"
+          ? "chattype_not_voice"
+          : "no_chat_id"
+      }));
+    }
+
+    await new Promise((r) => setTimeout(r, 50));
+
+    return json(200, {
+      success: true,
+      transcript
+    });
+  } catch (err) {
+    console.error("[google-stt] Error:", err);
+    return json(200, {
+      success: false,
+      code: "SERVER_ERROR",
+      message: (err as any)?.message || "Unknown error occurred",
+      transcript: ""
+    });
+  }
 });
-} catch (err) {
-console.error("[google-stt] Error:", err);
-return json(200, {
-  success: false,
-  code: "SERVER_ERROR",
-  message: (err as any)?.message || "Unknown error occurred",
-  transcript: ""
-});
-}
-});
+
