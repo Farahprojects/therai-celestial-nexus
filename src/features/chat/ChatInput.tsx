@@ -61,6 +61,9 @@ export const ChatInput = () => {
     isAssistantGenerating,
     isRecording,
   } = useChatInputState();
+  
+  // Get messages to check if this is first message
+  const messages = useMessageStore((state) => state.messages);
 
   // Fetch conversation mode on mount
   useEffect(() => {
