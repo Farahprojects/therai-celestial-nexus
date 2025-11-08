@@ -33,6 +33,7 @@ interface FoldersListProps {
   activeChatId?: string;
   initiallyExpandedFolders?: Set<string>;
   activeFolderId?: string | null;
+  collapseAllFolders?: boolean; // Signal to collapse all folders when switching to non-folder content
 }
 
 export const FoldersList: React.FC<FoldersListProps> = ({
@@ -49,21 +50,28 @@ export const FoldersList: React.FC<FoldersListProps> = ({
   activeChatId,
   initiallyExpandedFolders,
   activeFolderId,
+  collapseAllFolders,
 }) => {
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(initiallyExpandedFolders || new Set());
   
-  // Auto-expand the active folder, or collapse all if no active folder
+  // Auto-expand the active folder when navigating to a folder page
   useEffect(() => {
     if (activeFolderId) {
       // Expand the active folder
       if (!expandedFolders.has(activeFolderId)) {
         setExpandedFolders(prev => new Set([...prev, activeFolderId]));
       }
-    } else {
-      // No active folder - collapse all folders
+    }
+    // Note: We don't automatically collapse folders when activeFolderId becomes null
+    // Folders stay expanded until user explicitly interacts with non-folder content
+  }, [activeFolderId]);
+  
+  // Collapse all folders when collapseAllFolders signal is true
+  useEffect(() => {
+    if (collapseAllFolders) {
       setExpandedFolders(new Set());
     }
-  }, [activeFolderId]);
+  }, [collapseAllFolders]);
   
   // Expand folder when clicking a chat from it
   const handleChatClick = (folderId: string, chatId: string) => {

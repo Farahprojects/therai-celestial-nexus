@@ -176,6 +176,7 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
   const [editTitleFor, setEditTitleFor] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState('');
   const [confirmDeleteFor, setConfirmDeleteFor] = useState<string | null>(null);
+  const [shouldCollapseFolders, setShouldCollapseFolders] = useState(false);
 
   /** Load folders on mount and when user/folder changes */
   useEffect(() => { load(); }, [load]);
@@ -190,6 +191,15 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
     window.addEventListener('folders:created', handleFolderCreated);
     return () => window.removeEventListener('folders:created', handleFolderCreated);
   }, [load]);
+
+  /** Reset collapse folders signal after it's been used */
+  useEffect(() => {
+    if (shouldCollapseFolders) {
+      // Reset after a brief delay to ensure FoldersList has processed it
+      const timer = setTimeout(() => setShouldCollapseFolders(false), 100);
+      return () => clearTimeout(timer);
+    }
+  }, [shouldCollapseFolders]);
 
   /** If loading a shared/public conversation as a guest, make it visible in threads */
   useEffect(() => {
@@ -252,12 +262,14 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
       return;
     }
     
-    // If clicking from a folder, keep folder view mode
+    // If clicking from a folder, keep folder view mode and don't collapse folders
     // If clicking from history (no folderId), switch to chat view and collapse folders
     if (folderId) {
       setViewMode('folder', folderId);
+      setShouldCollapseFolders(false);
     } else {
       setViewMode('chat', null); // Clear folder context
+      setShouldCollapseFolders(true); // Collapse folders when switching to History item
     }
     
     setChatId(conversationId);
@@ -378,151 +390,162 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
 
   return (
     <div className={cn('w-full h-full flex flex-col', className)}>
-      <PullToRefresh 
-        onRefresh={handleRefresh}
-        disabled={!isMobile}
-      >
-        <div className="flex-1 overflow-y-auto min-h-0">
-        {/* New Chat + Search */}
-        {conversationType !== 'swiss' && (
-          <div className="space-y-0.5 pt-2 pb-0">
-            <Button
-              variant="ghost"
-              className="w-full justify-start gap-2 px-3 py-1 text-sm font-light"
-              onClick={() => { void startChat(); }}
-            >
-              <SquarePen className="w-4 h-4" />
-              New Chat
-            </Button>
-            <Button variant="ghost" className="w-full justify-start gap-2 px-3 py-1 text-sm font-light" onClick={() => setShowSearchModal(true)}>
-              <Search className="w-4 h-4" /> Search Chat
-            </Button>
-            <Button 
-              variant="ghost" 
-              className="w-full justify-start gap-2 px-3 py-1 text-sm font-light" 
-              onClick={() => setShowImageGallery(true)}
-              data-image-gallery-button
-            >
-              <Image className="w-4 h-4" /> Images
-            </Button>
-            <ExploreActions />
-          </div>
-        )}
-
-        {/* Folders */}
-        <div className="mt-2">
-          <button
-            type="button"
-            onClick={() => setExpanded((prev) => !prev)}
-            className="flex w-full items-center justify-between px-3 py-1 text-xs text-gray-600 font-medium hover:text-gray-900 transition-colors"
-            aria-expanded={expanded}
-          >
-            <span>Folders</span>
-            {expanded ? (
-              <ChevronDown className="h-3 w-3" />
-            ) : (
-              <ChevronRight className="h-3 w-3" />
+      {/* Scrollable content area */}
+      <div className="flex-1 min-h-0 overflow-hidden">
+        <PullToRefresh 
+          onRefresh={handleRefresh}
+          disabled={!isMobile}
+        >
+          <div className="h-full overflow-y-auto">
+            {/* New Chat + Search */}
+            {conversationType !== 'swiss' && (
+              <div className="space-y-0.5 pt-2 pb-0">
+                <Button
+                  variant="ghost"
+                  className="w-full justify-start gap-2 px-3 py-1 text-sm font-light"
+                  onClick={() => { 
+                    setShouldCollapseFolders(true); // Collapse folders when creating new chat
+                    void startChat(); 
+                  }}
+                >
+                  <SquarePen className="w-4 h-4" />
+                  New Chat
+                </Button>
+                <Button variant="ghost" className="w-full justify-start gap-2 px-3 py-1 text-sm font-light" onClick={() => setShowSearchModal(true)}>
+                  <Search className="w-4 h-4" /> Search Chat
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  className="w-full justify-start gap-2 px-3 py-1 text-sm font-light" 
+                  onClick={() => setShowImageGallery(true)}
+                  data-image-gallery-button
+                >
+                  <Image className="w-4 h-4" /> Images
+                </Button>
+                <ExploreActions />
+              </div>
             )}
-          </button>
-          {expanded && (
-            <div>
-              <AddFolderButton
-                onClick={() => {
-                  if (!isAuthenticated) return setShowAuthModal(true);
-                  setEditingFolder(null);
-                  setShowFolderModal(true);
-                }}
-              />
-              <FoldersList
-              folders={folders}
-              onFolderClick={(id) => { navigate(`/folders/${id}`, { replace: true }); onCloseMobileSidebar?.(); }}
-              onChatClick={(folderId, chatId) => switchToChat(chatId, folderId)}
-              onEditFolder={isAuthenticated ? (id, name) => { setEditingFolder({ id, name }); setShowFolderModal(true); } : undefined}
-              onDeleteFolder={isAuthenticated ? handleDeleteFolder : undefined}
-              onEditChat={isAuthenticated ? (id, current) => { setEditTitleFor(id); setEditTitle(current || ''); } : undefined}
-              onDeleteChat={isAuthenticated ? (id) => setConfirmDeleteFor(id) : undefined}
-              onMoveToFolder={isAuthenticated ? handleMoveToFolder : undefined}
-              onCreateFolder={isAuthenticated ? (id) => { setConversationToMoveToNewFolder(id); setShowFolderModal(true); } : undefined}
-              allFolders={folders.map(f => ({ id: f.id, name: f.name }))}
-              activeChatId={chat_id}
-              activeFolderId={selectedFolderId}
-            />
-            </div>
-          )}
-        </div>
 
-        {/* Threads */}
-        <div className="mt-2">
-          <div className="text-xs text-gray-600 font-medium px-3 py-1">History</div>
-          {isLoadingThreads ? (
-            <div className="space-y-1">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <div key={i} className="py-2 px-3 rounded-lg animate-pulse bg-gray-100" />
-              ))}
+            {/* Folders */}
+            <div className="mt-2">
+              <button
+                type="button"
+                onClick={() => setExpanded((prev) => !prev)}
+                className="flex w-full items-center justify-between px-3 py-1 text-xs text-gray-600 font-medium hover:text-gray-900 transition-colors"
+                aria-expanded={expanded}
+              >
+                <span>Folders</span>
+                {expanded ? (
+                  <ChevronDown className="h-3 w-3" />
+                ) : (
+                  <ChevronRight className="h-3 w-3" />
+                )}
+              </button>
+              {expanded && (
+                <div>
+                  <AddFolderButton
+                    onClick={() => {
+                      if (!isAuthenticated) return setShowAuthModal(true);
+                      setEditingFolder(null);
+                      setShowFolderModal(true);
+                    }}
+                  />
+                  <FoldersList
+                  folders={folders}
+                  onFolderClick={(id) => { 
+                    setShouldCollapseFolders(false); // Don't collapse when clicking on folder
+                    navigate(`/folders/${id}`, { replace: true }); 
+                    onCloseMobileSidebar?.(); 
+                  }}
+                  onChatClick={(folderId, chatId) => switchToChat(chatId, folderId)}
+                  onEditFolder={isAuthenticated ? (id, name) => { setEditingFolder({ id, name }); setShowFolderModal(true); } : undefined}
+                  onDeleteFolder={isAuthenticated ? handleDeleteFolder : undefined}
+                  onEditChat={isAuthenticated ? (id, current) => { setEditTitleFor(id); setEditTitle(current || ''); } : undefined}
+                  onDeleteChat={isAuthenticated ? (id) => setConfirmDeleteFor(id) : undefined}
+                  onMoveToFolder={isAuthenticated ? handleMoveToFolder : undefined}
+                  onCreateFolder={isAuthenticated ? (id) => { setConversationToMoveToNewFolder(id); setShowFolderModal(true); } : undefined}
+                  allFolders={folders.map(f => ({ id: f.id, name: f.name }))}
+                  activeChatId={chat_id}
+                  activeFolderId={selectedFolderId}
+                  collapseAllFolders={shouldCollapseFolders}
+                />
+                </div>
+              )}
             </div>
-          ) : filteredThreads.length === 0 ? (
-            <div className="text-xs text-gray-500 px-3 py-1">No previous chats</div>
-          ) : (
-            <div className="space-y-0.5">
-              {filteredThreads.slice(0, visible).map((c) => {
-                const isActive = c.id === chat_id;
-                const isPending = (c.meta as any)?.isPending || pendingInsightThreads.has(c.id);
 
-                return (
-                  <div key={c.id} className={cn('group flex items-center gap-2 py-1.5 px-3 rounded-lg transition-colors', isActive ? 'bg-gray-100' : 'hover:bg-gray-100', isPending && 'opacity-60') }>
-                    {isPending && (
-                      <svg className="w-4 h-4 animate-spin text-gray-600" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                        <path className="opacity-75" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" fill="currentColor" />
-                      </svg>
-                    )}
-                    <button
-                      className="flex-1 min-w-0 text-left"
-                      disabled={isPending}
-                      onClick={() => switchToChat(c.id)}
-                    >
-                      <div className="flex items-center gap-2">
-                        {c.mode === 'insight' && <Sparkles className="w-4 h-4 text-gray-600" />}
-                        {c.mode === 'astro' && <Orbit className="w-4 h-4 text-gray-600" />}
-                        {c.mode === 'together' && <Blend className="w-4 h-4 text-gray-600" />}
-                        {(c.mode === 'chat' || !c.mode) && <MessageCircle className="w-4 h-4 text-gray-600" />}
-                        <div className="text-sm font-medium text-gray-900 truncate" title={c.title || draftTitle}>{c.title || draftTitle}</div>
-                        {isSharedThread(c) && (
-                          <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700 border border-blue-200">Shared</span>
+            {/* Threads (History) */}
+            <div className="mt-2 pb-4">
+              <div className="text-xs text-gray-600 font-medium px-3 py-1">History</div>
+              {isLoadingThreads ? (
+                <div className="space-y-1">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <div key={i} className="py-2 px-3 rounded-lg animate-pulse bg-gray-100" />
+                  ))}
+                </div>
+              ) : filteredThreads.length === 0 ? (
+                <div className="text-xs text-gray-500 px-3 py-1">No previous chats</div>
+              ) : (
+                <div className="space-y-0.5">
+                  {filteredThreads.slice(0, visible).map((c) => {
+                    const isActive = c.id === chat_id;
+                    const isPending = (c.meta as any)?.isPending || pendingInsightThreads.has(c.id);
+
+                    return (
+                      <div key={c.id} className={cn('group flex items-center gap-2 py-1.5 px-3 rounded-lg transition-colors', isActive ? 'bg-gray-100' : 'hover:bg-gray-100', isPending && 'opacity-60') }>
+                        {isPending && (
+                          <svg className="w-4 h-4 animate-spin text-gray-600" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                            <path className="opacity-75" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" fill="currentColor" />
+                          </svg>
                         )}
-                      </div>
-                    </button>
-
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <button className="p-1 hover:bg-gray-200 rounded">
-                          <MoreHorizontal className="w-4 h-4 text-gray-600" />
+                        <button
+                          className="flex-1 min-w-0 text-left"
+                          disabled={isPending}
+                          onClick={() => switchToChat(c.id)}
+                        >
+                          <div className="flex items-center gap-2">
+                            {c.mode === 'insight' && <Sparkles className="w-4 h-4 text-gray-600" />}
+                            {c.mode === 'astro' && <Orbit className="w-4 h-4 text-gray-600" />}
+                            {c.mode === 'together' && <Blend className="w-4 h-4 text-gray-600" />}
+                            {(c.mode === 'chat' || !c.mode) && <MessageCircle className="w-4 h-4 text-gray-600" />}
+                            <div className="text-sm font-medium text-gray-900 truncate" title={c.title || draftTitle}>{c.title || draftTitle}</div>
+                            {isSharedThread(c) && (
+                              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700 border border-blue-200">Shared</span>
+                            )}
+                          </div>
                         </button>
-                      </DropdownMenuTrigger>
-                      <ConversationActionsMenuContent
-                        conversationId={c.id}
-                        currentTitle={c.title || ''}
-                        onEdit={(id, current) => { setEditTitleFor(id); setEditTitle(current || ''); }}
-                        onDelete={(id) => setConfirmDeleteFor(id)}
-                        onMoveToFolder={handleMoveToFolder}
-                        onCreateFolder={(id) => { setConversationToMoveToNewFolder(id); setShowFolderModal(true); }}
-                        folders={folders.map(f => ({ id: f.id, name: f.name }))}
-                        currentFolderId={c.folder_id || null}
-                        align="end"
-                      />
-                    </DropdownMenu>
-                  </div>
-                );
-              })}
-              {hasMore && <div ref={sentinelRef} className="h-6" />}
-            </div>
-          )}
-        </div>
-      </div>
-      </PullToRefresh>
 
-      {/* Footer */}
-      <div className="mt-auto pt-3">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <button className="p-1 hover:bg-gray-200 rounded">
+                              <MoreHorizontal className="w-4 h-4 text-gray-600" />
+                            </button>
+                          </DropdownMenuTrigger>
+                          <ConversationActionsMenuContent
+                            conversationId={c.id}
+                            currentTitle={c.title || ''}
+                            onEdit={(id, current) => { setEditTitleFor(id); setEditTitle(current || ''); }}
+                            onDelete={(id) => setConfirmDeleteFor(id)}
+                            onMoveToFolder={handleMoveToFolder}
+                            onCreateFolder={(id) => { setConversationToMoveToNewFolder(id); setShowFolderModal(true); }}
+                            folders={folders.map(f => ({ id: f.id, name: f.name }))}
+                            currentFolderId={c.folder_id || null}
+                            align="end"
+                          />
+                        </DropdownMenu>
+                      </div>
+                    );
+                  })}
+                  {hasMore && <div ref={sentinelRef} className="h-6" />}
+                </div>
+              )}
+            </div>
+          </div>
+        </PullToRefresh>
+      </div>
+
+      {/* Fixed Footer - User Settings Menu */}
+      <div className="flex-shrink-0 border-t border-gray-100 pt-2">
         {isAuthenticated ? (
           <div className="px-2 pb-2">
             {isMobile ? (
