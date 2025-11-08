@@ -576,54 +576,6 @@ if (role === "assistant" && insertedMessage?.id) {
   }
 }
 
-// 🏷️ FIRE-AND-FORGET: Generate conversation title from first message
-// Only runs for user messages to generate meaningful titles instead of "New Chat"
-if (role === "user") {
-  Promise.resolve().then(async () => {
-    try {
-      // Check if this is the first message in the conversation
-      const { count } = await supabase
-        .from('messages')
-        .select('id', { count: 'exact', head: true })
-        .eq('chat_id', chat_id);
-      
-      if (count === 1) {
-        // First message - generate title asynchronously
-        console.info(JSON.stringify({
-          event: "generate_title_triggered",
-          request_id: requestId,
-          conversation_id: chat_id
-        }));
-
-        fetch(`${SUPABASE_URL}/functions/v1/generate-conversation-title`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`
-          },
-          body: JSON.stringify({ 
-            conversation_id: chat_id, 
-            message: text 
-          })
-        }).catch(err => {
-          console.error(JSON.stringify({
-            event: "generate_title_trigger_failed",
-            request_id: requestId,
-            conversation_id: chat_id,
-            error: err instanceof Error ? err.message : String(err)
-          }));
-        });
-      }
-    } catch (err) {
-      console.error(JSON.stringify({
-        event: "generate_title_check_failed",
-        request_id: requestId,
-        error: err instanceof Error ? err.message : String(err)
-      }));
-    }
-  });
-}
-
 // Flush logs before returning response
 await new Promise(r => setTimeout(r, 50));
 
