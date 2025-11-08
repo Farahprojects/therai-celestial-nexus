@@ -92,7 +92,7 @@ const Index = () => {
                       rotateX: -90
                     }} transition={{
                       duration: 0.3
-                    }} className="inline-block text-left min-w-[4rem] overflow-visible transform-gpu" style={{
+                    }} className="inline-block text-center w-24 overflow-visible transform-gpu" style={{
                       willChange: 'transform',
                       backfaceVisibility: 'hidden'
                     }}>
