@@ -121,29 +121,52 @@ export const ChatInput = () => {
   const handleSend = async () => {
     if (!text.trim()) return;
 
+      const messageText = text.trim();
       let currentChatId = chat_id;
+      let generatedTitle = 'New Chat';
       
       // For authenticated users: create conversation if no chat_id exists
       if (isAuthenticated && !chat_id && user) {
 
         try {
-          console.log('[ChatInput] Creating new conversation for authenticated user');
-          const newChatId = await addThread(user.id, 'chat', 'New Chat');
+          console.log('[ChatInput] Creating new conversation with AI-generated title');
+          
+          // Create conversation with AI-generated title from the first message
+          const result = await supabase.functions.invoke('create-conversation-with-title', {
+            body: { message: messageText, mode: 'chat' }
+          });
+          
+          if (result.error) {
+            throw new Error('Failed to create conversation');
+          }
+          
+          const newChatId = result.data.conversation_id;
+          generatedTitle = result.data.title || 'New Chat';
           
           // Initialize the conversation in chatController (store will handle state)
           await chatController.initializeConversation(newChatId);
           
+          // Add to threads list for sidebar with generated title
+          const { addConversation } = useChatStore.getState();
+          addConversation({
+            id: newChatId,
+            user_id: user.id,
+            title: generatedTitle,
+            mode: 'chat',
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            meta: null
+          });
+          
           // Use the newly created chat_id for this message
           currentChatId = newChatId;
           
-          console.log('[ChatInput] New conversation created and initialized:', newChatId);
+          console.log('[ChatInput] New conversation created with smart title:', generatedTitle);
         } catch (error) {
           console.error('[ChatInput] Failed to create conversation:', error);
           return; // Don't send message if conversation creation failed
         }
       }
-      
-      const messageText = text.trim();
       const client_msg_id = crypto.randomUUID();
       
       // INSTANT UI UPDATES (no delays)
