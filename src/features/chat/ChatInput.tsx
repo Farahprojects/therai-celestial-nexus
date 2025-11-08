@@ -122,10 +122,11 @@ export const ChatInput = () => {
     if (!text.trim()) return;
 
       let currentChatId = chat_id;
+      let isNewConversation = false;
       
       // For authenticated users: create conversation if no chat_id exists
       if (isAuthenticated && !chat_id && user) {
-
+        isNewConversation = true;
         try {
           console.log('[ChatInput] Creating new conversation for authenticated user');
           const newChatId = await addThread(user.id, 'chat', 'New Chat');
@@ -137,24 +138,31 @@ export const ChatInput = () => {
           currentChatId = newChatId;
           
           console.log('[ChatInput] New conversation created and initialized:', newChatId);
-          
-          // Fire-and-forget: Generate better title from first message
-          const messageForTitle = text.trim();
-          queueMicrotask(() => {
-            supabase.functions.invoke('generate-conversation-title', {
-              body: {
-                conversation_id: newChatId,
-                message: messageForTitle,
-                user_id: user.id
-              }
-            }).catch((error) => {
-              console.log('[ChatInput] Title generation failed (non-blocking):', error);
-            });
-          });
         } catch (error) {
           console.error('[ChatInput] Failed to create conversation:', error);
           return; // Don't send message if conversation creation failed
         }
+      }
+      
+      // Check if this is the first user message in existing conversation
+      const userMessages = messages.filter(m => m.role === 'user' && m.chat_id === currentChatId);
+      const isFirstMessage = userMessages.length === 0;
+      
+      // Fire-and-forget: Generate better title from first message
+      if (isAuthenticated && user && currentChatId && (isNewConversation || isFirstMessage)) {
+        const messageForTitle = text.trim();
+        console.log('[ChatInput] First message detected, generating title from:', messageForTitle.substring(0, 50));
+        queueMicrotask(() => {
+          supabase.functions.invoke('generate-conversation-title', {
+            body: {
+              conversation_id: currentChatId,
+              message: messageForTitle,
+              user_id: user.id
+            }
+          }).catch((error) => {
+            console.log('[ChatInput] Title generation failed (non-blocking):', error);
+          });
+        });
       }
       
       const messageText = text.trim();
