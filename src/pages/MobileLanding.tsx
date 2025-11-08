@@ -118,6 +118,9 @@ const MobileLanding: React.FC<Props> = ({
                   <Link to="/pricing" className="block text-gray-700 hover:text-gray-900 transition-colors py-3 text-lg font-light" onClick={() => setIsMenuOpen(false)}>
                     Pricing
                   </Link>
+                  <Link to="/support" className="block text-gray-700 hover:text-gray-900 transition-colors py-3 text-lg font-light" onClick={() => setIsMenuOpen(false)}>
+                    Support
+                  </Link>
                   <Link to="/about" className="block text-gray-700 hover:text-gray-900 transition-colors py-3 text-lg font-light" onClick={() => setIsMenuOpen(false)}>
                     About
                   </Link>
