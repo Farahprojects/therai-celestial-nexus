@@ -185,17 +185,17 @@ const MobileLanding: React.FC<Props> = ({
         }} transition={{
         delay: 0.6,
         duration: 0.8
-      }} className="mb-12">
+      }} className="mb-12 flex flex-col items-center gap-8">
             <p className="text-lg text-gray-500 max-w-xl mx-auto leading-relaxed">Insights that create momentum</p>
             <motion.div initial={{
             opacity: 0
           }} animate={{
             opacity: 1
           }} transition={{
-            delay: 0.8,
-            duration: 0.8
-          }} className="mt-6">
-              <p className="text-2xl font-light text-gray-900 italic">
+        delay: 0.8,
+        duration: 0.8
+      }}>
+              <p className="text-3xl font-light text-gray-900 italic">
                 e ≡ AΦ
               </p>
             </motion.div>

@@ -437,6 +437,15 @@ const UnifiedNavigation = ({
                 </span>
               </Link>
               <Link 
+                to="/blog" 
+                className="block text-gray-700 hover:text-gray-900 transition-all duration-300 ease-out py-2 group relative"
+              >
+                <span className="relative">
+                  Blog
+                  <span className="absolute -bottom-0.5 left-0 w-0 h-0.5 bg-gray-900 transition-all duration-300 ease-out group-hover:w-full"></span>
+                </span>
+              </Link>
+              <Link 
                 to="/support" 
                 className="block text-gray-700 hover:text-gray-900 transition-all duration-300 ease-out py-2 group relative"
               >
