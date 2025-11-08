@@ -164,10 +164,9 @@ const MobileLanding: React.FC<Props> = ({ onGoogle, onApple }) => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 1, ease: "easeOut" }}
           >
-            <h1 className="text-5xl font-light text-gray-900 leading-tight mb-8">
-              Know
-              <br />
-              <span className="italic font-medium flex items-center justify-center gap-x-4 flex-wrap">
+            <h1 className="text-4xl sm:text-5xl font-light text-gray-900 leading-tight mb-8 flex items-center justify-center gap-x-5 whitespace-nowrap">
+              <span>Know</span>
+              <span className="italic font-medium flex items-center justify-center gap-x-4">
                 <span>Your</span>
                 <AnimatePresence mode="wait">
                   <motion.span

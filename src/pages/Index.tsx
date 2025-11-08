@@ -76,10 +76,9 @@ const Index = () => {
               duration: 1,
               ease: "easeOut"
             }} className="max-w-5xl mx-auto space-y-12">
-              <h1 className="text-5xl md:text-7xl lg:text-8xl font-light text-gray-900 leading-tight">
-                Know
-                <br />
-                <span className="italic font-medium flex items-center justify-center gap-x-4 flex-wrap">
+              <h1 className="text-5xl md:text-7xl lg:text-8xl font-light text-gray-900 leading-tight flex items-center justify-center gap-x-6 whitespace-nowrap">
+                <span>Know</span>
+                <span className="italic font-medium flex items-center justify-center gap-x-4">
                   <span>Your</span>
                   <AnimatePresence mode="wait">
                     <motion.span key={currentWordIndex} initial={{
