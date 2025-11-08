@@ -364,64 +364,137 @@ determineLLMHandler().then((llmHandler) => {
 });
 }
 
-// ⚡ AWAIT DB insert to ensure message is saved before returning
+// 🚀 FIRE-AND-FORGET: Don't await DB insert for faster response (user messages only)
+// Assistant messages still await insert for reliability
 console.info(JSON.stringify({
   event: "chat_send_db_insert_start",
-  request_id: requestId
-}));
-
-const { data: insertedMessage, error: dbError } = await supabase
-  .from("messages")
-  .insert(message)
-  .select("*")
-  .single();
-
-if (dbError) {
-  console.error(JSON.stringify({
-    event: "chat_send_db_insert_failed",
-    request_id: requestId,
-    error: dbError.message
-  }));
-  return json(500, { error: "Failed to save message", details: dbError.message });
-}
-
-console.info(JSON.stringify({
-  event: "chat_send_db_insert_complete",
   request_id: requestId,
-  duration_ms: Date.now() - startTime
+  fire_and_forget: role === "user"
 }));
 
-// Broadcast to unified user channel (WebSocket optimization)
-if (insertedMessage && user_id) {
-  const broadcastChannel = supabase.channel(`user-realtime:${user_id}`);
-  broadcastChannel.send({
-    type: 'broadcast',
-    event: 'message-insert',
-    payload: {
-      chat_id,
-      message: insertedMessage
-    }
-  }).then(() => {
-    console.info(JSON.stringify({
-      event: "chat_send_broadcast_sent",
-      request_id: requestId,
-      user_id,
-      message_id: insertedMessage.id
-    }));
-  }).catch((err) => {
+let insertedMessage: any = null;
+
+if (role === "user") {
+  // 🚀 OPTIMIZED: Fire-and-forget for user messages (instant response)
+  supabase
+    .from("messages")
+    .insert(message)
+    .select("*")
+    .single()
+    .then(({ data, error: dbError }) => {
+      if (dbError) {
+        console.error(JSON.stringify({
+          event: "chat_send_db_insert_failed",
+          request_id: requestId,
+          error: dbError.message,
+          role: "user"
+        }));
+        // TODO: Could implement retry logic here
+        return;
+      }
+
+      console.info(JSON.stringify({
+        event: "chat_send_db_insert_complete",
+        request_id: requestId,
+        duration_ms: Date.now() - startTime,
+        role: "user"
+      }));
+
+      // Broadcast after successful insert
+      if (data && user_id) {
+        const broadcastChannel = supabase.channel(`user-realtime:${user_id}`);
+        broadcastChannel.send({
+          type: 'broadcast',
+          event: 'message-insert',
+          payload: {
+            chat_id,
+            message: data
+          }
+        })
+          .then(() => {
+            console.info(JSON.stringify({
+              event: "chat_send_broadcast_sent",
+              request_id: requestId,
+              user_id,
+              message_id: data.id
+            }));
+          })
+          .catch((err) => {
+            console.error(JSON.stringify({
+              event: "chat_send_broadcast_failed",
+              request_id: requestId,
+              error: err instanceof Error ? err.message : String(err)
+            }));
+          })
+          .finally(() => {
+            // Clean up channel
+            supabase.removeChannel(broadcastChannel).catch(() => {});
+          });
+      }
+    });
+} else {
+  // ⚡ CRITICAL: Assistant messages still await insert (needed for display)
+  const { data, error: dbError } = await supabase
+    .from("messages")
+    .insert(message)
+    .select("*")
+    .single();
+
+  if (dbError) {
     console.error(JSON.stringify({
-      event: "chat_send_broadcast_failed",
+      event: "chat_send_db_insert_failed",
       request_id: requestId,
-      error: err instanceof Error ? err.message : String(err)
+      error: dbError.message,
+      role: "assistant"
     }));
-  }).finally(() => {
-    // Clean up channel
-    supabase.removeChannel(broadcastChannel).catch(() => {});
-  });
+    return json(500, { error: "Failed to save message", details: dbError.message });
+  }
+
+  insertedMessage = data;
+
+  console.info(JSON.stringify({
+    event: "chat_send_db_insert_complete",
+    request_id: requestId,
+    duration_ms: Date.now() - startTime,
+    role: "assistant"
+  }));
+
+  // Broadcast to unified user channel (WebSocket optimization)
+  if (insertedMessage && user_id) {
+    const broadcastChannel = supabase.channel(`user-realtime:${user_id}`);
+    broadcastChannel.send({
+      type: 'broadcast',
+      event: 'message-insert',
+      payload: {
+        chat_id,
+        message: insertedMessage
+      }
+    })
+      .then(() => {
+        console.info(JSON.stringify({
+          event: "chat_send_broadcast_sent",
+          request_id: requestId,
+          user_id,
+          message_id: insertedMessage.id
+        }));
+      })
+      .catch((err) => {
+        console.error(JSON.stringify({
+          event: "chat_send_broadcast_failed",
+          request_id: requestId,
+          error: err instanceof Error ? err.message : String(err)
+        }));
+      })
+      .finally(() => {
+        // Clean up channel
+        supabase.removeChannel(broadcastChannel).catch(() => {});
+      });
+  }
 }
 
 // Trigger memory extraction if needed (fire-and-forget)
 // Optimized with sampling to reduce edge function invocations by 70-80%
+// Only runs for assistant messages (insertedMessage will be null for user messages in fire-and-forget path)
 if (role === "assistant" && insertedMessage?.id) {
   // Check if we should extract memories based on heuristics
   const shouldSampleExtraction = await (async () => {

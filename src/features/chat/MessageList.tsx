@@ -44,90 +44,6 @@ const AssistantMessage = React.memo(({ message }: { message: Message }) => {
   const displayText = isAnimating ? animatedText : text || '';
   const isTogetherModeAnalysis = meta?.together_mode_analysis === true;
 
-  // 🆕 ADD IMAGE DETECTION
-  const isImageMessage = meta?.message_type === 'image';
-  const imageUrl = meta?.image_url;
-  const imagePrompt = meta?.image_prompt;
-  const [showShareModal, setShowShareModal] = useState(false);
-
-  // 🆕 RENDER IMAGE IF PRESENT
-  if (isImageMessage && imageUrl) {
-    const handleShare = () => {
-      setShowShareModal(true);
-    };
-
-    const handleDownload = async () => {
-      try {
-        const response = await fetch(imageUrl);
-        const blob = await response.blob();
-        const imagePath = meta?.image_path || '';
-        const filename = imagePath.split('/').pop() || 'image.png';
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
-        toast.success('Image downloaded');
-      } catch (error) {
-        console.error('Failed to download image:', error);
-        toast.error('Failed to download image');
-      }
-    };
-
-    return (
-      <div className="flex justify-center mb-8">
-        <div className="relative group inline-block max-w-[80vw] rounded-2xl overflow-hidden shadow-md">
-          <img
-            src={imageUrl}
-            alt={imagePrompt || 'Generated image'}
-            className="block max-w-full max-h-[80vh] object-contain cursor-pointer"
-            onClick={() => {
-              const sidebarButton = document.querySelector('[data-image-gallery-button]') as HTMLButtonElement;
-              if (sidebarButton) sidebarButton.click();
-            }}
-            loading="lazy"
-          />
-          {/* Bottom bar with icons - gradient from dark to transparent, matches image dimensions */}
-          <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-black/0 group-hover:from-black/70 group-hover:to-transparent transition-all duration-200 flex items-end justify-center gap-3 pb-3 pointer-events-none">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="opacity-0 group-hover:opacity-100 text-white hover:text-white hover:bg-white/20 rounded-full transition-opacity pointer-events-auto"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleDownload();
-              }}
-            >
-              <Download className="w-4 h-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="opacity-0 group-hover:opacity-100 text-white hover:text-white hover:bg-white/20 rounded-full transition-opacity pointer-events-auto"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleShare();
-              }}
-            >
-              <Share2 className="w-4 h-4" />
-            </Button>
-          </div>
-        </div>
-
-        {/* Share Modal */}
-        <ShareImageModal
-          isOpen={showShareModal}
-          onClose={() => setShowShareModal(false)}
-          imageUrl={imageUrl}
-          imagePrompt={imagePrompt}
-        />
-      </div>
-    );
-  }
-
   return (
     <div className="flex items-end gap-3 justify-start mb-8">
       <div className="px-4 py-3 rounded-2xl max-w-2xl lg:max-w-4xl text-black">
@@ -178,16 +94,116 @@ const AssistantMessage = React.memo(({ message }: { message: Message }) => {
 });
 AssistantMessage.displayName = 'AssistantMessage';
 
-// Image skeleton component - matches the actual image container
-const ImageSkeleton = ({ prompt }: { prompt: string }) => (
-  <div className="flex justify-center mb-8">
-    <div className="relative inline-block max-w-[80vw] rounded-2xl overflow-hidden shadow-md">
-      <div className="w-[512px] h-[512px] bg-gray-50 animate-pulse flex items-center justify-center">
-        <div className="absolute inset-0 bg-gradient-to-br from-gray-100/50 via-gray-50 to-gray-100/50 animate-pulse" />
+// Image component with loading state - uses same structure for smooth transition
+const ImageWithLoading = React.memo(({ message }: { message: Message }) => {
+  const { meta } = message;
+  const imageUrl = meta?.image_url;
+  const imagePrompt = meta?.image_prompt;
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
+
+  // Reset imageLoaded when imageUrl changes
+  React.useEffect(() => {
+    if (imageUrl) {
+      setImageLoaded(false);
+    }
+  }, [imageUrl]);
+
+  const handleShare = () => {
+    setShowShareModal(true);
+  };
+
+  const handleDownload = async () => {
+    if (!imageUrl) return;
+    try {
+      const response = await fetch(imageUrl);
+      const blob = await response.blob();
+      const imagePath = meta?.image_path || '';
+      const filename = imagePath.split('/').pop() || 'image.png';
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      toast.success('Image downloaded');
+    } catch (error) {
+      console.error('Failed to download image:', error);
+      toast.error('Failed to download image');
+    }
+  };
+
+  return (
+    <div className="flex justify-center mb-8">
+      <div className="relative group inline-block max-w-[80vw] rounded-2xl overflow-hidden shadow-md">
+        {/* Skeleton background - shows while loading or before image loads */}
+        <div className={`w-[512px] h-[512px] bg-gray-50 flex items-center justify-center transition-opacity duration-500 ${imageLoaded ? 'opacity-0' : 'opacity-100'}`}>
+          <div className="absolute inset-0 bg-gradient-to-br from-gray-100/50 via-gray-50 to-gray-100/50 animate-pulse" />
+        </div>
+        
+        {/* Actual image - fades in when loaded */}
+        {imageUrl && (
+          <>
+            <img
+              src={imageUrl}
+              alt={imagePrompt || 'Generated image'}
+              className={`absolute inset-0 w-full h-full object-contain cursor-pointer transition-opacity duration-500 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
+              onClick={() => {
+                const sidebarButton = document.querySelector('[data-image-gallery-button]') as HTMLButtonElement;
+                if (sidebarButton) sidebarButton.click();
+              }}
+              onLoad={() => setImageLoaded(true)}
+              loading="lazy"
+            />
+            
+            {/* Bottom bar with icons - only show when image is loaded */}
+            {imageLoaded && (
+              <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-black/0 group-hover:from-black/70 group-hover:to-transparent transition-all duration-200 flex items-end justify-center gap-3 pb-3 pointer-events-none">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="opacity-0 group-hover:opacity-100 text-white hover:text-white hover:bg-white/20 rounded-full transition-opacity pointer-events-auto"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDownload();
+                  }}
+                >
+                  <Download className="w-4 h-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="opacity-0 group-hover:opacity-100 text-white hover:text-white hover:bg-white/20 rounded-full transition-opacity pointer-events-auto"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleShare();
+                  }}
+                >
+                  <Share2 className="w-4 h-4" />
+                </Button>
+              </div>
+            )}
+
+            {/* Share Modal */}
+            <ShareImageModal
+              isOpen={showShareModal}
+              onClose={() => setShowShareModal(false)}
+              imageUrl={imageUrl}
+              imagePrompt={imagePrompt}
+            />
+          </>
+        )}
       </div>
     </div>
-  </div>
-);
+  );
+}, (prevProps, nextProps) => {
+  // Re-render only if image URL or status changes
+  return prevProps.message.meta?.image_url === nextProps.message.meta?.image_url &&
+         prevProps.message.meta?.status === nextProps.message.meta?.status;
+});
+ImageWithLoading.displayName = 'ImageWithLoading';
 
 // Simple message rendering - no complex turn grouping needed with message_number ordering
 const renderMessages = (messages: Message[], currentUserId?: string) => {
@@ -225,29 +241,27 @@ const renderMessages = (messages: Message[], currentUserId?: string) => {
         meta: message.meta
       });
       
-      // Check if this is a generating image placeholder (skeleton)
-      // Show skeleton if status is 'generating' OR if it's an image message without image_url yet
-      const isGenerating = message.meta?.status === 'generating' && message.meta?.message_type === 'image';
-      const isImageWithoutUrl = message.meta?.message_type === 'image' && !message.meta?.image_url;
+      // Check if this is an image message (generating or complete)
+      const isImageMessage = message.meta?.message_type === 'image';
       
-      if (isGenerating || isImageWithoutUrl) {
-        console.log('[renderMessages] ✅ Rendering skeleton for generating image:', {
+      if (isImageMessage) {
+        console.log('[renderMessages] 🖼️  Rendering image message:', {
           id: message.id,
           status: message.meta?.status,
-          message_type: message.meta?.message_type,
           has_image_url: !!message.meta?.image_url,
           prompt: message.meta?.image_prompt
         });
         // Use client_msg_id as key if available to prevent glitch when optimistic message is replaced
         const messageKey = message.client_msg_id || message.id;
         elements.push(
-          <ImageSkeleton 
+          <ImageWithLoading 
             key={messageKey} 
-            prompt={message.meta?.image_prompt || 'Generating image...'} 
+            message={message}
           />
         );
         continue; // Skip normal rendering
       }
+      
       // Use client_msg_id as key if available to prevent glitch when optimistic message is replaced
       const messageKey = message.client_msg_id || message.id;
       elements.push(

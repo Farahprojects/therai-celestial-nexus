@@ -255,60 +255,27 @@ Deno.serve(async (req) => {
     // Continue to log - this is rare race condition, audit log still matters
   }
 
-  const [logResult, messageResult, userImageResult] = await Promise.all([
-    supabase
-      .from('image_generation_log')
-      .insert({
-        user_id,
-        chat_id,
-        image_url: publicUrl,
-        model: IMAGEN_MODEL
-      }),
-    supabase
-      .from('messages')
-      .update({
-        status: 'complete',
-        meta: {
-          message_type: 'image',
-          image_url: publicUrl,
-          image_path: filePath,
-          image_prompt: prompt,
-          image_model: 'imagen-4.0-fast-generate-001',
-          image_size: '1024x1024',
-          generation_time_ms: generationTime,
-          cost_usd: 0.04
-        }
-      })
-      .eq('id', image_id)
-      .select()
-      .single(),
-    // Save to user_images table for persistent gallery (survives chat/message deletion)
-    supabase
-      .from('user_images')
-      .insert({
-        user_id,
-        chat_id,
-        message_id: image_id,
+  // 🚀 OPTIMIZED: Only await critical message update
+  // Fire-and-forget for audit log and user_images (nice-to-have)
+  const { data: updatedMessage, error: messageError } = await supabase
+    .from('messages')
+    .update({
+      status: 'complete',
+      meta: {
+        message_type: 'image',
         image_url: publicUrl,
         image_path: filePath,
-        prompt: prompt,
-        model: 'imagen-4.0-fast-generate-001',
-        size: '1024x1024'
-      })
-      .select()
-      .single()
-  ]);
+        image_prompt: prompt,
+        image_model: 'imagen-4.0-fast-generate-001',
+        image_size: '1024x1024',
+        generation_time_ms: generationTime,
+        cost_usd: 0.04
+      }
+    })
+    .eq('id', image_id)
+    .select()
+    .single();
 
-  const { error: logError } = logResult;
-  if (logError) {
-    console.error(JSON.stringify({
-      event: "image_generate_audit_log_failed",
-      request_id: requestId,
-      error: logError.message
-    }));
-  }
-
-  const { data: updatedMessage, error: messageError } = messageResult;
   if (messageError) {
     console.error(JSON.stringify({
       event: "image_generate_message_update_failed",
@@ -318,65 +285,100 @@ Deno.serve(async (req) => {
     }));
   }
 
-  const { data: newUserImage, error: userImageError } = userImageResult;
-  if (userImageError) {
-    console.error(JSON.stringify({
-      event: "image_generate_user_image_save_failed",
-      request_id: requestId,
-      error: userImageError.message,
-      image_id: image_id
-    }));
-  }
+  // 🚀 FIRE-AND-FORGET: Audit log (for rate limiting - not time-critical)
+  supabase
+    .from('image_generation_log')
+    .insert({
+      user_id,
+      chat_id,
+      image_url: publicUrl,
+      model: IMAGEN_MODEL
+    })
+    .then(({ error }) => {
+      if (error) {
+        console.error(JSON.stringify({
+          event: "image_generate_audit_log_failed",
+          request_id: requestId,
+          error: error.message
+        }));
+      }
+    });
 
-  // Broadcast message update to unified channel for real-time chat updates
+  // 🚀 FIRE-AND-FORGET: user_images table (for gallery - not time-critical)
+  supabase
+    .from('user_images')
+    .insert({
+      user_id,
+      chat_id,
+      message_id: image_id,
+      image_url: publicUrl,
+      image_path: filePath,
+      prompt: prompt,
+      model: 'imagen-4.0-fast-generate-001',
+      size: '1024x1024'
+    })
+    .select()
+    .single()
+    .then(({ data: newUserImage, error: userImageError }) => {
+      if (userImageError) {
+        console.error(JSON.stringify({
+          event: "image_generate_user_image_save_failed",
+          request_id: requestId,
+          error: userImageError.message,
+          image_id: image_id
+        }));
+      } else if (newUserImage) {
+        // 🚀 FIRE-AND-FORGET: Broadcast image insert to gallery (non-critical)
+        const channelName = `user-realtime:${user_id}`;
+        supabase.channel(channelName).send({
+          type: 'broadcast',
+          event: 'image-insert',
+          payload: {
+            image: newUserImage
+          }
+        })
+          .then(() => {
+            console.info(JSON.stringify({
+              event: "image_generate_image_broadcast_sent",
+              request_id: requestId,
+              channel: channelName
+            }));
+          })
+          .catch((broadcastError) => {
+            console.error(JSON.stringify({
+              event: "image_generate_image_broadcast_failed",
+              request_id: requestId,
+              error: broadcastError instanceof Error ? broadcastError.message : String(broadcastError)
+            }));
+          });
+      }
+    });
+
+  // 🚀 FIRE-AND-FORGET: Broadcast message update (non-critical - message already in DB)
   if (updatedMessage && !messageError) {
     const channelName = `user-realtime:${user_id}`;
-    try {
-      await supabase.channel(channelName).send({
-        type: 'broadcast',
-        event: 'message-update',
-        payload: {
-          chat_id,
-          message: updatedMessage
-        }
+    supabase.channel(channelName).send({
+      type: 'broadcast',
+      event: 'message-update',
+      payload: {
+        chat_id,
+        message: updatedMessage
+      }
+    })
+      .then(() => {
+        console.info(JSON.stringify({
+          event: "image_generate_message_broadcast_sent",
+          request_id: requestId,
+          channel: channelName
+        }));
+      })
+      .catch((broadcastError) => {
+        console.error(JSON.stringify({
+          event: "image_generate_message_broadcast_failed",
+          request_id: requestId,
+          error: broadcastError instanceof Error ? broadcastError.message : String(broadcastError)
+        }));
       });
-      console.info(JSON.stringify({
-        event: "image_generate_message_broadcast_sent",
-        request_id: requestId,
-        channel: channelName
-      }));
-    } catch (broadcastError) {
-      console.error(JSON.stringify({
-        event: "image_generate_message_broadcast_failed",
-        request_id: requestId,
-        error: broadcastError instanceof Error ? broadcastError.message : String(broadcastError)
-      }));
-    }
-  }
-
-  // Broadcast image insert to unified channel for real-time gallery updates
-  if (newUserImage && !userImageError) {
-    const channelName = `user-realtime:${user_id}`;
-    try {
-      await supabase.channel(channelName).send({
-        type: 'broadcast',
-        event: 'image-insert',
-        payload: {
-          image: newUserImage
-        }
-      });
-      console.info(JSON.stringify({
-        event: "image_generate_image_broadcast_sent",
-        request_id: requestId,
-        channel: channelName
-      }));
-    } catch (broadcastError) {
-      console.error(JSON.stringify({
-        event: "image_generate_image_broadcast_failed",
-        request_id: requestId,
-        error: broadcastError instanceof Error ? broadcastError.message : String(broadcastError)
-      }));
-    }
   }
 
   console.info(JSON.stringify({

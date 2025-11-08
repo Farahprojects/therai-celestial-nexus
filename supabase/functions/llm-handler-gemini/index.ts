@@ -474,18 +474,20 @@ Deno.serve(async (req: Request) => {
           }
         }
         
-      try {
-        const imageGenResp = await fetch(`${ENV.SUPABASE_URL}/functions/v1/image-generate`, {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${ENV.SUPABASE_SERVICE_ROLE_KEY}`,
-            "Content-Type": "application/json"
-          },
-            body: JSON.stringify({ chat_id, prompt, user_id, mode, image_id: imageId })
-        });
-
+      // 🚀 FIRE-AND-FORGET: Don't await image generation - return immediately
+      // The image-generate function will update the placeholder message when done
+      fetch(`${ENV.SUPABASE_URL}/functions/v1/image-generate`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${ENV.SUPABASE_SERVICE_ROLE_KEY}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ chat_id, prompt, user_id, mode, image_id: imageId })
+      })
+        .then(async (imageGenResp) => {
           if (!imageGenResp.ok) {
             const errBody = await imageGenResp.json().catch(() => ({}));
+            console.error("[image-gen] failure:", imageGenResp.status, errBody);
             
             // Update placeholder message with error
             const errorMessage = imageGenResp.status === 429 
@@ -500,42 +502,30 @@ Deno.serve(async (req: Request) => {
                 image_error: true
               }
             }).eq('id', imageId);
-            
-          if (imageGenResp.status === 429) {
-              assistantText = "I've reached the daily limit of 3 images. You can generate more images tomorrow!";
-            } else {
-              console.error("[image-gen] failure:", imageGenResp.status, errBody);
-              assistantText = "I tried to generate an image but encountered an error. Please try again.";
-            }
-          } else {
-            // image-generate will UPDATE the placeholder message with image data
-          return JSON_RESPONSE(200, {
-            success: true,
-              message: "Image generation started",
-            skip_message_creation: true,
-            llm_latency_ms: geminiResponseJson?.latencyMs ?? null,
-            total_latency_ms: Date.now() - startMs
-          });
-        }
-      } catch (e) {
-        console.error("[image-gen] exception:", (e as any)?.message || e);
+          }
+        })
+        .catch((err) => {
+          console.error("[image-gen] fetch exception:", err);
           
-          // Send image-error broadcast
-          const errorChannel = supabase.channel(`unified-messages:${chat_id}`);
-          errorChannel.send({
-            type: "broadcast",
-            event: "image-error",
-            payload: {
-              id: imageId,
-              chat_id,
-              error: "I tried to generate an image but encountered an error. Please try again."
+          // Update placeholder message with error (fire-and-forget)
+          supabase.from('messages').update({
+            text: "I tried to generate an image but encountered an error. Please try again.",
+            status: 'complete',
+            meta: {
+              message_type: 'text',
+              image_error: true
             }
-          }, { httpSend: true })
-            .then(() => errorChannel.unsubscribe())
-            .catch(() => errorChannel.unsubscribe());
-          
-        assistantText = "I tried to generate an image but encountered an error. Please try again.";
-        }
+          }).eq('id', imageId).then(() => {}).catch((e) => console.error("[image-gen] error update failed:", e));
+        });
+      
+      // Return immediately - user doesn't wait for image generation
+      return JSON_RESPONSE(200, {
+        success: true,
+        message: "Image generation started",
+        skip_message_creation: true,
+        llm_latency_ms: geminiResponseJson?.latencyMs ?? null,
+        total_latency_ms: Date.now() - startMs
+      });
       }
     } else {
       // normal text extraction
