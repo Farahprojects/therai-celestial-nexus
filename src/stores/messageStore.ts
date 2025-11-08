@@ -387,10 +387,12 @@ if (typeof window !== 'undefined' && !(window as any).__msgStoreListenerInstalle
       
       // ⚡ OPTIMIZED: Handle side-effects ONLY for assistant messages
       if (messageData.role === 'assistant') {
-        // Clear typing immediately - guard to prevent unnecessary state update
         const chatState = useChatStore.getState();
-        if (chatState.isAssistantTyping) {
-          chatState.setAssistantTyping(false);
+        
+        // Set typing indicator when assistant starts responding (for stop button)
+        // Will be cleared by useWordAnimation when animation completes
+        if (!chatState.isAssistantTyping && messageWithSource.source === 'websocket') {
+          chatState.setAssistantTyping(true);
         }
       }
     } else if (DEBUG && chat_id !== currentChatId) {

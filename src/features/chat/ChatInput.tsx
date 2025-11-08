@@ -203,7 +203,7 @@ export const ChatInput = () => {
       
       // INSTANT UI UPDATES (no delays)
       setText(''); // Clear input instantly
-      setAssistantTyping(true); // Show stop icon
+      // Note: Don't set isAssistantTyping here - it will be set when assistant actually responds
       
       // Show optimistic message immediately in UI
       const optimisticMessage: Message = {

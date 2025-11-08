@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useConversationUIStore } from '@/features/chat/conversation-ui-store';
+import { useChatStore } from '@/core/store';
 
 interface WordAnimationResult {
   animatedText: string;
@@ -25,6 +26,12 @@ export function useWordAnimation(text: string, shouldAnimate: boolean = true, in
     if (!text || !shouldAnimate || isConversationOpen) {
       setDisplayedText(text);
       setIsAnimating(false);
+      
+      // Clear typing indicator if animation is skipped
+      const chatState = useChatStore.getState();
+      if (chatState.isAssistantTyping) {
+        chatState.setAssistantTyping(false);
+      }
       return;
     }
 
@@ -50,6 +57,12 @@ export function useWordAnimation(text: string, shouldAnimate: boolean = true, in
         if (currentTokenIndex >= totalTokens) {
           clearInterval(interval);
           setIsAnimating(false);
+          
+          // Clear typing indicator when animation completes
+          const chatState = useChatStore.getState();
+          if (chatState.isAssistantTyping) {
+            chatState.setAssistantTyping(false);
+          }
           return;
         }
 
