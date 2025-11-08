@@ -378,7 +378,7 @@ Deno.serve(async (req: Request) => {
       requestBody.tools = imageGenerationTool;
     }
 
-    requestBody.generationConfig = { temperature: 0.7, thinkingConfig: { thinkingBudget: 2048 } };
+    requestBody.generationConfig = { temperature: 0.7, thinkingConfig: { thinkingBudget: 0 } };
 
     // Gemini API call with timeout
     const controller = new AbortController();
