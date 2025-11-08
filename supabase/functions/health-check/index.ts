@@ -114,6 +114,7 @@ Deno.serve(async (req) => {
   try {
     // Note: This requires manual tracking or Supabase dashboard API
     // For now, estimate from known buckets
+    // TODO(throttle): replace hardcoded buckets with metrics endpoint when Supabase exposes usage API
     const buckets = ['generated-images', 'website-images', 'report-images'];
     let totalBytes = 0;
 

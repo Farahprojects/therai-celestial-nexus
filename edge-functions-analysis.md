@@ -31,11 +31,10 @@ After comprehensive cleanup, these functions remain:
 - ✅ `google-text-to-speech` - **CRITICAL** Text-to-speech called by llm-handler-gemini for voice chat
 - ✅ `openai-whisper` - Alternative STT option
 
-### Payments & Subscriptions (7)
+### Payments & Subscriptions (6)
 - ✅ `create-subscription-checkout` - **PRIMARY** Subscription checkout flow
 - ✅ `check-subscription` - Check subscription status
 - ✅ `customer-portal` - Stripe customer portal
-- ✅ `get-prices` - Fetch pricing data
 - ✅ `cancel-subscription` - Cancel subscription
 - ✅ `update-subscription` - Update subscription
 - ✅ `stripe-webhook-handler` - **CRITICAL** Handles all Stripe webhooks

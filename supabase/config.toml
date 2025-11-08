@@ -81,9 +81,6 @@ verify_jwt = false
 [functions.swiss]
 verify_jwt = false
 
-[functions.get-prices]
-verify_jwt = false
-
 [functions.validate-promo-code]
 verify_jwt = false
 
