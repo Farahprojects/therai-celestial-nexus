@@ -166,7 +166,7 @@ const MobileLanding: React.FC<Props> = ({ onGoogle, onApple }) => {
           >
             <h1 className="text-4xl sm:text-5xl font-light text-gray-900 leading-tight mb-8 flex items-center justify-center gap-x-5 whitespace-nowrap">
               <span>Know</span>
-              <span className="italic font-medium flex items-center justify-center gap-x-4">
+              <span className="italic font-light flex items-center justify-center gap-x-4">
                 <span>Your</span>
                 <AnimatePresence mode="wait">
                   <motion.span
