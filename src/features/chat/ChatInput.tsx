@@ -137,6 +137,20 @@ export const ChatInput = () => {
           currentChatId = newChatId;
           
           console.log('[ChatInput] New conversation created and initialized:', newChatId);
+          
+          // Fire-and-forget: Generate better title from first message
+          const messageForTitle = text.trim();
+          queueMicrotask(() => {
+            supabase.functions.invoke('generate-conversation-title', {
+              body: {
+                conversation_id: newChatId,
+                message: messageForTitle,
+                user_id: user.id
+              }
+            }).catch((error) => {
+              console.log('[ChatInput] Title generation failed (non-blocking):', error);
+            });
+          });
         } catch (error) {
           console.error('[ChatInput] Failed to create conversation:', error);
           return; // Don't send message if conversation creation failed
