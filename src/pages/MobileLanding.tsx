@@ -137,7 +137,7 @@ const MobileLanding: React.FC<Props> = ({
       </AnimatePresence>
       
       {/* Hero Section - Same as desktop */}
-      <section className="relative flex-1 flex items-center justify-center bg-white overflow-hidden px-4">
+      <section className="relative flex-1 flex items-center justify-center bg-white overflow-hidden px-4 pt-28 pb-16">
         <div className="relative z-10 w-full text-center">
           <motion.div initial={{
           opacity: 0,
@@ -146,12 +146,12 @@ const MobileLanding: React.FC<Props> = ({
           opacity: 1,
           y: 0
         }} transition={{
-          duration: 1,
-          ease: "easeOut"
-        }}>
-            <h1 className="text-4xl sm:text-5xl font-light text-gray-900 leading-tight mb-8 flex items-center justify-center gap-x-5 whitespace-nowrap">
+        duration: 1,
+        ease: "easeOut"
+      }}>
+            <h1 className="text-4xl sm:text-5xl font-light text-gray-900 leading-tight mb-6 flex items-center justify-center gap-x-3 sm:gap-x-6 whitespace-nowrap tracking-tight">
               <span>Know</span>
-              <span className="italic font-light flex items-center justify-center gap-x-4">
+              <span className="italic font-light flex items-center justify-center gap-x-3 sm:gap-x-4">
                 <span>Your</span>
                 <AnimatePresence mode="wait">
                   <motion.span key={currentWordIndex} initial={{
@@ -165,7 +165,7 @@ const MobileLanding: React.FC<Props> = ({
                   rotateX: -90
                 }} transition={{
                   duration: 0.3
-                }} className="inline-block text-center w-24 overflow-visible transform-gpu" style={{
+                }} className="inline-block text-center w-20 sm:w-24 overflow-visible transform-gpu" style={{
                   willChange: 'transform',
                   backfaceVisibility: 'hidden'
                 }}>
@@ -183,10 +183,10 @@ const MobileLanding: React.FC<Props> = ({
           opacity: 1,
           y: 0
         }} transition={{
-          delay: 0.6,
-          duration: 0.8
-        }} className="mb-16">
-            <p className="text-lg text-gray-500 max-w-xl mx-auto leading-relaxed">lnsight that create momentum</p>
+        delay: 0.6,
+        duration: 0.8
+      }} className="mb-12">
+            <p className="text-lg text-gray-500 max-w-xl mx-auto leading-relaxed">Insights that create momentum</p>
             <motion.div initial={{
             opacity: 0
           }} animate={{
