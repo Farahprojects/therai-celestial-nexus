@@ -27,11 +27,20 @@ This behavior will be deprecated in the future.
 Please use httpSend() explicitly for REST delivery.
 ```
 
-**Fix**: Replaced `.send()` with `.httpSend()` for both broadcasts:
+**Fix**: Updated `.send()` to explicitly use HTTP transport via `{ httpSend: true }` option:
 - Image insert broadcast (line 295)
 - Message update broadcast (line 314)
 
-**Impact**: Eliminates deprecation warnings, future-proofs code
+**Correct Pattern**:
+```typescript
+channel.send({
+  type: 'broadcast',
+  event: 'event-name',
+  payload: { ... }
+}, { httpSend: true })
+```
+
+**Impact**: Eliminates deprecation warnings, explicit HTTP delivery, future-proofs code
 
 **Files Changed**:
 - `supabase/functions/image-generate/index.ts` (lines 295, 314)

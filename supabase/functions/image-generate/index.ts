@@ -292,13 +292,13 @@ Deno.serve(async (req) => {
       } else if (newUserImage) {
         // 🚀 FIRE-AND-FORGET: Broadcast image insert to gallery (non-critical)
         const channelName = `user-realtime:${user_id}`;
-        supabase.channel(channelName).httpSend({
+        supabase.channel(channelName).send({
           type: 'broadcast',
           event: 'image-insert',
           payload: {
             image: newUserImage
           }
-        }).catch((broadcastError) => {
+        }, { httpSend: true }).catch((broadcastError) => {
           console.error(JSON.stringify({
             event: "image_generate_broadcast_failed",
             request_id: requestId,
@@ -311,14 +311,14 @@ Deno.serve(async (req) => {
   // 🚀 FIRE-AND-FORGET: Broadcast message update (non-critical - message already in DB)
   if (updatedMessage && !messageError) {
     const channelName = `user-realtime:${user_id}`;
-    supabase.channel(channelName).httpSend({
+    supabase.channel(channelName).send({
       type: 'broadcast',
       event: 'message-update',
       payload: {
         chat_id,
         message: updatedMessage
       }
-    }).catch((broadcastError) => {
+    }, { httpSend: true }).catch((broadcastError) => {
       console.error(JSON.stringify({
         event: "image_generate_broadcast_failed",
         request_id: requestId,
