@@ -123,6 +123,7 @@ const Index = () => {
                   duration: 0.8
                 }} className="mt-6">
                   <p className="text-2xl md:text-3xl font-light text-gray-900 italic">
+                    e ≡ AΦ
                   </p>
                 </motion.div>
               </motion.div>
