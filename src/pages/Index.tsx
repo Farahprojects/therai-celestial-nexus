@@ -111,10 +111,26 @@ const Index = () => {
               </motion.div>
 
               <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 1.0, duration: 0.6 }}
+                className="space-y-8"
+              >
+                <Link to="/signup">
+                  <Button 
+                    size="lg" 
+                    className="bg-primary text-white px-12 py-6 rounded-full text-lg font-medium hover:bg-primary-hover transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105"
+                  >
+                    Explore
+                  </Button>
+                </Link>
+              </motion.div>
+
+              <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 1.4, duration: 0.6 }}
-                className="flex justify-center items-center gap-6 text-sm text-gray-500 font-medium mb-12"
+                className="flex justify-center items-center gap-6 text-sm text-gray-500 font-medium mt-8"
               >
                 <div className="flex items-center gap-2 group">
                   <Star className="h-4 w-4 transition-transform group-hover:scale-110" />
@@ -128,22 +144,6 @@ const Index = () => {
                   <Shield className="h-4 w-4 transition-transform group-hover:scale-110" />
                   <span>Private</span>
                 </div>
-              </motion.div>
-
-              <motion.div
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 1.0, duration: 0.6 }}
-                className="space-y-8"
-              >
-                <Link to="/signup">
-                  <Button 
-                    size="lg" 
-                    className="bg-primary text-white px-12 py-6 rounded-full text-lg font-medium hover:bg-primary-hover transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105"
-                  >
-                    Begin Your Journey
-                  </Button>
-                </Link>
               </motion.div>
             </motion.div>
           </div>
