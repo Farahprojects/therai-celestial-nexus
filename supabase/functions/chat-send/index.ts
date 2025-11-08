@@ -142,32 +142,55 @@ if (messages && Array.isArray(messages) && messages.length > 0) {
   }));
 
   // Broadcast each message to unified user channel (WebSocket optimization)
-  if (insertedMessages && insertedMessages.length > 0 && user_id) {
-    const broadcastChannel = supabase.channel(`user-realtime:${user_id}`);
+  // For together mode: broadcast to ALL participants, not just sender
+  if (insertedMessages && insertedMessages.length > 0) {
+    // Fetch all participants for this conversation
+    const { data: participants } = await supabase
+      .from('conversations_participants')
+      .select('user_id')
+      .eq('conversation_id', chat_id);
     
-    // Send each message as a separate broadcast event
-    for (const msg of insertedMessages) {
-      broadcastChannel.send({
-        type: 'broadcast',
-        event: 'message-insert',
-        payload: {
-          chat_id,
-          message: msg
-        }
-      }).catch((err) => {
-        console.error(JSON.stringify({
-          event: "chat_send_batch_broadcast_failed",
-          request_id: requestId,
-          message_id: msg.id,
-          error: err instanceof Error ? err.message : String(err)
-        }));
-      });
+    const participantUserIds = participants?.map(p => p.user_id) || [];
+    
+    // If no participants found, fall back to sender only
+    const targetUserIds = participantUserIds.length > 0 ? participantUserIds : (user_id ? [user_id] : []);
+    
+    console.info(JSON.stringify({
+      event: "chat_send_batch_broadcasting",
+      request_id: requestId,
+      target_user_count: targetUserIds.length,
+      has_participants: participantUserIds.length > 0
+    }));
+    
+    // Broadcast to each participant
+    for (const targetUserId of targetUserIds) {
+      const broadcastChannel = supabase.channel(`user-realtime:${targetUserId}`);
+      
+      // Send each message as a separate broadcast event
+      for (const msg of insertedMessages) {
+        broadcastChannel.send({
+          type: 'broadcast',
+          event: 'message-insert',
+          payload: {
+            chat_id,
+            message: msg
+          }
+        }).catch((err) => {
+          console.error(JSON.stringify({
+            event: "chat_send_batch_broadcast_failed",
+            request_id: requestId,
+            target_user_id: targetUserId,
+            message_id: msg.id,
+            error: err instanceof Error ? err.message : String(err)
+          }));
+        });
+      }
+      
+      // Clean up channel after a brief delay
+      setTimeout(() => {
+        supabase.removeChannel(broadcastChannel).catch(() => {});
+      }, 100);
     }
-    
-    // Clean up channel after a brief delay
-    setTimeout(() => {
-      supabase.removeChannel(broadcastChannel).catch(() => {});
-    }, 100);
   }
 
   // Flush logs before returning response
@@ -401,34 +424,58 @@ if (role === "user") {
       }));
 
       // Broadcast after successful insert
-      if (data && user_id) {
-        const broadcastChannel = supabase.channel(`user-realtime:${user_id}`);
-        broadcastChannel.send({
-          type: 'broadcast',
-          event: 'message-insert',
-          payload: {
-            chat_id,
-            message: data
-          }
-        })
-          .then(() => {
+      // For together mode: broadcast to ALL participants, not just sender
+      if (data) {
+        // Fetch all participants for this conversation
+        supabase
+          .from('conversations_participants')
+          .select('user_id')
+          .eq('conversation_id', chat_id)
+          .then(({ data: participants }) => {
+            const participantUserIds = participants?.map(p => p.user_id) || [];
+            
+            // If no participants found, fall back to sender only
+            const targetUserIds = participantUserIds.length > 0 ? participantUserIds : (user_id ? [user_id] : []);
+            
             console.info(JSON.stringify({
-              event: "chat_send_broadcast_sent",
+              event: "chat_send_user_broadcasting",
               request_id: requestId,
-              user_id,
-              message_id: data.id
+              target_user_count: targetUserIds.length,
+              has_participants: participantUserIds.length > 0
             }));
-          })
-          .catch((err) => {
-            console.error(JSON.stringify({
-              event: "chat_send_broadcast_failed",
-              request_id: requestId,
-              error: err instanceof Error ? err.message : String(err)
-            }));
-          })
-          .finally(() => {
-            // Clean up channel
-            supabase.removeChannel(broadcastChannel).catch(() => {});
+            
+            // Broadcast to each participant
+            for (const targetUserId of targetUserIds) {
+              const broadcastChannel = supabase.channel(`user-realtime:${targetUserId}`);
+              broadcastChannel.send({
+                type: 'broadcast',
+                event: 'message-insert',
+                payload: {
+                  chat_id,
+                  message: data
+                }
+              })
+                .then(() => {
+                  console.info(JSON.stringify({
+                    event: "chat_send_broadcast_sent",
+                    request_id: requestId,
+                    target_user_id: targetUserId,
+                    message_id: data.id
+                  }));
+                })
+                .catch((err) => {
+                  console.error(JSON.stringify({
+                    event: "chat_send_broadcast_failed",
+                    request_id: requestId,
+                    target_user_id: targetUserId,
+                    error: err instanceof Error ? err.message : String(err)
+                  }));
+                })
+                .finally(() => {
+                  // Clean up channel
+                  supabase.removeChannel(broadcastChannel).catch(() => {});
+                });
+            }
           });
       }
     });
@@ -460,35 +507,58 @@ if (role === "user") {
   }));
 
   // Broadcast to unified user channel (WebSocket optimization)
-  if (insertedMessage && user_id) {
-    const broadcastChannel = supabase.channel(`user-realtime:${user_id}`);
-    broadcastChannel.send({
-      type: 'broadcast',
-      event: 'message-insert',
-      payload: {
-        chat_id,
-        message: insertedMessage
-      }
-    })
-      .then(() => {
-        console.info(JSON.stringify({
-          event: "chat_send_broadcast_sent",
-          request_id: requestId,
-          user_id,
-          message_id: insertedMessage.id
-        }));
+  // For together mode: broadcast to ALL participants, not just sender
+  if (insertedMessage) {
+    // Fetch all participants for this conversation
+    const { data: participants } = await supabase
+      .from('conversations_participants')
+      .select('user_id')
+      .eq('conversation_id', chat_id);
+    
+    const participantUserIds = participants?.map(p => p.user_id) || [];
+    
+    // If no participants found, fall back to sender only
+    const targetUserIds = participantUserIds.length > 0 ? participantUserIds : (user_id ? [user_id] : []);
+    
+    console.info(JSON.stringify({
+      event: "chat_send_assistant_broadcasting",
+      request_id: requestId,
+      target_user_count: targetUserIds.length,
+      has_participants: participantUserIds.length > 0
+    }));
+    
+    // Broadcast to each participant
+    for (const targetUserId of targetUserIds) {
+      const broadcastChannel = supabase.channel(`user-realtime:${targetUserId}`);
+      broadcastChannel.send({
+        type: 'broadcast',
+        event: 'message-insert',
+        payload: {
+          chat_id,
+          message: insertedMessage
+        }
       })
-      .catch((err) => {
-        console.error(JSON.stringify({
-          event: "chat_send_broadcast_failed",
-          request_id: requestId,
-          error: err instanceof Error ? err.message : String(err)
-        }));
-      })
-      .finally(() => {
-        // Clean up channel
-        supabase.removeChannel(broadcastChannel).catch(() => {});
-      });
+        .then(() => {
+          console.info(JSON.stringify({
+            event: "chat_send_broadcast_sent",
+            request_id: requestId,
+            target_user_id: targetUserId,
+            message_id: insertedMessage.id
+          }));
+        })
+        .catch((err) => {
+          console.error(JSON.stringify({
+            event: "chat_send_broadcast_failed",
+            request_id: requestId,
+            target_user_id: targetUserId,
+            error: err instanceof Error ? err.message : String(err)
+          }));
+        })
+        .finally(() => {
+          // Clean up channel
+          supabase.removeChannel(broadcastChannel).catch(() => {});
+        });
+    }
   }
 }
 
