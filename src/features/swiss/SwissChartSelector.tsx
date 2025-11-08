@@ -23,11 +23,6 @@ const chartTypes: ChartType[] = [
     name: 'Weekly Snap',
     icon: <CalendarDays className="w-5 h-5" />,
   },
-  {
-    id: 'focus', // Maps to /focus endpoint
-    name: 'Daily Shot',
-    icon: <Target className="w-5 h-5" />,
-  },
 ];
 
 interface SwissChartSelectorProps {
