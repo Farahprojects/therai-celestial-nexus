@@ -2,30 +2,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { Conversation } from '@/core/types';
 
 /**
- * Create a new conversation with AI-generated title from first message
- */
-export const createConversationWithTitle = async (
-  message: string,
-  mode: 'chat' | 'astro' | 'insight' | 'swiss' | 'together' = 'chat',
-  reportData?: any
-): Promise<string> => {
-  const { data, error } = await supabase.functions.invoke('create-conversation-with-title', {
-    body: {
-      message,
-      mode,
-      report_data: reportData
-    }
-  });
-
-  if (error) {
-    console.error('[Conversations] Error creating conversation with title:', error);
-    throw new Error('Failed to create conversation');
-  }
-
-  return data.conversation_id;
-};
-
-/**
  * Create a new conversation for an authenticated user using edge function
  */
 export const createConversation = async (

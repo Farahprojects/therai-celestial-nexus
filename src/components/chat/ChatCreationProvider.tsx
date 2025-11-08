@@ -61,13 +61,12 @@ export const ChatCreationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     if (!user) return;
 
     try {
-      // Set initial title based on mode
       const title =
         mode === 'insight'
           ? 'New Insight Chat'
           : mode === 'together'
           ? 'Together Mode'
-          : 'Chat'; // Placeholder for standard chat - will be upgraded on first message
+          : 'New Chat';
 
       const conversationMode: 'chat' | 'astro' | 'insight' | 'swiss' | 'together' = mode;
 
