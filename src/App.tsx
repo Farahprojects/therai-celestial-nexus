@@ -11,7 +11,6 @@ import { ThreadsProvider } from '@/contexts/ThreadsContext'
 import { ModalStateProvider } from '@/contexts/ModalStateProvider'
 import { SettingsModalProvider } from '@/contexts/SettingsModalContext'
 import { AuthModalProvider } from '@/contexts/AuthModalContext'
-import { PricingProvider } from '@/contexts/PricingContext'
 import { SubscriptionProvider } from '@/contexts/SubscriptionContext'
 import { OnboardingGuard } from '@/components/onboarding/OnboardingGuard'
 
@@ -26,11 +25,9 @@ function AppProviders({ children }: { children: React.ReactNode }) {
             <ModalStateProvider>
               <SettingsModalProvider>
                 <AuthModalProvider>
-                  <PricingProvider>
-                    <ModeProvider>
-                      {children}
-                    </ModeProvider>
-                  </PricingProvider>
+                  <ModeProvider>
+                    {children}
+                  </ModeProvider>
                 </AuthModalProvider>
               </SettingsModalProvider>
             </ModalStateProvider>
