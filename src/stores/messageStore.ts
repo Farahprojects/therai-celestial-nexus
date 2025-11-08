@@ -447,4 +447,29 @@ if (typeof window !== 'undefined' && !(window as any).__msgStoreListenerInstalle
         break;
     }
   });
+  
+  // Listen for assistant-thinking events (shows stop button immediately)
+  unifiedChannel.on('assistant-thinking', (payload: any) => {
+    const { chat_id, status } = payload;
+    
+    if (DEBUG) {
+      console.log('[MessageStore] 🤔 Assistant thinking event received:', {
+        chat_id,
+        status
+      });
+    }
+    
+    const { chat_id: currentChatId } = useMessageStore.getState();
+    
+    // Only process if this is for the current chat
+    if (chat_id === currentChatId && status === 'thinking') {
+      const chatState = useChatStore.getState();
+      
+      // Set typing indicator immediately (shows stop button + "thinking..." indicator)
+      if (!chatState.isAssistantTyping) {
+        chatState.setAssistantTyping(true);
+        if (DEBUG) console.log('[MessageStore] ⚡ Set assistant typing from thinking event');
+      }
+    }
+  });
 }

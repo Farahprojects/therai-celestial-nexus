@@ -339,6 +339,54 @@ console.info(JSON.stringify({
   analyze: analyze
 }));
 
+// 🚀 IMMEDIATE FEEDBACK: Broadcast "thinking" state to all participants
+// This shows stop button and loading indicator while LLM is generating
+const { data: participants } = await supabase
+  .from('conversations_participants')
+  .select('user_id')
+  .eq('conversation_id', chat_id);
+
+const participantUserIds = participants?.map(p => p.user_id) || [];
+const targetUserIds = participantUserIds.length > 0 ? participantUserIds : (user_id ? [user_id] : []);
+
+console.info(JSON.stringify({
+  event: "chat_send_broadcasting_thinking",
+  request_id: requestId,
+  target_user_count: targetUserIds.length
+}));
+
+// Broadcast thinking state to all participants
+for (const targetUserId of targetUserIds) {
+  const thinkingChannel = supabase.channel(`user-realtime:${targetUserId}`);
+  thinkingChannel.send({
+    type: 'broadcast',
+    event: 'assistant-thinking',
+    payload: {
+      chat_id,
+      status: 'thinking'
+    }
+  })
+    .then(() => {
+      console.info(JSON.stringify({
+        event: "chat_send_thinking_broadcast_sent",
+        request_id: requestId,
+        target_user_id: targetUserId
+      }));
+    })
+    .catch((err) => {
+      console.error(JSON.stringify({
+        event: "chat_send_thinking_broadcast_failed",
+        request_id: requestId,
+        target_user_id: targetUserId,
+        error: err instanceof Error ? err.message : String(err)
+      }));
+    })
+    .finally(() => {
+      // Clean up channel
+      supabase.removeChannel(thinkingChannel).catch(() => {});
+    });
+}
+
 // Determine which LLM handler to use (reuses cached conversation mode)
 const determineLLMHandler = async () => {
   if (conversationMode === 'together' && analyze === true) {
