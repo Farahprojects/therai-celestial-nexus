@@ -111,13 +111,13 @@ const imageGenerationTool = [
     functionDeclarations: [
       {
         name: "generate_image",
-        description: `Generate an AI image. Interpret the user's core energetic influences and emotional patterns, then translate them into an organic, symbolic scene that reflects the flow of life through natural forms such as animals, landscapes, light, motion, and people. The image should visually empower by expressing inner strength, passion, and creative vitality in a grounded, natural way — showing how emotional energy transforms into growth and harmony. Energy influence maps to chart; symbolic expression must stay organic; organic includes people, animals, and nature.`,
+        description: `Generate an AI image that translates the user's energetic patterns into an organic symbolic scene using natural forms: animals, landscapes, light, motion, people. Express inner strength and creative vitality in a grounded, empowering way.`,
         parameters: {
           type: "object",
           properties: {
             prompt: {
               type: "string",
-              description: "Generate an AI image. Interpret the user's core energetic influences and emotional patterns, then translate them into an organic, symbolic scene that reflects the flow of life through natural forms such as animals, landscapes, light, motion, and people. The image should visually empower by expressing inner strength, passion, and creative vitality in a grounded, natural way — showing how emotional energy transforms into growth and harmony. Energy influence maps to chart; symbolic expression must stay organic; organic includes people, animals, and nature."
+              description: "Detailed image prompt combining user's energy patterns with natural symbolic elements"
             }
           },
           required: ["prompt"]

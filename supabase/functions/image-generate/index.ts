@@ -47,11 +47,6 @@ Deno.serve(async (req) => {
   const startTime = Date.now();
   const requestId = crypto.randomUUID().substring(0, 8);
 
-  console.info(JSON.stringify({
-    event: "image_generate_request_received",
-    request_id: requestId,
-    method: req.method
-  }));
 
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -80,13 +75,6 @@ Deno.serve(async (req) => {
     return json(400, { error: "Missing or invalid field: user_id" });
   }
 
-  console.info(JSON.stringify({
-    event: "image_generate_processing",
-    request_id: requestId,
-    chat_id,
-    user_id,
-    prompt_length: prompt.length
-  }));
 
   // Rate limiting: 3 images per user per 24 hours (cost control for $10 subscription)
   // Uses immutable audit table to prevent bypass via chat deletion
@@ -128,12 +116,6 @@ Deno.serve(async (req) => {
   let base64Image: string | undefined;
   
   try {
-    console.info(JSON.stringify({
-      event: "image_generate_api_call_start",
-      request_id: requestId,
-      model: IMAGEN_MODEL,
-      method: "SDK (@google/genai)"
-    }));
 
     // Initialize Google GenAI client
     const genAI = new GoogleGenAI({ apiKey: GOOGLE_API_KEY });
@@ -163,11 +145,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    console.info(JSON.stringify({
-      event: "image_generate_api_success",
-      request_id: requestId,
-      duration_ms: Date.now() - generationStartTime
-    }));
   } catch (error) {
     console.error(JSON.stringify({
       event: "image_generate_api_exception",
@@ -191,28 +168,13 @@ Deno.serve(async (req) => {
     return json(500, { error: "Failed to decode image data" });
   }
 
-  // Note: Image compression placeholder added but not yet active
-  // To enable compression, implement compressToWebP in _shared/imageCompression.ts
-  // This would reduce storage by 50-70% and bandwidth by similar amounts
   const originalSize = imageBytes.length;
-  console.info(JSON.stringify({
-    event: "image_generate_compression_info",
-    request_id: requestId,
-    original_size_bytes: originalSize,
-    note: "Compression not yet implemented - see _shared/imageCompression.ts"
-  }));
 
   // Upload to Storage
   const timestamp = Date.now();
   const fileName = `${timestamp}-${crypto.randomUUID()}.png`;
   const filePath = `${user_id}/${fileName}`;
 
-  console.info(JSON.stringify({
-    event: "image_generate_upload_start",
-    request_id: requestId,
-    file_path: filePath,
-    file_size_bytes: originalSize
-  }));
 
   const { error: uploadError } = await supabase.storage
     .from('generated-images')
@@ -330,65 +292,46 @@ Deno.serve(async (req) => {
       } else if (newUserImage) {
         // 🚀 FIRE-AND-FORGET: Broadcast image insert to gallery (non-critical)
         const channelName = `user-realtime:${user_id}`;
-        supabase.channel(channelName).send({
+        supabase.channel(channelName).httpSend({
           type: 'broadcast',
           event: 'image-insert',
           payload: {
             image: newUserImage
           }
-        })
-          .then(() => {
-            console.info(JSON.stringify({
-              event: "image_generate_image_broadcast_sent",
-              request_id: requestId,
-              channel: channelName
-            }));
-          })
-          .catch((broadcastError) => {
-            console.error(JSON.stringify({
-              event: "image_generate_image_broadcast_failed",
-              request_id: requestId,
-              error: broadcastError instanceof Error ? broadcastError.message : String(broadcastError)
-            }));
-          });
+        }).catch((broadcastError) => {
+          console.error(JSON.stringify({
+            event: "image_generate_broadcast_failed",
+            request_id: requestId,
+            error: broadcastError instanceof Error ? broadcastError.message : String(broadcastError)
+          }));
+        });
       }
     });
 
   // 🚀 FIRE-AND-FORGET: Broadcast message update (non-critical - message already in DB)
   if (updatedMessage && !messageError) {
     const channelName = `user-realtime:${user_id}`;
-    supabase.channel(channelName).send({
+    supabase.channel(channelName).httpSend({
       type: 'broadcast',
       event: 'message-update',
       payload: {
         chat_id,
         message: updatedMessage
       }
-    })
-      .then(() => {
-        console.info(JSON.stringify({
-          event: "image_generate_message_broadcast_sent",
-          request_id: requestId,
-          channel: channelName
-        }));
-      })
-      .catch((broadcastError) => {
-        console.error(JSON.stringify({
-          event: "image_generate_message_broadcast_failed",
-          request_id: requestId,
-          error: broadcastError instanceof Error ? broadcastError.message : String(broadcastError)
-        }));
-      });
+    }).catch((broadcastError) => {
+      console.error(JSON.stringify({
+        event: "image_generate_broadcast_failed",
+        request_id: requestId,
+        error: broadcastError instanceof Error ? broadcastError.message : String(broadcastError)
+      }));
+    });
   }
 
   console.info(JSON.stringify({
-    event: "image_generate_complete",
+    event: "image_complete",
     request_id: requestId,
-    total_duration_ms: Date.now() - startTime,
-    generation_time_ms: generationTime,
-    file_path: filePath,
-    message_id: updatedMessage?.id,
-    image_id: image_id || 'none'
+    duration_ms: Date.now() - startTime,
+    prompt_chars: prompt.length
   }));
 
   return json(200, {
