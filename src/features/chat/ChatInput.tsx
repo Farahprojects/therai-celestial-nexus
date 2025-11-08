@@ -123,15 +123,47 @@ export const ChatInput = () => {
 
       const messageText = text.trim();
       let currentChatId = chat_id;
-      let generatedTitle = 'New Chat';
       
-      // For authenticated users: create conversation if no chat_id exists
-      if (isAuthenticated && !chat_id && user) {
-
+      // For authenticated users: upgrade title if it's still the placeholder "Chat"
+      if (isAuthenticated && chat_id && user) {
         try {
-          console.log('[ChatInput] Creating new conversation with AI-generated title');
+          // Check if current conversation has placeholder title
+          const { threads } = useChatStore.getState();
+          const currentThread = threads.find(t => t.id === chat_id);
           
-          // Create conversation with AI-generated title from the first message
+          if (currentThread?.title === 'Chat') {
+            console.log('[ChatInput] Upgrading placeholder title with AI-generated title');
+            
+            // Generate smart title from first message
+            const result = await supabase.functions.invoke('generate-conversation-title', {
+              body: { message: messageText }
+            });
+            
+            if (!result.error && result.data?.title) {
+              const smartTitle = result.data.title;
+              
+              // Update title in database
+              const { updateConversationTitle } = await import('@/services/conversations');
+              await updateConversationTitle(chat_id, smartTitle);
+              
+              // Update in local state
+              const { updateThreadTitle } = useChatStore.getState();
+              await updateThreadTitle(chat_id, smartTitle);
+              
+              console.log('[ChatInput] Title upgraded to:', smartTitle);
+            }
+          }
+        } catch (error) {
+          console.error('[ChatInput] Failed to upgrade title (non-blocking):', error);
+          // Continue with message send even if title upgrade fails
+        }
+      }
+      
+      // Fallback: Create conversation if no chat_id exists (shouldn't happen with new flow)
+      if (isAuthenticated && !chat_id && user) {
+        try {
+          console.log('[ChatInput] Creating new conversation (fallback path)');
+          
           const result = await supabase.functions.invoke('create-conversation-with-title', {
             body: { message: messageText, mode: 'chat' }
           });
@@ -141,12 +173,10 @@ export const ChatInput = () => {
           }
           
           const newChatId = result.data.conversation_id;
-          generatedTitle = result.data.title || 'New Chat';
+          const generatedTitle = result.data.title || 'Chat';
           
-          // Initialize the conversation in chatController (store will handle state)
           await chatController.initializeConversation(newChatId);
           
-          // Add to threads list for sidebar with generated title
           const { addConversation } = useChatStore.getState();
           addConversation({
             id: newChatId,
@@ -158,13 +188,11 @@ export const ChatInput = () => {
             meta: null
           });
           
-          // Use the newly created chat_id for this message
           currentChatId = newChatId;
-          
-          console.log('[ChatInput] New conversation created with smart title:', generatedTitle);
+          console.log('[ChatInput] Fallback conversation created:', newChatId);
         } catch (error) {
           console.error('[ChatInput] Failed to create conversation:', error);
-          return; // Don't send message if conversation creation failed
+          return;
         }
       }
       const client_msg_id = crypto.randomUUID();
