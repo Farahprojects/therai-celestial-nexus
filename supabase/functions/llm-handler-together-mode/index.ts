@@ -244,14 +244,26 @@ Deno.serve(async (req) => {
       const errText = await resp.text().catch(() => "");
       console.error("[together-mode] Gemini API error:", resp.status, errText);
       
-      // Insert error message
-      await supabase.from('messages').insert({
-        chat_id,
-        role: 'assistant',
-        text: "I'm having trouble connecting right now. Please try again in a moment.",
-        status: 'complete',
-        meta: { error: true }
+      // Call chat-send for error message (includes multi-participant broadcast)
+      await fetch(`${SUPABASE_URL}/functions/v1/chat-send`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`
+        },
+        body: JSON.stringify({
+          chat_id,
+          role: 'assistant',
+          text: "I'm having trouble connecting right now. Please try again in a moment.",
+          mode: 'together',
+          user_id,
+          user_name: 'Therai',
+          meta: { error: true }
+        })
+      }).catch(err => {
+        console.error("[together-mode] Failed to send error message:", err);
       });
+      
       return json(502, { error: "Gemini API failed" });
     }
     
@@ -265,21 +277,30 @@ Deno.serve(async (req) => {
     
     console.log("[together-mode] Gemini response received");
     
-    // Insert assistant response with metadata
-    await supabase.from('messages').insert({
-      chat_id,
-      role: 'assistant',
-      text: assistantText,
-      status: 'complete',
-      user_id,
-      user_name: 'Therai',
-      meta: {
-        together_mode_analysis: true,
-        analyzed_participants: participantContexts.length,
-        trigger_type: 'manual',
-        latency_ms: Date.now() - startTime,
-        used_translator_logs: translatorLogs && translatorLogs.length > 0
-      }
+    // Call chat-send to save assistant message (includes multi-participant broadcast)
+    await fetch(`${SUPABASE_URL}/functions/v1/chat-send`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`
+      },
+      body: JSON.stringify({
+        chat_id,
+        role: 'assistant',
+        text: assistantText,
+        mode: 'together',
+        user_id,
+        user_name: 'Therai',
+        meta: {
+          together_mode_analysis: true,
+          analyzed_participants: participantContexts.length,
+          trigger_type: 'manual',
+          latency_ms: Date.now() - startTime,
+          used_translator_logs: translatorLogs && translatorLogs.length > 0
+        }
+      })
+    }).catch(err => {
+      console.error("[together-mode] Failed to send message via chat-send:", err);
     });
     
     // ✅ INCREMENT @THERAI USAGE: Track successful @therai call

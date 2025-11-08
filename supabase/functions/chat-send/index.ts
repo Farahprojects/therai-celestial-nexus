@@ -77,7 +77,8 @@ chattype,
 role: rawRole,
 user_id,
 user_name,
-analyze
+analyze,
+meta // Custom metadata for the message
 } = body || {};
 
 if (!chat_id || typeof chat_id !== "string") {
@@ -117,7 +118,7 @@ if (messages && Array.isArray(messages) && messages.length > 0) {
     mode: msg.mode || mode,
     user_id: (msg.user_id || user_id) ?? null,
     user_name: (msg.user_name || user_name) ?? null,
-    meta: {}
+    meta: msg.meta || {}
   }));
 
   const { data: insertedMessages, error: dbError } = await supabase
@@ -165,31 +166,31 @@ if (messages && Array.isArray(messages) && messages.length > 0) {
     // Broadcast to each participant
     for (const targetUserId of targetUserIds) {
       const broadcastChannel = supabase.channel(`user-realtime:${targetUserId}`);
-      
-      // Send each message as a separate broadcast event
-      for (const msg of insertedMessages) {
-        broadcastChannel.send({
-          type: 'broadcast',
-          event: 'message-insert',
-          payload: {
-            chat_id,
-            message: msg
-          }
-        }).catch((err) => {
-          console.error(JSON.stringify({
-            event: "chat_send_batch_broadcast_failed",
-            request_id: requestId,
+    
+    // Send each message as a separate broadcast event
+    for (const msg of insertedMessages) {
+      broadcastChannel.send({
+        type: 'broadcast',
+        event: 'message-insert',
+        payload: {
+          chat_id,
+          message: msg
+        }
+      }).catch((err) => {
+        console.error(JSON.stringify({
+          event: "chat_send_batch_broadcast_failed",
+          request_id: requestId,
             target_user_id: targetUserId,
-            message_id: msg.id,
-            error: err instanceof Error ? err.message : String(err)
-          }));
-        });
-      }
-      
-      // Clean up channel after a brief delay
-      setTimeout(() => {
-        supabase.removeChannel(broadcastChannel).catch(() => {});
-      }, 100);
+          message_id: msg.id,
+          error: err instanceof Error ? err.message : String(err)
+        }));
+      });
+    }
+    
+    // Clean up channel after a brief delay
+    setTimeout(() => {
+      supabase.removeChannel(broadcastChannel).catch(() => {});
+    }, 100);
     }
   }
 
@@ -287,7 +288,7 @@ status: "complete",
 mode,
 user_id: user_id ?? null,
 user_name: user_name ?? null,
-meta: {}
+meta: meta || {}
 };
 
 // ⚡ FIRE-AND-FORGET: Start LLM immediately (non-blocking)
@@ -447,33 +448,33 @@ if (role === "user") {
             // Broadcast to each participant
             for (const targetUserId of targetUserIds) {
               const broadcastChannel = supabase.channel(`user-realtime:${targetUserId}`);
-              broadcastChannel.send({
-                type: 'broadcast',
-                event: 'message-insert',
-                payload: {
-                  chat_id,
-                  message: data
-                }
-              })
-                .then(() => {
-                  console.info(JSON.stringify({
-                    event: "chat_send_broadcast_sent",
-                    request_id: requestId,
+        broadcastChannel.send({
+          type: 'broadcast',
+          event: 'message-insert',
+          payload: {
+            chat_id,
+            message: data
+          }
+        })
+          .then(() => {
+            console.info(JSON.stringify({
+              event: "chat_send_broadcast_sent",
+              request_id: requestId,
                     target_user_id: targetUserId,
-                    message_id: data.id
-                  }));
-                })
-                .catch((err) => {
-                  console.error(JSON.stringify({
-                    event: "chat_send_broadcast_failed",
-                    request_id: requestId,
+              message_id: data.id
+            }));
+          })
+          .catch((err) => {
+            console.error(JSON.stringify({
+              event: "chat_send_broadcast_failed",
+              request_id: requestId,
                     target_user_id: targetUserId,
-                    error: err instanceof Error ? err.message : String(err)
-                  }));
-                })
-                .finally(() => {
-                  // Clean up channel
-                  supabase.removeChannel(broadcastChannel).catch(() => {});
+              error: err instanceof Error ? err.message : String(err)
+            }));
+          })
+          .finally(() => {
+            // Clean up channel
+            supabase.removeChannel(broadcastChannel).catch(() => {});
                 });
             }
           });
@@ -530,34 +531,34 @@ if (role === "user") {
     // Broadcast to each participant
     for (const targetUserId of targetUserIds) {
       const broadcastChannel = supabase.channel(`user-realtime:${targetUserId}`);
-      broadcastChannel.send({
-        type: 'broadcast',
-        event: 'message-insert',
-        payload: {
-          chat_id,
-          message: insertedMessage
-        }
+    broadcastChannel.send({
+      type: 'broadcast',
+      event: 'message-insert',
+      payload: {
+        chat_id,
+        message: insertedMessage
+      }
+    })
+      .then(() => {
+        console.info(JSON.stringify({
+          event: "chat_send_broadcast_sent",
+          request_id: requestId,
+            target_user_id: targetUserId,
+          message_id: insertedMessage.id
+        }));
       })
-        .then(() => {
-          console.info(JSON.stringify({
-            event: "chat_send_broadcast_sent",
-            request_id: requestId,
+      .catch((err) => {
+        console.error(JSON.stringify({
+          event: "chat_send_broadcast_failed",
+          request_id: requestId,
             target_user_id: targetUserId,
-            message_id: insertedMessage.id
-          }));
-        })
-        .catch((err) => {
-          console.error(JSON.stringify({
-            event: "chat_send_broadcast_failed",
-            request_id: requestId,
-            target_user_id: targetUserId,
-            error: err instanceof Error ? err.message : String(err)
-          }));
-        })
-        .finally(() => {
-          // Clean up channel
-          supabase.removeChannel(broadcastChannel).catch(() => {});
-        });
+          error: err instanceof Error ? err.message : String(err)
+        }));
+      })
+      .finally(() => {
+        // Clean up channel
+        supabase.removeChannel(broadcastChannel).catch(() => {});
+      });
     }
   }
 }
