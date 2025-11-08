@@ -1,5 +1,3 @@
-// Generated via: npx supabase gen types typescript --project-id wrvqqvqvwqmfdqvqmaar > src/integrations/supabase/types.ts
-
 export type Json =
   | string
   | number
@@ -1776,9 +1774,64 @@ export type Database = {
         }
         Relationships: []
       }
+      user_images: {
+        Row: {
+          chat_id: string | null
+          created_at: string
+          id: string
+          image_path: string | null
+          image_url: string
+          message_id: string | null
+          model: string | null
+          prompt: string | null
+          size: string | null
+          user_id: string
+        }
+        Insert: {
+          chat_id?: string | null
+          created_at?: string
+          id?: string
+          image_path?: string | null
+          image_url: string
+          message_id?: string | null
+          model?: string | null
+          prompt?: string | null
+          size?: string | null
+          user_id: string
+        }
+        Update: {
+          chat_id?: string | null
+          created_at?: string
+          id?: string
+          image_path?: string | null
+          image_url?: string
+          message_id?: string | null
+          model?: string | null
+          prompt?: string | null
+          size?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_images_chat_id_fkey"
+            columns: ["chat_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_images_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_memory: {
         Row: {
           astrological_context: Json | null
+          canonical_hash: string | null
           confidence_score: number | null
           conversation_id: string | null
           created_at: string | null
@@ -1786,6 +1839,7 @@ export type Database = {
           id: string
           is_active: boolean | null
           last_referenced_at: string | null
+          memory_metadata: Json | null
           memory_text: string
           memory_type: Database["public"]["Enums"]["memory_type"]
           origin_mode: string | null
@@ -1797,6 +1851,7 @@ export type Database = {
         }
         Insert: {
           astrological_context?: Json | null
+          canonical_hash?: string | null
           confidence_score?: number | null
           conversation_id?: string | null
           created_at?: string | null
@@ -1804,6 +1859,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           last_referenced_at?: string | null
+          memory_metadata?: Json | null
           memory_text: string
           memory_type: Database["public"]["Enums"]["memory_type"]
           origin_mode?: string | null
@@ -1815,6 +1871,7 @@ export type Database = {
         }
         Update: {
           astrological_context?: Json | null
+          canonical_hash?: string | null
           confidence_score?: number | null
           conversation_id?: string | null
           created_at?: string | null
@@ -1822,6 +1879,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           last_referenced_at?: string | null
+          memory_metadata?: Json | null
           memory_text?: string
           memory_type?: Database["public"]["Enums"]["memory_type"]
           origin_mode?: string | null
