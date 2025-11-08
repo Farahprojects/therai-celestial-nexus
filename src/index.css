@@ -169,6 +169,16 @@
   /* Safe area padding utilities */
   .safe-area-pb { padding-bottom: env(safe-area-inset-bottom, 0px); }
 }
+
+/* Pull-to-refresh animation */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
 }
 
 /* -------------------------------------------------------------------------- */
@@ -176,7 +186,8 @@
 /* -------------------------------------------------------------------------- */
 html, body {
   touch-action: manipulation;            /* Remove double‑tap zoom delay */
-  overscroll-behavior: contain;          /* Disable pull‑to‑refresh */
+  overscroll-behavior-x: contain;        /* Disable horizontal overscroll */
+  overscroll-behavior-y: auto;           /* Allow vertical pull-to-refresh */
   -webkit-overflow-scrolling: touch;     /* Momentum scroll iOS */
 }
 
