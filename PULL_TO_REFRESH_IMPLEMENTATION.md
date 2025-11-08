@@ -1,7 +1,7 @@
 # Pull-to-Refresh Implementation
 
 ## Overview
-Added a smooth, minimal Apple-style pull-to-refresh feature for mobile chat interface. Users can pull down on the message list to refresh the conversation without a full rerender.
+Added a smooth, minimal Apple-style pull-to-refresh feature for mobile sidebar. Users can pull down on the conversations list in the left sidebar panel to refresh their chats and folders.
 
 ## What Was Built
 
@@ -17,10 +17,10 @@ Added a smooth, minimal Apple-style pull-to-refresh feature for mobile chat inte
 - Icon rotates as you pull, then spins during refresh
 - Wraps any content that needs pull-to-refresh
 
-### 3. Integration (`src/features/chat/ChatBox.tsx`)
-- Wrapped MessageList with PullToRefresh component
-- Refresh handler calls `fetchMessages()` from messageStore
-- Only enabled on mobile, in chat view, when conversation overlay is closed
+### 3. Integration (`src/features/chat/ChatThreadsSidebar.tsx`)
+- Wrapped conversations list scrollable area with PullToRefresh component
+- Refresh handler reloads both folders and conversation threads
+- Only enabled on mobile devices
 - Zero-config - works automatically with Capacitor
 
 ### 4. CSS Updates (`src/index.css`)
@@ -30,18 +30,18 @@ Added a smooth, minimal Apple-style pull-to-refresh feature for mobile chat inte
 
 ## How It Works
 
-1. **Pull Detection**: Detects when user pulls down at top of scroll container
+1. **Pull Detection**: Detects when user pulls down at top of conversations list
 2. **Visual Feedback**: Shows subtle gray icon that rotates based on pull distance
 3. **Trigger**: When pulled past 80px threshold, triggers refresh
 4. **Smooth Release**: Animates back with cubic-bezier easing
-5. **Data Refresh**: Re-fetches messages from database (no full page reload)
+5. **Data Refresh**: Re-fetches conversations and folders from database (no full page reload)
 
 ## User Experience
 
 - **Minimal Design**: Single gray icon, no colors, follows Apple design language
 - **Smooth Physics**: Resistance curve feels natural, like iOS Safari
-- **Fast**: Only refreshes data, preserves scroll position and UI state
-- **Smart**: Disabled during conversation mode to prevent conflicts
+- **Fast**: Only refreshes conversations list, preserves UI state
+- **Mobile-Only**: Only active on mobile devices in the sidebar
 - **Universal**: Works seamlessly in both browser and Capacitor
 
 ## Configuration Options
@@ -62,7 +62,7 @@ The component accepts optional props for customization:
 2. `/src/components/ui/PullToRefresh.tsx` - UI wrapper component
 
 ## Files Modified
-1. `/src/features/chat/ChatBox.tsx` - Integrated component
+1. `/src/features/chat/ChatThreadsSidebar.tsx` - Integrated component for sidebar
 2. `/src/index.css` - CSS overscroll behavior + animation
 
 ## Testing Notes

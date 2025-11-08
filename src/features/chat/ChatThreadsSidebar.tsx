@@ -31,6 +31,7 @@ import { ConversationActionsMenuContent } from '@/components/chat/ConversationAc
 import { getConversation, updateConversationTitle } from '@/services/conversations';
 import { getUserFolders, createFolder, updateFolderName, deleteFolder, getFolderConversations, getSharedFolder, moveConversationToFolder } from '@/services/folders';
 import { supabase } from '@/integrations/supabase/client';
+import { PullToRefresh } from '@/components/ui/PullToRefresh';
 
 /**
  * ChatThreadsSidebar (refactored)
@@ -155,6 +156,7 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
     updateConversation,
     setViewMode,
     selectedFolderId,
+    loadThreads,
   } = useChatStore();
   const { setChatId, messages } = useMessageStore();
 
@@ -366,9 +368,21 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
     return words.length <= 30 ? words : words.slice(0, 27) + '...';
   }, [messages]);
 
+  // Pull-to-refresh handler for conversations list
+  const handleRefresh = async () => {
+    await load(); // Reload folders
+    if (user?.id) {
+      await loadThreads(user.id); // Reload threads
+    }
+  };
+
   return (
     <div className={cn('w-full h-full flex flex-col', className)}>
-      <div className="flex-1 overflow-y-auto min-h-0">
+      <PullToRefresh 
+        onRefresh={handleRefresh}
+        disabled={!isMobile}
+      >
+        <div className="flex-1 overflow-y-auto min-h-0">
         {/* New Chat + Search */}
         {conversationType !== 'swiss' && (
           <div className="space-y-0.5 pt-2 pb-0">
@@ -505,6 +519,7 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
           )}
         </div>
       </div>
+      </PullToRefresh>
 
       {/* Footer */}
       <div className="mt-auto pt-3">

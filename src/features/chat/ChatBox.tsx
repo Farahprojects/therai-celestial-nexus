@@ -16,8 +16,6 @@ import { useNavigate, useSearchParams, useParams } from 'react-router-dom';
 import { ShareConversationModal } from '@/components/chat/ShareConversationModal';
 import { ShareFolderModal } from '@/components/folders/ShareFolderModal';
 import { ChatCreationProvider } from '@/components/chat/ChatCreationProvider';
-import { PullToRefresh } from '@/components/ui/PullToRefresh';
-import { useMessageStore } from '@/stores/messageStore';
 import { useIsMobile } from '@/hooks/use-mobile';
  
 
@@ -57,12 +55,6 @@ export const ChatBox: React.FC<ChatBoxProps> = ({ onDelete }) => {
   
   // Get chat_id from store for payment flow
   const { chat_id, startConversation, setViewMode } = useChatStore();
-  
-  // Pull-to-refresh handler
-  const fetchMessages = useMessageStore((state) => state.fetchMessages);
-  const handleRefresh = async () => {
-    await fetchMessages();
-  };
   
   // Get user type from URL parameters - authenticated users only
   const [searchParams] = useSearchParams();
@@ -289,14 +281,9 @@ export const ChatBox: React.FC<ChatBoxProps> = ({ onDelete }) => {
                     />
                   </Suspense>
                 ) : (
-                  <PullToRefresh 
-                    onRefresh={handleRefresh}
-                    disabled={!isMobile || viewMode !== 'chat' || isConversationOpen}
-                  >
-                    <Suspense fallback={<MessageListSkeleton />}>
-                      <MessageList />
-                    </Suspense>
-                  </PullToRefresh>
+                  <Suspense fallback={<MessageListSkeleton />}>
+                    <MessageList />
+                  </Suspense>
                 )}
               </div>
 
