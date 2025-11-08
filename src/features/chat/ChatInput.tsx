@@ -124,38 +124,42 @@ export const ChatInput = () => {
       const messageText = text.trim();
       let currentChatId = chat_id;
       
-      // For authenticated users: upgrade title if it's still the placeholder "Chat"
+      // 🔥 FIRE-AND-FORGET: Upgrade title asynchronously without blocking message send
       if (isAuthenticated && chat_id && user) {
-        try {
-          // Check if current conversation has placeholder title
-          const { threads } = useChatStore.getState();
-          const currentThread = threads.find(t => t.id === chat_id);
+        const { threads } = useChatStore.getState();
+        const currentThread = threads.find(t => t.id === chat_id);
+        
+        if (currentThread?.title === 'Chat') {
+          const chatIdForTitle = chat_id;
+          const messageForTitle = messageText;
           
-          if (currentThread?.title === 'Chat') {
-            console.log('[ChatInput] Upgrading placeholder title with AI-generated title');
-            
-            // Generate smart title from first message
-            const result = await supabase.functions.invoke('generate-conversation-title', {
-              body: { message: messageText }
-            });
-            
-            if (!result.error && result.data?.title) {
-              const smartTitle = result.data.title;
+          // Queue title generation to run asynchronously (non-blocking)
+          queueMicrotask(async () => {
+            try {
+              console.log('[ChatInput] Upgrading placeholder title with AI-generated title (non-blocking)');
               
-              // Update title in database
-              const { updateConversationTitle } = await import('@/services/conversations');
-              await updateConversationTitle(chat_id, smartTitle);
+              // Generate smart title from first message
+              const result = await supabase.functions.invoke('generate-conversation-title', {
+                body: { message: messageForTitle }
+              });
               
-              // Update in local state
-              const { updateThreadTitle } = useChatStore.getState();
-              await updateThreadTitle(chat_id, smartTitle);
-              
-              console.log('[ChatInput] Title upgraded to:', smartTitle);
+              if (!result.error && result.data?.title) {
+                const smartTitle = result.data.title;
+                
+                // Update title in database
+                const { updateConversationTitle } = await import('@/services/conversations');
+                await updateConversationTitle(chatIdForTitle, smartTitle);
+                
+                // Update in local state
+                const { updateThreadTitle } = useChatStore.getState();
+                await updateThreadTitle(chatIdForTitle, smartTitle);
+                
+                console.log('[ChatInput] Title upgraded to:', smartTitle);
+              }
+            } catch (error) {
+              console.error('[ChatInput] Failed to upgrade title (non-blocking):', error);
             }
-          }
-        } catch (error) {
-          console.error('[ChatInput] Failed to upgrade title (non-blocking):', error);
-          // Continue with message send even if title upgrade fails
+          });
         }
       }
       
