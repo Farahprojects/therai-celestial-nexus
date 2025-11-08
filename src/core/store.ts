@@ -364,6 +364,13 @@ export const useChatStore = create<ChatState>()((set, get) => ({
 
   updateConversation: (conversation: Conversation) => {
     set(state => {
+      const existingThread = state.threads.find(t => t.id === conversation.id);
+      
+      // Log title changes in dev mode
+      if (import.meta.env.DEV && existingThread && existingThread.title !== conversation.title) {
+        console.log(`[ChatStore] 📝 Title updated: "${existingThread.title}" → "${conversation.title}"`);
+      }
+      
       // Update the conversation in place without re-sorting to prevent re-render
       const threads = state.threads.map(thread => 
         thread.id === conversation.id ? conversation : thread
