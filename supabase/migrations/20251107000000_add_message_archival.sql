@@ -98,7 +98,7 @@ END;
 $$;
 
 -- 5. Schedule monthly archival job using pg_cron
-DO $$
+DO $ARCHIVE$
 BEGIN
   -- Schedule archival on the 1st of each month at 4 AM
   PERFORM cron.schedule(
@@ -114,7 +114,7 @@ EXCEPTION
   WHEN OTHERS THEN
     RAISE WARNING 'Error scheduling cron job: %', SQLERRM;
 END;
-$$;
+$ARCHIVE$;
 
 -- 6. Create view to monitor archival statistics
 CREATE OR REPLACE VIEW message_archival_stats AS

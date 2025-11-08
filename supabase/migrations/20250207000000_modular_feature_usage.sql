@@ -1,7 +1,7 @@
 -- Create modular feature_usage table for tracking monthly feature limits
 -- One row per user per period with columns for each feature type
 
-CREATE TABLE feature_usage (
+CREATE TABLE IF NOT EXISTS feature_usage (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   period TEXT NOT NULL, -- 'YYYY-MM' format
@@ -20,17 +20,26 @@ CREATE TABLE feature_usage (
 );
 
 -- Index for fast lookups
-CREATE INDEX idx_feature_usage_user_period 
+CREATE INDEX IF NOT EXISTS idx_feature_usage_user_period 
 ON feature_usage(user_id, period);
 
 -- Enable RLS
 ALTER TABLE feature_usage ENABLE ROW LEVEL SECURITY;
 
 -- RLS Policy: Users can only view their own usage
-CREATE POLICY "Users can view own feature usage"
-  ON feature_usage
-  FOR SELECT
-  USING (auth.uid() = user_id);
+DO $$ 
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies 
+    WHERE tablename = 'feature_usage' 
+    AND policyname = 'Users can view own feature usage'
+  ) THEN
+    CREATE POLICY "Users can view own feature usage"
+      ON feature_usage
+      FOR SELECT
+      USING (auth.uid() = user_id);
+  END IF;
+END $$;
 
 -- Increment voice seconds atomically
 CREATE OR REPLACE FUNCTION increment_voice_seconds(

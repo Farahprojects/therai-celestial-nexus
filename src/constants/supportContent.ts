@@ -79,13 +79,13 @@ export const faqData: FAQItem[] = [
     id: 'bill-1',
     category: 'billing',
     question: 'What subscription plans do you offer?',
-    answer: 'Therai offers two subscription plans: Growth ($10/month) for unlimited text conversations and reports, and Premium ($18/month) which includes everything in Growth plus voice features. Both plans are billed monthly and can be canceled anytime.',
+    answer: 'Therai offers two subscription plans: Growth ($10/month) includes unlimited AI conversations, Together Mode (2-person sessions), Premium HD Voice (10 min/month), image generation (3/day), and unlimited folders & sharing. Premium ($18/month) includes everything in Growth plus unlimited voice and image generation. Both plans are billed monthly and can be canceled anytime.',
   },
   {
     id: 'bill-2',
     category: 'billing',
     question: 'What\'s the difference between Growth and Premium?',
-    answer: 'Growth ($10/month) includes unlimited text conversations and astro reports. Premium ($18/month) includes everything in Growth plus voice conversation features, allowing you to have spoken conversations with Therai with voice responses. Both plans include unlimited threads and access to all chart types.',
+    answer: 'Growth ($10/month) includes unlimited AI conversations, Together Mode, 10 minutes of Premium HD Voice per month, 3 images per day, and unlimited folders & sharing. Premium ($18/month) includes everything in Growth plus unlimited voice conversations, unlimited image generation, priority support, and early access to new features.',
   },
   {
     id: 'bill-3',
@@ -97,7 +97,7 @@ export const faqData: FAQItem[] = [
     id: 'bill-4',
     category: 'billing',
     question: 'Can I upgrade or downgrade my plan?',
-    answer: 'Yes! You can change your subscription at any time. Upgrades from Growth to Premium take effect immediately, giving you access to voice features right away. Downgrades take effect at your next billing cycle. We\'ll prorate any differences.',
+    answer: 'Yes! You can change your subscription at any time. Upgrades from Growth to Premium take effect immediately, giving you unlimited voice and image generation. Downgrades take effect at your next billing cycle. We\'ll prorate any differences.',
   },
   {
     id: 'bill-5',
@@ -141,7 +141,7 @@ export const faqData: FAQItem[] = [
     id: 'feat-4',
     category: 'features',
     question: 'Is voice conversation mode available on all plans?',
-    answer: 'Voice conversation mode is only available on the Premium plan ($18/month). The Growth plan ($10/month) includes unlimited text conversations and all astro features. To access voice conversations, upgrade to Premium in Settings > Billing.',
+    answer: 'Voice conversation mode is available on all paid plans. Growth plan ($10/month) includes 10 minutes of Premium HD Voice per month, while Premium plan ($18/month) includes unlimited voice conversations. Upgrade in Settings > Billing to access voice features.',
   },
   {
     id: 'feat-5',

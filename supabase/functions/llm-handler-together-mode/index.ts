@@ -2,6 +2,7 @@
 // Dedicated handler for multi-participant relationship insights
 
 import { createPooledClient } from "../_shared/supabaseClient.ts";
+import { checkLimit, incrementUsage } from "../_shared/limitChecker.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -61,6 +62,41 @@ Deno.serve(async (req) => {
   
   if (!chat_id || !text) {
     return json(400, { error: "Missing chat_id or text" });
+  }
+  
+  // ✅ @THERAI LIMIT CHECK: Only paid users can invoke @therai in Together Mode
+  if (user_id) {
+    const limitCheck = await checkLimit(supabase, user_id, 'therai_calls', 1);
+    
+    console.info(JSON.stringify({
+      event: "therai_limit_check",
+      user_id,
+      allowed: limitCheck.allowed,
+      current_usage: limitCheck.current_usage,
+      remaining: limitCheck.remaining,
+      limit: limitCheck.limit,
+      is_unlimited: limitCheck.is_unlimited
+    }));
+    
+    if (!limitCheck.allowed) {
+      console.warn(JSON.stringify({
+        event: "therai_limit_exceeded",
+        user_id,
+        limit: limitCheck.limit,
+        current_usage: limitCheck.current_usage
+      }));
+      
+      // Return friendly message instead of error
+      const limitMessage = limitCheck.limit === 3
+        ? `You've used your ${limitCheck.limit} @therai insights this month. Upgrade to Premium for unlimited relationship insights! ✨`
+        : `You've reached your @therai limit for this month. Upgrade to Premium for unlimited insights!`;
+      
+      return json(200, {
+        role: 'assistant',
+        text: limitMessage,
+        meta: { limit_exceeded: true, feature: 'therai_calls' }
+      });
+    }
   }
   
   try {
@@ -245,6 +281,31 @@ Deno.serve(async (req) => {
         used_translator_logs: translatorLogs && translatorLogs.length > 0
       }
     });
+    
+    // ✅ INCREMENT @THERAI USAGE: Track successful @therai call
+    if (user_id) {
+      console.info(JSON.stringify({
+        event: "incrementing_therai_usage",
+        user_id,
+        feature_type: "therai_calls",
+        amount: 1
+      }));
+      
+      const incrementResult = await incrementUsage(supabase, user_id, 'therai_calls', 1);
+      
+      if (!incrementResult.success) {
+        console.error(JSON.stringify({
+          event: "therai_increment_failed",
+          reason: incrementResult.reason,
+          user_id
+        }));
+      } else {
+        console.info(JSON.stringify({
+          event: "therai_increment_success",
+          user_id
+        }));
+      }
+    }
     
     console.log(`[together-mode] Completed in ${Date.now() - startTime}ms`);
     

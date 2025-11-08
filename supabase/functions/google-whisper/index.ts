@@ -9,7 +9,7 @@
 
 import { getLLMHandler } from "../_shared/llmConfig.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-import { checkFreeTierSTTAccess } from "../_shared/featureGating.ts";
+import { checkLimit, incrementUsage } from "../_shared/limitChecker.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -308,37 +308,42 @@ Deno.serve(async (req) => {
       }
     }
 
-    // 🔒 PRE-TRANSCRIPTION CHECK: Block if user has exceeded free tier limit
+    // 🔒 PRE-TRANSCRIPTION CHECK: Block if user has exceeded voice limit
     if (authenticatedUserId) {
-      const freeTierCheck = await checkFreeTierSTTAccess(supabase, authenticatedUserId, 0);
+      const limitCheck = await checkLimit(supabase, authenticatedUserId, 'voice_seconds', 0);
 
       console.info(JSON.stringify({
-        event: "free_tier_pre_check",
+        event: "voice_limit_pre_check",
         user_id: authenticatedUserId,
-        allowed: freeTierCheck.allowed,
-        current_usage: freeTierCheck.currentUsage,
-        remaining: freeTierCheck.remaining,
-        limit: freeTierCheck.limit,
-        is_premium: freeTierCheck.isPremium,
-        reason: freeTierCheck.reason
+        allowed: limitCheck.allowed,
+        current_usage: limitCheck.current_usage,
+        remaining: limitCheck.remaining,
+        limit: limitCheck.limit,
+        is_unlimited: limitCheck.is_unlimited,
+        reason: limitCheck.reason
       }));
 
-      if (!freeTierCheck.allowed) {
+      if (!limitCheck.allowed) {
         console.warn(JSON.stringify({
           event: "usage_limit_exceeded_pre_transcription",
-          reason: freeTierCheck.reason,
+          reason: limitCheck.reason,
           user_id: authenticatedUserId,
-          current_usage: freeTierCheck.currentUsage,
-          limit: freeTierCheck.limit
+          current_usage: limitCheck.current_usage,
+          limit: limitCheck.limit
         }));
 
+        const limitMinutes = limitCheck.limit ? Math.floor(limitCheck.limit / 60) : 0;
+        const message = limitCheck.limit === 120 
+          ? "You've used your 2 minutes of free voice transcription. Subscribe to get 10 minutes/month with Growth or unlimited with Premium."
+          : `You've used your ${limitMinutes} minutes of voice for this month. Upgrade to Premium for unlimited voice features.`;
+        
         return json(200, {
           success: false,
           code: "STT_LIMIT_EXCEEDED",
-          message: "You've used 2 minutes of free voice transcription. Upgrade to Premium for unlimited voice features.",
-          current_usage: freeTierCheck.currentUsage,
-          limit: freeTierCheck.limit,
-          remaining: freeTierCheck.remaining,
+          message,
+          current_usage: limitCheck.current_usage,
+          limit: limitCheck.limit,
+          remaining: limitCheck.remaining,
           transcript: ""
         });
       }
@@ -380,78 +385,59 @@ Deno.serve(async (req) => {
         duration_seconds: durationSeconds
       }));
 
-      const postCheck = await checkFreeTierSTTAccess(supabase, authenticatedUserId, durationSeconds);
+      // ✅ NEW PRO WAY: Check limit one more time (defense in depth)
+      const postCheck = await checkLimit(supabase, authenticatedUserId, 'voice_seconds', durationSeconds);
 
       if (!postCheck.allowed) {
         console.warn(JSON.stringify({
           event: "usage_limit_exceeded_post_transcription",
           reason: postCheck.reason,
           user_id: authenticatedUserId,
-          current_usage: postCheck.currentUsage,
+          current_usage: postCheck.current_usage,
           requested_duration: durationSeconds,
           limit: postCheck.limit
         }));
 
+        const limitMinutes = postCheck.limit ? Math.floor(postCheck.limit / 60) : 0;
+        const message = postCheck.limit === 120 
+          ? "You've used your 2 minutes of free voice transcription. Subscribe to get 10 minutes/month with Growth or unlimited with Premium."
+          : `You've used your ${limitMinutes} minutes of voice for this month. Upgrade to Premium for unlimited voice features.`;
+        
         return json(200, {
           success: false,
           code: "STT_LIMIT_EXCEEDED",
-          message: "You've used 2 minutes of free voice transcription. Upgrade to Premium for unlimited voice features.",
-          current_usage: postCheck.currentUsage,
+          message,
+          current_usage: postCheck.current_usage,
           limit: postCheck.limit,
           remaining: postCheck.remaining,
           transcript: ""
         });
       }
 
-      if (postCheck.isPremium || postCheck.allowed) {
+      // ✅ NEW PRO WAY: Increment usage directly (no edge function call)
+      console.info(JSON.stringify({
+        event: "incrementing_voice_usage",
+        user_id: authenticatedUserId,
+        feature_type: "voice_seconds",
+        amount: durationSeconds,
+        is_unlimited: postCheck.is_unlimited
+      }));
+
+      const incrementResult = await incrementUsage(supabase, authenticatedUserId, 'voice_seconds', durationSeconds);
+
+      if (!incrementResult.success) {
+        console.error(JSON.stringify({
+          event: "increment_failed",
+          reason: incrementResult.reason,
+          user_id: authenticatedUserId
+        }));
+      } else {
         console.info(JSON.stringify({
-          event: "calling_increment_feature_usage",
+          event: "increment_success",
           user_id: authenticatedUserId,
           feature_type: "voice_seconds",
-          amount: durationSeconds,
-          is_premium: postCheck.isPremium
+          amount: durationSeconds
         }));
-
-        try {
-          const response = await fetch(`${SUPABASE_URL}/functions/v1/increment-feature-usage`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "Authorization": `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`
-            },
-            body: JSON.stringify({
-              user_id: authenticatedUserId,
-              feature_type: "voice_seconds",
-              amount: durationSeconds,
-              source: "google-whisper"
-            })
-          });
-
-          const result = await response.json().catch(() => ({ error: "Failed to parse response" }));
-
-          if (response.ok && result.success) {
-            console.info(JSON.stringify({
-              event: "increment_feature_usage_success",
-              user_id: authenticatedUserId,
-              duration_seconds: durationSeconds,
-              result
-            }));
-          } else {
-            console.error(JSON.stringify({
-              event: "increment_feature_usage_failed",
-              user_id: authenticatedUserId,
-              status: response.status,
-              statusText: response.statusText,
-              result
-            }));
-          }
-        } catch (err) {
-          console.error(JSON.stringify({
-            event: "increment_feature_usage_exception",
-            user_id: authenticatedUserId,
-            error: err instanceof Error ? err.message : String(err)
-          }));
-        }
       }
     }
 

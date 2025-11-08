@@ -1,7 +1,7 @@
 -- Create audit table for image generation tracking
 -- This table is immutable to prevent users from bypassing rate limits by deleting chats
 
-CREATE TABLE image_generation_log (
+CREATE TABLE IF NOT EXISTS image_generation_log (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   chat_id uuid REFERENCES conversations(id) ON DELETE SET NULL,
@@ -11,13 +11,14 @@ CREATE TABLE image_generation_log (
 );
 
 -- Index for fast rate limit queries
-CREATE INDEX idx_image_generation_log_user_date 
+CREATE INDEX IF NOT EXISTS idx_image_generation_log_user_date
   ON image_generation_log(user_id, created_at DESC);
 
 -- Enable RLS
 ALTER TABLE image_generation_log ENABLE ROW LEVEL SECURITY;
 
 -- RLS: Users can only view their own logs
+DROP POLICY IF EXISTS "Users can view own image generation logs" ON image_generation_log;
 CREATE POLICY "Users can view own image generation logs"
   ON image_generation_log
   FOR SELECT
@@ -25,6 +26,7 @@ CREATE POLICY "Users can view own image generation logs"
   USING (auth.uid() = user_id);
 
 -- RLS: Service role has full access
+DROP POLICY IF EXISTS "Service role full access to image generation logs" ON image_generation_log;
 CREATE POLICY "Service role full access to image generation logs"
   ON image_generation_log
   FOR ALL

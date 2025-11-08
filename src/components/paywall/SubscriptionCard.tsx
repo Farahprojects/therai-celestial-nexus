@@ -50,22 +50,23 @@ const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
   const getPlanFeatures = (planId: string, planName: string) => {
     // Default features based on plan tier
     const growthFeatures = [
-        'Unlimited messages per thread',
-        'Priority support',
-      'Advanced chart features',
-      'AI insights and guidance'
+      'Unlimited AI conversations',
+      'Together Mode (2-person sessions)',
+      'Premium HD Voice (10 min/month)',
+      'Image generation (3/day)',
+      'Unlimited folders & sharing'
     ];
     
     const premiumFeatures = [
       'Everything in Growth',
-      '25+ threads per month',
-      'Early access to new features',
-      'Premium support',
-      'Advanced analytics'
+      'Unlimited voice conversations',
+      'Unlimited image generation',
+      'Priority support',
+      'Early access to new features'
     ];
 
     // Check if it's a premium plan
-    if (planId === '25_monthly' || planId === 'subscription_professional' || planName.toLowerCase().includes('premium')) {
+    if (planId === '18_monthly' || planId === '25_monthly' || planId === 'subscription_professional' || planName.toLowerCase().includes('premium')) {
       return premiumFeatures;
     }
     

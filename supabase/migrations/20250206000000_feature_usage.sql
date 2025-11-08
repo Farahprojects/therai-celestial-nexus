@@ -10,18 +10,29 @@ CREATE TABLE IF NOT EXISTS feature_usage (
   UNIQUE(user_id, feature_type, period)
 );
 
--- Add index for fast lookups
-CREATE INDEX IF NOT EXISTS idx_feature_usage_lookup 
-ON feature_usage(user_id, feature_type, period);
+-- Add index for fast lookups (only if feature_type column exists)
+-- This migration was superseded by 20250207000000_modular_feature_usage.sql
+-- Commenting out to avoid conflicts
+-- CREATE INDEX IF NOT EXISTS idx_feature_usage_lookup 
+-- ON feature_usage(user_id, feature_type, period);
 
 -- Enable RLS
 ALTER TABLE feature_usage ENABLE ROW LEVEL SECURITY;
 
 -- RLS Policies: Users can only see their own usage
-CREATE POLICY "Users can view own feature usage"
-  ON feature_usage
-  FOR SELECT
-  USING (auth.uid() = user_id);
+DO $$ 
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies 
+    WHERE tablename = 'feature_usage' 
+    AND policyname = 'Users can view own feature usage'
+  ) THEN
+    CREATE POLICY "Users can view own feature usage"
+      ON feature_usage
+      FOR SELECT
+      USING (auth.uid() = user_id);
+  END IF;
+END $$;
 
 -- Atomic increment function for concurrent usage tracking
 CREATE OR REPLACE FUNCTION increment_feature_usage(

@@ -10,7 +10,7 @@ CREATE OR REPLACE FUNCTION clean_edge_function_logs()
 RETURNS void
 LANGUAGE plpgsql
 SECURITY DEFINER
-AS $$
+AS $FUNC$
 BEGIN
   -- Delete edge function logs older than 7 days
   DELETE FROM edge_function_logs
@@ -23,14 +23,14 @@ EXCEPTION
   WHEN OTHERS THEN
     RAISE WARNING 'Error cleaning edge_function_logs: %', SQLERRM;
 END;
-$$;
+$FUNC$;
 
 -- 2. Create function to clean old webhook events (for reconciliation only)
 CREATE OR REPLACE FUNCTION clean_old_webhook_events()
 RETURNS void
 LANGUAGE plpgsql
 SECURITY DEFINER
-AS $$
+AS $FUNC$
 BEGIN
   -- Delete webhook events older than 90 days (keep for reconciliation period)
   DELETE FROM stripe_webhook_events
@@ -43,10 +43,10 @@ EXCEPTION
   WHEN OTHERS THEN
     RAISE WARNING 'Error cleaning stripe_webhook_events: %', SQLERRM;
 END;
-$$;
+$FUNC$;
 
 -- 3. Schedule daily cleanup jobs using pg_cron (if extension is available)
-DO $$
+DO $CRON$
 BEGIN
   -- Schedule edge function log cleanup (daily at 2 AM)
   PERFORM cron.schedule(
@@ -69,7 +69,7 @@ EXCEPTION
   WHEN OTHERS THEN
     RAISE WARNING 'Error scheduling cron jobs: %', SQLERRM;
 END;
-$$;
+$CRON$;
 
 -- Comments
 COMMENT ON FUNCTION clean_edge_function_logs() IS 'Deletes edge function logs older than 7 days to prevent table bloat';
