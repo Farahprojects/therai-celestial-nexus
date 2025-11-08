@@ -30,8 +30,15 @@ const ThreadSelectionPage: React.FC = () => {
       return;
     }
     
-    // Don't create conversation yet - let first message trigger smart title generation
-    navigate('/therai');
+    setIsCreating(true);
+    try {
+      const threadId = await addThread(user.id, 'chat', 'Chat'); // Placeholder title, upgraded on first message
+      navigate(`/c/${threadId}`);
+    } catch (error) {
+      console.error('Failed to create new thread:', error);
+    } finally {
+      setIsCreating(false);
+    }
   };
 
   const handleSelectThread = (threadId: string) => {

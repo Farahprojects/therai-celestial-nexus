@@ -61,28 +61,13 @@ export const ChatCreationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     if (!user) return;
 
     try {
-      // For standard chat mode: Don't create conversation yet - let the first message trigger smart title generation
-      if (mode === 'chat') {
-        // Clear current chat
-        const { setChatId } = useMessageStore.getState();
-        setChatId(null);
-        
-        const { clearChat } = useChatStore.getState();
-        clearChat();
-        
-        // Navigate to base chat route - conversation will be created when user sends first message
-        navigate('/therai', { replace: true });
-        console.log('[ChatCreationProvider] Ready for new conversation with smart title generation');
-        return;
-      }
-
-      // For other modes (insight, together, etc.), create immediately with preset titles
+      // Set initial title based on mode
       const title =
         mode === 'insight'
           ? 'New Insight Chat'
           : mode === 'together'
           ? 'Together Mode'
-          : 'New Chat';
+          : 'Chat'; // Placeholder for standard chat - will be upgraded on first message
 
       const conversationMode: 'chat' | 'astro' | 'insight' | 'swiss' | 'together' = mode;
 

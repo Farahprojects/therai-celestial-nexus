@@ -13,17 +13,21 @@ Implemented AI-powered conversation title generation using Gemini 2.0 Flash to a
 2. User sends first message → Message saved to conversation
 
 **After:**
-1. User clicks "New Chat" → No DB insert, just clear UI and navigate to `/therai`
-2. User sends first message → Edge function generates smart title → Conversation created with smart title → Message sent
+1. User clicks "New Chat" → Conversation created with "Chat" placeholder title (immediate feedback)
+2. Conversation shows in sidebar as "Chat"
+3. User sends first message → Generate smart title → Update conversation title → Send message
+4. Sidebar updates to show smart title
 
 ### Key Components Modified
 
-#### 1. Edge Function: `create-conversation-with-title`
-**Location:** `supabase/functions/create-conversation-with-title/index.ts`
+#### 1. Edge Functions
+
+**A. `generate-conversation-title`** (Primary)
+**Location:** `supabase/functions/generate-conversation-title/index.ts`
 
 - Uses Gemini 2.0 Flash (`gemini-2.0-flash-exp`) for fast, cheap title generation
-- 3-second timeout with fallback to "New Chat" if generation fails
-- Returns both `conversation_id` and generated `title`
+- 3-second timeout with fallback to "Chat" if generation fails
+- Returns only the generated `title` (no DB operations)
 - Handles short messages (< 10 chars) with direct fallback
 - Cost: ~$0.000075 per title generation (negligible)
 - Speed: ~200ms average
@@ -31,9 +35,7 @@ Implemented AI-powered conversation title generation using Gemini 2.0 Flash to a
 **Request:**
 ```json
 {
-  "message": "I want to understand my career direction",
-  "mode": "chat",
-  "report_data": null
+  "message": "I want to understand my career direction"
 }
 ```
 
@@ -41,10 +43,17 @@ Implemented AI-powered conversation title generation using Gemini 2.0 Flash to a
 ```json
 {
   "success": true,
-  "conversation_id": "uuid",
   "title": "Career Direction Guidance"
 }
 ```
+
+**B. `create-conversation-with-title`** (Fallback)
+**Location:** `supabase/functions/create-conversation-with-title/index.ts`
+
+- Combines conversation creation + title generation in one call
+- Used as fallback if conversation doesn't exist yet
+- Same title generation logic as primary function
+- Also creates the conversation in the database
 
 #### 2. Service Function: `createConversationWithTitle`
 **Location:** `src/services/conversations.ts`
@@ -63,28 +72,29 @@ export const createConversationWithTitle = async (
 **Location:** `src/features/chat/ChatInput.tsx`
 
 Modified `handleSend` to:
-- Check if no `chat_id` exists (new conversation)
-- Call edge function with first message to generate title
-- Create conversation with smart title
-- Add conversation to threads list immediately with generated title
+- Check if current conversation has placeholder title "Chat"
+- If yes, call `generate-conversation-title` to get smart title
+- Update conversation title in database and local state
 - Continue with normal message flow
+- Fallback: If no `chat_id` exists, create conversation with smart title
 
 #### 4. ChatCreationProvider
 **Location:** `src/components/chat/ChatCreationProvider.tsx`
 
 Updated `handleNewConversation`:
-- For standard `chat` mode: Don't create conversation in DB
-- Just clear current chat and navigate to `/therai`
-- Let first message trigger smart title generation
-- Other modes (insight, together) still create immediately with preset titles
+- For standard `chat` mode: Create conversation with "Chat" placeholder title
+- Show in sidebar immediately for instant feedback
+- Navigate to `/c/{conversation_id}`
+- Title will be upgraded when user sends first message
+- Other modes (insight, together) still create with preset titles
 
 #### 5. ThreadSelectionPage
 **Location:** `src/pages/ThreadSelectionPage.tsx`
 
-Simplified `handleCreateNewThread`:
-- Remove conversation creation call
-- Just navigate to `/therai`
-- Let first message handle smart title generation
+Updated `handleCreateNewThread`:
+- Create conversation with "Chat" placeholder title
+- Navigate to `/c/{conversation_id}`
+- Title will be upgraded when user sends first message
 
 ## Edge Cases & Fallbacks
 
@@ -138,8 +148,12 @@ Simplified `handleCreateNewThread`:
 
 ## Deployment Steps
 
-1. Deploy edge function: `create-conversation-with-title`
+1. Deploy edge functions:
    ```bash
+   # Primary function (title generation only)
+   supabase functions deploy generate-conversation-title
+   
+   # Fallback function (creates conversation + generates title)
    supabase functions deploy create-conversation-with-title
    ```
 
@@ -151,7 +165,10 @@ Simplified `handleCreateNewThread`:
 
 3. Deploy frontend changes (already in codebase)
 
-4. Test in production with a few conversations
+4. Test in production:
+   - Click "New Chat" button → Should see "Chat" in sidebar
+   - Send first message → Should see title update to smart title
+   - Verify title appears correctly in conversation history
 
 ## Future Enhancements
 
