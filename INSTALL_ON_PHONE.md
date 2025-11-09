@@ -218,6 +218,18 @@ npm run build
 npx cap sync
 ```
 
+### Java Version Issues (Local Builds Only)
+If building locally and you get Java version errors:
+```bash
+# Set JAVA_HOME for local builds (Icon CI handles this automatically)
+export JAVA_HOME=/opt/homebrew/opt/openjdk@21  # macOS with Homebrew
+# or
+export JAVA_HOME=/opt/homebrew/opt/openjdk@17
+
+# Then build
+cd android && ./gradlew assembleDebug
+```
+
 ---
 
 **Your app is ready to test! 🎉**
