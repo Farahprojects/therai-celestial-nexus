@@ -113,7 +113,11 @@ Deno.serve(async (req) => {
   // REST API :generateImages endpoint doesn't exist (404 error)
   // Must use @google/genai SDK instead
   const generationStartTime = Date.now();
-  const IMAGEN_MODEL = 'imagen-4.0-fast-generate-001';
+  
+  // Use Imagen 4 (better quality) for sync cards, Imagen 4 Fast for regular images
+  const IMAGEN_MODEL = mode === 'sync' 
+    ? 'imagen-4.0-generate-001'  // High quality for shareable cards
+    : 'imagen-4.0-fast-generate-001';  // Fast for chat images
 
   let base64Image: string | undefined;
   
@@ -123,12 +127,20 @@ Deno.serve(async (req) => {
     const genAI = new GoogleGenAI({ apiKey: GOOGLE_API_KEY });
 
     // Generate image using SDK
+    // For sync mode, add aspect ratio and quality settings
+    const config = mode === 'sync' 
+      ? {
+          numberOfImages: 1,
+          aspectRatio: '9:16',  // Portrait for social sharing
+        }
+      : {
+          numberOfImages: 1
+        };
+    
     const response = await genAI.models.generateImages({
       model: IMAGEN_MODEL,
       prompt: prompt,
-      config: {
-        numberOfImages: 1
-      }
+      config: config
     });
 
     // Extract image from SDK response
@@ -230,8 +242,8 @@ Deno.serve(async (req) => {
         image_url: publicUrl,
         image_path: filePath,
         image_prompt: prompt,
-        image_model: 'imagen-4.0-fast-generate-001',
-        image_size: '1024x1024',
+        image_model: IMAGEN_MODEL,
+        image_size: mode === 'sync' ? '1024x1820' : '1024x1024',
         generation_time_ms: generationTime,
         cost_usd: 0.04
       }
@@ -278,8 +290,8 @@ Deno.serve(async (req) => {
       image_url: publicUrl,
       image_path: filePath,
       prompt: prompt,
-      model: 'imagen-4.0-fast-generate-001',
-      size: '1024x1024'
+      model: IMAGEN_MODEL,
+      size: mode === 'sync' ? '1024x1820' : '1024x1024'
     })
     .select()
     .single()

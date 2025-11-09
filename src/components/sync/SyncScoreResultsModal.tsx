@@ -17,6 +17,7 @@ interface ScoreBreakdown {
   ai_insight: string;
   calculated_at: string;
   rarity_percentile: number;
+  card_image_url?: string | null;
 }
 
 interface SyncScoreResultsModalProps {
@@ -37,6 +38,7 @@ export const SyncScoreResultsModal: React.FC<SyncScoreResultsModalProps> = ({
   onCalculateAnother,
 }) => {
   const [showDetails, setShowDetails] = useState(false);
+  const [imageLoaded, setImageLoaded] = useState(false);
 
   if (!isOpen) return null;
 
@@ -187,18 +189,50 @@ export const SyncScoreResultsModal: React.FC<SyncScoreResultsModalProps> = ({
             </div>
           )}
 
+          {/* Generated Connection Card */}
+          {score.card_image_url && (
+            <div className="mt-6">
+              <p className="text-sm font-light text-gray-600 mb-3 text-center">
+                Your Shareable Connection Card
+              </p>
+              <div className="relative rounded-2xl overflow-hidden shadow-lg">
+                {!imageLoaded && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
+                    <div className="animate-pulse text-gray-400">Loading card...</div>
+                  </div>
+                )}
+                <img
+                  src={score.card_image_url}
+                  alt="Connection Card"
+                  className="w-full h-auto"
+                  onLoad={() => setImageLoaded(true)}
+                />
+              </div>
+            </div>
+          )}
+
           {/* Action Buttons */}
           <div className="flex flex-col gap-3 pt-4">
-            <Button
-              onClick={() => {
-                // TODO: Implement share functionality in future
-                alert('Share functionality coming soon!');
-              }}
-              className="w-full rounded-full py-6 bg-gray-900 hover:bg-gray-800 text-white font-light flex items-center justify-center gap-2"
-            >
-              <Share2 className="w-4 h-4" />
-              Share Your Sync
-            </Button>
+            {score.card_image_url ? (
+              <Button
+                onClick={() => {
+                  // Download the image
+                  const link = document.createElement('a');
+                  link.href = score.card_image_url!;
+                  link.download = `sync-score-${personAName}-${personBName}.png`;
+                  link.click();
+                }}
+                className="w-full rounded-full py-6 bg-gray-900 hover:bg-gray-800 text-white font-light flex items-center justify-center gap-2"
+              >
+                <Share2 className="w-4 h-4" />
+                Download & Share
+              </Button>
+            ) : (
+              <div className="w-full rounded-full py-6 bg-gray-100 text-gray-600 font-light flex items-center justify-center gap-2">
+                <Sparkles className="w-4 h-4 animate-pulse" />
+                Generating your card...
+              </div>
+            )}
             
             {onCalculateAnother && (
               <Button

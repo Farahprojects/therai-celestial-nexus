@@ -153,6 +153,49 @@ function calculateRarity(score: number): number {
   return Math.max(0, Math.round((score / 60) * 50));
 }
 
+// Generate prompt for sync card image
+function generateSyncCardPrompt(
+  score: number,
+  poeticHeadline: string,
+  aiInsight: string,
+  personAName: string,
+  personBName: string,
+  rarityPercentile: number
+): string {
+  // Color scheme based on score
+  const colorScheme = score >= 80 
+    ? 'deep purple and magenta gradient'
+    : score >= 60
+      ? 'blue and cyan gradient'
+      : 'warm yellow and orange gradient';
+
+  return `Create an elegant, mystical connection card in portrait orientation (9:16).
+
+DESIGN STRUCTURE:
+- Top third: Celestial background with ${colorScheme}, subtle star field, ethereal glow
+- Center: Large white number "${score}%" with cosmic sparkle effects
+- Below score: "${poeticHeadline}" in elegant italic serif font
+- Middle section: "${personAName} & ${personBName}" in clean sans-serif
+- Quote section: Stylized quote marks around: "${aiInsight}"
+${rarityPercentile >= 50 ? `- Badge: Small purple badge with sparkle icon and "Top ${100 - rarityPercentile}% Connection"` : ''}
+- Bottom: "therai.co" watermark, subtle and elegant
+
+STYLE:
+- Minimal, Apple-inspired aesthetic
+- Lots of negative space
+- Soft glows and light effects
+- Professional typography
+- Mystical but not cheesy
+- Instagram-ready quality
+- Clean, modern, shareable
+
+COLORS:
+- Background: ${colorScheme}
+- Text: White and light gray
+- Accents: Soft glows matching background
+- Keep it elegant and premium`;
+}
+
 Deno.serve(async (req) => {
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
@@ -271,12 +314,73 @@ Deno.serve(async (req) => {
       rarity_percentile: rarityPercentile,
     };
 
-    // 6. Store result in conversations.meta
+    // 6. Get person names from conversation for card generation
+    const { data: conversation, error: convError } = await supabase
+      .from('conversations')
+      .select('title')
+      .eq('id', chat_id)
+      .single();
+
+    let personAName = 'Person A';
+    let personBName = 'Person B';
+    
+    if (conversation?.title) {
+      const title = conversation.title.replace('Sync Score: ', '');
+      const parts = title.split(' & ');
+      personAName = parts[0] || 'Person A';
+      personBName = parts[1] || 'Person B';
+    }
+
+    // 7. Generate connection card image
+    console.log('[calculate-sync-score] Generating connection card...');
+    
+    const cardPrompt = generateSyncCardPrompt(
+      overallScore,
+      poeticHeadline,
+      aiInsight,
+      personAName,
+      personBName,
+      rarityPercentile
+    );
+
+    let cardImageUrl = null;
+    try {
+      const imageResponse = await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/image-generate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+        },
+        body: JSON.stringify({
+          chat_id: chat_id,
+          prompt: cardPrompt,
+          user_id: swissData?.meta?.user_id || 'system',
+          mode: 'sync',
+          image_id: crypto.randomUUID(), // Dummy ID for sync cards
+        }),
+      });
+
+      if (imageResponse.ok) {
+        const imageData = await imageResponse.json();
+        cardImageUrl = imageData.image_url;
+        console.log('[calculate-sync-score] Card image generated:', cardImageUrl);
+      } else {
+        console.error('[calculate-sync-score] Image generation failed:', await imageResponse.text());
+      }
+    } catch (imageError) {
+      console.error('[calculate-sync-score] Image generation error:', imageError);
+      // Continue without image - not critical
+    }
+
+    // 8. Store result in conversations.meta (including image URL)
     const { error: updateError } = await supabase
       .from('conversations')
       .update({
         meta: {
-          sync_score: scoreBreakdown,
+          sync_score: {
+            ...scoreBreakdown,
+            card_image_url: cardImageUrl,
+          },
         },
       })
       .eq('id', chat_id);
@@ -291,11 +395,14 @@ Deno.serve(async (req) => {
 
     console.log(`[calculate-sync-score] Score stored successfully`);
 
-    // 7. Return the score
+    // 9. Return the score with image URL
     return new Response(
       JSON.stringify({ 
         success: true, 
-        score: scoreBreakdown 
+        score: {
+          ...scoreBreakdown,
+          card_image_url: cardImageUrl,
+        }
       }),
       { status: 200, headers: corsHeaders }
     );

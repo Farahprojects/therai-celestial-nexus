@@ -14,6 +14,7 @@ export interface ScoreBreakdown {
   ai_insight: string;
   calculated_at: string;
   rarity_percentile: number;
+  card_image_url?: string | null;
 }
 
 /**
