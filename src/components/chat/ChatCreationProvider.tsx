@@ -42,13 +42,14 @@ export const ChatCreationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const [showAstroModal, setShowAstroModal] = useState(false);
   const [selectedChartType, setSelectedChartType] = useState<string | null>(null);
 
-  const requireEligibleUser = useCallback((): boolean => {
+  const requireEligibleUser = useCallback((requireSubscription: boolean = false): boolean => {
     if (!user) {
       setShowAuthModal(true);
       return false;
     }
 
-    if (billingMode === 'SUBSCRIPTION' && !isSubscriptionActive) {
+    // Only block for premium features (Insights, Astro) - not for regular chat or Together Mode
+    if (requireSubscription && billingMode === 'SUBSCRIPTION' && !isSubscriptionActive) {
       navigate('/subscription-paywall');
       return false;
     }
@@ -57,7 +58,8 @@ export const ChatCreationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   }, [billingMode, isSubscriptionActive, navigate, user]);
 
   const handleNewConversation = useCallback(async (mode: ChatMode) => {
-    if (!requireEligibleUser()) return;
+    // ✅ NEW: Free users can create chats - limits enforced at message level
+    if (!requireEligibleUser(false)) return;
     if (!user) return;
 
     try {
@@ -90,12 +92,14 @@ export const ChatCreationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   }, [navigate, requireEligibleUser, user]);
 
   const openAstroFlow = useCallback(() => {
-    if (!requireEligibleUser()) return;
+    // ✅ Astro requires subscription
+    if (!requireEligibleUser(true)) return;
     setShowAstroChartSelector(true);
   }, [requireEligibleUser]);
 
   const openInsightsFlow = useCallback(() => {
-    if (!requireEligibleUser()) return;
+    // ✅ Insights require subscription
+    if (!requireEligibleUser(true)) return;
     setShowInsightsModal(true);
   }, [requireEligibleUser]);
 
