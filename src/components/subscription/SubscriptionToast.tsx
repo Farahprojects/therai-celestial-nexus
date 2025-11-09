@@ -1,8 +1,7 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { X } from 'lucide-react';
-import { CreditPurchaseModal } from '@/components/billing/CreditPurchaseModal';
-import { getBillingMode, getLowBalanceMessage, getUpgradeButtonText } from '@/utils/billingMode';
+import { getLowBalanceMessage, getUpgradeButtonText } from '@/utils/billingMode';
 
 interface SubscriptionToastProps {
   isVisible: boolean;
@@ -61,16 +60,6 @@ export const SubscriptionToast: React.FC<SubscriptionToastProps> = ({
           </button>
         </div>
       </div>
-
-      {billingMode === 'CREDIT' && (
-      <CreditPurchaseModal
-        isOpen={showCreditModal}
-        onClose={() => {
-          setShowCreditModal(false);
-          onDismiss();
-        }}
-      />
-      )}
     </>
   );
 };
