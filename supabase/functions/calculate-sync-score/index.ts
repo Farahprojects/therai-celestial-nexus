@@ -211,31 +211,39 @@ function generateSyncCardPrompt(
       ? 'rich purple and violet gradient with soft glow'
       : 'warm purple and pink gradient with gentle shimmer';
 
-  return `Create an elegant mystical connection card. Portrait orientation 9:16.
+  return `Goal: Create a purple cosmic connection card in portrait orientation (9:16 ratio).
 
-LAYOUT:
-${score}%
-${archetype}
+BACKGROUND:
+- ${colorScheme} with stars and cosmic glow
 
-${personAName} & ${personBName}
-${personASign} • ${personBSign}
+STEP-BY-STEP LAYERS:
 
-${insight}
+Layer 1 (Top):
+- Add text "${archetype}" at the top center
+- Add large number "${score}%" below the archetype text
 
-Growth Edge: ${challenge}
+Layer 2 (Names and Signs):
+- Add text "${personAName} & ${personBName}" below the score
+- Add text "${personASign} • ${personBSign}" directly below the names
 
-${rarityPercentile >= 50 ? `Top ${100 - rarityPercentile}% Connection` : ''}
+Layer 3 (Insight):
+- Add text "${insight}" below the zodiac signs
 
-therai.co
+Layer 4 (Growth Edge):
+- Add text "Growth Edge: ${challenge}" below the insight
 
-STYLE:
-- Background: ${colorScheme} with stars and cosmic glow
-- Large bold score with sparkles
-- Elegant typography hierarchy
-- Generous white space between sections
-- Purple/magenta tones
-- Professional minimalist design
-- Instagram-ready quality`;
+${rarityPercentile >= 50 ? `Layer 5 (Badge):
+- Add purple badge with text "Top ${100 - rarityPercentile}% Connection"
+` : ''}
+
+Layer 6 (Watermark):
+- Add text "therai.co" at the bottom center
+
+STYLE NOTES:
+- White text on purple background
+- Elegant typography
+- Generous spacing between layers
+- Professional minimalist design`;
 }
 
 Deno.serve(async (req) => {
