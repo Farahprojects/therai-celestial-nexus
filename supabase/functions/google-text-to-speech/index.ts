@@ -152,10 +152,16 @@ if (!audioBase64) {
 
 const processingTime = Date.now() - startTime;
 
-console.log(`[google-tts] 📊 Audio size: ${audioBase64.length} base64 chars`);
+// Convert base64 to binary bytes for more efficient WebSocket transfer
+const binaryString = atob(audioBase64);
+const audioBytes = new Uint8Array(binaryString.length);
+for (let i = 0; i < binaryString.length; i++) {
+  audioBytes[i] = binaryString.charCodeAt(i);
+}
+
+console.log(`[google-tts] 📊 Audio size: ${audioBytes.length} bytes (was ${audioBase64.length} base64 chars)`);
 
 // Fire-and-forget HTTP broadcast to unified channel (WebSocket optimization)
-// Note: Base64 is most efficient for JSON transport (array of numbers would be 4-5x larger)
 // Note: TTS usage is not tracked separately - STT gating is sufficient since TTS requires STT
 if (user_id) {
   const channelName = `user-realtime:${user_id}`;
@@ -171,7 +177,7 @@ if (user_id) {
         channel: channelName,
         event: "voice-tts-ready",
         payload: {
-          audioBase64: audioBase64, // Base64 MP3 data (most efficient for JSON)
+          audioBytes: Array.from(audioBytes), // Binary MP3 data (no base64 overhead)
           audioUrl: null, // no storage
           text,
           chat_id,
