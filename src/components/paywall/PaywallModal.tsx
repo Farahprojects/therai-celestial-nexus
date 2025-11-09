@@ -2,10 +2,8 @@ import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { X, Sparkles, MessageCircle, Mic, FileText } from 'lucide-react';
-import { CreditPurchaseModal } from '@/components/billing/CreditPurchaseModal';
 import SubscriptionCard from '@/components/paywall/SubscriptionCard';
 import { supabase } from '@/integrations/supabase/client';
-import { getBillingMode } from '@/utils/billingMode';
 
 interface PaywallModalProps {
   isOpen: boolean;
@@ -35,15 +33,13 @@ const isPricingPlan = (value: unknown): value is PricingPlan => {
 };
 
 const PaywallModal: React.FC<PaywallModalProps> = ({ isOpen, onClose, onSuccess }) => {
-  const [showPurchaseModal, setShowPurchaseModal] = React.useState(false);
   const [subscriptionPlans, setSubscriptionPlans] = React.useState<PricingPlan[]>([]);
   const [loadingPlans, setLoadingPlans] = React.useState(false);
   const [selectedPlanId, setSelectedPlanId] = React.useState<string | null>(null);
-  const billingMode = getBillingMode();
 
-  // Fetch subscription plans when modal opens and in subscription mode
+  // Fetch subscription plans when modal opens
   React.useEffect(() => {
-    if (isOpen && billingMode === 'SUBSCRIPTION') {
+    if (isOpen) {
       const fetchPlans = async () => {
         setLoadingPlans(true);
         try {
@@ -76,7 +72,7 @@ const PaywallModal: React.FC<PaywallModalProps> = ({ isOpen, onClose, onSuccess 
 
       fetchPlans();
     }
-  }, [isOpen, billingMode]);
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -114,10 +110,8 @@ const PaywallModal: React.FC<PaywallModalProps> = ({ isOpen, onClose, onSuccess 
                 </p>
               </div>
 
-              {billingMode === 'CREDIT' ? (
-                <>
-                  {/* Credit Package */}
-              <div className="bg-gray-50 rounded-3xl p-10 mb-10 max-w-xl mx-auto">
+              {/* Subscription Plans */}
+              <div className="max-w-6xl mx-auto px-4 mb-12">
                 <div className="text-center mb-8">
                   <div className="text-6xl font-light text-gray-900 mb-2">$5</div>
                   <div className="text-base text-gray-500">50 credits • Never expires • Top up anytime</div>
@@ -231,25 +225,12 @@ const PaywallModal: React.FC<PaywallModalProps> = ({ isOpen, onClose, onSuccess 
           <footer className="py-4 text-center text-sm text-gray-400 font-light border-t border-gray-100">
             <div className="max-w-4xl mx-auto px-4">
               <p className="text-xs">
-                {billingMode === 'CREDIT' 
-                  ? 'Secure payment via Stripe • Credits never expire • Top up anytime'
-                  : 'Secure payment via Stripe • Cancel anytime • No commitments'}
+                Secure payment via Stripe • Cancel anytime • No commitments
               </p>
             </div>
           </footer>
         </motion.div>
       </AnimatePresence>
-
-      {billingMode === 'CREDIT' && (
-      <CreditPurchaseModal
-        isOpen={showPurchaseModal}
-        onClose={() => {
-          setShowPurchaseModal(false);
-          onSuccess?.();
-          onClose();
-        }}
-      />
-      )}
     </>
   );
 };
