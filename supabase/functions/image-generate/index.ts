@@ -7,6 +7,7 @@
 
 import { createPooledClient } from "../_shared/supabaseClient.ts";
 import { GoogleGenAI } from "https://esm.sh/@google/genai@^1.0.0";
+import { checkLimit } from "../_shared/limitChecker.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -76,34 +77,35 @@ Deno.serve(async (req) => {
   }
 
 
-  // Rate limiting: 3 images per user per 24 hours (cost control for $10 subscription)
-  // Uses immutable audit table to prevent bypass via chat deletion
-  const { count, error: countError } = await supabase
-    .from('image_generation_log')
-    .select('id', { count: 'exact', head: true })
-    .eq('user_id', user_id)
-    .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
+  // ✅ PRO WAY: Check image generation limit (database-driven)
+  const limitCheck = await checkLimit(supabase, user_id, 'image_generation', 1);
 
-  if (countError) {
-    console.error(JSON.stringify({
-      event: "image_generate_rate_limit_check_failed",
-      request_id: requestId,
-      error: countError.message
-    }));
-    return json(500, { error: "Failed to check rate limit" });
-  }
+  console.info(JSON.stringify({
+    event: "image_limit_check",
+    request_id: requestId,
+    user_id,
+    allowed: limitCheck.allowed,
+    current_usage: limitCheck.current_usage,
+    limit: limitCheck.limit,
+    is_unlimited: limitCheck.is_unlimited
+  }));
 
-  if (count && count >= 3) {
-    console.info(JSON.stringify({
+  if (!limitCheck.allowed) {
+    console.warn(JSON.stringify({
       event: "image_generate_rate_limit_exceeded",
       request_id: requestId,
       user_id,
-      count
+      limit: limitCheck.limit,
+      current_usage: limitCheck.current_usage
     }));
+    
     return json(429, {
-      error: 'Daily image generation limit reached (3 images per day). Limit resets in 24 hours.',
-      limit: 3,
-      used: count
+      error: limitCheck.is_unlimited 
+        ? 'Image generation unavailable'
+        : `Daily image generation limit reached (${limitCheck.limit} images per day). Limit resets in 24 hours.`,
+      limit: limitCheck.limit,
+      used: limitCheck.current_usage,
+      remaining: limitCheck.remaining
     });
   }
 
