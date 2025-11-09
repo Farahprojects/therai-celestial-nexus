@@ -375,6 +375,21 @@ Deno.serve(async (req) => {
       console.error('[calculate-sync-score] Failed to create message:', messageError);
     }
 
+    // 🚀 Broadcast the placeholder message so frontend displays it immediately
+    if (newMessage) {
+      const channelName = `user-realtime:${userId}`;
+      supabase.channel(channelName).send({
+        type: 'broadcast',
+        event: 'message-insert',
+        payload: {
+          chat_id: chat_id,
+          message: newMessage
+        }
+      }, { httpSend: true }).catch((broadcastError) => {
+        console.error('[calculate-sync-score] Message broadcast failed:', broadcastError);
+      });
+    }
+
     let cardImageUrl = null;
     if (newMessage) {
       try {
