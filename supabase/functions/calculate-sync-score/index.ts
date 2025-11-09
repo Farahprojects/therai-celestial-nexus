@@ -71,13 +71,14 @@ ${rarityPercentile >= 50 ? `- Badge: Small purple badge with sparkle icon and "T
 - Bottom: "therai.co" watermark, subtle and elegant
 
 STYLE:
-- Minimal, Apple-inspired aesthetic
+- Minimal, clean aesthetic
 - Lots of negative space
 - Soft glows and light effects
 - Professional typography
 - Mystical but not cheesy
 - Instagram-ready quality
-- Clean, modern, shareable
+- Modern, shareable
+- NO logos, NO icons, NO branding marks
 
 COLORS:
 - Background: ${profile.colorScheme}
