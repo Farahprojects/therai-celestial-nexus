@@ -7,7 +7,7 @@
 
 import { createPooledClient } from "../_shared/supabaseClient.ts";
 import { GoogleGenAI } from "https://esm.sh/@google/genai@^1.0.0";
-import { checkLimit } from "../_shared/limitChecker.ts";
+import { checkLimit, incrementUsage } from "../_shared/limitChecker.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -210,27 +210,7 @@ Deno.serve(async (req) => {
 
   const generationTime = Date.now() - generationStartTime;
 
-  // ✅ Final atomic check right before logging (prevents race conditions)
-  // Double-check limit to catch any concurrent requests that slipped through
-  const { count: finalCount, error: finalCheckError } = await supabase
-    .from('image_generation_log')
-    .select('id', { count: 'exact', head: true })
-    .eq('user_id', user_id)
-    .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
-
-  if (!finalCheckError && finalCount && finalCount >= 3) {
-    console.warn(JSON.stringify({
-      event: "image_generate_limit_exceeded_at_log",
-      request_id: requestId,
-      user_id,
-      count: finalCount,
-      note: "Image generated but limit exceeded - logging anyway for audit"
-    }));
-    // Continue to log - this is rare race condition, audit log still matters
-  }
-
   // 🚀 OPTIMIZED: Only await critical message update
-  // Fire-and-forget for audit log and user_images (nice-to-have)
   const { data: updatedMessage, error: messageError } = await supabase
     .from('messages')
     .update({
@@ -259,24 +239,16 @@ Deno.serve(async (req) => {
     }));
   }
 
-  // 🚀 FIRE-AND-FORGET: Audit log (for rate limiting - not time-critical)
-  supabase
-    .from('image_generation_log')
-    .insert({
-      user_id,
-      chat_id,
-      image_url: publicUrl,
-      model: IMAGEN_MODEL
-    })
-    .then(({ error }) => {
-      if (error) {
-        console.error(JSON.stringify({
-          event: "image_generate_audit_log_failed",
-          request_id: requestId,
-          error: error.message
-        }));
-      }
-    });
+  // 🚀 FIRE-AND-FORGET: Increment usage counter in feature_usage table
+  incrementUsage(supabase, user_id, 'image_generation', 1).then(({ success, reason }) => {
+    if (!success) {
+      console.error(JSON.stringify({
+        event: "image_generate_increment_failed",
+        request_id: requestId,
+        error: reason
+      }));
+    }
+  });
 
   // 🚀 FIRE-AND-FORGET: user_images table (for gallery - not time-critical)
   supabase

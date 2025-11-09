@@ -676,6 +676,7 @@ export type Database = {
         Row: {
           created_at: string | null
           id: string
+          images_generated: number
           insights_count: number
           period: string
           therai_calls: number | null
@@ -686,6 +687,7 @@ export type Database = {
         Insert: {
           created_at?: string | null
           id?: string
+          images_generated?: number
           insights_count?: number
           period: string
           therai_calls?: number | null
@@ -696,6 +698,7 @@ export type Database = {
         Update: {
           created_at?: string | null
           id?: string
+          images_generated?: number
           insights_count?: number
           period?: string
           therai_calls?: number | null
@@ -728,41 +731,6 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
-      }
-      image_generation_log: {
-        Row: {
-          chat_id: string | null
-          created_at: string
-          id: string
-          image_url: string | null
-          model: string
-          user_id: string
-        }
-        Insert: {
-          chat_id?: string | null
-          created_at?: string
-          id?: string
-          image_url?: string | null
-          model: string
-          user_id: string
-        }
-        Update: {
-          chat_id?: string | null
-          created_at?: string
-          id?: string
-          image_url?: string | null
-          model?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "image_generation_log_chat_id_fkey"
-            columns: ["chat_id"]
-            isOneToOne: false
-            referencedRelation: "conversations"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       insights: {
         Row: {

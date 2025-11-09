@@ -129,7 +129,7 @@ export async function incrementUsage(
       'voice_seconds': 'increment_voice_seconds',
       'therai_calls': 'increment_therai_calls',
       'insights': 'increment_insights_count',
-      'image_generation': 'log_image_generation', // Special case
+      'image_generation': 'increment_images_generated',
       'chat': 'increment_chat_messages'
     };
 
@@ -140,11 +140,6 @@ export async function incrementUsage(
         success: false,
         reason: `Unknown feature type: ${featureType}`
       };
-    }
-
-    // Image generation uses different pattern (already logged in image-generate function)
-    if (featureType === 'image_generation') {
-      return { success: true };
     }
 
     // Determine period based on feature type
@@ -165,6 +160,8 @@ export async function incrementUsage(
     } else if (featureType === 'therai_calls') {
       rpcParams.p_calls = amount;
     } else if (featureType === 'chat') {
+      rpcParams.p_count = amount;
+    } else if (featureType === 'image_generation') {
       rpcParams.p_count = amount;
     } else {
       rpcParams.p_count = amount;

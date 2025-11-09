@@ -215,31 +215,6 @@ async function createCache(chat_id: string, systemText: string): Promise<string 
 }
 
 /* --------------------------- Summary helper ------------------------------ */
-/* ----------------------- Image Generation Rate Limit ----------------------- */
-async function checkImageGenerationLimit(user_id: string): Promise<{ allowed: boolean; count: number; limit: number }> {
-  const IMAGE_LIMIT = 3;
-  const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
-  
-  const { count, error } = await supabase
-    .from('image_generation_log')
-    .select('id', { count: 'exact', head: true })
-    .eq('user_id', user_id)
-    .gte('created_at', new Date(Date.now() - TWENTY_FOUR_HOURS_MS).toISOString());
-
-  if (error) {
-    console.error("[image-limit] check failed:", error);
-    // Fail closed - deny if check fails
-    return { allowed: false, count: IMAGE_LIMIT, limit: IMAGE_LIMIT };
-  }
-
-  const currentCount = count || 0;
-  return {
-    allowed: currentCount < IMAGE_LIMIT,
-    count: currentCount,
-    limit: IMAGE_LIMIT
-  };
-}
-
 function triggerSummaryGeneration(chat_id: string, fromTurn: number, toTurn: number) {
   const headers = {
     "Content-Type": "application/json",
@@ -534,17 +509,19 @@ Deno.serve(async (req: Request) => {
       // handle image generation via internal edge function
       const prompt = functionCall.args?.prompt || "";
       
-      // ✅ Check rate limit BEFORE creating placeholder (single source of truth: image_generation_log)
-      const limitCheck = await checkImageGenerationLimit(user_id);
+      // ✅ Check rate limit BEFORE creating placeholder (single source of truth: feature_usage)
+      const limitCheck = await checkLimit(supabase, user_id, 'image_generation', 1);
       
       if (!limitCheck.allowed) {
         console.info(JSON.stringify({
           event: "image_generation_limit_exceeded",
           user_id,
-          count: limitCheck.count,
-          limit: limitCheck.limit
+          current_usage: limitCheck.current_usage,
+          limit: limitCheck.limit,
+          reason: limitCheck.reason
         }));
-        assistantText = `I've reached the daily limit of ${limitCheck.limit} images. You can generate more images tomorrow!`;
+        const limitText = limitCheck.limit ? `${limitCheck.limit} images` : 'images';
+        assistantText = `I've reached the daily limit of ${limitText}. You can generate more images tomorrow!`;
         // Skip image generation, proceed with normal message flow
       } else {
         // Generate unique ID for this image generation
