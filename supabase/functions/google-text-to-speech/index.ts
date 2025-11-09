@@ -161,20 +161,13 @@ for (let i = 0; i < binaryString.length; i++) {
 
 console.log(`[google-tts] 📊 Audio size: ${audioBytes.length} bytes (was ${audioBase64.length} base64 chars)`);
 
-// Fire-and-forget HTTP broadcast to unified channel (WebSocket optimization)
+// Fire-and-forget broadcast to unified channel (WebSocket optimization)
 // Note: TTS usage is not tracked separately - STT gating is sufficient since TTS requires STT
 if (user_id) {
-  const channelName = `user-realtime:${user_id}`;
+  const channel = supabase.channel(`user-realtime:${user_id}`);
   fireAndForget(
-    fetch(`${supabaseUrl}/realtime/v1/api/broadcast`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${supabaseServiceKey}`,
-        "apikey": supabaseServiceKey
-      },
-      body: JSON.stringify({
-        channel: channelName,
+    channel.send({
+        type: "broadcast",
         event: "voice-tts-ready",
         payload: {
           audioBytes: Array.from(audioBytes), // Binary MP3 data (no base64 overhead)
@@ -184,16 +177,16 @@ if (user_id) {
           mimeType: "audio/mpeg",
         }
       })
-    })
-    .then((response) => {
-      if (response.ok) {
-        console.log("[google-tts] Broadcast successful to unified channel");
-      } else {
-        console.error("[google-tts] Broadcast failed with status:", response.status);
-      }
-    })
-    .catch((e: unknown) => {
+      .then((response) => {
+        if (response === 'ok') {
+          console.log("[google-tts] Broadcast successful to unified channel");
+        }
+        // Clean up channel
+        channel.unsubscribe();
+      })
+      .catch((e: unknown) => {
       console.error("[google-tts] Broadcast error:", e);
+      channel.unsubscribe();
     })
   );
 } else {
