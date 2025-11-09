@@ -305,7 +305,11 @@ Deno.serve(async (req: Request) => {
       const assistantClientId = crypto.randomUUID();
       fetch(`${ENV.SUPABASE_URL}/functions/v1/chat-send`, {
         method: "POST",
-        headers,
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${ENV.SUPABASE_SERVICE_ROLE_KEY}`,
+          "x-internal-key": ENV.INTERNAL_API_KEY
+        },
         body: JSON.stringify({
           chat_id,
           text: limitMessage,
@@ -316,7 +320,9 @@ Deno.serve(async (req: Request) => {
           user_name,
           chattype
         })
-      }).catch(() => { /* silent */ });
+      }).catch((err) => {
+        console.error("[limit] chat-send failed:", err?.message || err);
+      });
       
       // Return response (frontend will receive via WebSocket)
       return JSON_RESPONSE(200, {
