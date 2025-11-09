@@ -2,7 +2,7 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
-const SUPABASE_URL = "https://api.therai.co";
+const SUPABASE_URL = "https://wrvqqvqvwqmfdqvqmaar.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndydnFxdnF2d3FtZmRxdnFtYWFyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU1ODA0NjIsImV4cCI6MjA2MTE1NjQ2Mn0.u9P-SY4kSo7e16I29TXXSOJou5tErfYuldrr_CITWX0";
 
 // Import the supabase client like this:
@@ -13,20 +13,5 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     storage: localStorage,
     persistSession: true,
     autoRefreshToken: true,
-    flowType: 'pkce',
-    detectSessionInUrl: true,
-    storageKey: 'supabase.auth.token',
-  },
-  global: {
-    headers: {
-      'X-Client-Info': 'supabase-js-web',
-    },
-  },
-  cookieOptions: {
-    name: 'sb-auth-token',
-    lifetime: 60 * 60 * 8, // 8 hours
-    domain: window.location.hostname,
-    path: '/',
-    sameSite: 'strict', // CSRF protection
-  },
+  }
 });

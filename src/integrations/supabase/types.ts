@@ -678,6 +678,7 @@ export type Database = {
           id: string
           insights_count: number
           period: string
+          therai_calls: number | null
           updated_at: string | null
           user_id: string
           voice_seconds: number
@@ -687,6 +688,7 @@ export type Database = {
           id?: string
           insights_count?: number
           period: string
+          therai_calls?: number | null
           updated_at?: string | null
           user_id: string
           voice_seconds?: number
@@ -696,6 +698,7 @@ export type Database = {
           id?: string
           insights_count?: number
           period?: string
+          therai_calls?: number | null
           updated_at?: string | null
           user_id?: string
           voice_seconds?: number
@@ -916,6 +919,7 @@ export type Database = {
       }
       messages: {
         Row: {
+          archived_at: string | null
           chat_id: string
           client_msg_id: string | null
           context_injected: boolean | null
@@ -931,6 +935,7 @@ export type Database = {
           user_name: string | null
         }
         Insert: {
+          archived_at?: string | null
           chat_id: string
           client_msg_id?: string | null
           context_injected?: boolean | null
@@ -946,6 +951,7 @@ export type Database = {
           user_name?: string | null
         }
         Update: {
+          archived_at?: string | null
           chat_id?: string
           client_msg_id?: string | null
           context_injected?: boolean | null
@@ -1099,6 +1105,63 @@ export type Database = {
           stripe_pid?: string | null
           ts?: string | null
           user_id?: string | null
+        }
+        Relationships: []
+      }
+      plan_limits: {
+        Row: {
+          created_at: string | null
+          display_order: number | null
+          has_early_access: boolean | null
+          has_image_generation: boolean | null
+          has_priority_support: boolean | null
+          has_together_mode: boolean | null
+          has_voice_mode: boolean | null
+          id: string
+          image_generation_daily_limit: number | null
+          insights_limit: number | null
+          is_active: boolean | null
+          plan_id: string
+          plan_name: string
+          therai_calls_limit: number | null
+          updated_at: string | null
+          voice_seconds_limit: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          display_order?: number | null
+          has_early_access?: boolean | null
+          has_image_generation?: boolean | null
+          has_priority_support?: boolean | null
+          has_together_mode?: boolean | null
+          has_voice_mode?: boolean | null
+          id?: string
+          image_generation_daily_limit?: number | null
+          insights_limit?: number | null
+          is_active?: boolean | null
+          plan_id: string
+          plan_name: string
+          therai_calls_limit?: number | null
+          updated_at?: string | null
+          voice_seconds_limit?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          display_order?: number | null
+          has_early_access?: boolean | null
+          has_image_generation?: boolean | null
+          has_priority_support?: boolean | null
+          has_together_mode?: boolean | null
+          has_voice_mode?: boolean | null
+          id?: string
+          image_generation_daily_limit?: number | null
+          insights_limit?: number | null
+          is_active?: boolean | null
+          plan_id?: string
+          plan_name?: string
+          therai_calls_limit?: number | null
+          updated_at?: string | null
+          voice_seconds_limit?: number | null
         }
         Relationships: []
       }
@@ -2168,7 +2231,16 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      message_archival_stats: {
+        Row: {
+          active_messages: number | null
+          archived_messages: number | null
+          conversations_with_archived: number | null
+          latest_archive_date: string | null
+          oldest_archive_date: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       add_credits: {
@@ -2182,10 +2254,26 @@ export type Database = {
         }
         Returns: boolean
       }
+      archive_old_messages: {
+        Args: never
+        Returns: {
+          archived_count: number
+          conversation_count: number
+        }[]
+      }
       bytea_to_text: { Args: { data: string }; Returns: string }
       check_and_increment_insights_count: {
         Args: {
           p_count: number
+          p_limit: number
+          p_period: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
+      check_and_increment_therai_calls: {
+        Args: {
+          p_calls: number
           p_limit: number
           p_period: string
           p_user_id: string
@@ -2197,6 +2285,15 @@ export type Database = {
           p_limit: number
           p_period: string
           p_seconds: number
+          p_user_id: string
+        }
+        Returns: Json
+      }
+      check_feature_limit: {
+        Args: {
+          p_feature_type: string
+          p_period?: string
+          p_requested_amount?: number
           p_user_id: string
         }
         Returns: Json
@@ -2214,6 +2311,8 @@ export type Database = {
         Returns: boolean
       }
       clean_completed_topups: { Args: never; Returns: undefined }
+      clean_edge_function_logs: { Args: never; Returns: undefined }
+      clean_old_webhook_events: { Args: never; Returns: undefined }
       create_user_after_payment: {
         Args: { plan_type?: string; user_id: string }
         Returns: undefined
@@ -2265,6 +2364,11 @@ export type Database = {
         }[]
       }
       get_user_email_by_id: { Args: { user_id_param: string }; Returns: string }
+      get_user_limits: { Args: { p_user_id: string }; Returns: Json }
+      hard_delete_archived_messages: {
+        Args: { months_old?: number }
+        Returns: number
+      }
       http: {
         Args: { request: Database["public"]["CompositeTypes"]["http_request"] }
         Returns: Database["public"]["CompositeTypes"]["http_response"]
@@ -2390,8 +2494,21 @@ export type Database = {
         Args: { curlopt: string; value: string }
         Returns: boolean
       }
+      increment_feature_usage: {
+        Args: {
+          p_amount: number
+          p_feature_type: string
+          p_period: string
+          p_user_id: string
+        }
+        Returns: undefined
+      }
       increment_insights_count: {
         Args: { p_count: number; p_period: string; p_user_id: string }
+        Returns: undefined
+      }
+      increment_therai_calls: {
+        Args: { p_calls: number; p_period: string; p_user_id: string }
         Returns: undefined
       }
       increment_voice_seconds: {
