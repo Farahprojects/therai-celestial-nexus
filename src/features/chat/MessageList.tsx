@@ -91,6 +91,7 @@ const AssistantMessage = React.memo(({ message }: { message: Message }) => {
          prevProps.message.pending === nextProps.message.pending &&
          prevProps.message.source === nextProps.message.source &&
          prevMeta?.together_mode_analysis === nextMeta?.together_mode_analysis &&
+         prevMeta?.limit_exceeded === nextMeta?.limit_exceeded &&
          prevMeta?.message_type === nextMeta?.message_type &&
          prevMeta?.image_url === nextMeta?.image_url &&
          prevMeta?.status === nextMeta?.status;
