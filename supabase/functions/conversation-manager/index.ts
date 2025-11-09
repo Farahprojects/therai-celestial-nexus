@@ -1,6 +1,5 @@
 // @ts-nocheck - Deno runtime, types checked at deployment
 import { createClient, type SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { checkSubscriptionAccess, checkPremiumAccess } from '../_shared/subscriptionCheck.ts';
 
 type Json = Record<string, unknown> | Array<unknown> | string | number | boolean | null;
 
@@ -126,26 +125,8 @@ if (!mode) return errorJson('mode is required for conversation creation');
 // Check if profile_mode flag is present
 const isProfileMode = profile_mode === true;
 
-// 🔒 SECURITY: Verify subscription before creating conversation (skip for profile mode during onboarding)
-if (!isProfileMode) {
-  try {
-    const subscriptionCheck = await checkSubscriptionAccess(admin, userId);
-    if (!subscriptionCheck.hasAccess) {
-      return errorJson('Subscription required to create conversations', 403);
-    }
-
-    // Voice conversations require premium plan
-    if (mode === 'voice' || mode === 'conversation') {
-      const premiumCheck = await checkPremiumAccess(admin, userId);
-      if (!premiumCheck.hasAccess) {
-        return errorJson('Premium plan required for voice conversations', 403);
-      }
-    }
-  } catch (err) {
-    console.error('[conversation-manager] Subscription check failed:', err);
-    return errorJson('Subscription verification failed', 500);
-  }
-}
+// ✅ NEW: Free users can create conversations - limits enforced at message level
+// No subscription check needed here - feature gating happens in llm-handler-gemini
 
 const id = crypto.randomUUID();
 
@@ -289,24 +270,8 @@ if (conversation_id) {
 
 if (!mode) return errorJson('mode is required for conversation creation');
 
-// 🔒 SECURITY: Verify subscription before creating conversation
-try {
-  const subscriptionCheck = await checkSubscriptionAccess(admin, userId);
-  if (!subscriptionCheck.hasAccess) {
-    return errorJson('Subscription required to create conversations', 403);
-  }
-
-  // Voice conversations require premium plan
-  if (mode === 'voice' || mode === 'conversation') {
-    const premiumCheck = await checkPremiumAccess(admin, userId);
-    if (!premiumCheck.hasAccess) {
-      return errorJson('Premium plan required for voice conversations', 403);
-    }
-  }
-} catch (err) {
-  console.error('[conversation-manager] Subscription check failed:', err);
-  return errorJson('Subscription verification failed', 500);
-}
+// ✅ NEW: Free users can create conversations - limits enforced at message level
+// No subscription check needed here - feature gating happens in llm-handler-gemini
 
 const id = crypto.randomUUID();
 
