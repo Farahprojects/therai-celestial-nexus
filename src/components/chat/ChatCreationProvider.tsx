@@ -133,45 +133,47 @@ export const ChatCreationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       // Create conversation title
       const title = `Sync Score: ${primaryProfile.name} & ${selectedProfile.name}`;
 
-      // Create the conversation
+      // Create the conversation with profile data in metadata
       const { addThread } = useChatStore.getState();
       const newChatId = await addThread(user.id, 'sync_score', title);
 
-      // Prepare the data payload for Swiss API
+      // Prepare the data payload for initiate-auth-report
       const payload = {
         chat_id: newChatId,
+        mode: 'sync_score',
         report_data: {
-          person1: {
+          request: 'sync', // Tell translator this is a sync request
+          reportType: null, // No report needed, just Swiss data for synastry
+          person_a: {
             name: primaryProfile.name,
             birth_date: primaryProfile.birth_date,
             birth_time: primaryProfile.birth_time,
-            birth_location: primaryProfile.birth_location,
+            location: primaryProfile.birth_location,
             latitude: primaryProfile.birth_latitude,
             longitude: primaryProfile.birth_longitude,
             place_id: primaryProfile.birth_place_id,
-            timezone: primaryProfile.timezone,
+            tz: primaryProfile.timezone,
           },
-          person2: {
+          person_b: {
             name: selectedProfile.name,
             birth_date: selectedProfile.birth_date,
             birth_time: selectedProfile.birth_time,
-            birth_location: selectedProfile.birth_location,
+            location: selectedProfile.birth_location,
             latitude: selectedProfile.birth_latitude,
             longitude: selectedProfile.birth_longitude,
             place_id: selectedProfile.birth_place_id,
-            timezone: selectedProfile.timezone,
+            tz: selectedProfile.timezone,
           },
-          reportType: null, // No report needed, just Swiss data
         },
       };
 
-      // Send to Swiss API translator
-      const { data: translateData, error: translateError } = await supabase.functions.invoke('swiss-api-translator', {
+      // Call initiate-auth-report which will handle the server-side flow
+      const { error: reportError } = await supabase.functions.invoke('initiate-auth-report', {
         body: payload,
       });
 
-      if (translateError) {
-        console.error('[ProfileSelector] Error calling translator:', translateError);
+      if (reportError) {
+        console.error('[ProfileSelector] Error initiating sync score:', reportError);
         toast.error('Failed to process astrological data');
         return;
       }
