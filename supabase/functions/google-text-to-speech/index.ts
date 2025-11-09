@@ -58,7 +58,11 @@ headers: { "Content-Type": "application/json" },
 body: JSON.stringify({
 input: { text },
 voice: { languageCode: "en-US", name: voiceName },
-audioConfig: { audioEncoding: "MP3" },
+audioConfig: { 
+  audioEncoding: "MP3",
+  sampleRateHertz: 24000,  // Lower quality for smaller file size
+  audioChannelCount: 1      // Mono instead of stereo
+},
 }),
 signal,
 }
@@ -149,6 +153,15 @@ if (!audioBase64) {
 
 const processingTime = Date.now() - startTime;
 
+// Convert base64 to binary bytes for more efficient WebSocket transfer
+const binaryString = atob(audioBase64);
+const audioBytes = new Uint8Array(binaryString.length);
+for (let i = 0; i < binaryString.length; i++) {
+  audioBytes[i] = binaryString.charCodeAt(i);
+}
+
+console.log(`[google-tts] 📊 Audio size: ${audioBytes.length} bytes (was ${audioBase64.length} base64 chars)`);
+
 // Fire-and-forget HTTP broadcast to unified channel (WebSocket optimization)
 // Note: TTS usage is not tracked separately - STT gating is sufficient since TTS requires STT
 if (user_id) {
@@ -158,7 +171,7 @@ if (user_id) {
         type: "broadcast",
         event: "voice-tts-ready",
         payload: {
-          audioBase64: audioBase64, // base64 MP3 data
+          audioBytes: Array.from(audioBytes), // Binary MP3 data (no base64 overhead)
           audioUrl: null, // no storage
           text,
           chat_id,
