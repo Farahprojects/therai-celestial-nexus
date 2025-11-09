@@ -674,9 +674,11 @@ export type Database = {
       }
       feature_usage: {
         Row: {
+          chat_messages: number | null
           created_at: string | null
+          feature_type: string
           id: string
-          images_generated: number
+          images_generated: number | null
           insights_count: number
           period: string
           therai_calls: number | null
@@ -685,9 +687,11 @@ export type Database = {
           voice_seconds: number
         }
         Insert: {
+          chat_messages?: number | null
           created_at?: string | null
+          feature_type: string
           id?: string
-          images_generated?: number
+          images_generated?: number | null
           insights_count?: number
           period: string
           therai_calls?: number | null
@@ -696,9 +700,11 @@ export type Database = {
           voice_seconds?: number
         }
         Update: {
+          chat_messages?: number | null
           created_at?: string | null
+          feature_type?: string
           id?: string
-          images_generated?: number
+          images_generated?: number | null
           insights_count?: number
           period?: string
           therai_calls?: number | null
@@ -1078,6 +1084,7 @@ export type Database = {
       }
       plan_limits: {
         Row: {
+          chat_messages_daily_limit: number | null
           created_at: string | null
           display_order: number | null
           has_early_access: boolean | null
@@ -1096,6 +1103,7 @@ export type Database = {
           voice_seconds_limit: number | null
         }
         Insert: {
+          chat_messages_daily_limit?: number | null
           created_at?: string | null
           display_order?: number | null
           has_early_access?: boolean | null
@@ -1114,6 +1122,7 @@ export type Database = {
           voice_seconds_limit?: number | null
         }
         Update: {
+          chat_messages_daily_limit?: number | null
           created_at?: string | null
           display_order?: number | null
           has_early_access?: boolean | null
@@ -1193,6 +1202,7 @@ export type Database = {
           subscription_plan: string | null
           subscription_start_date: string | null
           subscription_status: string | null
+          trial_end_date: string | null
           updated_at: string | null
           verification_token: string | null
         }
@@ -1216,6 +1226,7 @@ export type Database = {
           subscription_plan?: string | null
           subscription_start_date?: string | null
           subscription_status?: string | null
+          trial_end_date?: string | null
           updated_at?: string | null
           verification_token?: string | null
         }
@@ -1239,6 +1250,7 @@ export type Database = {
           subscription_plan?: string | null
           subscription_start_date?: string | null
           subscription_status?: string | null
+          trial_end_date?: string | null
           updated_at?: string | null
           verification_token?: string | null
         }
@@ -2465,6 +2477,10 @@ export type Database = {
         Args: { curlopt: string; value: string }
         Returns: boolean
       }
+      increment_chat_messages: {
+        Args: { p_count: number; p_period: string; p_user_id: string }
+        Returns: undefined
+      }
       increment_feature_usage: {
         Args: {
           p_amount: number
@@ -2472,6 +2488,10 @@ export type Database = {
           p_period: string
           p_user_id: string
         }
+        Returns: undefined
+      }
+      increment_images_generated: {
+        Args: { p_count: number; p_period: string; p_user_id: string }
         Returns: undefined
       }
       increment_insights_count: {
@@ -2486,6 +2506,7 @@ export type Database = {
         Args: { p_period: string; p_seconds: number; p_user_id: string }
         Returns: undefined
       }
+      is_user_in_trial: { Args: { p_user_id: string }; Returns: boolean }
       is_user_verified: { Args: { _user_id?: string }; Returns: boolean }
       mark_profile_verified: { Args: { user_id?: string }; Returns: boolean }
       rpc_notify_orchestrator: {
