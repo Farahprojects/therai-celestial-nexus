@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { X, Search, User, Heart } from 'lucide-react';
+import { X, Search, User, Heart, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
@@ -23,12 +23,14 @@ interface ProfileSelectorModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSelect: (profile: Profile) => void;
+  isGenerating?: boolean;
 }
 
 export const ProfileSelectorModal: React.FC<ProfileSelectorModalProps> = ({
   isOpen,
   onClose,
   onSelect,
+  isGenerating = false,
 }) => {
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
@@ -211,10 +213,17 @@ export const ProfileSelectorModal: React.FC<ProfileSelectorModalProps> = ({
         <div className="px-6 py-4 border-t border-gray-100">
           <Button
             onClick={handleNext}
-            disabled={!selectedProfile}
+            disabled={!selectedProfile || isGenerating}
             className="w-full rounded-full py-6 bg-gray-900 hover:bg-gray-800 disabled:bg-gray-200 disabled:text-gray-400 text-white font-light transition-all"
           >
-            Calculate Sync Score
+            {isGenerating ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Generating...
+              </>
+            ) : (
+              'Generate'
+            )}
           </Button>
         </div>
       </motion.div>

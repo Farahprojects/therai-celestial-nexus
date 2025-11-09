@@ -4,6 +4,7 @@ export interface ScoreBreakdown {
   overall: number;
   archetype_name: string;
   ai_insight: string;
+  ai_challenge: string;
   calculated_at: string;
   rarity_percentile: number;
   card_image_url?: string | null;

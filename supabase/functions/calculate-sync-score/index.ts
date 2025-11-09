@@ -13,6 +13,7 @@ interface ScoreBreakdown {
   overall: number;
   archetype_name: string;
   ai_insight: string;
+  ai_challenge: string;
   calculated_at: string;
   rarity_percentile: number;
   card_image_url?: string | null;
@@ -22,6 +23,7 @@ interface LLMSyncResponse {
   score: number;
   archetype: string;
   insight: string;
+  challenge: string;
 }
 
 /**
@@ -83,7 +85,7 @@ async function analyzeSyncWithLLM(
   const today = new Date().toISOString().split('T')[0];
 
   // System prompt for dynamic sync analysis
-  const prompt = `You are a cosmic relationship analyst. Analyze this astrological synastry data and provide THREE specific outputs:
+  const prompt = `You are a cosmic relationship analyst. Analyze this astrological synastry data and provide FOUR specific outputs:
 
 TODAY'S DATE: ${today}
 
@@ -92,23 +94,25 @@ ${aspectsSummary}
 
 Your task:
 1. Calculate a SYNC SCORE (0-100) based on how these two souls align RIGHT NOW at this cosmic moment
-2. Assign them an ARCHETYPE (a poetic 2-4 word name like "The Phoenix Pair", "Cosmic Counterparts", "Fire Meets Fire")
-3. Write ONE powerful sentence explaining WHY they have this connection
+2. Assign them an ARCHETYPE (a poetic 2-4 word name like "The Phoenix Pair" "Cosmic Counterparts" "Fire Meets Fire")
+3. Write ONE powerful sentence explaining WHY they sync (the magic between them)
+4. Write ONE sentence about what DOESN'T sync (the growth edge - keep it brief and constructive)
 
 Consider:
-- Harmonious aspects (trine, sextile, conjunction) increase the score
-- Challenging aspects (square, opposition) add intensity but can lower score
+- Harmonious aspects (trine sextile conjunction) increase the score
+- Challenging aspects (square opposition) add intensity but can lower score
 - Today's cosmic energy and how it affects their connection
-- The FEELING of their bond, not just the math
+- The FEELING of their bond not just the math
 
 Respond in JSON format ONLY:
 {
   "score": 85,
   "archetype": "The Phoenix Pair",
-  "insight": "Every challenge transforms you both into something more beautiful."
+  "insight": "Every challenge transforms you both into something more beautiful",
+  "challenge": "Learning to give each other space when intensity peaks"
 }
 
-Be poetic, profound, and specific. Make them FEEL the magic of their connection.`;
+Be poetic profound and specific. No commas in the text. Make them FEEL the magic and understand the growth.`;
 
   try {
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
@@ -128,7 +132,7 @@ Be poetic, profound, and specific. Make them FEEL the magic of their connection.
     const parsed = JSON.parse(jsonText);
     
     // Validate response
-    if (!parsed.score || !parsed.archetype || !parsed.insight) {
+    if (!parsed.score || !parsed.archetype || !parsed.insight || !parsed.challenge) {
       throw new Error('LLM response missing required fields');
     }
     
@@ -139,6 +143,7 @@ Be poetic, profound, and specific. Make them FEEL the magic of their connection.
       score,
       archetype: parsed.archetype,
       insight: parsed.insight,
+      challenge: parsed.challenge,
     };
   } catch (error) {
     console.error('[calculate-sync-score] LLM analysis failed:', error);
@@ -146,7 +151,8 @@ Be poetic, profound, and specific. Make them FEEL the magic of their connection.
     return {
       score: 75,
       archetype: "Cosmic Connection",
-      insight: "Your energies create a unique space of understanding and growth.",
+      insight: "Your energies create a unique space of understanding and growth",
+      challenge: "Finding balance between independence and togetherness",
     };
   }
 }
@@ -158,6 +164,7 @@ function generateSyncCardPrompt(
   score: number,
   archetype: string,
   insight: string,
+  challenge: string,
   personAName: string,
   personBName: string,
   rarityPercentile: number
@@ -169,25 +176,27 @@ function generateSyncCardPrompt(
       ? 'blue and cyan gradient'
       : 'warm yellow and orange gradient';
 
-  return `Create an elegant, mystical connection card in portrait orientation (9:16).
+  return `Create an elegant mystical connection card in portrait orientation (9:16).
 
 DESIGN STRUCTURE:
-- Top third: Celestial background with ${colorScheme}, subtle star field, ethereal glow
+- Top third: Celestial background with ${colorScheme} subtle star field ethereal glow
 - Center: Large white number "${score}%" with cosmic sparkle effects
 - Below score: "${archetype}" in elegant italic serif font
 - Middle section: "${personAName} & ${personBName}" in clean sans-serif
-- Quote section: Stylized quote marks around: "${insight}"
+- Insight section: "${insight}" in medium weight sans-serif
+- Challenge section: "Growth Edge: ${challenge}" in lighter smaller font
 ${rarityPercentile >= 50 ? `- Badge: Small purple badge with sparkle icon and "Top ${100 - rarityPercentile}% Connection"` : ''}
-- Bottom: "therai.co" watermark, subtle and elegant
+- Bottom: "therai.co" watermark subtle and elegant
 
 STYLE:
-- Minimal, Apple-inspired aesthetic
+- Minimal Apple-inspired aesthetic
 - Lots of negative space
 - Soft glows and light effects
 - Professional typography
 - Mystical but not cheesy
 - Instagram-ready quality
-- Clean, modern, shareable
+- Clean modern shareable
+- NO COMMAS anywhere in the text
 
 COLORS:
 - Background: ${colorScheme}
@@ -274,6 +283,7 @@ Deno.serve(async (req) => {
 
     console.log(`[calculate-sync-score] LLM generated: ${llmAnalysis.score}% - ${llmAnalysis.archetype}`);
     console.log(`[calculate-sync-score] Insight: ${llmAnalysis.insight}`);
+    console.log(`[calculate-sync-score] Challenge: ${llmAnalysis.challenge}`);
 
     // Calculate rarity percentile
     const rarityPercentile = calculateRarity(llmAnalysis.score);
@@ -283,6 +293,7 @@ Deno.serve(async (req) => {
       overall: llmAnalysis.score,
       archetype_name: llmAnalysis.archetype,
       ai_insight: llmAnalysis.insight,
+      ai_challenge: llmAnalysis.challenge,
       calculated_at: new Date().toISOString(),
       rarity_percentile: rarityPercentile,
     };
@@ -294,6 +305,7 @@ Deno.serve(async (req) => {
       llmAnalysis.score,
       llmAnalysis.archetype,
       llmAnalysis.insight,
+      llmAnalysis.challenge,
       personAName,
       personBName,
       rarityPercentile

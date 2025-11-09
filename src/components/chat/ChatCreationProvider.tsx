@@ -45,6 +45,7 @@ export const ChatCreationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const [showAstroChartSelector, setShowAstroChartSelector] = useState(false);
   const [showAstroModal, setShowAstroModal] = useState(false);
   const [showSyncScoreModal, setShowSyncScoreModal] = useState(false);
+  const [isSyncScoreGenerating, setIsSyncScoreGenerating] = useState(false);
   const [selectedChartType, setSelectedChartType] = useState<string | null>(null);
 
   const requireEligibleUser = useCallback((requireSubscription: boolean = false): boolean => {
@@ -118,6 +119,8 @@ export const ChatCreationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     if (!user) return;
 
     try {
+      setIsSyncScoreGenerating(true);
+
       // Get user's primary profile
       const { data: primaryProfile, error: primaryError } = await supabase
         .from('user_profile_list')
@@ -127,6 +130,7 @@ export const ChatCreationProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
       if (primaryError || !primaryProfile) {
         toast.error('Please set up your primary profile in Settings first');
+        setIsSyncScoreGenerating(false);
         return;
       }
 
@@ -175,6 +179,7 @@ export const ChatCreationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       if (reportError) {
         console.error('[ProfileSelector] Error initiating sync score:', reportError);
         toast.error('Failed to process astrological data');
+        setIsSyncScoreGenerating(false);
         return;
       }
 
@@ -189,10 +194,12 @@ export const ChatCreationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       await chatController.switchToChat(newChatId);
 
       setShowSyncScoreModal(false);
+      setIsSyncScoreGenerating(false);
       navigate(`/c/${newChatId}`, { replace: true });
     } catch (error) {
       console.error('[ProfileSelector] Failed to create sync score:', error);
       toast.error('Failed to create Sync Score');
+      setIsSyncScoreGenerating(false);
     }
   }, [user, navigate]);
 
@@ -291,6 +298,7 @@ export const ChatCreationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         isOpen={showSyncScoreModal}
         onClose={() => setShowSyncScoreModal(false)}
         onSelect={handleProfileSelect}
+        isGenerating={isSyncScoreGenerating}
       />
 
       <AuthModal
