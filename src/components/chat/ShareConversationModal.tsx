@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Copy, Check, Link } from 'lucide-react';
 import { shareConversation, unshareConversation } from '@/services/conversations';
+import { supabase } from '@/integrations/supabase/client';
 
 interface ShareConversationModalProps {
   conversationId: string;
@@ -16,6 +17,22 @@ export const ShareConversationModal: React.FC<ShareConversationModalProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [isShared, setIsShared] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [conversationMode, setConversationMode] = useState<string | null>(null);
+
+  // Fetch conversation mode
+  useEffect(() => {
+    const fetchMode = async () => {
+      const { data } = await supabase
+        .from('conversations')
+        .select('mode')
+        .eq('id', conversationId)
+        .single();
+      
+      setConversationMode(data?.mode || null);
+    };
+    
+    fetchMode();
+  }, [conversationId]);
 
   // Auto-create share link when modal opens
   useEffect(() => {
@@ -58,6 +75,7 @@ export const ShareConversationModal: React.FC<ShareConversationModalProps> = ({
   };
 
   const shareUrl = isShared ? `https://therai.co/join/${conversationId}` : '';
+  const isTogetherMode = conversationMode === 'together';
 
   return (
     <div className="fixed inset-0 flex items-center justify-center z-50 p-6 bg-black/10 backdrop-blur-sm">
@@ -66,7 +84,9 @@ export const ShareConversationModal: React.FC<ShareConversationModalProps> = ({
         <div className="flex items-center justify-between px-8 pt-8 pb-6">
           <div>
             <h2 className="text-2xl font-light text-gray-900">Share Conversation</h2>
-            <p className="text-sm font-light text-gray-500 mt-1">{conversationTitle || 'Untitled'}</p>
+            <p className="text-sm font-light text-gray-500 mt-1">
+              {isTogetherMode ? 'Together Mode' : (conversationTitle || 'Untitled')}
+            </p>
           </div>
           <button
             onClick={onClose}
@@ -99,9 +119,17 @@ export const ShareConversationModal: React.FC<ShareConversationModalProps> = ({
                 <span className="text-sm font-light text-gray-700">Link active</span>
               </div>
 
-              <p className="text-sm font-light text-gray-600 leading-relaxed">
-                Anyone with this link can join the conversation
-              </p>
+              {isTogetherMode ? (
+                /* Together Mode Instructions */
+                <p className="text-sm font-light text-gray-600 leading-relaxed">
+                  Enjoy your conversation. Type <span className="font-medium text-gray-900">@therai</span> to ask Therai to jump in and explore anything together. Pro users get 3 AI questions daily.
+                </p>
+              ) : (
+                /* Regular Share Text */
+                <p className="text-sm font-light text-gray-600 leading-relaxed">
+                  Anyone with this link can join the conversation
+                </p>
+              )}
 
               {/* Link with Copy Button */}
               <div className="bg-gray-50 rounded-full overflow-hidden flex items-center">
