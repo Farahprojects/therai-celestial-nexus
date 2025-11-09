@@ -274,6 +274,28 @@ Deno.serve(async (req: Request) => {
     key: maskKey(ENV.GOOGLE_API_KEY)
   }));
 
+  // ✅ CHECK USER PLAN: Skip caching for free users (saves $1/million tokens)
+  let userPlan = 'free';
+  let skipCache = true; // Default to skip cache (safer for cost control)
+  
+  if (user_id) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("subscription_plan")
+      .eq("id", user_id)
+      .single();
+    
+    userPlan = profile?.subscription_plan || 'free';
+    skipCache = userPlan === 'free' || !userPlan; // Only cache for paid users
+    
+    console.info(JSON.stringify({
+      event: "caching_decision",
+      id: requestId,
+      user_plan: userPlan,
+      cache_enabled: !skipCache
+    }));
+  }
+
   // Parallel fetch: cache, system message, conversation meta, latest summary, recent history
   let systemText = "";
   let historyRows: Array<{ role: string; text: string; created_at: string }> = [];
@@ -288,8 +310,10 @@ Deno.serve(async (req: Request) => {
       summaryRes,
       historyRes
     ] = await Promise.all([
-      // cache lookup
-      supabase.from("conversation_caches").select("cache_name, expires_at, system_data_hash").eq("chat_id", chat_id).single(),
+      // cache lookup (skip for free users)
+      skipCache 
+        ? Promise.resolve({ data: null, error: null })
+        : supabase.from("conversation_caches").select("cache_name, expires_at, system_data_hash").eq("chat_id", chat_id).single(),
       // system message
       supabase.from("messages").select("text").eq("chat_id", chat_id).eq("role", "system").eq("status", "complete")
         .not("text", "is", null).neq("text", "").order("created_at", { ascending: true }).limit(1).single(),
@@ -319,20 +343,31 @@ Deno.serve(async (req: Request) => {
 
     if (historyRes?.data) historyRows = historyRes.data;
 
-    // Validate cache vs system hash
-    const cacheData = cacheRes?.data;
-    const cacheExists = cacheData && new Date(cacheData.expires_at) > new Date();
-    const currentHash = systemText ? hashSystemData(systemText) : "";
-    const cacheHashMatches = cacheExists && cacheData.system_data_hash === currentHash;
+    // Validate cache vs system hash (skip for free users)
+    let cacheName: string | null = null;
+    
+    if (!skipCache) {
+      const cacheData = cacheRes?.data;
+      const cacheExists = cacheData && new Date(cacheData.expires_at) > new Date();
+      const currentHash = systemText ? hashSystemData(systemText) : "";
+      const cacheHashMatches = cacheExists && cacheData.system_data_hash === currentHash;
 
-    let cacheName: string | null = cacheHashMatches ? cacheData.cache_name : null;
+      cacheName = cacheHashMatches ? cacheData.cache_name : null;
 
-    if (!cacheName && systemText) {
-      // If there was a stale cache, remove. Then create a new cache.
-      if (cacheExists && cacheData.system_data_hash !== currentHash) {
-        await supabase.from("conversation_caches").delete().eq("chat_id", chat_id).catch(() => { });
+      if (!cacheName && systemText) {
+        // If there was a stale cache, remove. Then create a new cache.
+        if (cacheExists && cacheData.system_data_hash !== currentHash) {
+          await supabase.from("conversation_caches").delete().eq("chat_id", chat_id).catch(() => { });
+        }
+        cacheName = await createCache(chat_id, systemText);
       }
-      cacheName = await createCache(chat_id, systemText);
+    } else {
+      console.info(JSON.stringify({
+        event: "cache_skipped",
+        id: requestId,
+        reason: "free_user",
+        user_plan: userPlan
+      }));
     }
 
     // Fetch memories (store for later use)
