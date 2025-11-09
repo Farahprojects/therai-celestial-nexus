@@ -27,22 +27,26 @@ const json = (status: number, data: any) =>
     headers: { ...corsHeaders, "Content-Type": "application/json" }
   });
 
-const togetherModePrompt = `You are an AI guide observing a shared conversation between two people, with access to their astrological compatibility data.
+const togetherModePrompt = `You are an AI guide observing a shared conversation, with access to each person's energy patterns and compatibility dynamics.
 
-Your role: Offer energy insights and reframed perspectives to support forward movement and shared alignment.
+Your role: Offer reframed perspectives and energy insights that support forward movement and shared understanding.
 
 Guidelines:
-1. **Energy Awareness** - Identify current energetic dynamics using astro patterns + conversation tone
-2. **Reframe Constructively** - If tension exists, reframe toward understanding and growth
-3. **Forward Movement** - Always point toward next steps, shared goals, or alignment opportunities
-4. **Reference Charts** - Use synastry aspects (how charts interact) in plain language
-5. **Track Patterns** - Notice emotional/communication patterns in actual messages
+1. **Use their actual names** - Always refer to people by their first names (provided in the data), never "Participant 1/2"
+2. **Plain language only** - NO astro jargon, NO technical terms like "Venus in Leo," "synastry," "aspects," "transits," "houses," etc.
+3. **Energy awareness** - Identify current dynamics using their natural patterns + conversation tone
+4. **Reframe constructively** - If tension exists, reframe toward understanding and growth
+5. **Forward movement** - Always point toward next steps, shared goals, or alignment opportunities
+6. **Be direct** - Skip metaphors and flowery language. Say what you mean clearly.
 
-Tone: Warm, direct, gently observant. Not a therapist, but an aware third party with energetic insight.
+Tone: Warm, direct, a bit playful. Contractions welcome. Gently observant but not preachy.
 
 Format: Cohesive paragraph (not a list). End with an invitation or reflective question that moves them forward.
 
-CRITICAL: Never diagnose problems. Offer energy intervention and reframed insights only.`;
+CRITICAL: 
+- Never diagnose problems. Offer energy intervention and reframed insights only.
+- Never mention "chart," "planets," "signs," or any astrological terminology.
+- Use their names naturally, like a friend would.`;
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -111,6 +115,22 @@ Deno.serve(async (req) => {
     const participantIds = participants?.map(p => p.user_id) || [];
     console.log(`[together-mode] Found ${participantIds.length} participants`);
     
+    // Fetch participant names from profiles
+    const { data: profiles } = await supabase
+      .from('profiles')
+      .select('id, display_name')
+      .in('id', participantIds);
+    
+    console.log(`[together-mode] Found ${profiles?.length || 0} profiles with names`);
+    
+    // Create user_id to name mapping
+    const userIdToName = new Map<string, string>();
+    profiles?.forEach(profile => {
+      if (profile.display_name) {
+        userIdToName.set(profile.id, profile.display_name);
+      }
+    });
+    
     // Find profile conversations for each participant (mode='profile')
     const { data: profileConversations } = await supabase
       .from('conversations')
@@ -144,8 +164,14 @@ Deno.serve(async (req) => {
       
       participantContexts = Array.from(uniqueLogs.values()).map((log, idx) => {
         const profileConv = profileConversations?.find(c => c.id === log.chat_id);
-        const participantName = profileConv ? `Participant ${idx + 1}` : `Participant ${idx + 1}`;
-        return `\n\n=== AstroData for ${participantName} ===\n${JSON.stringify(log.swiss_data, null, 2)}`;
+        const userId = profileConv?.user_id;
+        
+        // Use actual name from profiles, or fall back to generic label
+        const participantName = (userId && userIdToName.has(userId))
+          ? userIdToName.get(userId)
+          : `Person ${idx + 1}`;
+        
+        return `\n\n=== Energy Data for ${participantName} ===\n${JSON.stringify(log.swiss_data, null, 2)}`;
       });
     } else {
       console.log("[together-mode] No translator_logs found, falling back to system messages");
@@ -153,7 +179,7 @@ Deno.serve(async (req) => {
       // Fallback: Fetch system messages (backward compatibility for old conversations)
       const { data: systemMessages } = await supabase
         .from('messages')
-        .select('text, user_name')
+        .select('text, user_name, user_id')
         .eq('chat_id', chat_id)
         .eq('role', 'system')
         .eq('status', 'complete')
@@ -163,8 +189,12 @@ Deno.serve(async (req) => {
       
       if (systemMessages && systemMessages.length > 0) {
         participantContexts = systemMessages.map((msg, idx) => {
-          const name = msg.user_name || `Participant ${idx + 1}`;
-          return `\n\n=== AstroData for ${name} ===\n${msg.text}`;
+          // Try to use actual name from profiles first, then user_name, then fallback
+          const actualName = (msg.user_id && userIdToName.has(msg.user_id)) 
+            ? userIdToName.get(msg.user_id)
+            : msg.user_name || `Person ${idx + 1}`;
+          
+          return `\n\n=== Energy Data for ${actualName} ===\n${msg.text}`;
         });
       }
     }
