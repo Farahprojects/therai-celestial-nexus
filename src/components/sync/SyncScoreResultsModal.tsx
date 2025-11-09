@@ -9,9 +9,17 @@ interface ScoreBreakdown {
   breakdown: {
     harmonious_aspects: number;
     challenging_aspects: number;
-    weighted_score: number;
+    neutral_aspects: number;
     key_connections: string[];
     dominant_theme: string;
+    all_themes: Array<{ name: string; weight: number }>;
+  };
+  archetype: {
+    id: string;
+    name: string;
+    description: string;
+    tone: string;
+    keywords: string[];
   };
   poetic_headline: string;
   ai_insight: string;

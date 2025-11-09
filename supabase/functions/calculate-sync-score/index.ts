@@ -1,4 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { generateConnectionProfile } from "../_shared/sync-engine/index.ts";
+import type { ConnectionProfile } from "../_shared/sync-engine/types.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -8,141 +10,36 @@ const corsHeaders = {
   "Content-Type": "application/json",
 };
 
-// Aspect types and their weights
-const HARMONIOUS_ASPECTS = ['trine', 'sextile', 'conjunction'];
-const CHALLENGING_ASPECTS = ['square', 'opposition'];
-
-// Planet importance weights (higher = more important)
-const PLANET_WEIGHTS: Record<string, number> = {
-  'Sun': 3,
-  'Moon': 3,
-  'Venus': 2.5,
-  'Mars': 2,
-  'Mercury': 2,
-  'Jupiter': 1.5,
-  'Saturn': 1.5,
-  'Ascendant': 2,
-  'MC': 1.5,
-  'Uranus': 1,
-  'Neptune': 1,
-  'Pluto': 1,
-};
-
-interface AspectData {
-  type: string;
-  a: string; // planet name A
-  b: string; // planet name B
-  orb?: number;
-}
-
 interface ScoreBreakdown {
   overall: number;
   astrological: number;
   breakdown: {
     harmonious_aspects: number;
     challenging_aspects: number;
-    weighted_score: number;
+    neutral_aspects: number;
     key_connections: string[];
-    dominant_theme: string; // e.g., "communication", "emotional", "balanced"
+    dominant_theme: string;
+    all_themes: Array<{ name: string; weight: number }>;
+  };
+  archetype: {
+    id: string;
+    name: string;
+    description: string;
+    tone: string;
+    keywords: string[];
   };
   poetic_headline: string;
   ai_insight: string;
   calculated_at: string;
-  rarity_percentile: number; // 0-100, where 95 means "rarer than 95%"
+  rarity_percentile: number;
+  card_image_url?: string | null;
 }
 
-// Determine the dominant theme of the connection based on key aspects
-function determineDominantTheme(keyConnections: string[]): string {
-  if (keyConnections.length === 0) return 'balanced';
-  
-  const connectionStr = keyConnections.join(' ').toLowerCase();
-  
-  // Communication planets: Mercury
-  if (connectionStr.includes('mercury')) return 'communication';
-  
-  // Emotional planets: Moon, Venus
-  if (connectionStr.includes('moon') || connectionStr.includes('venus')) return 'emotional';
-  
-  // Action/passion planets: Mars, Sun
-  if (connectionStr.includes('mars') || connectionStr.includes('sun')) return 'dynamic';
-  
-  // Intellectual/expansive: Jupiter
-  if (connectionStr.includes('jupiter')) return 'growth';
-  
-  return 'balanced';
-}
-
-// Generate poetic headline based on score and theme
-function generatePoeticHeadline(score: number, theme: string): string {
-  if (score >= 90) {
-    const highScoreHeadlines: Record<string, string> = {
-      communication: 'A Perfect Conversation',
-      emotional: 'Two Hearts, One Rhythm',
-      dynamic: 'Fire Meets Fire',
-      growth: 'Infinite Potential',
-      balanced: 'Cosmic Counterparts',
-    };
-    return highScoreHeadlines[theme] || 'Cosmic Counterparts';
-  } else if (score >= 75) {
-    const goodScoreHeadlines: Record<string, string> = {
-      communication: 'Words Flow Like Water',
-      emotional: 'Hearts in Harmony',
-      dynamic: 'Energetic Alignment',
-      growth: 'Journey Together',
-      balanced: 'Natural Connection',
-    };
-    return goodScoreHeadlines[theme] || 'Natural Connection';
-  } else if (score >= 60) {
-    return 'Growing Together';
-  } else if (score >= 40) {
-    return 'Learning & Evolving';
-  } else {
-    return 'Opposite Energies';
-  }
-}
-
-// Generate AI insight about the connection
-function generateAiInsight(score: number, theme: string, keyConnections: string[]): string {
-  const themeInsights: Record<string, string[]> = {
-    communication: [
-      'Your energies create a rare space where words carry weight and meaning.',
-      'Conversation flows effortlessly between you, like a river finding its path.',
-      'You speak different languages, yet somehow understand each other perfectly.',
-    ],
-    emotional: [
-      'Your hearts beat to the same cosmic rhythm, creating profound understanding.',
-      'Emotions flow freely between you, creating a sacred space of vulnerability.',
-      'You feel what the other feels, as if connected by invisible threads.',
-    ],
-    dynamic: [
-      'Your combined energy could move mountains or start revolutions.',
-      'Together, you create a force that transforms everything it touches.',
-      'Action and ambition merge into something greater than the sum.',
-    ],
-    growth: [
-      'Together, you expand into versions of yourselves you never knew existed.',
-      'Your connection is a catalyst for mutual evolution and discovery.',
-      'Every moment together opens new doors to possibility.',
-    ],
-    balanced: [
-      'Your energies create a rare space where logic and intuition can dance together.',
-      'A connection this balanced is rarer than you might think.',
-      'You complement each other in ways that feel both natural and magical.',
-    ],
-  };
-  
-  const insights = themeInsights[theme] || themeInsights.balanced;
-  
-  // Choose insight based on score
-  if (score >= 80) return insights[0];
-  if (score >= 60) return insights[1];
-  return insights[2];
-}
-
-// Calculate rarity percentile based on score distribution
+/**
+ * Calculate rarity percentile based on score distribution
+ * TODO: Replace with real database query for actual rarity
+ */
 function calculateRarity(score: number): number {
-  // Assume normal distribution of scores with mean ~60, std dev ~15
-  // This is a simplified approximation
   if (score >= 95) return 99;
   if (score >= 90) return 95;
   if (score >= 85) return 90;
@@ -153,30 +50,23 @@ function calculateRarity(score: number): number {
   return Math.max(0, Math.round((score / 60) * 50));
 }
 
-// Generate prompt for sync card image
+/**
+ * Generate image prompt for connection card
+ */
 function generateSyncCardPrompt(
-  score: number,
-  poeticHeadline: string,
-  aiInsight: string,
+  profile: ConnectionProfile,
   personAName: string,
   personBName: string,
   rarityPercentile: number
 ): string {
-  // Color scheme based on score
-  const colorScheme = score >= 80 
-    ? 'deep purple and magenta gradient'
-    : score >= 60
-      ? 'blue and cyan gradient'
-      : 'warm yellow and orange gradient';
-
   return `Create an elegant, mystical connection card in portrait orientation (9:16).
 
 DESIGN STRUCTURE:
-- Top third: Celestial background with ${colorScheme}, subtle star field, ethereal glow
-- Center: Large white number "${score}%" with cosmic sparkle effects
-- Below score: "${poeticHeadline}" in elegant italic serif font
+- Top third: Celestial background with ${profile.colorScheme}, subtle star field, ethereal glow
+- Center: Large white number "${profile.score}%" with cosmic sparkle effects
+- Below score: "${profile.headline}" in elegant italic serif font
 - Middle section: "${personAName} & ${personBName}" in clean sans-serif
-- Quote section: Stylized quote marks around: "${aiInsight}"
+- Quote section: Stylized quote marks around: "${profile.insight}"
 ${rarityPercentile >= 50 ? `- Badge: Small purple badge with sparkle icon and "Top ${100 - rarityPercentile}% Connection"` : ''}
 - Bottom: "therai.co" watermark, subtle and elegant
 
@@ -190,7 +80,7 @@ STYLE:
 - Clean, modern, shareable
 
 COLORS:
-- Background: ${colorScheme}
+- Background: ${profile.colorScheme}
 - Text: White and light gray
 - Accents: Soft glows matching background
 - Keep it elegant and premium`;
@@ -218,15 +108,23 @@ Deno.serve(async (req) => {
 
     console.log(`[calculate-sync-score] Processing for chat_id: ${chat_id}`);
 
-    // 1. Fetch the latest translator log for this chat to get Swiss data
-    const { data: translatorLog, error: logError } = await supabase
-      .from('translator_logs')
-      .select('swiss_data')
-      .eq('chat_id', chat_id)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .single();
+    // 🚀 PARALLEL FETCH: Get translator log and conversation data simultaneously
+    const [logResult, conversationResult] = await Promise.all([
+      supabase
+        .from('translator_logs')
+        .select('swiss_data, user_id')
+        .eq('chat_id', chat_id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single(),
+      supabase
+        .from('conversations')
+        .select('title')
+        .eq('id', chat_id)
+        .single()
+    ]);
 
+    const { data: translatorLog, error: logError } = logResult;
     if (logError || !translatorLog) {
       console.error('[calculate-sync-score] Error fetching translator log:', logError);
       return new Response(
@@ -235,92 +133,27 @@ Deno.serve(async (req) => {
       );
     }
 
-    const swissData = translatorLog.swiss_data;
-    console.log('[calculate-sync-score] Swiss data fetched');
-
-    // 2. Parse synastry aspects from Swiss data
-    const aspects: AspectData[] = swissData?.blocks?.synastry_aspects?.pairs || 
-                                   swissData?.synastry_aspects?.pairs || 
-                                   [];
-
-    if (!aspects || aspects.length === 0) {
-      console.error('[calculate-sync-score] No aspects found in Swiss data');
-      return new Response(
-        JSON.stringify({ error: "No synastry aspects found" }),
-        { status: 400, headers: corsHeaders }
-      );
+    const { data: conversation, error: convError } = conversationResult;
+    if (convError || !conversation) {
+      console.error('[calculate-sync-score] Error fetching conversation:', convError);
     }
 
-    console.log(`[calculate-sync-score] Found ${aspects.length} aspects`);
+    const swissData = translatorLog.swiss_data;
+    const userId = translatorLog.user_id;
 
-    // 3. Calculate score based on aspects
-    let harmoniousCount = 0;
-    let challengingCount = 0;
-    let weightedHarmonious = 0;
-    let weightedChallenging = 0;
-    const keyConnections: string[] = [];
+    console.log('[calculate-sync-score] Swiss data fetched');
 
-    aspects.forEach((aspect: AspectData) => {
-      const aspectType = aspect.type.toLowerCase();
-      
-      // Get planet weights (default to 1 if not found)
-      const planetAWeight = PLANET_WEIGHTS[aspect.a] || 1;
-      const planetBWeight = PLANET_WEIGHTS[aspect.b] || 1;
-      const avgWeight = (planetAWeight + planetBWeight) / 2;
+    // 🧠 NEW ENGINE: Generate complete connection profile
+    // This replaces 200+ lines of manual calculation with semantic interpretation
+    const profile: ConnectionProfile = generateConnectionProfile(swissData);
 
-      if (HARMONIOUS_ASPECTS.includes(aspectType)) {
-        harmoniousCount++;
-        weightedHarmonious += avgWeight;
-        
-        // Track key connections (important planets with harmonious aspects)
-        if (avgWeight >= 2) {
-          keyConnections.push(`${aspect.a} ${aspect.type} ${aspect.b}`);
-        }
-      } else if (CHALLENGING_ASPECTS.includes(aspectType)) {
-        challengingCount++;
-        weightedChallenging += avgWeight;
-      }
-    });
+    console.log(`[calculate-sync-score] Profile generated: ${profile.score}% - ${profile.archetype.name}`);
+    console.log(`[calculate-sync-score] Dominant theme: ${profile.dominantTheme.name} (${profile.themes.length} themes detected)`);
 
-    // 4. Calculate overall score
-    // Formula: Base 50 + (weighted harmonious * 8) - (weighted challenging * 4)
-    // Normalized to 0-100 range
-    const rawScore = 50 + (weightedHarmonious * 8) - (weightedChallenging * 4);
-    const overallScore = Math.min(100, Math.max(0, Math.round(rawScore)));
+    // Calculate rarity percentile
+    const rarityPercentile = calculateRarity(profile.score);
 
-    console.log(`[calculate-sync-score] Score calculated: ${overallScore}`);
-    console.log(`[calculate-sync-score] Harmonious: ${harmoniousCount}, Challenging: ${challengingCount}`);
-
-    // 4.5. Determine dominant theme and generate poetic content
-    const dominantTheme = determineDominantTheme(keyConnections);
-    const poeticHeadline = generatePoeticHeadline(overallScore, dominantTheme);
-    const aiInsight = generateAiInsight(overallScore, dominantTheme, keyConnections);
-    const rarityPercentile = calculateRarity(overallScore);
-
-    // 5. Build score breakdown
-    const scoreBreakdown: ScoreBreakdown = {
-      overall: overallScore,
-      astrological: overallScore, // For now, it's the same as overall
-      breakdown: {
-        harmonious_aspects: harmoniousCount,
-        challenging_aspects: challengingCount,
-        weighted_score: Math.round(rawScore * 10) / 10,
-        key_connections: keyConnections.slice(0, 5), // Top 5 connections
-        dominant_theme: dominantTheme,
-      },
-      poetic_headline: poeticHeadline,
-      ai_insight: aiInsight,
-      calculated_at: new Date().toISOString(),
-      rarity_percentile: rarityPercentile,
-    };
-
-    // 6. Get person names from conversation for card generation
-    const { data: conversation, error: convError } = await supabase
-      .from('conversations')
-      .select('title')
-      .eq('id', chat_id)
-      .single();
-
+    // Extract person names from conversation title
     let personAName = 'Person A';
     let personBName = 'Person B';
     
@@ -331,28 +164,40 @@ Deno.serve(async (req) => {
       personBName = parts[1] || 'Person B';
     }
 
-    // 7. Generate connection card image
+    // Build score breakdown for storage and API response
+    const scoreBreakdown: ScoreBreakdown = {
+      overall: profile.score,
+      astrological: profile.score,
+      breakdown: {
+        harmonious_aspects: profile.features.harmoniousAspects,
+        challenging_aspects: profile.features.challengingAspects,
+        neutral_aspects: profile.features.neutralAspects,
+        key_connections: profile.features.keyConnections,
+        dominant_theme: profile.dominantTheme.name,
+        all_themes: profile.themes.map(t => ({ name: t.name, weight: t.weight })),
+      },
+      archetype: {
+        id: profile.archetype.id,
+        name: profile.archetype.name,
+        description: profile.archetype.description,
+        tone: profile.archetype.tone,
+        keywords: profile.archetype.keywords,
+      },
+      poetic_headline: profile.headline,
+      ai_insight: profile.insight,
+      calculated_at: new Date().toISOString(),
+      rarity_percentile: rarityPercentile,
+    };
+
+    // 📸 Generate connection card image
     console.log('[calculate-sync-score] Generating connection card...');
     
     const cardPrompt = generateSyncCardPrompt(
-      overallScore,
-      poeticHeadline,
-      aiInsight,
+      profile,
       personAName,
       personBName,
       rarityPercentile
     );
-
-    // Get user_id from Swiss data or conversation
-    let userId = swissData?.meta?.user_id;
-    if (!userId) {
-      const { data: conv } = await supabase
-        .from('conversations')
-        .select('user_id')
-        .eq('id', chat_id)
-        .single();
-      userId = conv?.user_id;
-    }
 
     // Create a placeholder message for the connection card
     const { data: newMessage, error: messageError } = await supabase
@@ -421,7 +266,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    // 8. Store result in conversations.meta (including image URL)
+    // Store result in conversations.meta (including image URL)
     const { error: updateError } = await supabase
       .from('conversations')
       .update({
@@ -444,7 +289,7 @@ Deno.serve(async (req) => {
 
     console.log(`[calculate-sync-score] Score stored successfully`);
 
-    // 9. Return the score with image URL
+    // Return the score with image URL
     return new Response(
       JSON.stringify({ 
         success: true, 
@@ -464,4 +309,3 @@ Deno.serve(async (req) => {
     );
   }
 });
-
