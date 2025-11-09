@@ -297,13 +297,30 @@ Deno.serve(async (req: Request) => {
         current_usage: limitCheck.current_usage
       }));
       
-      const message = limitCheck.error_code === 'TRIAL_EXPIRED'
+      const limitMessage = limitCheck.error_code === 'TRIAL_EXPIRED'
         ? "Your free trial has ended. Upgrade to Growth ($10/month) for unlimited AI conversations! 🚀"
         : `You've used your ${limitCheck.limit} free messages today. Upgrade to Growth for unlimited chats!`;
       
-      // ✅ Return as normal assistant message (like image errors)
+      // ✅ Save limit message to DB and send via WebSocket (just like normal messages)
+      const assistantClientId = crypto.randomUUID();
+      fetch(`${ENV.SUPABASE_URL}/functions/v1/chat-send`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          chat_id,
+          text: limitMessage,
+          client_msg_id: assistantClientId,
+          role: "assistant",
+          mode,
+          user_id,
+          user_name,
+          chattype
+        })
+      }).catch(() => { /* silent */ });
+      
+      // Return response (frontend will receive via WebSocket)
       return JSON_RESPONSE(200, {
-        text: message,
+        text: limitMessage,
         usage: { total_tokens: 0, input_tokens: 0, output_tokens: 0, cached_tokens: 0 },
         llm_latency_ms: 0,
         total_latency_ms: Date.now() - startMs
