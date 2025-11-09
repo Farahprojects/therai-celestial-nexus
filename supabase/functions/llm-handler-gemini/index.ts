@@ -569,58 +569,127 @@ Deno.serve(async (req: Request) => {
           }
         }
         
-      // 🚀 FIRE-AND-FORGET: Don't await image generation - return immediately
-      // The image-generate function will update the placeholder message when done
-      fetch(`${ENV.SUPABASE_URL}/functions/v1/image-generate`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${ENV.SUPABASE_SERVICE_ROLE_KEY}`,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ chat_id, prompt, user_id, mode, image_id: imageId })
-      })
-        .then(async (imageGenResp) => {
-          if (!imageGenResp.ok) {
-            const errBody = await imageGenResp.json().catch(() => ({}));
-            console.error("[image-gen] failure:", imageGenResp.status, errBody);
+        // 🚀 FIRE-AND-FORGET: Don't await image generation - return immediately
+        // The image-generate function will update the placeholder message when done
+        fetch(`${ENV.SUPABASE_URL}/functions/v1/image-generate`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${ENV.SUPABASE_SERVICE_ROLE_KEY}`,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ chat_id, prompt, user_id, mode, image_id: imageId })
+        })
+          .then(async (imageGenResp) => {
+            if (!imageGenResp.ok) {
+              const errBody = await imageGenResp.json().catch(() => ({}));
+              console.error("[image-gen] failure:", imageGenResp.status, errBody);
+              
+              // Update placeholder message with error
+              const errorMessage = imageGenResp.status === 429 
+                ? "I've reached the daily limit of 3 images. You can generate more images tomorrow!"
+                : "I tried to generate an image but encountered an error. Please try again.";
+              
+              await supabase.from('messages').update({
+                text: errorMessage,
+                status: 'complete',
+                meta: {
+                  message_type: 'text',
+                  image_error: true
+                }
+              }).eq('id', imageId);
+            }
+          })
+          .catch((err) => {
+            console.error("[image-gen] fetch exception:", err);
             
-            // Update placeholder message with error
-            const errorMessage = imageGenResp.status === 429 
-              ? "I've reached the daily limit of 3 images. You can generate more images tomorrow!"
-              : "I tried to generate an image but encountered an error. Please try again.";
-            
-            await supabase.from('messages').update({
-              text: errorMessage,
+            // Update placeholder message with error (fire-and-forget)
+            supabase.from('messages').update({
+              text: "I tried to generate an image but encountered an error. Please try again.",
               status: 'complete',
               meta: {
                 message_type: 'text',
                 image_error: true
               }
-            }).eq('id', imageId);
-          }
-        })
-        .catch((err) => {
-          console.error("[image-gen] fetch exception:", err);
-          
-          // Update placeholder message with error (fire-and-forget)
-          supabase.from('messages').update({
-            text: "I tried to generate an image but encountered an error. Please try again.",
-            status: 'complete',
-            meta: {
-              message_type: 'text',
-              image_error: true
-            }
-          }).eq('id', imageId).then(() => {}).catch((e) => console.error("[image-gen] error update failed:", e));
+            }).eq('id', imageId).then(() => {}).catch((e) => console.error("[image-gen] error update failed:", e));
+          });
+        
+        // ✅ PRO FIX: Send function response back to Gemini to complete the function call cycle
+        // This prevents Gemini from retrying the function call on the next turn
+        const functionResponseContents: any[] = [...contents];
+        
+        // Add the model's function call response
+        functionResponseContents.push({
+          role: "model",
+          parts: [{ functionCall: { name: functionCall.name, args: functionCall.args } }]
         });
-      
-      // Return immediately - user doesn't wait for image generation
-      return JSON_RESPONSE(200, {
-        success: true,
-        message: "Image generation started",
-        skip_message_creation: true,
-        llm_latency_ms: geminiResponseJson?.latencyMs ?? null,
-        total_latency_ms: Date.now() - startMs
-      });
+        
+        // Add the function response
+        functionResponseContents.push({
+          role: "function",
+          parts: [{
+            functionResponse: {
+              name: functionCall.name,
+              response: { success: true, message: "Image generation started", image_id: imageId }
+            }
+          }]
+        });
+        
+        // Make follow-up call to get Gemini's final text response
+        const followUpRequestBody: any = { contents: functionResponseContents };
+        if (cacheName) {
+          followUpRequestBody.cachedContent = cacheName;
+        } else {
+          let combinedSystemInstruction = systemText ? `${systemPrompt}\n\n[System Data]\n${systemText}` : systemPrompt;
+          if (memoryContext) {
+            combinedSystemInstruction += `\n\n<user_memory>\nKey information about this user from past conversations:\n${memoryContext}\n</user_memory>`;
+          }
+          combinedSystemInstruction += `\n\n[CRITICAL: Remember Your Instructions]\n${systemPrompt}`;
+          followUpRequestBody.system_instruction = { role: "system", parts: [{ text: combinedSystemInstruction }] };
+          followUpRequestBody.tools = imageGenerationTool;
+        }
+        followUpRequestBody.generationConfig = { temperature: 0.7, thinkingConfig: { thinkingBudget: 0 } };
+        
+        const followUpController = new AbortController();
+        const followUpTimeoutId = setTimeout(() => followUpController.abort(), GEMINI_TIMEOUT_MS);
+        
+        try {
+          const followUpResp = await fetch(geminiUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "x-goog-api-key": ENV.GOOGLE_API_KEY! },
+            body: JSON.stringify(followUpRequestBody),
+            signal: followUpController.signal
+          });
+          clearTimeout(followUpTimeoutId);
+          
+          if (followUpResp.ok) {
+            const followUpJson = await followUpResp.json();
+            const followUpParts = followUpJson?.candidates?.[0]?.content?.parts || [];
+            assistantText = followUpParts.map((p: any) => p?.text || "").join(" ").trim();
+            
+            // If no text response, use a default acknowledgment
+            if (!assistantText) {
+              assistantText = "I've started generating your image! It should appear shortly.";
+            }
+          } else {
+            console.warn("[gemini] follow-up call failed:", followUpResp.status);
+            assistantText = "I've started generating your image! It should appear shortly.";
+          }
+        } catch (err) {
+          clearTimeout(followUpTimeoutId);
+          console.warn("[gemini] follow-up call exception:", (err as any)?.message || err);
+          assistantText = "I've started generating your image! It should appear shortly.";
+        }
+        
+        // Return immediately - user doesn't wait for image generation
+        // But we've completed the function call cycle, so Gemini won't retry
+        return JSON_RESPONSE(200, {
+          success: true,
+          text: assistantText,
+          message: "Image generation started",
+          skip_message_creation: true,
+          llm_latency_ms: geminiResponseJson?.latencyMs ?? null,
+          total_latency_ms: Date.now() - startMs
+        });
       }
     } else {
       // normal text extraction
