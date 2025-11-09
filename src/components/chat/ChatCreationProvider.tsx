@@ -142,7 +142,7 @@ export const ChatCreationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         chat_id: newChatId,
         mode: 'sync_score',
         report_data: {
-          request: 'sync', // Tell translator this is a sync request
+          request: 'synastry', // Tell translator this is a synastry request
           reportType: null, // No report needed, just Swiss data for synastry
           person_a: {
             name: primaryProfile.name,
