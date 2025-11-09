@@ -301,10 +301,12 @@ Deno.serve(async (req: Request) => {
         ? "Your free trial has ended. Upgrade to Growth ($10/month) for unlimited AI conversations! 🚀"
         : `You've used your ${limitCheck.limit} free messages today. Upgrade to Growth for unlimited chats!`;
       
-      return JSON_RESPONSE(429, {
-        role: 'assistant',
+      // ✅ Return as normal assistant message (like image errors)
+      return JSON_RESPONSE(200, {
         text: message,
-        meta: { limit_exceeded: true, feature: 'chat', limit: limitCheck.limit }
+        usage: { total_tokens: 0, input_tokens: 0, output_tokens: 0, cached_tokens: 0 },
+        llm_latency_ms: 0,
+        total_latency_ms: Date.now() - startMs
       });
     }
   }

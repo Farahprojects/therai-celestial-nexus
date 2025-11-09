@@ -90,15 +90,14 @@ Deno.serve(async (req) => {
         current_usage: limitCheck.current_usage
       }));
       
-      // Return friendly message instead of error
+      // ✅ Return as normal assistant message (no special handling)
       const limitMessage = limitCheck.limit === 3
         ? `You've used your ${limitCheck.limit} @therai insights today. Upgrade to Growth for unlimited relationship insights! ✨`
         : `You've reached your @therai limit for today. Upgrade to Growth for unlimited insights!`;
       
       return json(200, {
         role: 'assistant',
-        text: limitMessage,
-        meta: { limit_exceeded: true, feature: 'therai_calls' }
+        text: limitMessage
       });
     }
   }
