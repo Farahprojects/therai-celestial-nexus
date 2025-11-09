@@ -1,4 +1,4 @@
-import { Database } from '@/integrations/supabase/types';
+import { Database, Json } from '@/integrations/supabase/types';
 
 export type ProviderName = 'openai' | 'google' | 'deepgram' | 'elevenlabs' | 'local';
 
@@ -24,7 +24,7 @@ export interface Message {
   mode?: string;
   user_id?: string;
   user_name?: string;
-  meta?: Record<string, any>; // typed from Json
+  meta?: Json | null; // typed from Json
   
   // UI-only fields (not in DB)
   pending?: boolean; // Optimistic message flag
@@ -49,7 +49,7 @@ export interface Conversation {
   folder_id?: string | null;
   is_public?: boolean | null;
   owner_user_id?: string | null;
-  meta?: Record<string, any> | null; // typed from Json
+  meta?: Json | null; // typed from Json
   
   // UI-only fields (not in DB)
   messages?: Message[]; // Loaded separately, not a DB column

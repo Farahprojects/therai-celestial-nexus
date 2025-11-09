@@ -8,7 +8,7 @@ import { AstroDataForm } from '@/components/chat/AstroDataForm';
 import { ReportFormData } from '@/types/public-report';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
-import type { Database, Tables } from '@/integrations/supabase/types';
+import type { Database, Tables, TablesUpdate } from '@/integrations/supabase/types';
 type ProfileRow = Tables<'profiles'>;
 type UserProfileRow = Tables<'user_profile_list'>;
 

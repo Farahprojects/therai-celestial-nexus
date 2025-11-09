@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ReportFormData } from '@/types/public-report';
+import { ReportType } from '@/utils/reportHelpers';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
@@ -18,7 +19,7 @@ import { useAstroFormValidation } from '@/hooks/useAstroFormValidation';
 import { useAstroReportPayload } from '@/hooks/useAstroReportPayload';
 import { useProfileSaver } from '@/hooks/useProfileSaver';
 import { createFolder, moveConversationToFolder } from '@/services/folders';
-import { createConversation } from '@/services/conversations';
+import { createConversation as createConversationService } from '@/services/conversations';
 
 // Step components
 import { AstroTypeStep } from './AstroForm/AstroTypeStep';
@@ -87,7 +88,7 @@ export const AstroDataForm: React.FC<AstroDataFormProps> = ({
   const location = useLocation();
   const navigate = useNavigate();
   const { mode: contextMode } = useMode();
-  const { createConversation, cleanupEmptyConversation } = useAstroConversation();
+  const { createConversation: createAstroConversation, cleanupEmptyConversation } = useAstroConversation();
   const { validatePrimaryPerson, validateSecondPerson } = useAstroFormValidation();
   const { buildReportPayload } = useAstroReportPayload();
   const { saveProfile } = useProfileSaver();
@@ -176,7 +177,7 @@ export const AstroDataForm: React.FC<AstroDataFormProps> = ({
         console.log('[AstroDataForm] Folder created:', folder.id);
         
         // Step 3: Create a new chat conversation
-        const conversationId = await createConversation(user.id, 'chat', 'New Chat');
+        const conversationId = await createConversationService(user.id, 'chat', 'New Chat');
         console.log('[AstroDataForm] Conversation created:', conversationId);
         
         // Step 4: Move conversation to folder
@@ -237,7 +238,7 @@ export const AstroDataForm: React.FC<AstroDataFormProps> = ({
           }
         : { reportType, ...payload };
       
-      const currentChatId = await createConversation(conversationMode, 
+      const currentChatId = await createAstroConversation(conversationMode, 
         title,
         payloadToSend
       );

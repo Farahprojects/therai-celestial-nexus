@@ -38,7 +38,16 @@ export async function getLLMProvider(): Promise<boolean> {
       return true;
     }
 
-    const useGemini = data?.value?.use_gemini ?? true;
+    let useGemini = true;
+    const configValue = data?.value;
+
+    if (configValue && typeof configValue === 'object' && !Array.isArray(configValue)) {
+      const maybeUseGemini = (configValue as Record<string, unknown>).use_gemini;
+      if (typeof maybeUseGemini === 'boolean') {
+        useGemini = maybeUseGemini;
+      }
+    }
+
     cachedConfig = { use_gemini: useGemini, fetched_at: now };
 
     console.log(`[llmConfig] LLM provider: ${useGemini ? 'Gemini' : 'ChatGPT'}`);

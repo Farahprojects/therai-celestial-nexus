@@ -178,7 +178,7 @@ export function useUserPreferences() {
   ) => {
     if (!user?.id || !preferences) return false;
 
-    const { showToast = true } = options;
+    const { showToast: shouldShowToast = true } = options;
     
     // Record this change as pending
     pendingChangesRef.current.set("email_notifications_enabled", enabled);
@@ -212,7 +212,7 @@ export function useUserPreferences() {
 
       if (error) throw error;
 
-      if (showToast) {
+      if (shouldShowToast) {
         showToast({
           title: "Preferences Saved",
           description: `Email notifications ${
@@ -239,7 +239,7 @@ export function useUserPreferences() {
           };
         });
         
-        if (showToast) {
+        if (shouldShowToast) {
           showToast({
             title: "Error",
             description: "There was an issue saving your preference.",
@@ -276,7 +276,7 @@ export function useUserPreferences() {
   ) => {
     if (!user?.id || !preferences) return false;
 
-    const { showToast = false } = options;
+    const { showToast: shouldShowToast = false } = options;
 
     // Record this change as pending
     pendingChangesRef.current.set("client_view_mode", viewMode);
@@ -310,7 +310,7 @@ export function useUserPreferences() {
 
       if (error) throw error;
 
-      if (showToast) {
+      if (shouldShowToast) {
         showToast({
           title: "View Mode Updated",
           description: `Client view changed to ${viewMode}`,
@@ -335,7 +335,7 @@ export function useUserPreferences() {
           };
         });
         
-        if (showToast) {
+        if (shouldShowToast) {
           showToast({
             title: "Error",
             description: "There was an issue saving your view preference.",

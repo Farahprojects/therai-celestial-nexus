@@ -302,15 +302,15 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
         const { data: conversation } = await supabase
           .from('conversations')
           .select('meta')
-          .eq('id', conversationId as any)
+          .eq('id', conversationId)
           .maybeSingle();
         const isInsight = conversation && 'meta' in conversation && (conversation.meta as any)?.type === 'insight_chat';
 
-        await supabase.from('conversations').delete().eq('id', conversationId as any);
+        await supabase.from('conversations').delete().eq('id', conversationId);
         if (isInsight) {
-          await supabase.from('insights').delete().eq('id', conversationId as any);
-          await supabase.from('report_logs').delete().eq('chat_id' as any, conversationId as any);
-          await supabase.from('translator_logs').delete().eq('chat_id' as any, conversationId as any);
+          await supabase.from('insights').delete().eq('id', conversationId);
+          await supabase.from('report_logs').delete().eq('chat_id', conversationId);
+          await supabase.from('translator_logs').delete().eq('chat_id', conversationId);
         }
 
         const cur = useChatStore.getState();
