@@ -1212,6 +1212,7 @@ export type Database = {
           email_verified: boolean | null
           features: Json | null
           has_profile_setup: boolean
+          has_seen_subscription_page: boolean
           id: string
           last_invoice_id: string | null
           last_payment_status: string | null
@@ -1234,6 +1235,7 @@ export type Database = {
           email_verified?: boolean | null
           features?: Json | null
           has_profile_setup?: boolean
+          has_seen_subscription_page?: boolean
           id: string
           last_invoice_id?: string | null
           last_payment_status?: string | null
@@ -1256,6 +1258,7 @@ export type Database = {
           email_verified?: boolean | null
           features?: Json | null
           has_profile_setup?: boolean
+          has_seen_subscription_page?: boolean
           id?: string
           last_invoice_id?: string | null
           last_payment_status?: string | null

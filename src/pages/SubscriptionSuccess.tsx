@@ -41,9 +41,18 @@ const SubscriptionSuccess: React.FC = () => {
         const tier = getPlanTier(planId);
         setPlanName(tier);
         
-        // Success! Redirect to main page after a brief moment
+        // Check if this is part of onboarding flow
+        const onboardingChatId = localStorage.getItem('onboarding_chat_id');
+        
+        // Success! Redirect after a brief moment
         setTimeout(() => {
-          navigate('/therai?payment_status=success', { replace: true });
+          if (onboardingChatId) {
+            // Redirect to onboarding chat with starter questions
+            navigate(`/c/${onboardingChatId}?new=true`, { replace: true });
+          } else {
+            // Normal subscription success flow
+            navigate('/therai?payment_status=success', { replace: true });
+          }
         }, 2000);
       } else {
         setError('Subscription verification failed. Please try again.');
@@ -222,7 +231,14 @@ const SubscriptionSuccess: React.FC = () => {
 
               <div className="pt-4">
                 <Button
-                  onClick={() => navigate('/therai?payment_status=success', { replace: true })}
+                  onClick={() => {
+                    const onboardingChatId = localStorage.getItem('onboarding_chat_id');
+                    if (onboardingChatId) {
+                      navigate(`/c/${onboardingChatId}?new=true`, { replace: true });
+                    } else {
+                      navigate('/therai?payment_status=success', { replace: true });
+                    }
+                  }}
                   className="w-full bg-gray-900 hover:bg-gray-800 text-white font-light py-4 rounded-xl"
                 >
                   Continue to Dashboard

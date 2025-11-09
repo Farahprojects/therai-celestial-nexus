@@ -34,6 +34,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
   const [currentStep, setCurrentStep] = useState<OnboardingStep>('name');
   const [displayName, setDisplayName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [onboardingChatId, setOnboardingChatId] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
@@ -205,6 +206,26 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
       // 5. translator-edge skips messages table (profile_mode)
       // Note: Folder creation is handled in AstroDataForm.tsx in parallel with profile creation
 
+      // Create a separate chat for onboarding starter questions
+      const { data: starterConversation, error: starterError } = await supabase.functions.invoke(
+        'conversation-manager?action=create_conversation',
+        {
+          body: {
+            user_id: profileUserId,
+            title: 'New Conversation',
+            mode: 'chat',
+          }
+        }
+      );
+
+      if (starterError) {
+        console.error('Error creating starter conversation:', starterError);
+      } else if (starterConversation?.chat_id) {
+        // Store chat_id for use after subscription flow
+        setOnboardingChatId(starterConversation.chat_id);
+        localStorage.setItem('onboarding_chat_id', starterConversation.chat_id);
+      }
+
       toast.success('Profile created successfully!');
       setCurrentStep('subscription');
     } catch (error) {
@@ -216,7 +237,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
   };
 
   // Step 3: Subscription (or skip)
-  const markOnboardingComplete = async () => {
+  const markOnboardingComplete = async (shouldNavigateToChat: boolean = false) => {
     try {
       if (!user?.id) {
         toast.error('Please sign in again');
@@ -228,6 +249,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
 
       const onboardingUpdate: Database['public']['Tables']['profiles']['Update'] = {
         has_profile_setup: true,
+        has_seen_subscription_page: true, // KEY FLAG: Set after subscription step
       };
 
       const idColumn: keyof ProfileRow = 'id';
@@ -240,6 +262,11 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
       if (error) throw error;
 
       onComplete();
+
+      // Navigate to chat with starter questions if appropriate
+      if (shouldNavigateToChat && onboardingChatId) {
+        navigate(`/c/${onboardingChatId}?new=true`);
+      }
     } catch (error) {
       console.error('Error marking onboarding complete:', error);
       toast.error('Something went wrong. Please try again.');
@@ -247,12 +274,14 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
   };
 
   const handleSubscribe = () => {
-    markOnboardingComplete();
+    // Don't navigate to chat yet - user will see subscription page first
+    markOnboardingComplete(false);
     navigate('/subscription-paywall');
   };
 
   const handleSkipSubscription = () => {
-    markOnboardingComplete();
+    // Navigate directly to chat with starter questions
+    markOnboardingComplete(true);
   };
 
   return (

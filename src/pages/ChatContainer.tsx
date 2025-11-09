@@ -33,21 +33,36 @@ const ChatContainerContent: React.FC = () => {
   // Single responsibility: Initialize chat when threadId changes
   useChatInitialization();
   
-  // Check for onboarding flow - show starter questions if ?new=true
+  // Check for onboarding flow - show starter questions if ?new=true AND has_seen_subscription_page is true
   useEffect(() => {
-    const isNew = searchParams.get('new') === 'true';
-    const onboardingChatId = localStorage.getItem('onboarding_chat_id');
-    
-    if (isNew && chat_id && onboardingChatId === chat_id) {
-      console.log('[ChatContainer] Onboarding flow detected, showing starter questions');
-      setShowStarterQuestions(true);
+    const checkAndShowStarter = async () => {
+      const isNew = searchParams.get('new') === 'true';
+      const onboardingChatId = localStorage.getItem('onboarding_chat_id');
       
-      // Remove ?new from URL
-      const newSearchParams = new URLSearchParams(searchParams);
-      newSearchParams.delete('new');
-      setSearchParams(newSearchParams, { replace: true });
-    }
-  }, [searchParams, chat_id, setSearchParams]);
+      if (isNew && chat_id && onboardingChatId === chat_id && user) {
+        // Check if user has seen subscription page
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('has_seen_subscription_page')
+          .eq('id', user.id)
+          .maybeSingle();
+        
+        if (profile?.has_seen_subscription_page) {
+          console.log('[ChatContainer] Onboarding flow detected, showing starter questions');
+          setShowStarterQuestions(true);
+          
+          // Remove ?new from URL
+          const newSearchParams = new URLSearchParams(searchParams);
+          newSearchParams.delete('new');
+          setSearchParams(newSearchParams, { replace: true });
+        } else {
+          console.log('[ChatContainer] Waiting for subscription page to be seen');
+        }
+      }
+    };
+    
+    checkAndShowStarter();
+  }, [searchParams, chat_id, user, setSearchParams]);
   
   // Clear redirect persistence after successful navigation
   useEffect(() => {
