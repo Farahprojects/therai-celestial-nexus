@@ -1,9 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
-import { Lock, Sparkles } from 'lucide-react';
-import { CreditPurchaseModal } from '@/components/billing/CreditPurchaseModal';
-import { checkUserAccess, getBillingMode, getPaywallMessage } from '@/utils/billingMode';
+import { Sparkles } from 'lucide-react';
+import { checkUserAccess, getPaywallMessage } from '@/utils/billingMode';
 import { useNavigate } from 'react-router-dom';
 
 interface SwissSubscriptionGuardProps {
@@ -23,8 +22,6 @@ export const SwissSubscriptionGuard: React.FC<SwissSubscriptionGuardProps> = ({ 
   const navigate = useNavigate();
   const [hasAccess, setHasAccess] = useState<boolean>(false);
   const [loading, setLoading] = useState(true);
-  const [showCreditModal, setShowCreditModal] = useState(false);
-  const billingMode = getBillingMode();
 
   useEffect(() => {
     const checkAccess = async () => {
@@ -53,9 +50,7 @@ export const SwissSubscriptionGuard: React.FC<SwissSubscriptionGuardProps> = ({ 
       <div className="flex items-center justify-center h-full">
         <div className="text-center space-y-4">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto"></div>
-          <p className="text-sm text-gray-600">
-            {billingMode === 'CREDIT' ? 'Checking credits...' : 'Checking subscription...'}
-          </p>
+          <p className="text-sm text-gray-600">Checking subscription...</p>
         </div>
       </div>
     );
@@ -78,56 +73,25 @@ export const SwissSubscriptionGuard: React.FC<SwissSubscriptionGuardProps> = ({ 
               </p>
             </div>
 
-            {billingMode === 'CREDIT' ? (
-              <>
             <div className="bg-gray-50 rounded-2xl p-8 space-y-3">
-              <div className="text-5xl font-light text-gray-900">$5</div>
+              <div className="text-2xl font-light text-gray-900">Choose Your Plan</div>
               <div className="text-sm text-gray-500">
-                50 credits • Everything unlocked • Never expires
+                Flexible subscription options for every need
               </div>
             </div>
 
             <Button
-              onClick={() => setShowCreditModal(true)}
+              onClick={() => navigate('/subscription-paywall')}
               className="w-full bg-gray-900 text-white hover:bg-gray-800 rounded-full font-light py-6 text-lg shadow-lg"
             >
-              Get Started - $5
+              View Plans
             </Button>
 
             <p className="text-xs text-gray-500 font-light">
-              No subscription • Top up anytime • Credits never expire
+              Cancel anytime • Secure payment via Stripe
             </p>
-              </>
-            ) : (
-              <>
-                <div className="bg-gray-50 rounded-2xl p-8 space-y-3">
-                  <div className="text-2xl font-light text-gray-900">Choose Your Plan</div>
-                  <div className="text-sm text-gray-500">
-                    Flexible subscription options for every need
-                  </div>
-                </div>
-
-                <Button
-                  onClick={() => navigate('/subscription-paywall')}
-                  className="w-full bg-gray-900 text-white hover:bg-gray-800 rounded-full font-light py-6 text-lg shadow-lg"
-                >
-                  View Plans
-                </Button>
-
-                <p className="text-xs text-gray-500 font-light">
-                  Cancel anytime • Secure payment via Stripe
-                </p>
-              </>
-            )}
           </div>
         </div>
-
-        {billingMode === 'CREDIT' && (
-        <CreditPurchaseModal
-          isOpen={showCreditModal}
-          onClose={() => setShowCreditModal(false)}
-        />
-        )}
       </>
     );
   }

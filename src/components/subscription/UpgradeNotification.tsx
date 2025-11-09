@@ -1,8 +1,6 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { X } from 'lucide-react';
-import { CreditPurchaseModal } from '@/components/billing/CreditPurchaseModal';
-import { getBillingMode } from '@/utils/billingMode';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 
 interface UpgradeNotificationProps {
@@ -25,16 +23,10 @@ export const UpgradeNotification: React.FC<UpgradeNotificationProps> = ({
 }) => {
   const navigate = useNavigate();
   const { isSubscriptionActive, subscriptionPlan } = useSubscription();
-  const [showCreditModal, setShowCreditModal] = useState(false);
-  const billingMode = getBillingMode();
 
   const handleUpgrade = () => {
-    if (billingMode === 'CREDIT') {
-      setShowCreditModal(true);
-    } else {
-      navigate('/subscription-paywall');
-      onDismiss();
-    }
+    navigate('/subscription-paywall');
+    onDismiss();
   };
 
   // Determine message based on subscription status
@@ -66,16 +58,6 @@ export const UpgradeNotification: React.FC<UpgradeNotificationProps> = ({
           </button>
         </div>
       </div>
-
-      {billingMode === 'CREDIT' && (
-        <CreditPurchaseModal
-          isOpen={showCreditModal}
-          onClose={() => {
-            setShowCreditModal(false);
-            onDismiss();
-          }}
-        />
-      )}
     </>
   );
 };
