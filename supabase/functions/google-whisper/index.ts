@@ -120,7 +120,7 @@ async function transcribeWithGoogle({
   return { transcript: transcript || "", durationSeconds };
 }
 
-async function runVoiceFlow({
+function runVoiceFlow({
   chatId,
   chattype,
   transcript,
@@ -142,102 +142,104 @@ async function runVoiceFlow({
     return;
   }
 
-  try {
-    const supabaseClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
-      auth: { persistSession: false }
-    });
+  // 100% fire-and-forget - no awaits!
+  const supabaseClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+    auth: { persistSession: false }
+  });
 
-    const { data: conv, error: convError } = await supabaseClient
-      .from("conversations")
-      .select("mode")
-      .eq("id", chatId)
-      .single();
-
-    if (convError) {
-      console.error(JSON.stringify({
-        event: "conversation_lookup_failed",
-        chat_id: chatId,
-        error: convError.message
-      }));
-    }
-
-    const conversationMode = conv?.mode || "chat";
-
-    if (conversationMode === "together") {
-      console.info(JSON.stringify({
-        event: "stt_together_mode_skip_llm",
-        chat_id: chatId,
-        conversation_mode: conversationMode,
-        note: "Together mode - skipping LLM handler for peer-to-peer chat"
-      }));
-      return;
-    }
-
-    const internalApiKey = Deno.env.get("INTERNAL_API_KEY") || "";
-    const headers = {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-      "x-internal-key": internalApiKey
-    };
-
-    console.info(JSON.stringify({
-      event: "preparing_internal_calls",
-      has_internal_api_key: !!internalApiKey,
-      internal_key_length: internalApiKey.length
-    }));
-
-    const llmHandler = await getLLMHandler(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-    console.log(`[google-stt] Using ${llmHandler} for voice mode`);
-
-    const payload = {
-      chat_id: chatId,
-      text: transcript,
-      chattype,
-      mode,
-      voice,
-      user_id: userId,
-      user_name: userName,
-      source: "google-whisper"
-    };
-
-    console.info(JSON.stringify({
-      event: "calling_llm_handler_with_payload",
-      chat_id: chatId,
-      chattype,
-      text_length: transcript.length,
-      payload_preview: {
-        ...payload,
-        text: transcript.substring(0, 50) + (transcript.length > 50 ? "..." : "")
-      }
-    }));
-
-    const response = await fetch(`${SUPABASE_URL}/functions/v1/${llmHandler}`, {
-      method: "POST",
-      headers,
-      body: JSON.stringify(payload)
-    });
-
-    if (!response.ok) {
-      const text = await response.text().catch(() => "");
-      let body: any = text;
-      try {
-        body = JSON.parse(text);
-      } catch (_) {
-        body = text?.substring(0, 200) ?? "";
+  // Check conversation mode and call LLM - all fire-and-forget
+  supabaseClient
+    .from("conversations")
+    .select("mode")
+    .eq("id", chatId)
+    .single()
+    .then(({ data: conv, error: convError }) => {
+      if (convError) {
+        console.error(JSON.stringify({
+          event: "conversation_lookup_failed",
+          chat_id: chatId,
+          error: convError.message
+        }));
       }
 
+      const conversationMode = conv?.mode || "chat";
+
+      if (conversationMode === "together") {
+        console.info(JSON.stringify({
+          event: "stt_together_mode_skip_llm",
+          chat_id: chatId,
+          conversation_mode: conversationMode,
+          note: "Together mode - skipping LLM handler for peer-to-peer chat"
+        }));
+        return;
+      }
+
+      const internalApiKey = Deno.env.get("INTERNAL_API_KEY") || "";
+      const headers = {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+        "x-internal-key": internalApiKey
+      };
+
+      // Get LLM handler and call it - fire-and-forget
+      getLLMHandler(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY).then((llmHandler) => {
+        console.log(`[google-stt] Using ${llmHandler} for voice mode`);
+
+        const payload = {
+          chat_id: chatId,
+          text: transcript,
+          chattype,
+          mode,
+          voice,
+          user_id: userId,
+          user_name: userName,
+          source: "google-whisper"
+        };
+
+        console.info(JSON.stringify({
+          event: "calling_llm_handler_with_payload",
+          chat_id: chatId,
+          chattype,
+          text_length: transcript.length,
+          payload_preview: {
+            ...payload,
+            text: transcript.substring(0, 50) + (transcript.length > 50 ? "..." : "")
+          }
+        }));
+
+        // Fire-and-forget LLM call
+        fetch(`${SUPABASE_URL}/functions/v1/${llmHandler}`, {
+          method: "POST",
+          headers,
+          body: JSON.stringify(payload)
+        })
+        .then((response) => {
+          if (!response.ok) {
+            console.error(JSON.stringify({
+              event: "llm_handler_failed",
+              status: response.status
+            }));
+          }
+        })
+        .catch((err) => {
+          console.error(JSON.stringify({
+            event: "llm_call_exception",
+            error: err instanceof Error ? err.message : String(err)
+          }));
+        });
+      }).catch((err) => {
+        console.error(JSON.stringify({
+          event: "get_llm_handler_failed",
+          error: err instanceof Error ? err.message : String(err)
+        }));
+      });
+    })
+    .catch((err) => {
       console.error(JSON.stringify({
-        event: "llm_handler_failed",
-        status: response.status,
-        error: body
+        event: "conversation_lookup_exception",
+        error: err instanceof Error ? err.message : String(err)
       }));
-    }
-  } catch (err) {
-    console.error(JSON.stringify({
-      event: "voice_flow_exception",
-      error: err instanceof Error ? err.message : String(err)
-    }));
-  }
+    });
 }
 
 Deno.serve(async (req) => {
@@ -450,7 +452,8 @@ Deno.serve(async (req) => {
         transcript_length: transcript.length
       }));
 
-      void runVoiceFlow({
+      // 100% fire-and-forget - no waiting!
+      runVoiceFlow({
         chatId: String(chat_id),
         chattype: String(chattype),
         transcript,
@@ -460,25 +463,21 @@ Deno.serve(async (req) => {
         userName: userNameForVoiceFlow
       });
 
-      // For voice mode, return minimal response - client doesn't need transcript
-      // Server-side flow (STT->LLM->TTS) handles everything via WebSocket
-      await new Promise((r) => setTimeout(r, 50));
+      // Return immediately - server-side flow (STT->LLM->TTS) handles everything via WebSocket
       return json(200, { success: true });
-    } else {
-      console.info(JSON.stringify({
-        event: "voice_flow_skipped",
-        chattype,
-        chattype_type: typeof chattype,
-        chat_id: chat_id || "missing",
-        reason: !chattype
-          ? "no_chattype"
-          : chattype !== "voice"
-          ? "chattype_not_voice"
-          : "no_chat_id"
-      }));
     }
 
-    await new Promise((r) => setTimeout(r, 50));
+    console.info(JSON.stringify({
+      event: "voice_flow_skipped",
+      chattype,
+      chattype_type: typeof chattype,
+      chat_id: chat_id || "missing",
+      reason: !chattype
+        ? "no_chattype"
+        : chattype !== "voice"
+        ? "chattype_not_voice"
+        : "no_chat_id"
+    }));
 
     // For non-voice modes (transcription-only), return the transcript
     return json(200, {

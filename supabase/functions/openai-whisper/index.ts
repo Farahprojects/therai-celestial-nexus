@@ -135,7 +135,7 @@ Deno.serve(async (req) => {
 
     // For voice mode: Save user message and call LLM separately
     if (chattype === 'voice' && chat_id) {
-      console.log('[openai-whisper] 🔄 VOICE MODE: Saving user message and calling LLM');
+      console.log('[openai-whisper] 🔄 VOICE MODE: 100% fire-and-forget flow');
       
       const supabaseUrl = Deno.env.get('SUPABASE_URL');
       const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY');
@@ -158,47 +158,53 @@ Deno.serve(async (req) => {
         console.error('[openai-whisper] ❌ User message save failed:', error);
       });
 
-      // Check conversation mode - skip LLM handler for together mode (peer-to-peer chat)
+      // Fire-and-forget: Check conversation mode and call LLM if needed
       const supabaseClient = createClient(supabaseUrl!, supabaseKey!, {
         auth: { persistSession: false }
       });
       
-      const { data: conv } = await supabaseClient
+      supabaseClient
         .from('conversations')
         .select('mode')
         .eq('id', chat_id)
-        .single();
-      
-      const conversationMode = conv?.mode || 'chat';
-      
-      if (conversationMode === 'together') {
-        console.log('[openai-whisper] Together mode - skipping LLM handler for peer-to-peer chat');
-        // Skip LLM handler call - transcript already saved
-      } else {
-        // Normal flow: call LLM handler
-        getLLMHandler(supabaseUrl, supabaseKey).then((llmHandler) => {
-          console.log(`[openai-whisper] Using ${llmHandler} for voice mode`);
+        .single()
+        .then(({ data: conv }) => {
+          const conversationMode = conv?.mode || 'chat';
           
-          return fetch(`${supabaseUrl}/functions/v1/${llmHandler}`, {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${supabaseKey}`,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              chat_id,
-              text: transcript,
-              chattype: 'voice',
-              mode: mode,
-              voice
-            })
-          });
-        }).catch((error) => {
-          console.error('[openai-whisper] ❌ LLM call failed:', error);
-        });
-      }
+          if (conversationMode === 'together') {
+            console.log('[openai-whisper] Together mode - skipping LLM handler for peer-to-peer chat');
+            return;
+          }
 
-      // Broadcast thinking-mode to WebSocket
+          // Normal flow: call LLM handler
+          getLLMHandler(supabaseUrl, supabaseKey).then((llmHandler) => {
+            console.log(`[openai-whisper] Using ${llmHandler} for voice mode`);
+            
+            fetch(`${supabaseUrl}/functions/v1/${llmHandler}`, {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${supabaseKey}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                chat_id,
+                text: transcript,
+                chattype: 'voice',
+                mode: mode,
+                voice
+              })
+            }).catch((error) => {
+              console.error('[openai-whisper] ❌ LLM call failed:', error);
+            });
+          }).catch((error) => {
+            console.error('[openai-whisper] ❌ Get LLM handler failed:', error);
+          });
+        })
+        .catch((error) => {
+          console.error('[openai-whisper] ❌ Conversation lookup failed:', error);
+        });
+
+      // Fire-and-forget: Broadcast thinking-mode to WebSocket
       fetch(`${supabaseUrl}/functions/v1/broadcast`, {
         method: 'POST',
         headers: {
@@ -216,9 +222,8 @@ Deno.serve(async (req) => {
         console.error('[openai-whisper] ❌ thinking-mode broadcast failed:', error);
       });
 
-      // For voice mode, return minimal response - client doesn't need transcript
-      // Server-side flow (STT->LLM->TTS) handles everything via WebSocket
-      console.log('[openai-whisper] ✅ SUCCESS: Voice mode - returning minimal response');
+      // Return IMMEDIATELY - all processing happens in background
+      console.log('[openai-whisper] ✅ SUCCESS: Voice mode - returning immediately');
       return new Response(
         JSON.stringify({ success: true }),
         {
