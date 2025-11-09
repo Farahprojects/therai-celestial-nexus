@@ -261,16 +261,8 @@ export const ChatInput = () => {
         console.error('[ChatInput] Cannot open conversation - no chat_id available');
         return;
       }
-      // Gate: Check STT limit before opening conversation mode
-      if (usage && !usage.subscription_active) {
-        const STT_FREE_LIMIT = 120; // 2 minutes
-        if (usage.voice_seconds.used >= STT_FREE_LIMIT) {
-          console.log('[ChatInput] STT limit reached, showing upgrade notification');
-          setShowSTTLimitNotification(true);
-          return;
-        }
-      }
-      // Opening conversation
+      // ✅ NEW: Backend enforces voice limits - no frontend check needed
+      // STT errors will be caught and displayed via STTLimitExceededError
       openConversation();
       return;
     }
@@ -283,16 +275,8 @@ export const ChatInput = () => {
   };
 
   const handleMicClick = () => {
-    // Gate: Check STT limit (2 minutes = 120 seconds for free tier)
-    if (usage && !usage.subscription_active) {
-      const STT_FREE_LIMIT = 120; // 2 minutes
-      if (usage.voice_seconds.used >= STT_FREE_LIMIT) {
-        console.log('[ChatInput] STT limit reached, showing upgrade notification');
-        setShowSTTLimitNotification(true);
-        return;
-      }
-    }
-    
+    // ✅ NEW: Backend enforces voice limits - no frontend check needed
+    // STT errors will be caught and displayed via STTLimitExceededError
     toggleMicRecording();
   };
 
