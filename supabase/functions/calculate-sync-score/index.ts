@@ -95,8 +95,16 @@ ${aspectsSummary}
 Your task:
 1. Calculate a SYNC SCORE (0-100) based on how these two souls align RIGHT NOW at this cosmic moment
 2. Assign them an ARCHETYPE (a poetic 2-4 word name like "The Phoenix Pair" "Cosmic Counterparts" "Fire Meets Fire")
-3. Write ONE powerful sentence explaining WHY they sync (the magic between them)
-4. Write ONE sentence about what DOESN'T sync (the growth edge - keep it brief and constructive)
+3. Write ONE powerful sentence explaining WHY they sync (the magic between them - make them feel SEEN)
+4. Write ONE sentence about their GROWTH EDGE (what they're learning together - keep it hopeful and constructive)
+
+CRITICAL RULES:
+- Use perfect grammar and spelling
+- Write "and" NOT "ad"
+- Complete sentences only - no partial words or typos
+- No commas in any text
+- Be poetic profound and specific
+- Make it feel like a yin-yang pair (insight + growth edge complement each other)
 
 Consider:
 - Harmonious aspects (trine sextile conjunction) increase the score
@@ -108,11 +116,11 @@ Respond in JSON format ONLY:
 {
   "score": 85,
   "archetype": "The Phoenix Pair",
-  "insight": "Every challenge transforms you both into something more beautiful",
-  "challenge": "Learning to give each other space when intensity peaks"
+  "insight": "You both thrive when honesty meets flow - a bond that grows through shared curiosity",
+  "challenge": "Learning to stay open even when it feels uncertain"
 }
 
-Be poetic profound and specific. No commas in the text. Make them FEEL the magic and understand the growth.`;
+Make them FEEL the magic and see the path forward.`;
 
   try {
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
@@ -158,6 +166,19 @@ Be poetic profound and specific. No commas in the text. Make them FEEL the magic
 }
 
 /**
+ * Extract zodiac signs from Swiss data
+ */
+function extractZodiacSigns(swissData: any): { personA: string; personB: string } {
+  const person1Sun = swissData?.person1?.planets?.Sun?.sign || '';
+  const person2Sun = swissData?.person2?.planets?.Sun?.sign || '';
+  
+  return {
+    personA: person1Sun || '',
+    personB: person2Sun || '',
+  };
+}
+
+/**
  * Generate image prompt for connection card
  */
 function generateSyncCardPrompt(
@@ -167,41 +188,94 @@ function generateSyncCardPrompt(
   challenge: string,
   personAName: string,
   personBName: string,
+  personASign: string,
+  personBSign: string,
   rarityPercentile: number
 ): string {
-  // Color scheme based on score
+  // Always use purple/magenta for that premium mystical feel
   const colorScheme = score >= 80 
-    ? 'deep purple and magenta gradient'
+    ? 'deep purple and magenta gradient with cosmic sparkles'
     : score >= 60
-      ? 'blue and cyan gradient'
-      : 'warm yellow and orange gradient';
+      ? 'rich purple and violet gradient with soft glow'
+      : 'warm purple and pink gradient with gentle shimmer';
 
   return `Create an elegant mystical connection card in portrait orientation (9:16).
 
-DESIGN STRUCTURE:
-- Top third: Celestial background with ${colorScheme} subtle star field ethereal glow
-- Center: Large white number "${score}%" with cosmic sparkle effects
-- Below score: "${archetype}" in elegant italic serif font
-- Middle section: "${personAName} & ${personBName}" in clean sans-serif
-- Insight section: "${insight}" in medium weight sans-serif
-- Challenge section: "Growth Edge: ${challenge}" in lighter smaller font
-${rarityPercentile >= 50 ? `- Badge: Small purple badge with sparkle icon and "Top ${100 - rarityPercentile}% Connection"` : ''}
-- Bottom: "therai.co" watermark subtle and elegant
+DESIGN STRUCTURE (top to bottom with generous spacing):
 
-STYLE:
-- Minimal Apple-inspired aesthetic
-- Lots of negative space
-- Soft glows and light effects
-- Professional typography
-- Mystical but not cheesy
+1. TOP SECTION (celestial background):
+   - Background: ${colorScheme} with subtle star field and ethereal glow
+   - Very elegant and premium feeling
+
+2. SCORE (center focal point):
+   - Huge white number: "${score}%"
+   - Add subtle sparkle effects around the number
+   - Most prominent element on card
+
+3. ARCHETYPE (below score):
+   - Text: "${archetype}"
+   - Font: Elegant italic serif
+   - Size: Medium-large
+   - Color: White with soft glow
+
+4. NAMES WITH SIGNS (tight grouping):
+   - Line 1: "${personAName} & ${personBName}"
+   - Font: Clean modern sans-serif medium weight
+   - Line 2 (directly below smaller): "${personASign} • ${personBSign}"
+   - Font: Light weight smaller size
+   - Color: Light gray/white
+   - Keep these two lines close together as one unit
+
+5. DIVIDER:
+   - Subtle thin line or just extra spacing
+
+6. INSIGHT (positive magic):
+   - Text: "${insight}"
+   - Font: Medium weight sans-serif
+   - Size: Readable but not huge
+   - Color: White
+   - Proper line spacing for readability
+
+7. GROWTH EDGE (hopeful challenge):
+   - Label: "Growth Edge:" in smaller lighter text
+   - Text: "${challenge}"
+   - Font: Light weight sans-serif slightly smaller
+   - Color: Soft white/gray
+   - Keep this section distinct but harmonious
+
+${rarityPercentile >= 50 ? `8. RARITY BADGE:
+   - Small purple badge with sparkle icon
+   - Text: "Top ${100 - rarityPercentile}% Connection"
+   - Position: Lower section
+` : ''}
+
+9. WATERMARK (bottom):
+   - Text: "therai.co"
+   - Very subtle and elegant
+   - Small size light gray
+
+STYLE REQUIREMENTS:
+- Premium Apple-inspired minimalist aesthetic
+- Generous negative space between sections (don't crowd)
+- Soft glows around text for depth
+- Professional typography hierarchy
+- Mystical but sophisticated (not cheesy)
 - Instagram-ready quality
-- Clean modern shareable
-- NO COMMAS anywhere in the text
+- Clean readable modern
+- Purple/magenta tones throughout (no blue)
+
+TYPOGRAPHY:
+- Use proper spacing between sections
+- Headers slightly bolder or different weight
+- Body text clean and readable
+- Maintain visual hierarchy
 
 COLORS:
 - Background: ${colorScheme}
-- Text: White and light gray
-- Accents: Soft glows matching background
+- Primary text: Pure white
+- Secondary text: Light gray (rgba 255 255 255 0.8)
+- Accents: Soft purple glows
+- Badge: Rich purple
 - Keep it elegant and premium`;
 }
 
@@ -301,6 +375,9 @@ Deno.serve(async (req) => {
     // 📸 Generate connection card image
     console.log('[calculate-sync-score] Generating connection card...');
     
+    // Extract zodiac signs for credibility
+    const zodiacSigns = extractZodiacSigns(swissData);
+    
     const cardPrompt = generateSyncCardPrompt(
       llmAnalysis.score,
       llmAnalysis.archetype,
@@ -308,6 +385,8 @@ Deno.serve(async (req) => {
       llmAnalysis.challenge,
       personAName,
       personBName,
+      zodiacSigns.personA,
+      zodiacSigns.personB,
       rarityPercentile
     );
 
