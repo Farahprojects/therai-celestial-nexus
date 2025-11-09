@@ -41,19 +41,51 @@ export function useFeatureUsage() {
       setLoading(true);
       setError(null);
 
-      const { data, error: invokeError } = await supabase.functions.invoke('get-feature-usage', {
-        headers: {
-          Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
-        }
+      // ✅ NEW PRO WAY: Use get_user_limits RPC (database-driven)
+      const { data, error: rpcError } = await supabase.rpc('get_user_limits', {
+        p_user_id: user.id
       });
 
-      if (invokeError) {
-        console.error('[useFeatureUsage] Error fetching usage:', invokeError);
-        setError(invokeError.message || 'Failed to fetch usage data');
+      if (rpcError) {
+        console.error('[useFeatureUsage] Error fetching limits:', rpcError);
+        setError(rpcError.message || 'Failed to fetch usage data');
         setUsage(null);
-      } else {
-        setUsage(data);
+        return;
       }
+
+      // Transform new data structure to match old interface
+      const limits = data?.limits || {};
+      const usage = data?.usage || {};
+      const currentPeriod = new Date().toISOString().slice(0, 7);
+
+      // Get subscription info from profile
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('subscription_active, subscription_status, subscription_plan')
+        .eq('id', user.id)
+        .single();
+
+      const transformedData: FeatureUsage = {
+        period: currentPeriod,
+        subscription_active: profile?.subscription_active || false,
+        subscription_plan: limits.plan_id || 'free',
+        voice_seconds: {
+          used: usage.voice_seconds || 0,
+          limit: limits.voice_seconds ?? null,
+          remaining: limits.voice_seconds === null 
+            ? null 
+            : Math.max(0, limits.voice_seconds - (usage.voice_seconds || 0))
+        },
+        insights_count: {
+          used: usage.insights_count || 0,
+          limit: limits.insights ?? null,
+          remaining: limits.insights === null 
+            ? null 
+            : Math.max(0, limits.insights - (usage.insights_count || 0))
+        }
+      };
+
+      setUsage(transformedData);
     } catch (err) {
       console.error('[useFeatureUsage] Exception fetching usage:', err);
       setError(err instanceof Error ? err.message : 'Unknown error');
