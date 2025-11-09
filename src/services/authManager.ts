@@ -80,7 +80,7 @@ class AuthManager {
       // because it automatically opens a browser (triggers system browser)
       // Instead, manually construct the OAuth URL
       
-      const supabaseUrl = 'https://api.therai.co';
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://api.therai.co';
       const redirectUri = encodeURIComponent(this.OAUTH_CALLBACK_URL);
       
       let oauthUrl: string;
