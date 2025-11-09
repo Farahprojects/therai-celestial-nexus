@@ -21,7 +21,5 @@ export const debugSupabaseConfig = () => {
   });
 };
 
-// Billing mode configuration
-// Toggle between 'CREDIT' (pay-per-use) and 'SUBSCRIPTION' (recurring billing)
-// Change this value to switch the entire app's billing behavior
-export const BILLING_MODE: 'CREDIT' | 'SUBSCRIPTION' = 'SUBSCRIPTION';
+// Billing mode: SUBSCRIPTION only (credit system removed)
+export const BILLING_MODE = 'SUBSCRIPTION' as const;

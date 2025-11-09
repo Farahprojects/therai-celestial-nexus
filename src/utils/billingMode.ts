@@ -1,89 +1,55 @@
 import { supabase } from '@/integrations/supabase/client';
-import { BILLING_MODE } from '@/integrations/supabase/config';
 
-export type BillingMode = 'CREDIT' | 'SUBSCRIPTION';
+export type BillingMode = 'SUBSCRIPTION';
 
 export interface UserAccessResult {
   hasAccess: boolean;
   loading: boolean;
   error: string | null;
-  // Credit mode specific
-  credits?: number;
-  // Subscription mode specific
   subscriptionActive?: boolean;
   subscriptionStatus?: string | null;
   subscriptionPlan?: string | null;
 }
 
 /**
- * Get the current billing mode
+ * Get the current billing mode (always SUBSCRIPTION)
  */
 export const getBillingMode = (): BillingMode => {
-  return BILLING_MODE;
+  return 'SUBSCRIPTION';
 };
 
 /**
- * Check if user has access based on current billing mode
- * - CREDIT mode: Checks if user has credits > 0
- * - SUBSCRIPTION mode: Checks if subscription is active
+ * Check if user has access based on subscription status
  */
 export const checkUserAccess = async (userId: string): Promise<UserAccessResult> => {
   try {
-    if (BILLING_MODE === 'CREDIT') {
-      // Credit mode: Check credit balance
-      const { data, error } = await supabase
-        .from('user_credits')
-        .select('credits')
-        .eq('user_id', userId)
-        .maybeSingle();
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('subscription_active, subscription_status, subscription_plan')
+      .eq('id', userId)
+      .single();
 
-      if (error) {
-        console.error('Error fetching credits:', error);
-        return {
-          hasAccess: false,
-          loading: false,
-          error: error.message,
-          credits: 0,
-        };
-      }
-
-      const credits = data?.credits || 0;
+    if (error) {
+      console.error('Error fetching subscription status:', error);
       return {
-        hasAccess: credits > 0,
+        hasAccess: false,
         loading: false,
-        error: null,
-        credits,
-      };
-    } else {
-      // Subscription mode: Check subscription status
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('subscription_active, subscription_status, subscription_plan')
-        .eq('id', userId)
-        .single();
-
-      if (error) {
-        console.error('Error fetching subscription status:', error);
-        return {
-          hasAccess: false,
-          loading: false,
-          error: error.message,
-          subscriptionActive: false,
-        };
-      }
-
-      const isActive = data?.subscription_active && 
-                      ['active', 'trialing'].includes(data?.subscription_status || '');
-
-      return {
-        hasAccess: isActive,
-        loading: false,
-        error: null,
-        subscriptionActive: data?.subscription_active || false,
-        subscriptionStatus: data?.subscription_status || null,
-        subscriptionPlan: data?.subscription_plan || null,
+        error: error.message,
+        subscriptionActive: false,
       };
     }
+
+    const isActive = data?.subscription_active && 
+                    ['active', 'trialing'].includes(data?.subscription_status || '');
+
+    return {
+      hasAccess: isActive,
+      loading: false,
+      error: null,
+      subscriptionActive: data?.subscription_active || false,
+      subscriptionStatus: data?.subscription_status || null,
+      subscriptionPlan: data?.subscription_plan || null,
+    };
   } catch (err) {
     console.error('Exception in checkUserAccess:', err);
     return {
@@ -95,35 +61,23 @@ export const checkUserAccess = async (userId: string): Promise<UserAccessResult>
 };
 
 /**
- * Get the appropriate paywall message based on billing mode
+ * Get the paywall message
  */
 export const getPaywallMessage = (): string => {
-  if (BILLING_MODE === 'CREDIT') {
-    return 'Get Started';
-  } else {
-    return 'Subscribe to Access';
-  }
+  return 'Subscribe to Access';
 };
 
 /**
- * Get the appropriate upgrade button text based on billing mode
+ * Get the upgrade button text
  */
 export const getUpgradeButtonText = (): string => {
-  if (BILLING_MODE === 'CREDIT') {
-    return 'Purchase Credits';
-  } else {
-    return 'View Plans';
-  }
+  return 'View Plans';
 };
 
 /**
- * Get the appropriate low balance message based on billing mode
+ * Get the low balance message
  */
 export const getLowBalanceMessage = (): string => {
-  if (BILLING_MODE === 'CREDIT') {
-    return 'Low credit balance';
-  } else {
-    return 'Subscription inactive';
-  }
+  return 'Subscription inactive';
 };
 
