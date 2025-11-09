@@ -112,14 +112,14 @@ Deno.serve(async (req) => {
     const [logResult, conversationResult] = await Promise.all([
       supabase
         .from('translator_logs')
-        .select('swiss_data, user_id')
+        .select('swiss_data')
         .eq('chat_id', chat_id)
         .order('created_at', { ascending: false })
         .limit(1)
         .single(),
       supabase
         .from('conversations')
-        .select('title')
+        .select('title, user_id')
         .eq('id', chat_id)
         .single()
     ]);
@@ -136,10 +136,14 @@ Deno.serve(async (req) => {
     const { data: conversation, error: convError } = conversationResult;
     if (convError || !conversation) {
       console.error('[calculate-sync-score] Error fetching conversation:', convError);
+      return new Response(
+        JSON.stringify({ error: "Could not fetch conversation data" }),
+        { status: 404, headers: corsHeaders }
+      );
     }
 
     const swissData = translatorLog.swiss_data;
-    const userId = translatorLog.user_id;
+    const userId = conversation.user_id;
 
     console.log('[calculate-sync-score] Swiss data fetched');
 
