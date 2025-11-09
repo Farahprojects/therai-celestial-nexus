@@ -60,8 +60,7 @@ input: { text },
 voice: { languageCode: "en-US", name: voiceName },
 audioConfig: { 
   audioEncoding: "MP3",
-  sampleRateHertz: 24000,  // Lower quality for smaller file size
-  audioChannelCount: 1      // Mono instead of stereo
+  sampleRateHertz: 24000  // Lower quality for smaller file size (24kHz vs default 48kHz)
 },
 }),
 signal,
