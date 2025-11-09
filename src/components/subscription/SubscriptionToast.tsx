@@ -16,20 +16,12 @@ export const SubscriptionToast: React.FC<SubscriptionToastProps> = ({
 }) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const [showCreditModal, setShowCreditModal] = useState(false);
-  const billingMode = getBillingMode();
 
-  // Use mode-aware message if not provided
   const displayMessage = message || getLowBalanceMessage();
 
   const handleUpgrade = () => {
-    if (billingMode === 'CREDIT') {
-    setShowCreditModal(true);
-    } else {
-      // Navigate to subscription plans
-      navigate('/subscription-paywall');
-      onDismiss();
-    }
+    navigate('/subscription-paywall');
+    onDismiss();
   };
 
   // Only show on /therai route - not on public pages
