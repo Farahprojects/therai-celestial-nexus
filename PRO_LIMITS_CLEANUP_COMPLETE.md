@@ -44,11 +44,15 @@
 
 ## Current Plan Limits (Database-Driven)
 
-### Free Plan (1-Week Trial)
-- **Trial Duration**: 7 days from signup
-- **During Trial**: ZERO limits (no voice, no images, no AI)
-- **After Trial**: ONLY Together Mode (all AI features blocked)
-- **Caching**: Disabled (saves $1/million tokens)
+### Free Plan (Forever)
+- **Chat Messages**: 3 per day
+- **Together Mode**: ✅ Unlimited access
+- **@therai Insights**: 3 per day (in Together Mode)
+- **Voice**: 0 (disabled)
+- **Images**: 0 (disabled)
+- **Caching**: Disabled (saves $1/million tokens on context caching)
+
+**Note**: After 1-week trial expires, all AI features are blocked. Free users must upgrade to continue.
 
 ### Growth Plan ($10/month)
 - Voice: 600 seconds (10 minutes/month)
@@ -104,8 +108,10 @@ INSERT INTO plan_limits (
 ## Cost Savings Achieved
 1. **Free Users**:
    - No context caching = $1/million tokens saved per free user
-   - Trial expires after 1 week = predictable cost exposure
-   - Zero AI features post-trial = zero compute cost
+   - Limited to 3 chats/day = predictable daily cost exposure
+   - Limited to 3 @therai/day = controlled Together Mode cost
+   - Zero voice/images = no expensive feature costs
+   - Trial expires after 1 week = then zero AI cost
 
 2. **Centralized Limits**:
    - No code redeployments to change limits
