@@ -166,9 +166,7 @@ export const useMessageStore = create<MessageStore>()((set, get) => ({
         return { messages: updatedMessages };
       }
       
-      // ⚡ OPTIMIZED: Add new message - no sort needed, messages arrive ordered from DB
-      // But check if there's a pending optimistic message that should be replaced first
-      // (This handles edge case where client_msg_id match didn't work above)
+      // Check if there's a pending optimistic message that should be replaced first
       const hasPendingWithSameContent = state.messages.some(m => 
         m.pending && 
         m.role === message.role && 
@@ -184,10 +182,29 @@ export const useMessageStore = create<MessageStore>()((set, get) => ({
           }
           return m;
         });
+        // Sort after replacement to handle out-of-order WebSocket delivery
+        updated.sort((a, b) => {
+          // Use message_number if available (most reliable)
+          if (a.message_number != null && b.message_number != null) {
+            return a.message_number - b.message_number;
+          }
+          // Fall back to timestamp
+          return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+        });
         return { messages: updated };
       }
       
+      // Add new message and sort to handle out-of-order delivery
+      // This fixes voice mode where WebSocket can deliver assistant message before user message
       const newMessages = [...state.messages, message];
+      newMessages.sort((a, b) => {
+        // Use message_number if available (most reliable)
+        if (a.message_number != null && b.message_number != null) {
+          return a.message_number - b.message_number;
+        }
+        // Fall back to timestamp
+        return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+      });
       
       return { messages: newMessages };
     });
@@ -204,8 +221,16 @@ export const useMessageStore = create<MessageStore>()((set, get) => ({
         source: 'fetch' as const // Optimistic messages don't animate (user's own text)
       };
       
-      // ⚡ OPTIMIZED: Add optimistic message - no sort needed, new timestamp > existing
+      // Add and sort to maintain correct message order
       const newMessages = [...state.messages, optimisticMessage];
+      newMessages.sort((a, b) => {
+        // Use message_number if available (most reliable)
+        if (a.message_number != null && b.message_number != null) {
+          return a.message_number - b.message_number;
+        }
+        // Fall back to timestamp
+        return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+      });
       
       return { messages: newMessages };
     });
