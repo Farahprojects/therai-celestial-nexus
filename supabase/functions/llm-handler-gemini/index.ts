@@ -112,7 +112,7 @@ const imageGenerationTool = [
     functionDeclarations: [
       {
         name: "generate_image",
-        description: `Generate an AI image that translates the user's energetic patterns into an organic symbolic scene using natural forms: animals, landscapes, light, motion, people. Express inner strength and creative vitality in a grounded, empowering way.`,
+        description: `ONLY use this function when the user EXPLICITLY asks you to generate, create, or show them an image. DO NOT generate images for: acknowledgments (thanks, cool, ok), follow-up questions, or general conversation. When called, generate an AI image that translates the user's energetic patterns into an organic symbolic scene using natural forms: animals, landscapes, light, motion, people. Express inner strength and creative vitality in a grounded, empowering way.`,
         parameters: {
           type: "object",
           properties: {
