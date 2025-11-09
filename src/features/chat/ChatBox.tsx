@@ -17,7 +17,6 @@ import { ShareConversationModal } from '@/components/chat/ShareConversationModal
 import { ShareFolderModal } from '@/components/folders/ShareFolderModal';
 import { ChatCreationProvider } from '@/components/chat/ChatCreationProvider';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { SyncScoreResultsModal } from '@/components/sync/SyncScoreResultsModal';
 import { calculateSyncScore, getSyncScore, type ScoreBreakdown } from '@/services/syncScores';
  
 
@@ -54,12 +53,6 @@ export const ChatBox: React.FC<ChatBoxProps> = ({ onDelete }) => {
   const isConversationOpen = useConversationUIStore((s) => s.isConversationOpen);
   const { folderId: urlFolderId } = useParams<{ folderId?: string }>();
   const isMobile = useIsMobile();
-  
-  // Sync Score state
-  const [showSyncScoreModal, setShowSyncScoreModal] = useState(false);
-  const [syncScoreData, setSyncScoreData] = useState<ScoreBreakdown | null>(null);
-  const [syncScoreLoading, setSyncScoreLoading] = useState(false);
-  const [syncScorePersons, setSyncScorePersons] = useState<{ personA: string; personB: string }>({ personA: '', personB: '' });
   
   // Get chat_id from store for payment flow
   const { chat_id, startConversation, setViewMode } = useChatStore();
@@ -161,7 +154,7 @@ export const ChatBox: React.FC<ChatBoxProps> = ({ onDelete }) => {
         // Fetch conversation mode
         const { data: conversation, error: convError } = await supabase
           .from('conversations')
-          .select('mode, meta, title')
+          .select('mode, meta')
           .eq('id', chat_id)
           .single();
         
@@ -170,64 +163,52 @@ export const ChatBox: React.FC<ChatBoxProps> = ({ onDelete }) => {
         if (conversation.mode === 'sync_score') {
           console.log('[ChatBox] Sync score mode detected');
           
-          // Extract person names from title or meta
-          const title = conversation.title || '';
-          const parts = title.replace('Sync Score: ', '').split(' & ');
-          setSyncScorePersons({
-            personA: parts[0] || 'Person A',
-            personB: parts[1] || 'Person B',
-          });
-          
           // Check if score already calculated
           const existingScore = await getSyncScore(chat_id);
           
           if (existingScore) {
             console.log('[ChatBox] Score already exists:', existingScore);
-            setSyncScoreData(existingScore);
-            setShowSyncScoreModal(true);
-          } else {
-            // Wait a bit for translator to process, then calculate
-            setSyncScoreLoading(true);
+            // Score exists, image should already be in chat
+            return;
+          }
+          
+          // Wait for translator to process, then calculate
+          console.log('[ChatBox] Waiting for Swiss data...');
+          
+          // Poll for translator log (Swiss data)
+          const pollForData = async (attempts = 0): Promise<boolean> => {
+            if (attempts > 20) return false; // Max 20 attempts (10 seconds)
             
-            // Poll for translator log (Swiss data)
-            const pollForData = async (attempts = 0): Promise<boolean> => {
-              if (attempts > 20) return false; // Max 20 attempts (10 seconds)
-              
-              const { data: translatorLog } = await supabase
-                .from('translator_logs')
-                .select('swiss_data')
-                .eq('chat_id', chat_id)
-                .order('created_at', { ascending: false })
-                .limit(1)
-                .maybeSingle();
-              
-              if (translatorLog && translatorLog.swiss_data) {
-                console.log('[ChatBox] Swiss data found, calculating score');
-                return true;
-              }
-              
-              // Wait 500ms before next attempt
-              await new Promise(resolve => setTimeout(resolve, 500));
-              return pollForData(attempts + 1);
-            };
+            const { data: translatorLog } = await supabase
+              .from('translator_logs')
+              .select('swiss_data')
+              .eq('chat_id', chat_id)
+              .order('created_at', { ascending: false })
+              .limit(1)
+              .maybeSingle();
             
-            const dataReady = await pollForData();
-            
-            if (dataReady) {
-              const score = await calculateSyncScore(chat_id);
-              console.log('[ChatBox] Score calculated:', score);
-              setSyncScoreData(score);
-              setShowSyncScoreModal(true);
-            } else {
-              console.error('[ChatBox] Swiss data not ready after polling');
+            if (translatorLog && translatorLog.swiss_data) {
+              console.log('[ChatBox] Swiss data found, calculating score');
+              return true;
             }
             
-            setSyncScoreLoading(false);
+            // Wait 500ms before next attempt
+            await new Promise(resolve => setTimeout(resolve, 500));
+            return pollForData(attempts + 1);
+          };
+          
+          const dataReady = await pollForData();
+          
+          if (dataReady) {
+            const score = await calculateSyncScore(chat_id);
+            console.log('[ChatBox] Score calculated:', score);
+            // Image will appear in chat automatically via message updates
+          } else {
+            console.error('[ChatBox] Swiss data not ready after polling');
           }
         }
       } catch (error) {
         console.error('[ChatBox] Error in sync score mode:', error);
-        setSyncScoreLoading(false);
       }
     };
     
@@ -447,22 +428,6 @@ export const ChatBox: React.FC<ChatBoxProps> = ({ onDelete }) => {
         <ShareFolderModal
           folderId={selectedFolderId || urlFolderId || ''}
           onClose={() => setShowFolderShareModal(false)}
-        />
-      )}
-
-      {/* Sync Score Results Modal */}
-      {syncScoreData && (
-        <SyncScoreResultsModal
-          isOpen={showSyncScoreModal}
-          onClose={() => setShowSyncScoreModal(false)}
-          score={syncScoreData}
-          personAName={syncScorePersons.personA}
-          personBName={syncScorePersons.personB}
-          onCalculateAnother={() => {
-            setShowSyncScoreModal(false);
-            // Navigate back to main chat and open sync score flow
-            navigate('/c');
-          }}
         />
       )}
 

@@ -1,6 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { generateConnectionProfile } from "../_shared/sync-engine/index.ts";
-import type { ConnectionProfile } from "../_shared/sync-engine/types.ts";
+import { GoogleGenAI } from "https://esm.sh/@google/genai@^1.0.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -12,32 +11,21 @@ const corsHeaders = {
 
 interface ScoreBreakdown {
   overall: number;
-  astrological: number;
-  breakdown: {
-    harmonious_aspects: number;
-    challenging_aspects: number;
-    neutral_aspects: number;
-    key_connections: string[];
-    dominant_theme: string;
-    all_themes: Array<{ name: string; weight: number }>;
-  };
-  archetype: {
-    id: string;
-    name: string;
-    description: string;
-    tone: string;
-    keywords: string[];
-  };
-  poetic_headline: string;
+  archetype_name: string;
   ai_insight: string;
   calculated_at: string;
   rarity_percentile: number;
   card_image_url?: string | null;
 }
 
+interface LLMSyncResponse {
+  score: number;
+  archetype: string;
+  insight: string;
+}
+
 /**
  * Calculate rarity percentile based on score distribution
- * TODO: Replace with real database query for actual rarity
  */
 function calculateRarity(score: number): number {
   if (score >= 95) return 99;
@@ -51,22 +39,144 @@ function calculateRarity(score: number): number {
 }
 
 /**
+ * Extract key aspects from Swiss data for LLM analysis
+ */
+function extractAspectsForLLM(swissData: any): string {
+  const aspects = swissData?.blocks?.synastry_aspects?.pairs || 
+                  swissData?.synastry_aspects?.pairs || 
+                  [];
+
+  if (aspects.length === 0) return "No aspects found.";
+
+  // Group by type
+  const byType: Record<string, string[]> = {};
+  aspects.forEach((aspect: any) => {
+    if (!aspect?.type || !aspect?.a || !aspect?.b) return;
+    const key = aspect.type.toLowerCase();
+    if (!byType[key]) byType[key] = [];
+    byType[key].push(`${aspect.a}-${aspect.b}`);
+  });
+
+  // Format for LLM
+  const lines = Object.entries(byType).map(([type, connections]) => 
+    `${type}: ${connections.slice(0, 5).join(', ')}${connections.length > 5 ? '...' : ''}`
+  );
+
+  return lines.join('\n');
+}
+
+/**
+ * Ask Gemini Flash to analyze synastry and generate dynamic score
+ */
+async function analyzeSyncWithLLM(
+  swissData: any,
+  personAName: string,
+  personBName: string
+): Promise<LLMSyncResponse> {
+  const apiKey = Deno.env.get("GOOGLE-LLM-NEW");
+  if (!apiKey) throw new Error("Missing GOOGLE-LLM-NEW");
+
+  const genAI = new GoogleGenAI({ apiKey });
+  
+  // Extract aspects for analysis
+  const aspectsSummary = extractAspectsForLLM(swissData);
+  const today = new Date().toISOString().split('T')[0];
+
+  // System prompt for dynamic sync analysis
+  const prompt = `You are a cosmic relationship analyst. Analyze this astrological synastry data and provide THREE specific outputs:
+
+TODAY'S DATE: ${today}
+
+SYNASTRY ASPECTS BETWEEN ${personAName} & ${personBName}:
+${aspectsSummary}
+
+Your task:
+1. Calculate a SYNC SCORE (0-100) based on how these two souls align RIGHT NOW at this cosmic moment
+2. Assign them an ARCHETYPE (a poetic 2-4 word name like "The Phoenix Pair", "Cosmic Counterparts", "Fire Meets Fire")
+3. Write ONE powerful sentence explaining WHY they have this connection
+
+Consider:
+- Harmonious aspects (trine, sextile, conjunction) increase the score
+- Challenging aspects (square, opposition) add intensity but can lower score
+- Today's cosmic energy and how it affects their connection
+- The FEELING of their bond, not just the math
+
+Respond in JSON format ONLY:
+{
+  "score": 85,
+  "archetype": "The Phoenix Pair",
+  "insight": "Every challenge transforms you both into something more beautiful."
+}
+
+Be poetic, profound, and specific. Make them FEEL the magic of their connection.`;
+
+  try {
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const result = await model.generateContent(prompt);
+    const responseText = result.response.text();
+    
+    console.log('[calculate-sync-score] LLM raw response:', responseText);
+    
+    // Parse JSON from response (handle markdown code blocks)
+    let jsonText = responseText.trim();
+    if (jsonText.startsWith('```json')) {
+      jsonText = jsonText.replace(/^```json\n/, '').replace(/\n```$/, '');
+    } else if (jsonText.startsWith('```')) {
+      jsonText = jsonText.replace(/^```\n/, '').replace(/\n```$/, '');
+    }
+    
+    const parsed = JSON.parse(jsonText);
+    
+    // Validate response
+    if (!parsed.score || !parsed.archetype || !parsed.insight) {
+      throw new Error('LLM response missing required fields');
+    }
+    
+    // Ensure score is in range
+    const score = Math.min(100, Math.max(0, Math.round(parsed.score)));
+    
+    return {
+      score,
+      archetype: parsed.archetype,
+      insight: parsed.insight,
+    };
+  } catch (error) {
+    console.error('[calculate-sync-score] LLM analysis failed:', error);
+    // Fallback to basic calculation
+    return {
+      score: 75,
+      archetype: "Cosmic Connection",
+      insight: "Your energies create a unique space of understanding and growth.",
+    };
+  }
+}
+
+/**
  * Generate image prompt for connection card
  */
 function generateSyncCardPrompt(
-  profile: ConnectionProfile,
+  score: number,
+  archetype: string,
+  insight: string,
   personAName: string,
   personBName: string,
   rarityPercentile: number
 ): string {
+  // Color scheme based on score
+  const colorScheme = score >= 80 
+    ? 'deep purple and magenta gradient'
+    : score >= 60
+      ? 'blue and cyan gradient'
+      : 'warm yellow and orange gradient';
+
   return `Create an elegant, mystical connection card in portrait orientation (9:16).
 
 DESIGN STRUCTURE:
-- Top third: Celestial background with ${profile.colorScheme}, subtle star field, ethereal glow
-- Center: Large white number "${profile.score}%" with cosmic sparkle effects
-- Below score: "${profile.headline}" in elegant italic serif font
+- Top third: Celestial background with ${colorScheme}, subtle star field, ethereal glow
+- Center: Large white number "${score}%" with cosmic sparkle effects
+- Below score: "${archetype}" in elegant italic serif font
 - Middle section: "${personAName} & ${personBName}" in clean sans-serif
-- Quote section: Stylized quote marks around: "${profile.insight}"
+- Quote section: Stylized quote marks around: "${insight}"
 ${rarityPercentile >= 50 ? `- Badge: Small purple badge with sparkle icon and "Top ${100 - rarityPercentile}% Connection"` : ''}
 - Bottom: "therai.co" watermark, subtle and elegant
 
@@ -80,7 +190,7 @@ STYLE:
 - Clean, modern, shareable
 
 COLORS:
-- Background: ${profile.colorScheme}
+- Background: ${colorScheme}
 - Text: White and light gray
 - Accents: Soft glows matching background
 - Keep it elegant and premium`;
@@ -147,16 +257,6 @@ Deno.serve(async (req) => {
 
     console.log('[calculate-sync-score] Swiss data fetched');
 
-    // 🧠 NEW ENGINE: Generate complete connection profile
-    // This replaces 200+ lines of manual calculation with semantic interpretation
-    const profile: ConnectionProfile = generateConnectionProfile(swissData);
-
-    console.log(`[calculate-sync-score] Profile generated: ${profile.score}% - ${profile.archetype.name}`);
-    console.log(`[calculate-sync-score] Dominant theme: ${profile.dominantTheme.name} (${profile.themes.length} themes detected)`);
-
-    // Calculate rarity percentile
-    const rarityPercentile = calculateRarity(profile.score);
-
     // Extract person names from conversation title
     let personAName = 'Person A';
     let personBName = 'Person B';
@@ -168,27 +268,21 @@ Deno.serve(async (req) => {
       personBName = parts[1] || 'Person B';
     }
 
+    // 🤖 LLM-DRIVEN ANALYSIS: Ask Gemini Flash to analyze the connection
+    console.log(`[calculate-sync-score] Asking LLM to analyze ${personAName} & ${personBName}`);
+    const llmAnalysis = await analyzeSyncWithLLM(swissData, personAName, personBName);
+
+    console.log(`[calculate-sync-score] LLM generated: ${llmAnalysis.score}% - ${llmAnalysis.archetype}`);
+    console.log(`[calculate-sync-score] Insight: ${llmAnalysis.insight}`);
+
+    // Calculate rarity percentile
+    const rarityPercentile = calculateRarity(llmAnalysis.score);
+
     // Build score breakdown for storage and API response
     const scoreBreakdown: ScoreBreakdown = {
-      overall: profile.score,
-      astrological: profile.score,
-      breakdown: {
-        harmonious_aspects: profile.features.harmoniousAspects,
-        challenging_aspects: profile.features.challengingAspects,
-        neutral_aspects: profile.features.neutralAspects,
-        key_connections: profile.features.keyConnections,
-        dominant_theme: profile.dominantTheme.name,
-        all_themes: profile.themes.map(t => ({ name: t.name, weight: t.weight })),
-      },
-      archetype: {
-        id: profile.archetype.id,
-        name: profile.archetype.name,
-        description: profile.archetype.description,
-        tone: profile.archetype.tone,
-        keywords: profile.archetype.keywords,
-      },
-      poetic_headline: profile.headline,
-      ai_insight: profile.insight,
+      overall: llmAnalysis.score,
+      archetype_name: llmAnalysis.archetype,
+      ai_insight: llmAnalysis.insight,
       calculated_at: new Date().toISOString(),
       rarity_percentile: rarityPercentile,
     };
@@ -197,7 +291,9 @@ Deno.serve(async (req) => {
     console.log('[calculate-sync-score] Generating connection card...');
     
     const cardPrompt = generateSyncCardPrompt(
-      profile,
+      llmAnalysis.score,
+      llmAnalysis.archetype,
+      llmAnalysis.insight,
       personAName,
       personBName,
       rarityPercentile

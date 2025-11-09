@@ -2,23 +2,7 @@ import { supabase } from '@/integrations/supabase/client';
 
 export interface ScoreBreakdown {
   overall: number;
-  astrological: number;
-  breakdown: {
-    harmonious_aspects: number;
-    challenging_aspects: number;
-    neutral_aspects: number;
-    key_connections: string[];
-    dominant_theme: string;
-    all_themes: Array<{ name: string; weight: number }>;
-  };
-  archetype: {
-    id: string;
-    name: string;
-    description: string;
-    tone: string;
-    keywords: string[];
-  };
-  poetic_headline: string;
+  archetype_name: string;
   ai_insight: string;
   calculated_at: string;
   rarity_percentile: number;
