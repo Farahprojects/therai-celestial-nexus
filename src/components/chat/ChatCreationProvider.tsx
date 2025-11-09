@@ -8,8 +8,11 @@ import { useMessageStore } from '@/stores/messageStore';
 import { InsightsModal } from '@/components/insights/InsightsModal';
 import { AstroChartSelector } from '@/components/chat/AstroChartSelector';
 import { AstroDataForm } from '@/components/chat/AstroDataForm';
+import { ProfileSelectorModal } from '@/components/sync/ProfileSelectorModal';
 import { ReportFormData } from '@/types/public-report';
 import { AuthModal } from '@/components/auth/AuthModal';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 type ChatMode = 'chat' | 'astro' | 'insight' | 'together' | 'sync_score';
 
@@ -111,6 +114,86 @@ export const ChatCreationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     setShowSyncScoreModal(true);
   }, [requireEligibleUser]);
 
+  const handleProfileSelect = useCallback(async (selectedProfile: any) => {
+    if (!user) return;
+
+    try {
+      // Get user's primary profile
+      const { data: primaryProfile, error: primaryError } = await supabase
+        .from('user_profile_list')
+        .select('*')
+        .eq('is_primary', true)
+        .single();
+
+      if (primaryError || !primaryProfile) {
+        toast.error('Please set up your primary profile in Settings first');
+        return;
+      }
+
+      // Create conversation title
+      const title = `Sync Score: ${primaryProfile.name} & ${selectedProfile.name}`;
+
+      // Create the conversation
+      const { addThread } = useChatStore.getState();
+      const newChatId = await addThread(user.id, 'sync_score', title);
+
+      // Prepare the data payload for Swiss API
+      const payload = {
+        chat_id: newChatId,
+        report_data: {
+          person1: {
+            name: primaryProfile.name,
+            birth_date: primaryProfile.birth_date,
+            birth_time: primaryProfile.birth_time,
+            birth_location: primaryProfile.birth_location,
+            latitude: primaryProfile.birth_latitude,
+            longitude: primaryProfile.birth_longitude,
+            place_id: primaryProfile.birth_place_id,
+            timezone: primaryProfile.timezone,
+          },
+          person2: {
+            name: selectedProfile.name,
+            birth_date: selectedProfile.birth_date,
+            birth_time: selectedProfile.birth_time,
+            birth_location: selectedProfile.birth_location,
+            latitude: selectedProfile.birth_latitude,
+            longitude: selectedProfile.birth_longitude,
+            place_id: selectedProfile.birth_place_id,
+            timezone: selectedProfile.timezone,
+          },
+          reportType: null, // No report needed, just Swiss data
+        },
+      };
+
+      // Send to Swiss API translator
+      const { data: translateData, error: translateError } = await supabase.functions.invoke('swiss-api-translator', {
+        body: payload,
+      });
+
+      if (translateError) {
+        console.error('[ProfileSelector] Error calling translator:', translateError);
+        toast.error('Failed to process astrological data');
+        return;
+      }
+
+      // Navigate to the conversation
+      const { setChatId } = useMessageStore.getState();
+      setChatId(newChatId);
+
+      const { startConversation } = useChatStore.getState();
+      startConversation(newChatId);
+
+      const { chatController } = await import('@/features/chat/ChatController');
+      await chatController.switchToChat(newChatId);
+
+      setShowSyncScoreModal(false);
+      navigate(`/c/${newChatId}`, { replace: true });
+    } catch (error) {
+      console.error('[ProfileSelector] Failed to create sync score:', error);
+      toast.error('Failed to create Sync Score');
+    }
+  }, [user, navigate]);
+
   const handleSelectChart = useCallback((chartId: string) => {
     setSelectedChartType(chartId);
     setShowAstroChartSelector(false);
@@ -202,19 +285,11 @@ export const ChatCreationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         </div>
       )}
 
-      {showSyncScoreModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="w-full max-w-2xl max-h-[90vh] overflow-hidden rounded-3xl bg-white shadow-2xl">
-            <AstroDataForm
-              onClose={() => setShowSyncScoreModal(false)}
-              onSubmit={handleAstroFormSubmit}
-              mode="sync_score"
-              preselectedType="sync"
-              reportType={null}
-            />
-          </div>
-        </div>
-      )}
+      <ProfileSelectorModal
+        isOpen={showSyncScoreModal}
+        onClose={() => setShowSyncScoreModal(false)}
+        onSelect={handleProfileSelect}
+      />
 
       <AuthModal
         isOpen={showAuthModal}
