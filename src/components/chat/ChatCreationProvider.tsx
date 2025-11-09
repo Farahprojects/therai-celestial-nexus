@@ -11,13 +11,14 @@ import { AstroDataForm } from '@/components/chat/AstroDataForm';
 import { ReportFormData } from '@/types/public-report';
 import { AuthModal } from '@/components/auth/AuthModal';
 
-type ChatMode = 'chat' | 'astro' | 'insight' | 'together';
+type ChatMode = 'chat' | 'astro' | 'insight' | 'together' | 'sync_score';
 
 interface ChatCreationContextValue {
   startChat: () => Promise<void>;
   startTogetherMode: () => Promise<void>;
   openAstroFlow: () => void;
   openInsightsFlow: () => void;
+  openSyncScoreFlow: () => void;
 }
 
 const ChatCreationContext = createContext<ChatCreationContextValue | undefined>(undefined);
@@ -40,6 +41,7 @@ export const ChatCreationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const [showInsightsModal, setShowInsightsModal] = useState(false);
   const [showAstroChartSelector, setShowAstroChartSelector] = useState(false);
   const [showAstroModal, setShowAstroModal] = useState(false);
+  const [showSyncScoreModal, setShowSyncScoreModal] = useState(false);
   const [selectedChartType, setSelectedChartType] = useState<string | null>(null);
 
   const requireEligibleUser = useCallback((requireSubscription: boolean = false): boolean => {
@@ -103,6 +105,12 @@ export const ChatCreationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     setShowInsightsModal(true);
   }, [requireEligibleUser]);
 
+  const openSyncScoreFlow = useCallback(() => {
+    // ✅ Sync Score requires subscription
+    if (!requireEligibleUser(true)) return;
+    setShowSyncScoreModal(true);
+  }, [requireEligibleUser]);
+
   const handleSelectChart = useCallback((chartId: string) => {
     setSelectedChartType(chartId);
     setShowAstroChartSelector(false);
@@ -154,8 +162,9 @@ export const ChatCreationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       startTogetherMode: () => handleNewConversation('together'),
       openAstroFlow,
       openInsightsFlow,
+      openSyncScoreFlow,
     }),
-    [handleNewConversation, openAstroFlow, openInsightsFlow]
+    [handleNewConversation, openAstroFlow, openInsightsFlow, openSyncScoreFlow]
   );
 
   return (
@@ -188,6 +197,20 @@ export const ChatCreationProvider: React.FC<{ children: React.ReactNode }> = ({ 
               mode="astro"
               preselectedType={selectedChartType}
               reportType={selectedChartType}
+            />
+          </div>
+        </div>
+      )}
+
+      {showSyncScoreModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="w-full max-w-2xl max-h-[90vh] overflow-hidden rounded-3xl bg-white shadow-2xl">
+            <AstroDataForm
+              onClose={() => setShowSyncScoreModal(false)}
+              onSubmit={handleAstroFormSubmit}
+              mode="sync_score"
+              preselectedType="sync"
+              reportType={null}
             />
           </div>
         </div>

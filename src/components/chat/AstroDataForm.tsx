@@ -35,7 +35,7 @@ interface AstroDataFormProps {
   contextId?: string;
   isProfileFlow?: boolean;
   variant?: 'standalone' | 'insights';
-  mode?: 'chat' | 'astro' | 'insight' | 'swiss' | 'together';
+  mode?: 'chat' | 'astro' | 'insight' | 'swiss' | 'together' | 'sync_score';
   defaultName?: string;
 }
 
@@ -200,7 +200,7 @@ export const AstroDataForm: React.FC<AstroDataFormProps> = ({
     }
     
     // Regular mode: create conversation
-    if (!mode || (mode !== 'astro' && mode !== 'insight' && mode !== 'swiss')) {
+    if (!mode || (mode !== 'astro' && mode !== 'insight' && mode !== 'swiss' && mode !== 'sync_score')) {
       toast.error('Please select a mode from the dropdown menu before submitting.');
       return;
     }
@@ -208,10 +208,10 @@ export const AstroDataForm: React.FC<AstroDataFormProps> = ({
     setIsProcessing(true);
 
     try {
-      // Always create new conversation for astro, insight, and swiss modes
+      // Always create new conversation for astro, insight, swiss, and sync_score modes
       const payload = buildReportPayload(data, selectedAstroType);
-      // Determine the conversation mode and title using explicitMode to include 'swiss'
-      let conversationMode: 'astro' | 'insight' | 'swiss' = 'astro';
+      // Determine the conversation mode and title using explicitMode to include 'swiss' and 'sync_score'
+      let conversationMode: 'astro' | 'insight' | 'swiss' | 'sync_score' = 'astro';
       let title = data.name;
       
       if (explicitMode === 'insight' || mode === 'insight') {
@@ -222,13 +222,16 @@ export const AstroDataForm: React.FC<AstroDataFormProps> = ({
         conversationMode = 'swiss';
         const chartTypeName = getSwissChartDisplayName(selectedAstroType || '');
         title = `${data.name} - ${chartTypeName}`;
+      } else if (explicitMode === 'sync_score') {
+        conversationMode = 'sync_score';
+        title = `Sync Score: ${data.name} & ${data.secondPersonName}`;
       } else {
         // Regular astro mode - use chart type display name (e.g., "Weekly Snap", "Daily Shot")
         title = getAstroTitle(data.name, selectedAstroType, data.secondPersonName);
       }
       
-      // For Swiss mode, explicitly set reportType to null to skip orchestrator
-      const payloadToSend = explicitMode === 'swiss' 
+      // For Swiss mode and sync_score mode, explicitly set reportType to null to skip orchestrator
+      const payloadToSend = (explicitMode === 'swiss' || explicitMode === 'sync_score')
         ? { 
             ...payload, 
             report_data: { 
@@ -304,11 +307,15 @@ export const AstroDataForm: React.FC<AstroDataFormProps> = ({
         {isMobile && (
           <div className="sticky top-0 z-10 bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
             <h2 className="text-lg font-light text-gray-900">
-              {currentStep === 'type'
-                ? 'Choose Your Path'
-                : currentStep === 'details'
-                  ? 'Your Details'
-                  : 'Partner Details'}
+              {explicitMode === 'sync_score'
+                ? currentStep === 'details'
+                  ? 'Calculate Sync Score'
+                  : 'Partner Details'
+                : currentStep === 'type'
+                  ? 'Choose Your Path'
+                  : currentStep === 'details'
+                    ? 'Your Details'
+                    : 'Partner Details'}
             </h2>
             <Button
               type="button"
