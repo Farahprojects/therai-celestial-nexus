@@ -343,33 +343,67 @@ Deno.serve(async (req) => {
       rarityPercentile
     );
 
-    let cardImageUrl = null;
-    try {
-      const imageResponse = await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/image-generate`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
-        },
-        body: JSON.stringify({
-          chat_id: chat_id,
-          prompt: cardPrompt,
-          user_id: swissData?.meta?.user_id || 'system',
-          mode: 'sync',
-          image_id: crypto.randomUUID(), // Dummy ID for sync cards
-        }),
-      });
+    // Get user_id from Swiss data or conversation
+    let userId = swissData?.meta?.user_id;
+    if (!userId) {
+      const { data: conv } = await supabase
+        .from('conversations')
+        .select('user_id')
+        .eq('id', chat_id)
+        .single();
+      userId = conv?.user_id;
+    }
 
-      if (imageResponse.ok) {
-        const imageData = await imageResponse.json();
-        cardImageUrl = imageData.image_url;
-        console.log('[calculate-sync-score] Card image generated:', cardImageUrl);
-      } else {
-        console.error('[calculate-sync-score] Image generation failed:', await imageResponse.text());
+    // Create a placeholder message for the connection card
+    const { data: newMessage, error: messageError } = await supabase
+      .from('messages')
+      .insert({
+        chat_id: chat_id,
+        user_id: userId,
+        role: 'assistant',
+        text: 'Generating your connection card...',
+        status: 'pending',
+        meta: {
+          message_type: 'image',
+          sync_score: true,
+        }
+      })
+      .select()
+      .single();
+
+    if (messageError || !newMessage) {
+      console.error('[calculate-sync-score] Failed to create message:', messageError);
+    }
+
+    let cardImageUrl = null;
+    if (newMessage) {
+      try {
+        const imageResponse = await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/image-generate`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+          },
+          body: JSON.stringify({
+            chat_id: chat_id,
+            prompt: cardPrompt,
+            user_id: userId,
+            mode: 'sync',
+            image_id: newMessage.id,
+          }),
+        });
+
+        if (imageResponse.ok) {
+          const imageData = await imageResponse.json();
+          cardImageUrl = imageData.image_url;
+          console.log('[calculate-sync-score] Card image generated:', cardImageUrl);
+        } else {
+          console.error('[calculate-sync-score] Image generation failed:', await imageResponse.text());
+        }
+      } catch (imageError) {
+        console.error('[calculate-sync-score] Image generation error:', imageError);
+        // Continue without image - not critical
       }
-    } catch (imageError) {
-      console.error('[calculate-sync-score] Image generation error:', imageError);
-      // Continue without image - not critical
     }
 
     // 8. Store result in conversations.meta (including image URL)
