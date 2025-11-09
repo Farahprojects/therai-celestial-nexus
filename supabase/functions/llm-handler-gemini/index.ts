@@ -77,6 +77,20 @@ function sanitizePlainText(input: string) {
     .trim();
 }
 
+/**
+ * Returns true only if the current message explicitly asks to generate/show an image.
+ * This enforces "last message priority" for tool use and prevents carry-over intent.
+ */
+function messageExplicitlyRequestsImage(message: string): boolean {
+  const s = (message || "").toLowerCase();
+  // Require both an action verb and an image noun in the same message
+  const hasAction = /\b(show|send|give|make|create|generate|render|draw|produce)\b/.test(s);
+  const hasImageNoun = /\b(image|picture|pic|photo|illustration|art|visual)\b/.test(s);
+  const shorthand = /\b(img|imggen)\b/.test(s);
+  const negated = /\b(no|not|don't|do not|stop|without)\b.*\b(image|picture|photo|art|visual)\b/.test(s);
+  return ((hasAction && hasImageNoun) || shorthand) && !negated;
+}
+
 /* ------------------------------- System Prompt --------------------------- */
 /* Kept your original prompt body; minor whitespace normalization only. */
 const systemPrompt = `You are an AI guide for self-awareness who understands planet energies  as ressence infulance.
@@ -457,8 +471,13 @@ Deno.serve(async (req: Request) => {
     // add current message
     contents.push({ role: "user", parts: [{ text: String(text) }] });
 
+    // Decide tool availability strictly per current message (last message priority)
+    const enableImageTool = messageExplicitlyRequestsImage(text);
+
     // Build request body
     const requestBody: any = { contents };
+    // Disable function calling by default for this turn; enable only when explicitly requested
+    requestBody.toolConfig = { functionCallingConfig: { mode: enableImageTool ? "AUTO" : "NONE" } };
 
     if (cacheName) {
       requestBody.cachedContent = cacheName;
@@ -470,7 +489,9 @@ Deno.serve(async (req: Request) => {
       }
       combinedSystemInstruction += `\n\n[CRITICAL: Remember Your Instructions]\n${systemPrompt}`;
       requestBody.system_instruction = { role: "system", parts: [{ text: combinedSystemInstruction }] };
-      requestBody.tools = imageGenerationTool;
+      if (enableImageTool) {
+        requestBody.tools = imageGenerationTool;
+      }
     }
 
     requestBody.generationConfig = { temperature: 0.7, thinkingConfig: { thinkingBudget: 0 } };
@@ -509,7 +530,7 @@ Deno.serve(async (req: Request) => {
 
     let assistantText = "";
 
-    if (functionCall && functionCall.name === "generate_image") {
+    if (functionCall && functionCall.name === "generate_image" && messageExplicitlyRequestsImage(text)) {
       // handle image generation via internal edge function
       const prompt = functionCall.args?.prompt || "";
       
@@ -624,7 +645,12 @@ Deno.serve(async (req: Request) => {
       }
     } else {
       // normal text extraction
-      assistantText = candidateParts.map((p: any) => p?.text || "").join(" ").trim();
+      // Ignore any functionCall parts if the last message did not explicitly request an image
+      assistantText = candidateParts
+        .filter((p: any) => typeof p?.text === "string" && p.text.trim().length > 0)
+        .map((p: any) => p.text)
+        .join(" ")
+        .trim();
       if (!assistantText) {
         console.error("[gemini] no assistant text returned");
         return JSON_RESPONSE(502, { error: "No response text from Gemini" });
