@@ -37,6 +37,7 @@ UserMessage.displayName = 'UserMessage';
 
 // ⚡ MEMOIZED ASSISTANT MESSAGE - Only re-renders when message data changes
 const AssistantMessage = React.memo(({ message }: { message: Message }) => {
+  const navigate = useNavigate();
   const { text, pending, source, meta } = message;
   // Only animate fresh WebSocket messages, not loaded/refreshed messages
   const shouldAnimate = source === 'websocket';
@@ -44,6 +45,7 @@ const AssistantMessage = React.memo(({ message }: { message: Message }) => {
   const displayText = isAnimating ? animatedText : text || '';
   const metaData = meta as any;
   const isTogetherModeAnalysis = metaData?.together_mode_analysis === true;
+  const isLimitExceeded = metaData?.limit_exceeded === true;
 
   return (
     <div className="flex items-end gap-3 justify-start mb-8">
@@ -76,6 +78,19 @@ const AssistantMessage = React.memo(({ message }: { message: Message }) => {
             {displayText}
           </ReactMarkdown>
         </div>
+        
+        {/* ✨ Limit Exceeded CTA */}
+        {isLimitExceeded && (
+          <div className="mt-3">
+            <Button
+              onClick={() => navigate('/subscription-paywall')}
+              className="bg-gray-900 text-white hover:bg-gray-800 rounded-full px-6 py-2 text-sm font-light"
+            >
+              View Plans
+            </Button>
+          </div>
+        )}
+        
         {pending && (
           <div className="text-xs text-gray-500 mt-1 italic">Thinking...</div>
         )}
