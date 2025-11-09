@@ -118,10 +118,10 @@ export const ChatCreationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     if (!user) return;
 
     try {
-      // Get user's primary profile
+      // First, fetch primary profile to create conversation title
       const { data: primaryProfile, error: primaryError } = await supabase
         .from('user_profile_list')
-        .select('*')
+        .select('name')
         .eq('is_primary', true)
         .single();
 
@@ -137,44 +137,22 @@ export const ChatCreationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       const { addThread } = useChatStore.getState();
       const newChatId = await addThread(user.id, 'sync_score', title);
 
-      // Prepare the data payload for Swiss API
-      const payload = {
-        chat_id: newChatId,
-        report_data: {
-          person1: {
-            name: primaryProfile.name,
-            birth_date: primaryProfile.birth_date,
-            birth_time: primaryProfile.birth_time,
-            birth_location: primaryProfile.birth_location,
-            latitude: primaryProfile.birth_latitude,
-            longitude: primaryProfile.birth_longitude,
-            place_id: primaryProfile.birth_place_id,
-            timezone: primaryProfile.timezone,
-          },
-          person2: {
-            name: selectedProfile.name,
-            birth_date: selectedProfile.birth_date,
-            birth_time: selectedProfile.birth_time,
-            birth_location: selectedProfile.birth_location,
-            latitude: selectedProfile.birth_latitude,
-            longitude: selectedProfile.birth_longitude,
-            place_id: selectedProfile.birth_place_id,
-            timezone: selectedProfile.timezone,
-          },
-          reportType: null, // No report needed, just Swiss data
+      // Call edge function to handle profile fetching and Swiss API (server-side)
+      const { data, error } = await supabase.functions.invoke('create-sync-score-conversation', {
+        body: {
+          chat_id: newChatId,
+          selected_profile_id: selectedProfile.id,
+          user_id: user.id,
         },
-      };
-
-      // Send to Swiss API translator
-      const { data: translateData, error: translateError } = await supabase.functions.invoke('swiss-api-translator', {
-        body: payload,
       });
 
-      if (translateError) {
-        console.error('[ProfileSelector] Error calling translator:', translateError);
+      if (error) {
+        console.error('[ProfileSelector] Error creating sync score:', error);
         toast.error('Failed to process astrological data');
         return;
       }
+
+      console.log('[ProfileSelector] Sync score conversation created:', data);
 
       // Navigate to the conversation
       const { setChatId } = useMessageStore.getState();
