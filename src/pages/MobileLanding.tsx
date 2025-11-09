@@ -152,9 +152,9 @@ const MobileLanding: React.FC<Props> = ({
         duration: 1,
         ease: "easeOut"
       }}>
-            <h1 className="text-[2.65rem] sm:text-[3.25rem] font-light text-gray-900 leading-tight mb-6 flex items-center justify-center gap-x-2.5 sm:gap-x-5 whitespace-nowrap tracking-tight">
+            <h1 className="text-[2.65rem] sm:text-[3.25rem] font-light text-gray-900 leading-tight mb-6 flex items-center justify-center gap-x-2 sm:gap-x-3 whitespace-nowrap tracking-tight">
               <span>Know</span>
-              <span className="italic font-light flex items-center justify-center gap-x-2.5 sm:gap-x-4">
+              <span className="italic font-light flex items-center justify-center gap-x-2 sm:gap-x-3">
                 <span>Your</span>
                 <AnimatePresence mode="wait">
                   <motion.span key={currentWordIndex} initial={{

@@ -277,9 +277,10 @@ class ChatController {
     const { messages, updateMessage } = useMessageStore.getState();
     
     // Find and remove payment progress messages
-    const progressMessages = messages.filter(m => 
-      m.meta?.type === 'payment-progress'
-    );
+    const progressMessages = messages.filter(m => {
+      const meta = m.meta as any;
+      return meta?.type === 'payment-progress';
+    });
     
     progressMessages.forEach(msg => {
       // Mark as complete instead of actually removing

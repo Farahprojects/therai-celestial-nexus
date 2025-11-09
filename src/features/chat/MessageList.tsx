@@ -42,7 +42,8 @@ const AssistantMessage = React.memo(({ message }: { message: Message }) => {
   const shouldAnimate = source === 'websocket';
   const { animatedText, isAnimating } = useWordAnimation(text || '', shouldAnimate);
   const displayText = isAnimating ? animatedText : text || '';
-  const isTogetherModeAnalysis = meta?.together_mode_analysis === true;
+  const metaData = meta as any;
+  const isTogetherModeAnalysis = metaData?.together_mode_analysis === true;
 
   return (
     <div className="flex items-end gap-3 justify-start mb-8">
@@ -83,22 +84,24 @@ const AssistantMessage = React.memo(({ message }: { message: Message }) => {
   );
 }, (prevProps, nextProps) => {
   // Re-render if text, id, source, or image meta changed
+  const prevMeta = prevProps.message.meta as any;
+  const nextMeta = nextProps.message.meta as any;
   return prevProps.message.id === nextProps.message.id && 
          prevProps.message.text === nextProps.message.text &&
          prevProps.message.pending === nextProps.message.pending &&
          prevProps.message.source === nextProps.message.source &&
-         prevProps.message.meta?.together_mode_analysis === nextProps.message.meta?.together_mode_analysis &&
-         prevProps.message.meta?.message_type === nextProps.message.meta?.message_type &&
-         prevProps.message.meta?.image_url === nextProps.message.meta?.image_url &&
-         prevProps.message.meta?.status === nextProps.message.meta?.status;
+         prevMeta?.together_mode_analysis === nextMeta?.together_mode_analysis &&
+         prevMeta?.message_type === nextMeta?.message_type &&
+         prevMeta?.image_url === nextMeta?.image_url &&
+         prevMeta?.status === nextMeta?.status;
 });
 AssistantMessage.displayName = 'AssistantMessage';
 
 // Image component with loading state - uses same structure for smooth transition
 const ImageWithLoading = React.memo(({ message }: { message: Message }) => {
-  const { meta } = message;
-  const imageUrl = meta?.image_url;
-  const imagePrompt = meta?.image_prompt;
+  const metaData = message.meta as any;
+  const imageUrl = metaData?.image_url;
+  const imagePrompt = metaData?.image_prompt;
   const [imageLoaded, setImageLoaded] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
 
@@ -118,7 +121,7 @@ const ImageWithLoading = React.memo(({ message }: { message: Message }) => {
     try {
       const response = await fetch(imageUrl);
       const blob = await response.blob();
-      const imagePath = meta?.image_path || '';
+      const imagePath = metaData?.image_path || '';
       const filename = imagePath.split('/').pop() || 'image.png';
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -200,8 +203,10 @@ const ImageWithLoading = React.memo(({ message }: { message: Message }) => {
   );
 }, (prevProps, nextProps) => {
   // Re-render only if image URL or status changes
-  return prevProps.message.meta?.image_url === nextProps.message.meta?.image_url &&
-         prevProps.message.meta?.status === nextProps.message.meta?.status;
+  const prevMeta = prevProps.message.meta as any;
+  const nextMeta = nextProps.message.meta as any;
+  return prevMeta?.image_url === nextMeta?.image_url &&
+         prevMeta?.status === nextMeta?.status;
 });
 ImageWithLoading.displayName = 'ImageWithLoading';
 
@@ -230,26 +235,27 @@ const renderMessages = (messages: Message[], currentUserId?: string) => {
     
     // Render assistant messages
     if (message.role === 'assistant') {
+      const metaData = message.meta as any;
       // Debug log for ALL assistant messages
       console.log('[renderMessages] 🔍 Assistant message:', {
         id: message.id,
         role: message.role,
         text: message.text?.substring(0, 30),
-        status: message.meta?.status,
-        message_type: message.meta?.message_type,
-        has_image_url: !!message.meta?.image_url,
+        status: metaData?.status,
+        message_type: metaData?.message_type,
+        has_image_url: !!metaData?.image_url,
         meta: message.meta
       });
       
       // Check if this is an image message (generating or complete)
-      const isImageMessage = message.meta?.message_type === 'image';
+      const isImageMessage = metaData?.message_type === 'image';
       
       if (isImageMessage) {
         console.log('[renderMessages] 🖼️  Rendering image message:', {
           id: message.id,
-          status: message.meta?.status,
-          has_image_url: !!message.meta?.image_url,
-          prompt: message.meta?.image_prompt
+          status: metaData?.status,
+          has_image_url: !!metaData?.image_url,
+          prompt: metaData?.image_prompt
         });
         // Use client_msg_id as key if available to prevent glitch when optimistic message is replaced
         const messageKey = message.client_msg_id || message.id;

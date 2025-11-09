@@ -1,6 +1,15 @@
 
 // Pure utility functions for report handling
-export type ReportType = 'sync' | 'essence' | 'sync_compatibility' | 'sync_personal' | 'essence_personal';
+export type ReportType = 
+  | 'sync' 
+  | 'essence' 
+  | 'sync_compatibility' 
+  | 'sync_personal' 
+  | 'sync_professional'
+  | 'essence_personal'
+  | 'essence_professional'
+  | 'essence_relationship'
+  | string; // Allow any string for flexibility
 
 const ASTRO_REPORTS = new Set<ReportType>(['sync', 'essence']);
 
