@@ -12,6 +12,7 @@ declare const Deno: {
 import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { createPooledClient } from "../_shared/supabaseClient.ts";
 import { fetchAndFormatMemories, updateMemoryUsage } from "../_shared/memoryInjection.ts";
+import { checkLimit, incrementUsage } from "../_shared/limitChecker.ts";
 
 /* ----------------------------- Configuration ----------------------------- */
 const CORS_HEADERS = {
@@ -273,6 +274,40 @@ Deno.serve(async (req: Request) => {
     model: ENV.GEMINI_MODEL,
     key: maskKey(ENV.GOOGLE_API_KEY)
   }));
+
+  // ✅ CHAT LIMIT CHECK: Free users limited to 3 messages/day
+  if (user_id) {
+    const limitCheck = await checkLimit(supabase, user_id, 'chat', 1);
+    
+    console.info(JSON.stringify({
+      event: "chat_limit_check",
+      id: requestId,
+      user_id,
+      allowed: limitCheck.allowed,
+      current_usage: limitCheck.current_usage,
+      limit: limitCheck.limit
+    }));
+
+    if (!limitCheck.allowed) {
+      console.warn(JSON.stringify({
+        event: "chat_limit_exceeded",
+        id: requestId,
+        user_id,
+        limit: limitCheck.limit,
+        current_usage: limitCheck.current_usage
+      }));
+      
+      const message = limitCheck.error_code === 'TRIAL_EXPIRED'
+        ? "Your free trial has ended. Upgrade to Growth ($10/month) for unlimited AI conversations! 🚀"
+        : `You've used your ${limitCheck.limit} free messages today. Upgrade to Growth for unlimited chats!`;
+      
+      return JSON_RESPONSE(429, {
+        role: 'assistant',
+        text: message,
+        meta: { limit_exceeded: true, feature: 'chat', limit: limitCheck.limit }
+      });
+    }
+  }
 
   // ✅ CHECK USER PLAN: Skip caching for free users (saves $1/million tokens)
   let userPlan = 'free';
@@ -650,6 +685,13 @@ Deno.serve(async (req: Request) => {
     // Update memory usage (fire-and-forget) - reuse memoryIds from earlier fetch
     if (memoryIds.length > 0) {
       updateMemoryUsage(supabase, memoryIds).catch((e) => console.warn("[memory] update failed:", e?.message || e));
+    }
+
+    // ✅ INCREMENT CHAT USAGE: Track successful chat message (fire-and-forget)
+    if (user_id) {
+      incrementUsage(supabase, user_id, 'chat', 1).catch((e) => 
+        console.warn("[chat] usage increment failed:", e?.message || e)
+      );
     }
 
     const totalLatencyMs = Date.now() - startMs;

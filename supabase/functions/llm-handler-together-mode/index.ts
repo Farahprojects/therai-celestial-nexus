@@ -92,8 +92,8 @@ Deno.serve(async (req) => {
       
       // Return friendly message instead of error
       const limitMessage = limitCheck.limit === 3
-        ? `You've used your ${limitCheck.limit} @therai insights this month. Upgrade to Premium for unlimited relationship insights! ✨`
-        : `You've reached your @therai limit for this month. Upgrade to Premium for unlimited insights!`;
+        ? `You've used your ${limitCheck.limit} @therai insights today. Upgrade to Growth for unlimited relationship insights! ✨`
+        : `You've reached your @therai limit for today. Upgrade to Growth for unlimited insights!`;
       
       return json(200, {
         role: 'assistant',

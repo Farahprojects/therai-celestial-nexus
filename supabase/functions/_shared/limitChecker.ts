@@ -19,7 +19,8 @@ export type FeatureType =
   | 'voice_seconds' 
   | 'image_generation' 
   | 'therai_calls' 
-  | 'insights';
+  | 'insights'
+  | 'chat';
 
 /**
  * Check if user has access to a feature based on their subscription plan limits.
@@ -122,15 +123,14 @@ export async function incrementUsage(
   featureType: FeatureType,
   amount: number
 ): Promise<{ success: boolean; reason?: string }> {
-  const currentPeriod = new Date().toISOString().slice(0, 7); // YYYY-MM
-
   try {
     // Map feature type to RPC function
     const rpcMap: Record<FeatureType, string> = {
       'voice_seconds': 'increment_voice_seconds',
       'therai_calls': 'increment_therai_calls',
       'insights': 'increment_insights_count',
-      'image_generation': 'log_image_generation' // Special case
+      'image_generation': 'log_image_generation', // Special case
+      'chat': 'increment_chat_messages'
     };
 
     const rpcFunction = rpcMap[featureType];
@@ -147,6 +147,12 @@ export async function incrementUsage(
       return { success: true };
     }
 
+    // Determine period based on feature type
+    const dailyFeatures = ['chat', 'therai_calls', 'image_generation'];
+    const currentPeriod = dailyFeatures.includes(featureType)
+      ? new Date().toISOString().slice(0, 10) // YYYY-MM-DD (daily)
+      : new Date().toISOString().slice(0, 7);  // YYYY-MM (monthly)
+
     // Standard increment
     const rpcParams: Record<string, any> = {
       p_user_id: userId,
@@ -158,6 +164,8 @@ export async function incrementUsage(
       rpcParams.p_seconds = amount;
     } else if (featureType === 'therai_calls') {
       rpcParams.p_calls = amount;
+    } else if (featureType === 'chat') {
+      rpcParams.p_count = amount;
     } else {
       rpcParams.p_count = amount;
     }
