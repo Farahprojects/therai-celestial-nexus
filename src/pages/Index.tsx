@@ -76,7 +76,7 @@ const Index = () => {
               duration: 1,
               ease: "easeOut"
             }} className="max-w-5xl mx-auto space-y-12">
-              <h1 className="text-[4rem] md:text-7xl lg:text-8xl font-light text-gray-900 leading-tight flex items-start justify-start gap-x-4 whitespace-nowrap tracking-tight ml-4 md:ml-0">
+              <h1 className="text-[4rem] md:text-7xl lg:text-8xl font-light text-gray-900 leading-tight flex items-center justify-center gap-x-4 whitespace-nowrap tracking-tight">
                 <span>Know</span>
                 <span className="italic font-light flex items-center justify-center gap-x-3">
                   <span>Your</span>
