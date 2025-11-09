@@ -90,10 +90,33 @@ Deno.serve(async (req) => {
         current_usage: limitCheck.current_usage
       }));
       
-      // ✅ Return as normal assistant message (no special handling)
       const limitMessage = limitCheck.limit === 3
         ? `You've used your ${limitCheck.limit} @therai insights today. Upgrade to Growth for unlimited relationship insights! ✨`
         : `You've reached your @therai limit for today. Upgrade to Growth for unlimited insights!`;
+      
+      // ✅ Save limit message to DB and send via WebSocket
+      const assistantClientId = crypto.randomUUID();
+      await fetch(`${SUPABASE_URL}/functions/v1/chat-send`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`
+        },
+        body: JSON.stringify({
+          chat_id,
+          text: limitMessage,
+          client_msg_id: assistantClientId,
+          role: "assistant",
+          mode: "together",
+          user_id,
+          user_name,
+          meta: {
+            together_mode_analysis: true
+          }
+        })
+      }).catch((err) => {
+        console.error("[together-mode] limit chat-send failed:", err?.message || err);
+      });
       
       return json(200, {
         role: 'assistant',
