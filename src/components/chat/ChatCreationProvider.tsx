@@ -141,6 +141,20 @@ export const ChatCreationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       const { addThread } = useChatStore.getState();
       const newChatId = await addThread(user.id, 'sync_score', title);
 
+      // Navigate to conversation immediately (give instant feedback)
+      const { setChatId } = useMessageStore.getState();
+      setChatId(newChatId);
+
+      const { startConversation } = useChatStore.getState();
+      startConversation(newChatId);
+
+      const { chatController } = await import('@/features/chat/ChatController');
+      await chatController.switchToChat(newChatId);
+
+      setShowSyncScoreModal(false);
+      setIsSyncScoreGenerating(false);
+      navigate(`/c/${newChatId}`, { replace: true });
+
       // Prepare the data payload for initiate-auth-report
       const payload = {
         chat_id: newChatId,
@@ -171,31 +185,15 @@ export const ChatCreationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         },
       };
 
-      // Call initiate-auth-report which will handle the server-side flow
-      const { error: reportError } = await supabase.functions.invoke('initiate-auth-report', {
+      // 🚀 FIRE-AND-FORGET: Call initiate-auth-report in background
+      supabase.functions.invoke('initiate-auth-report', {
         body: payload,
+      }).then(({ error: reportError }) => {
+        if (reportError) {
+          console.error('[ProfileSelector] Error initiating sync score:', reportError);
+          toast.error('Failed to process astrological data');
+        }
       });
-
-      if (reportError) {
-        console.error('[ProfileSelector] Error initiating sync score:', reportError);
-        toast.error('Failed to process astrological data');
-        setIsSyncScoreGenerating(false);
-        return;
-      }
-
-      // Navigate to the conversation
-      const { setChatId } = useMessageStore.getState();
-      setChatId(newChatId);
-
-      const { startConversation } = useChatStore.getState();
-      startConversation(newChatId);
-
-      const { chatController } = await import('@/features/chat/ChatController');
-      await chatController.switchToChat(newChatId);
-
-      setShowSyncScoreModal(false);
-      setIsSyncScoreGenerating(false);
-      navigate(`/c/${newChatId}`, { replace: true });
     } catch (error) {
       console.error('[ProfileSelector] Failed to create sync score:', error);
       toast.error('Failed to create Sync Score');

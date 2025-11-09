@@ -347,68 +347,71 @@ Deno.serve(async (req) => {
       });
     }
 
-    let cardImageUrl = null;
-    if (newMessage) {
-      try {
-        const imageResponse = await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/image-generate`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
-          },
-          body: JSON.stringify({
-            chat_id: chat_id,
-            prompt: cardPrompt,
-            user_id: userId,
-            mode: 'sync',
-            image_id: newMessage.id,
-          }),
-        });
-
-        if (imageResponse.ok) {
-          const imageData = await imageResponse.json();
-          cardImageUrl = imageData.image_url;
-          console.log('[calculate-sync-score] Card image generated:', cardImageUrl);
-        } else {
-          console.error('[calculate-sync-score] Image generation failed:', await imageResponse.text());
-        }
-      } catch (imageError) {
-        console.error('[calculate-sync-score] Image generation error:', imageError);
-        // Continue without image - not critical
-      }
-    }
-
-    // Store result in conversations.meta (including image URL)
-    const { error: updateError } = await supabase
+    // 🚀 FIRE-AND-FORGET: Store score metadata immediately (don't wait for image)
+    supabase
       .from('conversations')
       .update({
         meta: {
-          sync_score: {
-            ...scoreBreakdown,
-            card_image_url: cardImageUrl,
-          },
+          sync_score: scoreBreakdown,
         },
       })
-      .eq('id', chat_id);
+      .eq('id', chat_id)
+      .then(({ error: updateError }) => {
+        if (updateError) {
+          console.error('[calculate-sync-score] Error updating conversation:', updateError);
+        } else {
+          console.log('[calculate-sync-score] Score metadata stored');
+        }
+      });
 
-    if (updateError) {
-      console.error('[calculate-sync-score] Error updating conversation:', updateError);
-      return new Response(
-        JSON.stringify({ error: "Failed to store score" }),
-        { status: 500, headers: corsHeaders }
-      );
+    // 🚀 FIRE-AND-FORGET: Generate image asynchronously (don't block response)
+    if (newMessage) {
+      fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/image-generate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+        },
+        body: JSON.stringify({
+          chat_id: chat_id,
+          prompt: cardPrompt,
+          user_id: userId,
+          mode: 'sync',
+          image_id: newMessage.id,
+        }),
+      })
+        .then(async (imageResponse) => {
+          if (imageResponse.ok) {
+            const imageData = await imageResponse.json();
+            console.log('[calculate-sync-score] Card image generated:', imageData.image_url);
+            
+            // Update conversation meta with image URL
+            await supabase
+              .from('conversations')
+              .update({
+                meta: {
+                  sync_score: {
+                    ...scoreBreakdown,
+                    card_image_url: imageData.image_url,
+                  },
+                },
+              })
+              .eq('id', chat_id);
+          } else {
+            console.error('[calculate-sync-score] Image generation failed:', await imageResponse.text());
+          }
+        })
+        .catch((imageError) => {
+          console.error('[calculate-sync-score] Image generation error:', imageError);
+        });
     }
 
-    console.log(`[calculate-sync-score] Score stored successfully`);
-
-    // Return the score with image URL
+    // ⚡ Return immediately (don't wait for image!)
+    console.log('[calculate-sync-score] Returning immediately, image generating in background');
     return new Response(
       JSON.stringify({ 
         success: true, 
-        score: {
-          ...scoreBreakdown,
-          card_image_url: cardImageUrl,
-        }
+        score: scoreBreakdown,
       }),
       { status: 200, headers: corsHeaders }
     );

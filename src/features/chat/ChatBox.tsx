@@ -175,9 +175,9 @@ export const ChatBox: React.FC<ChatBoxProps> = ({ onDelete }) => {
           // Wait for translator to process, then calculate
           console.log('[ChatBox] Waiting for Swiss data...');
           
-          // Poll for translator log (Swiss data)
+          // Poll for translator log (Swiss data) - translator is fast (~1 sec)
           const pollForData = async (attempts = 0): Promise<boolean> => {
-            if (attempts > 20) return false; // Max 20 attempts (10 seconds)
+            if (attempts > 15) return false; // Max 15 attempts (3 seconds)
             
             const { data: translatorLog } = await supabase
               .from('translator_logs')
@@ -192,8 +192,8 @@ export const ChatBox: React.FC<ChatBoxProps> = ({ onDelete }) => {
               return true;
             }
             
-            // Wait 500ms before next attempt
-            await new Promise(resolve => setTimeout(resolve, 500));
+            // Wait 200ms before next attempt (faster polling)
+            await new Promise(resolve => setTimeout(resolve, 200));
             return pollForData(attempts + 1);
           };
           
