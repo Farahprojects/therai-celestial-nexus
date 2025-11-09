@@ -8,8 +8,12 @@ export interface ScoreBreakdown {
     challenging_aspects: number;
     weighted_score: number;
     key_connections: string[];
+    dominant_theme: string;
   };
+  poetic_headline: string;
+  ai_insight: string;
   calculated_at: string;
+  rarity_percentile: number;
 }
 
 /**

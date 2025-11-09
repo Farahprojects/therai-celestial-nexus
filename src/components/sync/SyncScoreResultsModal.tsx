@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Star, ChevronDown, ChevronUp } from 'lucide-react';
+import { X, Sparkles, ChevronDown, ChevronUp, Share2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -11,8 +11,12 @@ interface ScoreBreakdown {
     challenging_aspects: number;
     weighted_score: number;
     key_connections: string[];
+    dominant_theme: string;
   };
+  poetic_headline: string;
+  ai_insight: string;
   calculated_at: string;
+  rarity_percentile: number;
 }
 
 interface SyncScoreResultsModalProps {
@@ -36,20 +40,26 @@ export const SyncScoreResultsModal: React.FC<SyncScoreResultsModalProps> = ({
 
   if (!isOpen) return null;
 
-  // Calculate star rating (0-100 score maps to 0-5 stars)
-  const starCount = Math.round((score.overall / 100) * 5);
-  const stars = Array.from({ length: 5 }, (_, i) => i < starCount);
-
-  // Get score level description
-  const getScoreDescription = (score: number): { label: string; color: string } => {
-    if (score >= 80) return { label: 'Exceptional Sync', color: 'text-green-600' };
-    if (score >= 60) return { label: 'Strong Connection', color: 'text-blue-600' };
-    if (score >= 40) return { label: 'Moderate Harmony', color: 'text-yellow-600' };
-    if (score >= 20) return { label: 'Growing Potential', color: 'text-orange-600' };
-    return { label: 'Challenging Dynamic', color: 'text-red-600' };
+  // Format the date as "Today" or "Oct 26"
+  const formatDate = (dateStr: string): string => {
+    const date = new Date(dateStr);
+    const today = new Date();
+    const isToday = date.toDateString() === today.toDateString();
+    
+    if (isToday) return 'Today';
+    
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   };
 
-  const scoreDesc = getScoreDescription(score.overall);
+  // Get score color based on value
+  const getScoreColor = (scoreValue: number): string => {
+    if (scoreValue >= 80) return 'text-purple-600';
+    if (scoreValue >= 60) return 'text-blue-600';
+    if (scoreValue >= 40) return 'text-yellow-600';
+    return 'text-orange-600';
+  };
+
+  const scoreColor = getScoreColor(score.overall);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/20 backdrop-blur-sm">
@@ -69,7 +79,7 @@ export const SyncScoreResultsModal: React.FC<SyncScoreResultsModalProps> = ({
           </button>
 
           <h2 className="text-3xl font-light text-gray-900 italic mb-2">
-            Sync Score
+            {formatDate(score.calculated_at)}'s Sync Score
           </h2>
           <p className="text-sm text-gray-600 font-light">
             {personAName} & {personBName}
@@ -79,25 +89,41 @@ export const SyncScoreResultsModal: React.FC<SyncScoreResultsModalProps> = ({
         {/* Score Display */}
         <div className="px-8 pb-8 space-y-6">
           {/* Large Score Number */}
-          <div className="text-center">
-            <div className={`text-7xl font-light ${scoreDesc.color} mb-2`}>
+          <div className="text-center space-y-4">
+            <div className={`text-7xl font-light ${scoreColor} mb-2`}>
               {score.overall}%
             </div>
-            <div className={`text-lg font-light ${scoreDesc.color} mb-4`}>
-              {scoreDesc.label}
+            
+            {/* Poetic Headline */}
+            <div className="text-2xl font-light text-gray-900 italic">
+              {score.poetic_headline}
             </div>
 
-            {/* Star Rating */}
-            <div className="flex justify-center gap-1">
-              {stars.map((filled, index) => (
-                <Star
-                  key={index}
-                  className={`w-6 h-6 ${
-                    filled ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'
-                  }`}
-                />
-              ))}
+            {/* Cosmic Visual - Glowing Orb */}
+            <div className="flex justify-center my-4">
+              <div className="relative">
+                <div className={`w-16 h-16 rounded-full ${scoreColor.replace('text-', 'bg-')} opacity-20 blur-xl`}></div>
+                <Sparkles className={`absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-8 h-8 ${scoreColor}`} />
+              </div>
             </div>
+
+            {/* AI Insight */}
+            <p className="text-base font-light text-gray-700 italic leading-relaxed px-4">
+              "{score.ai_insight}"
+            </p>
+
+            {/* Rarity Badge */}
+            {score.rarity_percentile >= 50 && (
+              <div className="inline-flex items-center gap-2 px-4 py-2 bg-purple-50 rounded-full">
+                <Sparkles className="w-4 h-4 text-purple-600" />
+                <span className="text-sm font-light text-purple-900">
+                  {score.rarity_percentile >= 95 
+                    ? `Top ${100 - score.rarity_percentile}% Connection`
+                    : `Rarer than ${score.rarity_percentile}% of connections`
+                  }
+                </span>
+              </div>
+            )}
           </div>
 
           {/* Quick Stats */}
@@ -162,22 +188,27 @@ export const SyncScoreResultsModal: React.FC<SyncScoreResultsModalProps> = ({
           )}
 
           {/* Action Buttons */}
-          <div className="flex gap-3 pt-4">
+          <div className="flex flex-col gap-3 pt-4">
+            <Button
+              onClick={() => {
+                // TODO: Implement share functionality in future
+                alert('Share functionality coming soon!');
+              }}
+              className="w-full rounded-full py-6 bg-gray-900 hover:bg-gray-800 text-white font-light flex items-center justify-center gap-2"
+            >
+              <Share2 className="w-4 h-4" />
+              Share Your Sync
+            </Button>
+            
             {onCalculateAnother && (
               <Button
                 onClick={onCalculateAnother}
                 variant="outline"
-                className="flex-1 rounded-full py-6 font-light"
+                className="w-full rounded-full py-6 font-light"
               >
                 Calculate Another
               </Button>
             )}
-            <Button
-              onClick={onClose}
-              className="flex-1 rounded-full py-6 bg-gray-900 hover:bg-gray-800 text-white font-light"
-            >
-              Done
-            </Button>
           </div>
         </div>
       </motion.div>

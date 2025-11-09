@@ -312,10 +312,10 @@ export const AstroDataForm: React.FC<AstroDataFormProps> = ({
                   ? 'Calculate Sync Score'
                   : 'Partner Details'
                 : currentStep === 'type'
-                  ? 'Choose Your Path'
-                  : currentStep === 'details'
-                    ? 'Your Details'
-                    : 'Partner Details'}
+                ? 'Choose Your Path'
+                : currentStep === 'details'
+                  ? 'Your Details'
+                  : 'Partner Details'}
             </h2>
             <Button
               type="button"

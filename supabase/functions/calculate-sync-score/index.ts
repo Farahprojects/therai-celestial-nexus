@@ -43,8 +43,114 @@ interface ScoreBreakdown {
     challenging_aspects: number;
     weighted_score: number;
     key_connections: string[];
+    dominant_theme: string; // e.g., "communication", "emotional", "balanced"
   };
+  poetic_headline: string;
+  ai_insight: string;
   calculated_at: string;
+  rarity_percentile: number; // 0-100, where 95 means "rarer than 95%"
+}
+
+// Determine the dominant theme of the connection based on key aspects
+function determineDominantTheme(keyConnections: string[]): string {
+  if (keyConnections.length === 0) return 'balanced';
+  
+  const connectionStr = keyConnections.join(' ').toLowerCase();
+  
+  // Communication planets: Mercury
+  if (connectionStr.includes('mercury')) return 'communication';
+  
+  // Emotional planets: Moon, Venus
+  if (connectionStr.includes('moon') || connectionStr.includes('venus')) return 'emotional';
+  
+  // Action/passion planets: Mars, Sun
+  if (connectionStr.includes('mars') || connectionStr.includes('sun')) return 'dynamic';
+  
+  // Intellectual/expansive: Jupiter
+  if (connectionStr.includes('jupiter')) return 'growth';
+  
+  return 'balanced';
+}
+
+// Generate poetic headline based on score and theme
+function generatePoeticHeadline(score: number, theme: string): string {
+  if (score >= 90) {
+    const highScoreHeadlines: Record<string, string> = {
+      communication: 'A Perfect Conversation',
+      emotional: 'Two Hearts, One Rhythm',
+      dynamic: 'Fire Meets Fire',
+      growth: 'Infinite Potential',
+      balanced: 'Cosmic Counterparts',
+    };
+    return highScoreHeadlines[theme] || 'Cosmic Counterparts';
+  } else if (score >= 75) {
+    const goodScoreHeadlines: Record<string, string> = {
+      communication: 'Words Flow Like Water',
+      emotional: 'Hearts in Harmony',
+      dynamic: 'Energetic Alignment',
+      growth: 'Journey Together',
+      balanced: 'Natural Connection',
+    };
+    return goodScoreHeadlines[theme] || 'Natural Connection';
+  } else if (score >= 60) {
+    return 'Growing Together';
+  } else if (score >= 40) {
+    return 'Learning & Evolving';
+  } else {
+    return 'Opposite Energies';
+  }
+}
+
+// Generate AI insight about the connection
+function generateAiInsight(score: number, theme: string, keyConnections: string[]): string {
+  const themeInsights: Record<string, string[]> = {
+    communication: [
+      'Your energies create a rare space where words carry weight and meaning.',
+      'Conversation flows effortlessly between you, like a river finding its path.',
+      'You speak different languages, yet somehow understand each other perfectly.',
+    ],
+    emotional: [
+      'Your hearts beat to the same cosmic rhythm, creating profound understanding.',
+      'Emotions flow freely between you, creating a sacred space of vulnerability.',
+      'You feel what the other feels, as if connected by invisible threads.',
+    ],
+    dynamic: [
+      'Your combined energy could move mountains or start revolutions.',
+      'Together, you create a force that transforms everything it touches.',
+      'Action and ambition merge into something greater than the sum.',
+    ],
+    growth: [
+      'Together, you expand into versions of yourselves you never knew existed.',
+      'Your connection is a catalyst for mutual evolution and discovery.',
+      'Every moment together opens new doors to possibility.',
+    ],
+    balanced: [
+      'Your energies create a rare space where logic and intuition can dance together.',
+      'A connection this balanced is rarer than you might think.',
+      'You complement each other in ways that feel both natural and magical.',
+    ],
+  };
+  
+  const insights = themeInsights[theme] || themeInsights.balanced;
+  
+  // Choose insight based on score
+  if (score >= 80) return insights[0];
+  if (score >= 60) return insights[1];
+  return insights[2];
+}
+
+// Calculate rarity percentile based on score distribution
+function calculateRarity(score: number): number {
+  // Assume normal distribution of scores with mean ~60, std dev ~15
+  // This is a simplified approximation
+  if (score >= 95) return 99;
+  if (score >= 90) return 95;
+  if (score >= 85) return 90;
+  if (score >= 80) return 85;
+  if (score >= 75) return 75;
+  if (score >= 70) return 65;
+  if (score >= 60) return 50;
+  return Math.max(0, Math.round((score / 60) * 50));
 }
 
 Deno.serve(async (req) => {
@@ -142,6 +248,12 @@ Deno.serve(async (req) => {
     console.log(`[calculate-sync-score] Score calculated: ${overallScore}`);
     console.log(`[calculate-sync-score] Harmonious: ${harmoniousCount}, Challenging: ${challengingCount}`);
 
+    // 4.5. Determine dominant theme and generate poetic content
+    const dominantTheme = determineDominantTheme(keyConnections);
+    const poeticHeadline = generatePoeticHeadline(overallScore, dominantTheme);
+    const aiInsight = generateAiInsight(overallScore, dominantTheme, keyConnections);
+    const rarityPercentile = calculateRarity(overallScore);
+
     // 5. Build score breakdown
     const scoreBreakdown: ScoreBreakdown = {
       overall: overallScore,
@@ -151,8 +263,12 @@ Deno.serve(async (req) => {
         challenging_aspects: challengingCount,
         weighted_score: Math.round(rawScore * 10) / 10,
         key_connections: keyConnections.slice(0, 5), // Top 5 connections
+        dominant_theme: dominantTheme,
       },
+      poetic_headline: poeticHeadline,
+      ai_insight: aiInsight,
       calculated_at: new Date().toISOString(),
+      rarity_percentile: rarityPercentile,
     };
 
     // 6. Store result in conversations.meta
