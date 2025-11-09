@@ -459,6 +459,11 @@ Deno.serve(async (req) => {
         userId: userIdForVoiceFlow,
         userName: userNameForVoiceFlow
       });
+
+      // For voice mode, return minimal response - client doesn't need transcript
+      // Server-side flow (STT->LLM->TTS) handles everything via WebSocket
+      await new Promise((r) => setTimeout(r, 50));
+      return json(200, { success: true });
     } else {
       console.info(JSON.stringify({
         event: "voice_flow_skipped",
@@ -475,6 +480,7 @@ Deno.serve(async (req) => {
 
     await new Promise((r) => setTimeout(r, 50));
 
+    // For non-voice modes (transcription-only), return the transcript
     return json(200, {
       success: true,
       transcript

@@ -215,9 +215,19 @@ Deno.serve(async (req) => {
       }).catch((error) => {
         console.error('[openai-whisper] ❌ thinking-mode broadcast failed:', error);
       });
+
+      // For voice mode, return minimal response - client doesn't need transcript
+      // Server-side flow (STT->LLM->TTS) handles everything via WebSocket
+      console.log('[openai-whisper] ✅ SUCCESS: Voice mode - returning minimal response');
+      return new Response(
+        JSON.stringify({ success: true }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
     }
 
-    // Return simple transcript result
+    // For non-voice modes (transcription-only), return the transcript
     console.log('[openai-whisper] ✅ SUCCESS: Transcript received');
     return new Response(
       JSON.stringify({ transcript }),
