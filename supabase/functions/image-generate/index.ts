@@ -114,10 +114,8 @@ Deno.serve(async (req) => {
   // Must use @google/genai SDK instead
   const generationStartTime = Date.now();
   
-  // Use Imagen 4 (better quality) for sync cards, Imagen 4 Fast for regular images
-  const IMAGEN_MODEL = mode === 'sync' 
-    ? 'imagen-4.0-generate-001'  // High quality for shareable cards
-    : 'imagen-4.0-fast-generate-001';  // Fast for chat images
+  // Always use Imagen 4 Fast to maintain 2¢ cost per image
+  const IMAGEN_MODEL = 'imagen-4.0-fast-generate-001';
 
   let base64Image: string | undefined;
   
