@@ -166,16 +166,28 @@ Make them FEEL the magic and see the path forward.`;
 }
 
 /**
- * Extract zodiac signs from Swiss data
+ * Calculate zodiac sign from birth date (reliable lookup table)
  */
-function extractZodiacSigns(swissData: any): { personA: string; personB: string } {
-  const person1Sun = swissData?.person1?.planets?.Sun?.sign || '';
-  const person2Sun = swissData?.person2?.planets?.Sun?.sign || '';
+function getZodiacSign(birthDate: string): string {
+  const date = new Date(birthDate);
+  const month = date.getMonth() + 1; // 1-12
+  const day = date.getDate();
+
+  // Zodiac date ranges
+  if ((month === 3 && day >= 21) || (month === 4 && day <= 19)) return 'Aries';
+  if ((month === 4 && day >= 20) || (month === 5 && day <= 20)) return 'Taurus';
+  if ((month === 5 && day >= 21) || (month === 6 && day <= 20)) return 'Gemini';
+  if ((month === 6 && day >= 21) || (month === 7 && day <= 22)) return 'Cancer';
+  if ((month === 7 && day >= 23) || (month === 8 && day <= 22)) return 'Leo';
+  if ((month === 8 && day >= 23) || (month === 9 && day <= 22)) return 'Virgo';
+  if ((month === 9 && day >= 23) || (month === 10 && day <= 22)) return 'Libra';
+  if ((month === 10 && day >= 23) || (month === 11 && day <= 21)) return 'Scorpio';
+  if ((month === 11 && day >= 22) || (month === 12 && day <= 21)) return 'Sagittarius';
+  if ((month === 12 && day >= 22) || (month === 1 && day <= 19)) return 'Capricorn';
+  if ((month === 1 && day >= 20) || (month === 2 && day <= 18)) return 'Aquarius';
+  if ((month === 2 && day >= 19) || (month === 3 && day <= 20)) return 'Pisces';
   
-  return {
-    personA: person1Sun || '',
-    personB: person2Sun || '',
-  };
+  return '';
 }
 
 /**
@@ -199,84 +211,31 @@ function generateSyncCardPrompt(
       ? 'rich purple and violet gradient with soft glow'
       : 'warm purple and pink gradient with gentle shimmer';
 
-  return `Create an elegant mystical connection card in portrait orientation (9:16).
+  return `Create an elegant mystical connection card. Portrait orientation 9:16.
 
-DESIGN STRUCTURE (top to bottom with generous spacing):
+LAYOUT:
+${score}%
+${archetype}
 
-1. TOP SECTION (celestial background):
-   - Background: ${colorScheme} with subtle star field and ethereal glow
-   - Very elegant and premium feeling
+${personAName} & ${personBName}
+${personASign} • ${personBSign}
 
-2. SCORE (center focal point):
-   - Huge white number: "${score}%"
-   - Add subtle sparkle effects around the number
-   - Most prominent element on card
+${insight}
 
-3. ARCHETYPE (below score):
-   - Text: "${archetype}"
-   - Font: Elegant italic serif
-   - Size: Medium-large
-   - Color: White with soft glow
+Growth Edge: ${challenge}
 
-4. NAMES WITH SIGNS (tight grouping):
-   - Line 1: "${personAName} & ${personBName}"
-   - Font: Clean modern sans-serif medium weight
-   - Line 2 (directly below smaller): "${personASign} • ${personBSign}"
-   - Font: Light weight smaller size
-   - Color: Light gray/white
-   - Keep these two lines close together as one unit
+${rarityPercentile >= 50 ? `Top ${100 - rarityPercentile}% Connection` : ''}
 
-5. DIVIDER:
-   - Subtle thin line or just extra spacing
+therai.co
 
-6. INSIGHT (positive magic):
-   - Text: "${insight}"
-   - Font: Medium weight sans-serif
-   - Size: Readable but not huge
-   - Color: White
-   - Proper line spacing for readability
-
-7. GROWTH EDGE (hopeful challenge):
-   - Label: "Growth Edge:" in smaller lighter text
-   - Text: "${challenge}"
-   - Font: Light weight sans-serif slightly smaller
-   - Color: Soft white/gray
-   - Keep this section distinct but harmonious
-
-${rarityPercentile >= 50 ? `8. RARITY BADGE:
-   - Small purple badge with sparkle icon
-   - Text: "Top ${100 - rarityPercentile}% Connection"
-   - Position: Lower section
-` : ''}
-
-9. WATERMARK (bottom):
-   - Text: "therai.co"
-   - Very subtle and elegant
-   - Small size light gray
-
-STYLE REQUIREMENTS:
-- Premium Apple-inspired minimalist aesthetic
-- Generous negative space between sections (don't crowd)
-- Soft glows around text for depth
-- Professional typography hierarchy
-- Mystical but sophisticated (not cheesy)
-- Instagram-ready quality
-- Clean readable modern
-- Purple/magenta tones throughout (no blue)
-
-TYPOGRAPHY:
-- Use proper spacing between sections
-- Headers slightly bolder or different weight
-- Body text clean and readable
-- Maintain visual hierarchy
-
-COLORS:
-- Background: ${colorScheme}
-- Primary text: Pure white
-- Secondary text: Light gray (rgba 255 255 255 0.8)
-- Accents: Soft purple glows
-- Badge: Rich purple
-- Keep it elegant and premium`;
+STYLE:
+- Background: ${colorScheme} with stars and cosmic glow
+- Large bold score with sparkles
+- Elegant typography hierarchy
+- Generous white space between sections
+- Purple/magenta tones
+- Professional minimalist design
+- Instagram-ready quality`;
 }
 
 Deno.serve(async (req) => {
@@ -305,7 +264,7 @@ Deno.serve(async (req) => {
     const [logResult, conversationResult] = await Promise.all([
       supabase
         .from('translator_logs')
-        .select('swiss_data')
+        .select('swiss_data, request_payload')
         .eq('chat_id', chat_id)
         .order('created_at', { ascending: false })
         .limit(1)
@@ -337,18 +296,29 @@ Deno.serve(async (req) => {
 
     const swissData = translatorLog.swiss_data;
     const userId = conversation.user_id;
+    const requestPayload = translatorLog.request_payload || {};
 
     console.log('[calculate-sync-score] Swiss data fetched');
 
-    // Extract person names from conversation title
+    // Extract person names and birth dates from request payload
     let personAName = 'Person A';
     let personBName = 'Person B';
+    let personABirthDate = '';
+    let personBBirthDate = '';
     
     if (conversation?.title) {
       const title = conversation.title.replace('Sync Score: ', '');
       const parts = title.split(' & ');
       personAName = parts[0] || 'Person A';
       personBName = parts[1] || 'Person B';
+    }
+
+    // Extract birth dates from request payload (passed from initiate-auth-report)
+    if (requestPayload?.person_a?.birth_date) {
+      personABirthDate = requestPayload.person_a.birth_date;
+    }
+    if (requestPayload?.person_b?.birth_date) {
+      personBBirthDate = requestPayload.person_b.birth_date;
     }
 
     // 🤖 LLM-DRIVEN ANALYSIS: Ask Gemini Flash to analyze the connection
@@ -375,8 +345,11 @@ Deno.serve(async (req) => {
     // 📸 Generate connection card image
     console.log('[calculate-sync-score] Generating connection card...');
     
-    // Extract zodiac signs for credibility
-    const zodiacSigns = extractZodiacSigns(swissData);
+    // Calculate zodiac signs from birth dates (reliable lookup)
+    const personASign = personABirthDate ? getZodiacSign(personABirthDate) : '';
+    const personBSign = personBBirthDate ? getZodiacSign(personBBirthDate) : '';
+    
+    console.log(`[calculate-sync-score] Zodiac signs: ${personASign} & ${personBSign}`);
     
     const cardPrompt = generateSyncCardPrompt(
       llmAnalysis.score,
@@ -385,8 +358,8 @@ Deno.serve(async (req) => {
       llmAnalysis.challenge,
       personAName,
       personBName,
-      zodiacSigns.personA,
-      zodiacSigns.personB,
+      personASign,
+      personBSign,
       rarityPercentile
     );
 
