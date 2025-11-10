@@ -146,7 +146,6 @@ if (mode === 'sync_score') {
 const id = crypto.randomUUID();
 
 const meta: Record<string, unknown> = {};
-let syncPlaceholderId: string | null = null;
 if (report_data) {
   meta.report_payload = {
     report_data,
@@ -157,13 +156,6 @@ if (report_data) {
 }
 if (isProfileMode) {
   meta.profile_mode = true;
-}
-if (mode === 'sync_score') {
-  syncPlaceholderId = crypto.randomUUID();
-  meta.sync_score = {
-    placeholder_message_id: syncPlaceholderId,
-    status: 'pending'
-  };
 }
 
 const { data, error } = await admin
@@ -183,30 +175,6 @@ const { data, error } = await admin
 if (error) {
   console.error('[conversation-manager] Insert error:', error);
   return errorJson(`Failed to create conversation: ${error.message || JSON.stringify(error)}`, 500);
-}
-
-// For sync score conversations, insert placeholder message immediately
-if (mode === 'sync_score' && syncPlaceholderId) {
-  const { error: placeholderError } = await admin
-    .from('messages')
-    .insert({
-      id: syncPlaceholderId,
-      chat_id: id,
-      user_id: userId,
-      role: 'assistant',
-      text: '',
-      status: 'pending',
-      mode,
-      meta: {
-        message_type: 'image',
-        sync_score: true,
-        status: 'pending'
-      }
-    });
-
-  if (placeholderError) {
-    console.error('[conversation-manager] Failed to insert sync score placeholder:', placeholderError);
-  }
 }
 
 // Profile mode: Skip messages table insertion, but call translator-edge for chart generation
