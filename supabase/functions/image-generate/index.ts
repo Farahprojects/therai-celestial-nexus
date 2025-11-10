@@ -28,6 +28,9 @@ if (!GOOGLE_API_KEY) throw new Error("Missing env: GOOGLE-LLM-NEW");
 // Create Supabase client with connection pooling
 const supabase = createPooledClient();
 
+// Initialize Google GenAI client once at top level (reused across requests)
+const genAI = new GoogleGenAI({ apiKey: GOOGLE_API_KEY });
+
 const json = (status: number, data: any) =>
   new Response(JSON.stringify(data), {
     status,
@@ -120,11 +123,7 @@ Deno.serve(async (req) => {
   let base64Image: string | undefined;
   
   try {
-
-    // Initialize Google GenAI client
-    const genAI = new GoogleGenAI({ apiKey: GOOGLE_API_KEY });
-
-    // Generate image using SDK
+    // Generate image using SDK (genAI initialized at top level)
     // For sync mode, add aspect ratio and quality settings
     const config = mode === 'sync' 
       ? {

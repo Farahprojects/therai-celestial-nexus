@@ -16,8 +16,45 @@ class QueryCache {
 
   /**
    * Get cached value or null if expired/missing
+   * When fetchFn is provided, fetches and caches if not found
    */
-  get<T>(key: string, ttlMs?: number): T | null {
+  async get<T>(key: string, ttlMs?: number, fetchFn?: () => Promise<T>): Promise<T | null> {
+    const entry = this.cache.get(key);
+    const ttl = ttlMs || this.defaultTTL;
+
+    // Check if cached and not expired
+    if (entry) {
+      const isExpired = Date.now() - entry.cachedAt > ttl;
+      
+      if (!isExpired) {
+        return entry.data as T;
+      }
+      
+      // Remove expired entry
+      this.cache.delete(key);
+    }
+
+    // If no fetchFn provided, return null
+    if (!fetchFn) {
+      return null;
+    }
+
+    // Fetch, cache, and return
+    try {
+      const data = await fetchFn();
+      this.set(key, data);
+      return data;
+    } catch (error) {
+      console.error(`[queryCache] Error fetching data for key ${key}:`, error);
+      return null;
+    }
+  }
+
+  /**
+   * Get cached value synchronously (no fetch support)
+   * Use this when you just want to check the cache without fetching
+   */
+  getSync<T>(key: string, ttlMs?: number): T | null {
     const entry = this.cache.get(key);
     if (!entry) return null;
 
@@ -94,15 +131,10 @@ export async function getConversationMetadata<T>(
   ttlMs: number = CacheTTL.conversationMetadata
 ): Promise<T> {
   const key = CacheKeys.conversationMetadata(chatId);
-  const cached = queryCache.get<T>(key, ttlMs);
+  const result = await queryCache.get<T>(key, ttlMs, fetchFn);
   
-  if (cached !== null) {
-    return cached;
-  }
-
-  const data = await fetchFn();
-  queryCache.set(key, data);
-  return data;
+  // Should never be null since fetchFn is provided
+  return result as T;
 }
 
 /**
@@ -114,15 +146,10 @@ export async function getUserSubscription<T>(
   ttlMs: number = CacheTTL.userSubscription
 ): Promise<T> {
   const key = CacheKeys.userSubscription(userId);
-  const cached = queryCache.get<T>(key, ttlMs);
+  const result = await queryCache.get<T>(key, ttlMs, fetchFn);
   
-  if (cached !== null) {
-    return cached;
-  }
-
-  const data = await fetchFn();
-  queryCache.set(key, data);
-  return data;
+  // Should never be null since fetchFn is provided
+  return result as T;
 }
 
 /**
@@ -136,15 +163,10 @@ export async function getFeatureUsage<T>(
   ttlMs: number = CacheTTL.featureUsage
 ): Promise<T> {
   const key = CacheKeys.featureUsage(userId, featureKey, period);
-  const cached = queryCache.get<T>(key, ttlMs);
+  const result = await queryCache.get<T>(key, ttlMs, fetchFn);
   
-  if (cached !== null) {
-    return cached;
-  }
-
-  const data = await fetchFn();
-  queryCache.set(key, data);
-  return data;
+  // Should never be null since fetchFn is provided
+  return result as T;
 }
 
 export { queryCache };

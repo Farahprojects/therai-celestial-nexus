@@ -25,6 +25,11 @@ if (!GOOGLE_STT) throw new Error("Missing env: GOOGLE-STT-NEW");
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 
+// Initialize Supabase client at top level (reused across requests)
+const supabase = SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY
+  ? createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } })
+  : null;
+
 const json = (status: number, data: any) =>
   new Response(JSON.stringify(data), {
     status,
@@ -137,18 +142,13 @@ function runVoiceFlow({
   userId?: string;
   userName?: string;
 }) {
-  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
-    console.warn("[google-stt] Voice actions skipped: missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY");
+  if (!supabase) {
+    console.warn("[google-stt] Voice actions skipped: Supabase client not configured");
     return;
   }
 
-  // 100% fire-and-forget - no awaits!
-  const supabaseClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
-    auth: { persistSession: false }
-  });
-
   // Check conversation mode and call LLM - all fire-and-forget
-  supabaseClient
+  supabase
     .from("conversations")
     .select("mode")
     .eq("id", chatId)
@@ -291,14 +291,14 @@ Deno.serve(async (req) => {
 
     if (!audioBuffer.length) return json(400, { error: "Empty audio data" });
 
-    // Create Supabase client at request level (needed for feature checks and JWT verification)
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
-      auth: { persistSession: false }
-    });
+    // Ensure Supabase client is available (fail gracefully if not configured)
+    if (!supabase) {
+      console.warn("[google-whisper] Supabase client not configured - limited functionality");
+    }
 
     // Get authenticated user ID from JWT (more secure than form data)
     const authHeader = req.headers.get("Authorization");
-    if (authHeader) {
+    if (authHeader && supabase) {
       try {
         const token = authHeader.replace("Bearer ", "");
         const { data: userData, error: authError } = await supabase.auth.getUser(token);
@@ -311,7 +311,7 @@ Deno.serve(async (req) => {
     }
 
     // 🔒 PRE-TRANSCRIPTION CHECK: Block if user has exceeded voice limit
-    if (authenticatedUserId) {
+    if (authenticatedUserId && supabase) {
       const limitCheck = await checkLimit(supabase, authenticatedUserId, 'voice_seconds', 0);
 
       console.info(JSON.stringify({
@@ -380,7 +380,7 @@ Deno.serve(async (req) => {
     }
 
     // Track voice usage after successful transcription using Google's duration (source of truth)
-    if (authenticatedUserId && durationSeconds > 0) {
+    if (authenticatedUserId && durationSeconds > 0 && supabase) {
       console.info(JSON.stringify({
         event: "tracking_voice_usage",
         user_id: authenticatedUserId,
