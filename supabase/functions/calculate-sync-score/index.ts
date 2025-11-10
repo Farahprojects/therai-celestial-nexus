@@ -8,6 +8,11 @@ const corsHeaders = {
   "Content-Type": "application/json",
 };
 
+// Initialize Supabase client at top level (reused across requests)
+const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
 interface ScoreBreakdown {
   overall: number;
   archetype_name: string;
@@ -325,10 +330,6 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
     const { chat_id } = await req.json();
 
     if (!chat_id) {

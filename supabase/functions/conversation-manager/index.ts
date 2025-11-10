@@ -29,6 +29,11 @@ const SUPABASE_URL = mustGetEnv('SUPABASE_URL');
 const SERVICE_ROLE_KEY = mustGetEnv('SUPABASE_SERVICE_ROLE_KEY');
 const ANON_KEY = mustGetEnv('SUPABASE_ANON_KEY');
 
+// Initialize admin client at top level (reused across requests)
+const adminClient = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
+  auth: { persistSession: false, autoRefreshToken: false },
+});
+
 const corsHeaders = {
 'Access-Control-Allow-Origin': '*',
 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -71,14 +76,6 @@ const supabase = createClient(SUPABASE_URL, ANON_KEY, {
 const { data, error } = await supabase.auth.getUser();
 if (error || !data?.user) throw new Error('Invalid or expired token');
 return data.user.id;
-}
-
-function newAdminClient(req: Request) {
-// Keep original Authorization header for downstream calls if needed
-return createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
-global: { headers: { Authorization: req.headers.get('Authorization') || '' } },
-auth: { persistSession: false, autoRefreshToken: false },
-});
 }
 
 // Handlers
@@ -232,39 +229,44 @@ if (report_data) {
   is_generating_report = true;
 }
 
-// Auto-inject profile astro data for chat/together modes
+// Auto-inject profile astro data for chat/together modes (fully fire-and-forget)
 if (mode === 'chat' || mode === 'together') {
-  console.log('[conversation-manager] Chat mode detected, looking up profile conversation for auto-injection');
+  console.log('[conversation-manager] Chat mode detected, queueing profile injection');
   
-  // Query for user's primary profile conversation
-  const { data: profileConversation } = await admin
-    .from('conversations')
-    .select('id')
-    .eq('user_id', userId)
-    .eq('mode', 'profile')
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
+  // 🚀 FIRE-AND-FORGET: Entire profile lookup + injection (don't block response)
+  (async () => {
+    try {
+      const { data: profileConversation } = await admin
+        .from('conversations')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('mode', 'profile')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
 
-  if (profileConversation) {
-    console.log('[conversation-manager] Found profile conversation:', profileConversation.id);
-    
-    // Call context-injector with profile data (fire-and-forget)
-    fetch(`${SUPABASE_URL}/functions/v1/context-injector`, {
-      method: 'POST',
-      headers: { 
-        'Content-Type': 'application/json',
-        'Authorization': req.headers.get('Authorization') || ''
-      },
-      body: JSON.stringify({
-        chat_id: id,
-        profile_chat_id: profileConversation.id,
-        mode
-      })
-    }).catch((e) => console.error('[conversation-manager] context-injector call failed:', e));
-  } else {
-    console.log('[conversation-manager] No profile conversation found, skipping auto-injection');
-  }
+      if (profileConversation) {
+        console.log('[conversation-manager] Found profile conversation:', profileConversation.id);
+        
+        await fetch(`${SUPABASE_URL}/functions/v1/context-injector`, {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': req.headers.get('Authorization') || ''
+          },
+          body: JSON.stringify({
+            chat_id: id,
+            profile_chat_id: profileConversation.id,
+            mode
+          })
+        });
+      } else {
+        console.log('[conversation-manager] No profile conversation found, skipping auto-injection');
+      }
+    } catch (e) {
+      console.error('[conversation-manager] Profile injection error:', e);
+    }
+  })();
 }
 
 return jsonResponse({
@@ -496,8 +498,8 @@ if (body?.user_id && body.user_id !== userId) {
 const handler = handlers[action];
 if (!handler) return errorJson('Invalid action');
 
-const admin = newAdminClient(req);
-const res = await handler({ req, params, admin, userId, body: body || {} });
+// Use top-level admin client (no per-request overhead)
+const res = await handler({ req, params, admin: adminClient, userId, body: body || {} });
 return res;
 } catch (err: any) {
 if (DEBUG) {
