@@ -55,7 +55,7 @@ async function generateMeme(
     ? aspects.slice(0, 15).map((a: any) => `${a.type}: ${a.a}-${a.b}`).join('\n')
     : "No aspects found";
 
-  const prompt = `You are a creative meme writer and visual concept designer for an AI that creates poetic astrology memes.
+  const prompt = `You are a creative meme writer and visual concept designer for an AI that creates astrology memes. Humour welcome 
 
 Input:
 - Couple: ${personAName} & ${personBName}
@@ -63,7 +63,7 @@ Input:
 ${aspectsText}
 
 Your task:
-1. **Analyze the pattern** — determine the dominant emotional tone of this relationship. These are examples only, do not just copy them:
+1. **Analyze the pattern** — determine the dominant emotional tone of this relationship. These are examples, do not just copy them:
    - "Harmony / Flow" → warmth, beauty, connection
    - "Friction / Wounds" → tension, irony, humor
    - "Ego Clash / Projection" → power, pride, shadow work
@@ -73,11 +73,8 @@ Your task:
 
 2. **Create a caption** that blends humor, truth, and insight. It should feel emotionally resonant or ironic — something that makes users tag a friend.
    - Max 20 words
-   - Tone: smart, slightly mystical, relatable
-   - Examples:
-     - "When your Saturn hits their Moon and suddenly you're their therapist."
-     - "It's not toxic, it's karmic ✨"
-     - "When they trigger your shadow but you call it destiny."
+   - Tone: Gen Z with humour  
+   - hallmark memes is the goal that relates and will go viral 
 
 3. **Generate an image prompt** that visually expresses the same theme.
    - Must be 9:16 vertical composition.
