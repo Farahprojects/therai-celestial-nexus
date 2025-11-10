@@ -77,7 +77,7 @@ export const ChatCreationProvider: React.FC<{ children: React.ReactNode }> = ({ 
           ? 'Together Mode'
           : 'Chat'; // Placeholder for standard chat - will be upgraded on first message
 
-      const conversationMode: 'chat' | 'astro' | 'insight' | 'swiss' | 'together' = mode;
+      const conversationMode: 'chat' | 'astro' | 'insight' | 'swiss' | 'together' | 'sync_score' = mode;
 
       const { addThread } = useChatStore.getState();
       const newChatId = await addThread(user.id, conversationMode, title);

@@ -54,8 +54,9 @@ export function useFeatureUsage() {
       }
 
       // Transform new data structure to match old interface
-      const limits = data?.limits || {};
-      const usage = data?.usage || {};
+      const responseData = data as any;
+      const limits = responseData?.limits || {};
+      const usage = responseData?.usage || {};
       const currentPeriod = new Date().toISOString().slice(0, 7);
 
       // Get subscription info from profile

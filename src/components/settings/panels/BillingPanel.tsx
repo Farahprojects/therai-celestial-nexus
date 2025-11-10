@@ -17,7 +17,7 @@ interface SubscriptionData {
 
 export const BillingPanel = () => {
   const { user } = useAuth();
-  const { closeModal } = useSettingsModal();
+  const { closeSettings } = useSettingsModal();
   const [loading, setLoading] = useState(true);
   const [subscriptionData, setSubscriptionData] = useState<SubscriptionData | null>(null);
   const [showCancelModal, setShowCancelModal] = useState(false);
@@ -76,7 +76,7 @@ export const BillingPanel = () => {
   };
 
   const handleUpgrade = () => {
-    closeModal();
+    closeSettings();
     window.location.href = '/subscription-paywall';
   };
 

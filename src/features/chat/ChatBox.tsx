@@ -114,32 +114,37 @@ export const ChatBox: React.FC<ChatBoxProps> = ({ onDelete }) => {
         .order('created_at', { ascending: false })
         .limit(10);
 
-      const syncMessage = messages?.find((m: any) => 
-        m.meta?.sync_score === true && 
-        m.meta?.message_type === 'image' && 
-        m.meta?.image_url
-      );
+      const syncMessage = messages?.find((m: any) => {
+        const meta = m.meta as any;
+        return meta?.sync_score === true && 
+               meta?.message_type === 'image' && 
+               meta?.image_url;
+      });
 
-      if (syncMessage && syncMessage.meta?.image_url) {
-        const title = conversation.title?.replace('Sync Score: ', '') || '';
-        const [personAName, personBName] = title.split(' & ');
-        const score = conversation.meta?.sync_score?.overall || 0;
+      if (syncMessage) {
+        const meta = syncMessage.meta as any;
+        if (meta?.image_url) {
+          const title = conversation.title?.replace('Sync Score: ', '') || '';
+          const [personAName, personBName] = title.split(' & ');
+          const conversationMeta = conversation.meta as any;
+          const score = conversationMeta?.sync_score?.overall || 0;
 
-        console.log('[ChatBox] Found existing sync card, showing share bar:', {
-          imageUrl: syncMessage.meta.image_url,
-          score,
-          personAName,
-          personBName
-        });
+          console.log('[ChatBox] Found existing sync card, showing share bar:', {
+            imageUrl: meta.image_url,
+            score,
+            personAName,
+            personBName
+          });
 
-        setSyncShareData({
-          imageUrl: syncMessage.meta.image_url,
-          score,
-          personAName: personAName || 'Person A',
-          personBName: personBName || 'Person B'
-        });
-        setShowSyncShareModal(true);
-        setHasShownSyncModal(true);
+          setSyncShareData({
+            imageUrl: meta.image_url,
+            score,
+            personAName: personAName || 'Person A',
+            personBName: personBName || 'Person B'
+          });
+          setShowSyncShareModal(true);
+          setHasShownSyncModal(true);
+        }
       }
     } catch (error) {
       console.error('[ChatBox] Error checking sync card:', error);

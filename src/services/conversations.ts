@@ -6,7 +6,7 @@ import { Conversation } from '@/core/types';
  */
 export const createConversationWithTitle = async (
   message: string,
-  mode: 'chat' | 'astro' | 'insight' | 'swiss' | 'together' = 'chat',
+  mode: 'chat' | 'astro' | 'insight' | 'swiss' | 'together' | 'sync_score' = 'chat',
   reportData?: any
 ): Promise<string> => {
   const { data, error } = await supabase.functions.invoke('create-conversation-with-title', {
@@ -30,7 +30,7 @@ export const createConversationWithTitle = async (
  */
 export const createConversation = async (
   userId: string, 
-  mode: 'chat' | 'astro' | 'insight' | 'swiss' | 'together', 
+  mode: 'chat' | 'astro' | 'insight' | 'swiss' | 'together' | 'sync_score', 
   title?: string,
   reportData?: {
     reportType?: string;
