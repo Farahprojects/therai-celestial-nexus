@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { X, Facebook, MessageCircle, Download, Sparkles } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { Facebook, MessageCircle, Download, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -139,18 +139,17 @@ export const SyncShareModal: React.FC<SyncShareModalProps> = ({
 
   if (!isOpen) return null;
 
+  console.log('[SyncShareModal] Rendering share bar:', { isOpen, imageUrl, score, personAName, personBName });
+
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <div className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 shadow-2xl">
-          <motion.div
-            initial={{ opacity: 0, y: 100 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 100 }}
-            transition={{ duration: 0.2, ease: 'easeOut' }}
-            className="w-full"
-            style={{ paddingBottom: 'env(safe-area-inset-bottom, 0)' }}
-          >
+    <div className="fixed bottom-0 left-0 right-0 z-[100] bg-white border-t border-gray-200 shadow-2xl" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0)' }}>
+      <motion.div
+        initial={{ opacity: 0, y: 100 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: 100 }}
+        transition={{ duration: 0.2, ease: 'easeOut' }}
+        className="w-full"
+      >
             {/* Incentive Banner - Always visible at top */}
             {!hasSharedToday && (
               <div className="px-4 py-3 bg-gradient-to-r from-purple-50 to-pink-50 border-b border-purple-100">
@@ -220,10 +219,8 @@ export const SyncShareModal: React.FC<SyncShareModalProps> = ({
                 </div>
               </div>
             </div>
-          </motion.div>
-        </div>
-      )}
-    </AnimatePresence>
+      </motion.div>
+    </div>
   );
 };
 
