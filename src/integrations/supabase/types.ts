@@ -1194,10 +1194,12 @@ export type Database = {
           last_invoice_id: string | null
           last_payment_status: string | null
           last_seen_at: string | null
+          last_share_reward_date: string | null
           metadata: Json | null
           stripe_customer_id: string | null
           stripe_subscription_id: string | null
           subscription_active: boolean | null
+          subscription_end_date: string | null
           subscription_next_charge: string | null
           subscription_plan: string | null
           subscription_start_date: string | null
@@ -1218,10 +1220,12 @@ export type Database = {
           last_invoice_id?: string | null
           last_payment_status?: string | null
           last_seen_at?: string | null
+          last_share_reward_date?: string | null
           metadata?: Json | null
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
           subscription_active?: boolean | null
+          subscription_end_date?: string | null
           subscription_next_charge?: string | null
           subscription_plan?: string | null
           subscription_start_date?: string | null
@@ -1246,6 +1250,7 @@ export type Database = {
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
           subscription_active?: boolean | null
+          subscription_end_date?: string | null
           subscription_next_charge?: string | null
           subscription_plan?: string | null
           subscription_start_date?: string | null

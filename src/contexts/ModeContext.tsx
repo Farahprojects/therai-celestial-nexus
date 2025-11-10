@@ -3,7 +3,7 @@ import { useMessageStore } from '@/stores/messageStore';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './AuthContext';
 
-export type ChatMode = 'chat' | 'astro' | 'insight' | 'together';
+export type ChatMode = 'chat' | 'astro' | 'insight' | 'together' | 'sync_score';
 
 interface ModeContextType {
   mode: ChatMode | null;
