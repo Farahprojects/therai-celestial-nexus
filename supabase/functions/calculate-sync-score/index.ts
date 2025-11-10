@@ -352,7 +352,7 @@ Deno.serve(async (req) => {
         .single(),
       supabase
         .from('conversations')
-        .select('title, user_id')
+        .select('title, user_id, meta')
         .eq('id', chat_id)
         .single()
     ]);
@@ -455,19 +455,22 @@ Deno.serve(async (req) => {
       rarityPercentile
     );
 
+    const existingMeta = (conversation.meta as Record<string, any>) || {};
+    const existingSyncMeta = (existingMeta?.sync_score as Record<string, any>) || {};
+
     // ✅ OPTIMIZATION: Use existing placeholder message if provided (avoids duplicate creation)
-    let targetMessage = null;
+    let targetMessage: any = null;
+    const placeholderMessageId = message_id || existingSyncMeta?.placeholder_message_id || null;
     
-    if (message_id) {
-      // Check if placeholder already exists (created by frontend)
-      const { data: existingMessage } = await supabase
+    if (placeholderMessageId) {
+      const { data: existingMessage, error: existingMessageError } = await supabase
         .from('messages')
         .select('*')
-        .eq('id', message_id)
+        .eq('id', placeholderMessageId)
         .single();
       
-      if (existingMessage) {
-        console.log('[calculate-sync-score] Using existing placeholder message:', message_id);
+      if (!existingMessageError && existingMessage) {
+        console.log('[calculate-sync-score] Using existing placeholder message:', placeholderMessageId);
         targetMessage = existingMessage;
       }
     }
@@ -478,12 +481,13 @@ Deno.serve(async (req) => {
       const { data: newMessage, error: messageError } = await supabase
         .from('messages')
         .insert({
-          id: message_id || crypto.randomUUID(), // Use provided ID if available
+          id: placeholderMessageId || crypto.randomUUID(), // Use provided ID if available
           chat_id: chat_id,
           user_id: userId,
           role: 'assistant',
           text: '',
           status: 'pending',
+          mode: 'sync_score',
           meta: {
             message_type: 'image',
             sync_score: true,
@@ -500,8 +504,25 @@ Deno.serve(async (req) => {
       }
     }
 
+    if (targetMessage) {
+      supabase
+        .from('messages')
+        .update({
+          meta: {
+            ...(targetMessage.meta || {}),
+            message_type: 'image',
+            sync_score: true,
+            status: 'generating'
+          }
+        })
+        .eq('id', targetMessage.id)
+        .catch((updateMetaError) => {
+          console.warn('[calculate-sync-score] Unable to update placeholder meta:', updateMetaError);
+        });
+    }
+
     // 🚀 Broadcast the placeholder message so frontend displays it (skip if frontend already has it)
-    if (targetMessage && !message_id) {
+    if (targetMessage && !placeholderMessageId) {
       const channelName = `user-realtime:${userId}`;
       supabase.channel(channelName).send({
         type: 'broadcast',
@@ -515,13 +536,23 @@ Deno.serve(async (req) => {
       });
     }
 
+    const placeholderIdForMeta = targetMessage?.id || placeholderMessageId || null;
+    const processingMeta = {
+      ...existingSyncMeta,
+      ...scoreBreakdown,
+      placeholder_message_id: placeholderIdForMeta,
+      status: 'processing'
+    };
+    const updatedMeta = {
+      ...existingMeta,
+      sync_score: processingMeta
+    };
+
     // 🚀 FIRE-AND-FORGET: Store score metadata immediately (don't wait for image)
     supabase
       .from('conversations')
       .update({
-        meta: {
-          sync_score: scoreBreakdown,
-        },
+        meta: updatedMeta,
       })
       .eq('id', chat_id)
       .then(({ error: updateError }) => {
@@ -558,9 +589,11 @@ Deno.serve(async (req) => {
               .from('conversations')
               .update({
                 meta: {
+                  ...updatedMeta,
                   sync_score: {
-                    ...scoreBreakdown,
+                    ...processingMeta,
                     card_image_url: imageData.image_url,
+                    status: 'complete'
                   },
                 },
               })

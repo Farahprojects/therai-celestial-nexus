@@ -8,6 +8,8 @@ export interface ScoreBreakdown {
   calculated_at: string;
   rarity_percentile: number;
   card_image_url?: string | null;
+  placeholder_message_id?: string | null;
+  status?: 'pending' | 'processing' | 'complete';
 }
 
 /**
@@ -54,7 +56,10 @@ export const getSyncScore = async (conversationId: string): Promise<ScoreBreakdo
   }
 
   const syncScore = (data?.meta as any)?.sync_score;
-  return syncScore || null;
+  if (!syncScore || typeof syncScore.overall !== 'number') {
+    return null;
+  }
+  return syncScore as ScoreBreakdown;
 };
 
 /**
