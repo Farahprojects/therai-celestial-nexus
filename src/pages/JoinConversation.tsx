@@ -14,6 +14,7 @@ const JoinConversation: React.FC = () => {
   const [isJoined, setIsJoined] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [authLoading, setAuthLoading] = useState(true);
 
   // Check auth state
   useEffect(() => {
@@ -21,6 +22,7 @@ const JoinConversation: React.FC = () => {
       const { data: { session } } = await supabase.auth.getSession();
       setUser(session?.user || null);
       setIsAuthenticated(!!session?.user);
+      setAuthLoading(false);
     };
     
     checkAuth();
@@ -29,6 +31,7 @@ const JoinConversation: React.FC = () => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {                                                                    
       setUser(session?.user || null);
       setIsAuthenticated(!!session?.user);
+      setAuthLoading(false);
     });
     
     return () => subscription.unsubscribe();
@@ -36,6 +39,9 @@ const JoinConversation: React.FC = () => {
 
   // Check if conversation is public and load it
   useEffect(() => {
+    // Wait for auth check to complete before proceeding
+    if (authLoading) return;
+
     const loadPublicConversation = async () => {
       if (!chatId) {
         // Invalid chat ID - navigate to main route
@@ -152,7 +158,7 @@ const JoinConversation: React.FC = () => {
     };
 
     loadPublicConversation();
-  }, [chatId, isAuthenticated, user]);
+  }, [chatId, isAuthenticated, user, authLoading]);
 
   const handleJoin = async () => {
     if (!isAuthenticated || !user || !chatId || !conversation) return;

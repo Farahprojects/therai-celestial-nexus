@@ -7,10 +7,13 @@ import { setRedirectPath, encodeRedirectPath } from '@/utils/redirectUtils';
 const JoinFolder: React.FC = () => {
   const { folderId } = useParams<{ folderId: string }>();
   const navigate = useNavigate();
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, loading: authLoading } = useAuth();
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Wait for auth check to complete before proceeding
+    if (authLoading) return;
+
     const loadFolder = async () => {
       console.log('[JoinFolder] Starting loadFolder', { folderId, isAuthenticated, userId: user?.id });
       
@@ -127,7 +130,7 @@ const JoinFolder: React.FC = () => {
     };
 
     loadFolder();
-  }, [folderId, isAuthenticated, user, navigate]);
+  }, [folderId, isAuthenticated, user, navigate, authLoading]);
 
   if (loading) {
     return (
