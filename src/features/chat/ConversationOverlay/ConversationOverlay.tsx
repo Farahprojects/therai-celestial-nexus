@@ -14,8 +14,6 @@ import { VoiceBubble } from './VoiceBubble';
 import { UniversalSTTRecorder } from '@/services/audio/UniversalSTTRecorder';
 import { ttsPlaybackService } from '@/services/voice/TTSPlaybackService';
 import { STTLimitExceededError } from '@/services/voice/stt';
-import { Capacitor } from '@capacitor/core';
-import BluetoothAudio from '@/plugins/BluetoothAudio';
 // llmService import removed - not used in this file
 import { v4 as uuidv4 } from 'uuid';
 import { supabase } from '@/integrations/supabase/client';
@@ -274,19 +272,6 @@ export const ConversationOverlay: React.FC = () => {
       const ctx = audioContext || initializeAudioContext();
       await resumeAudioContext();
       
-      // 3.5 NATIVE ROUTING: Start and stabilize Bluetooth routing BEFORE creating recorder
-      if (Capacitor.isNativePlatform()) {
-        try {
-          console.log('[ConversationOverlay] 🔵 Starting Bluetooth routing for Conversation Mode...');
-          await BluetoothAudio.startBluetoothAudio();
-          // Allow extra time for SCO to stabilize system-wide
-          await new Promise(resolve => setTimeout(resolve, 500));
-          console.log('[ConversationOverlay] ✅ Bluetooth routing ready');
-        } catch (e) {
-          console.warn('[ConversationOverlay] Bluetooth routing start failed:', e);
-        }
-      }
-      
       // 3. STEP 1: Audio Warmup with validation
       const { ttsPlaybackService } = await import('@/services/voice/TTSPlaybackService');
       // Provide shared/unlocked AudioContext to TTS service
@@ -415,11 +400,6 @@ export const ConversationOverlay: React.FC = () => {
     setState('connecting');
     hasStarted.current = false;
     isShuttingDown.current = false;
-    
-    // Stop Bluetooth routing after session ends (native only)
-    if (Capacitor.isNativePlatform()) {
-      try { await BluetoothAudio.stopBluetoothAudio(); } catch {}
-    }
     
     closeConversation();
   }, [closeConversation, chat_id]);
