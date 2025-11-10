@@ -1,6 +1,8 @@
 // Simple Universal STT Recorder - no chunks, no rolling buffer, just record and stop
 
 import { STTLimitExceededError } from '@/services/voice/stt';
+import { Capacitor } from '@capacitor/core';
+import BluetoothAudio from '@/plugins/BluetoothAudio';
 
 export interface STTRecorderOptions {
   onTranscriptReady?: (transcript: string) => void;
@@ -100,6 +102,17 @@ export class UniversalSTTRecorder {
     if (this.isRecording) return;
 
     try {
+      // Step 0: On native mobile, configure Bluetooth audio routing BEFORE requesting mic
+      if (Capacitor.isNativePlatform()) {
+        try {
+          await BluetoothAudio.startBluetoothAudio();
+          console.log('[UniversalSTTRecorder] Bluetooth audio routing enabled');
+        } catch (error) {
+          console.warn('[UniversalSTTRecorder] Could not start Bluetooth audio:', error);
+          // Continue anyway - might not have Bluetooth connected
+        }
+      }
+      
       // Step 1: Request mic access
       this.mediaStream = await this.requestMicrophoneAccess();
       
@@ -741,6 +754,13 @@ export class UniversalSTTRecorder {
     if (this.audioContext) {
       this.audioContext.close().catch(() => {});
       this.audioContext = null;
+    }
+
+    // 🔥 CLEANUP: Stop Bluetooth audio routing on native platforms
+    if (Capacitor.isNativePlatform()) {
+      BluetoothAudio.stopBluetoothAudio().catch((error) => {
+        console.warn('[UniversalSTTRecorder] Error stopping Bluetooth audio:', error);
+      });
     }
 
     // 🔥 CLEANUP: Clear all buffers and arrays
