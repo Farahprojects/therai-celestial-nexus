@@ -18,7 +18,6 @@ import { ShareFolderModal } from '@/components/folders/ShareFolderModal';
 import { ChatCreationProvider } from '@/components/chat/ChatCreationProvider';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { calculateSyncScore, getSyncScore, type ScoreBreakdown } from '@/services/syncScores';
-import { SyncShareModal } from '@/components/sync/SyncShareModal';
  
 
 // Lazy load components for better performance
@@ -49,14 +48,6 @@ export const ChatBox: React.FC<ChatBoxProps> = ({ onDelete }) => {
   const [showShareModal, setShowShareModal] = useState(false);
   const [showFolderShareModal, setShowFolderShareModal] = useState(false);
   const [hasCheckedTogetherModeShare, setHasCheckedTogetherModeShare] = useState(false);
-  const [showSyncShareModal, setShowSyncShareModal] = useState(false);
-  const [syncShareData, setSyncShareData] = useState<{
-    imageUrl: string;
-    score: number;
-    personAName: string;
-    personBName: string;
-  } | null>(null);
-  const [hasShownSyncModal, setHasShownSyncModal] = useState(false);
   const navigate = useNavigate();
   const { uuid } = getChatTokens();
   const isConversationOpen = useConversationUIStore((s) => s.isConversationOpen);
@@ -94,124 +85,18 @@ export const ChatBox: React.FC<ChatBoxProps> = ({ onDelete }) => {
   // Track conversation mode to hide chat input in sync_score mode
   const [conversationMode, setConversationMode] = useState<string>('chat');
   
-  // Function to check for existing sync card (can be called from multiple places)
-  const checkForSyncCard = React.useCallback(async (chatId: string) => {
-    try {
-      const { data: conversation } = await supabase
-        .from('conversations')
-        .select('title, meta')
-        .eq('id', chatId)
-        .single();
-
-      if (!conversation) return;
-
-      // Find the sync score image message
-      const { data: messages } = await supabase
-        .from('messages')
-        .select('*')
-        .eq('chat_id', chatId)
-        .eq('role', 'assistant')
-        .order('created_at', { ascending: false })
-        .limit(10);
-
-      const syncMessage = messages?.find((m: any) => {
-        const meta = m.meta as any;
-        return meta?.sync_score === true && meta?.message_type === 'image' && meta?.image_url;
-      });
-
-      if (syncMessage) {
-        const meta = syncMessage.meta as any;
-        if (meta?.image_url) {
-          const title = conversation.title?.replace('Sync Score: ', '') || '';
-          const [personAName, personBName] = title.split(' & ');
-          const conversationMeta = conversation.meta as any;
-          const score = conversationMeta?.sync_score?.overall || 0;
-
-          console.log('[ChatBox] Found existing sync card, showing share bar:', {
-            imageUrl: meta.image_url,
-            score,
-            personAName,
-            personBName
-          });
-
-          setSyncShareData({
-            imageUrl: meta.image_url,
-            score,
-            personAName: personAName || 'Person A',
-            personBName: personBName || 'Person B'
-          });
-          setShowSyncShareModal(true);
-          setHasShownSyncModal(true);
-        }
-      }
-    } catch (error) {
-      console.error('[ChatBox] Error checking sync card:', error);
-    }
-  }, []);
-
   useEffect(() => {
     if (chat_id) {
       supabase
         .from('conversations')
-        .select('mode, meta')
+        .select('mode')
         .eq('id', chat_id)
         .single()
         .then(({ data }) => {
-          const mode = data?.mode || 'chat';
-          setConversationMode(mode);
-          
-          // If sync_score mode, immediately check for existing card
-          if (mode === 'sync_score') {
-            checkForSyncCard(chat_id);
-          }
+          setConversationMode(data?.mode || 'chat');
         });
     }
-  }, [chat_id, checkForSyncCard]);
-
-  // Listen for new sync card completion (realtime updates)
-  useEffect(() => {
-    if (!chat_id || conversationMode !== 'sync_score') {
-      return;
-    }
-
-    // Listen for updates
-    const channel = supabase
-      .channel(`sync-card-${chat_id}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'messages',
-          filter: `chat_id=eq.${chat_id}`
-        },
-        (payload) => {
-          const message = payload.new as any;
-          console.log('[ChatBox] Message updated:', {
-            hasSyncScore: message.meta?.sync_score === true,
-            hasImageUrl: !!message.meta?.image_url,
-            status: message.status
-          });
-          
-          // Check if this is a sync score image (status can be 'complete' or just have image_url)
-          if (
-            message.meta?.message_type === 'image' &&
-            message.meta?.image_url
-          ) {
-            console.log('[ChatBox] Sync card detected, opening share bar');
-            // Small delay to ensure message is fully saved
-            setTimeout(() => {
-              checkForSyncCard(chat_id);
-            }, 300);
-          }
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [chat_id, conversationMode, checkForSyncCard]);
+  }, [chat_id]);
 
 
 
@@ -557,18 +442,6 @@ export const ChatBox: React.FC<ChatBoxProps> = ({ onDelete }) => {
         <ShareFolderModal
           folderId={selectedFolderId || urlFolderId || ''}
           onClose={() => setShowFolderShareModal(false)}
-        />
-      )}
-
-      {/* Sync Score Share Modal */}
-      {showSyncShareModal && syncShareData && (
-        <SyncShareModal
-          isOpen={showSyncShareModal}
-          onClose={() => setShowSyncShareModal(false)}
-          imageUrl={syncShareData.imageUrl}
-          score={syncShareData.score}
-          personAName={syncShareData.personAName}
-          personBName={syncShareData.personBName}
         />
       )}
 
