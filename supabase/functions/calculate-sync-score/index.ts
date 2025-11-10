@@ -94,7 +94,8 @@ Return only clean JSON with no markdown:
       topP: 0.8,
       topK: 40,
       maxOutputTokens: 20000, // Increased to handle reasoning tokens (thoughtsTokenCount ~999) + output
-      responseMimeType: "application/json"
+      responseMimeType: "application/json",
+      thinkingConfig: { thinkingBudget: 0 }
     }
   };
   
