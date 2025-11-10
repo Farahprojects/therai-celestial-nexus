@@ -676,7 +676,6 @@ export type Database = {
         Row: {
           chat_messages: number | null
           created_at: string | null
-          feature_type: string
           id: string
           images_generated: number | null
           insights_count: number
@@ -689,7 +688,6 @@ export type Database = {
         Insert: {
           chat_messages?: number | null
           created_at?: string | null
-          feature_type: string
           id?: string
           images_generated?: number | null
           insights_count?: number
@@ -702,7 +700,6 @@ export type Database = {
         Update: {
           chat_messages?: number | null
           created_at?: string | null
-          feature_type?: string
           id?: string
           images_generated?: number | null
           insights_count?: number
@@ -1246,6 +1243,7 @@ export type Database = {
           last_invoice_id?: string | null
           last_payment_status?: string | null
           last_seen_at?: string | null
+          last_share_reward_date?: string | null
           metadata?: Json | null
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
