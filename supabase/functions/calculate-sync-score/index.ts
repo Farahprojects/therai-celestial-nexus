@@ -63,12 +63,12 @@ Your task:
 FIRST: Analyze the swiss data above and extract the most significant aspects and patterns. Look for aspects between planets, signs, houses, and any other relevant astrological data.
 
 THEN:
-1. **Analyze the pattern** — determine the dominant emotional tone of this relationship. These are examples, do not just copy them:
+1. **Analyze the pattern** — determine the dominant emotional tone of this two persons.
    
 2. **Create a caption** that blends humor, truth, and insight. It should feel emotionally resonant or ironic — something that makes users tag a friend.
    - Max 20 words
    - Tone: Gen Z with humour   
-   **IMPORTANT Tell image genrator to Check spelling and wording before finalising**
+   **IMPORTANT Add a Check spelling and wording before finalising instruction **
 
 3. **Generate an image prompt** that visually expresses the same theme.
    - Must be 9:16 vertical composition.
@@ -80,7 +80,8 @@ THEN:
      - Center: the meme caption
      - Bottom: "therai.co"
      
-**IMPORTANT Tell image genrator to Check spelling and wording before finalising** 
+**IMPORTANT Add a Check spelling and wording before finalising instruction** 
+
 Return only clean JSON with no markdown:
 {
   "caption": "text here",
