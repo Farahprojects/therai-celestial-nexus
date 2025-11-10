@@ -49,8 +49,8 @@ async function generateMeme(
   // Send FULL Swiss data to LLM - let it extract what it needs
   const swissDataJson = JSON.stringify(swissData, null, 2);
   
-  console.log(`[Meme] Swiss data size: ${swissDataJson.length} chars`);
-  console.log(`[Meme] Swiss data preview (first 500 chars):`, swissDataJson.substring(0, 500));
+  console.log(`[Meme] Swiss data size: ${swissDataJson.length} chars - SENDING FULL DATA TO LLM`);
+  console.log(`[Meme] Swiss data structure preview (first 500 chars for debugging only):`, swissDataJson.substring(0, 500));
 
   const prompt = `You are a creative meme writer and visual concept designer for an AI that creates astrology memes. Humour welcome 
 
@@ -104,9 +104,14 @@ Return only clean JSON with no markdown:
     }
   };
   
-  console.log(`[Meme] Sending to LLM - prompt length: ${prompt.length} chars`);
-  console.log(`[Meme] Prompt contains aspects: ${prompt.includes('Synastry Aspects')}`);
-  console.log(`[Meme] Full prompt being sent:\n${prompt}`);
+  console.log(`[Meme] Sending to LLM - prompt length: ${prompt.length} chars (includes FULL Swiss data: ${swissDataJson.length} chars)`);
+  console.log(`[Meme] Prompt contains Swiss data: ${prompt.includes(swissDataJson.substring(0, 50))}`);
+  // Log full prompt only if it's reasonable size (under 10k chars), otherwise just confirm it's there
+  if (prompt.length < 10000) {
+    console.log(`[Meme] Full prompt:\n${prompt}`);
+  } else {
+    console.log(`[Meme] Prompt is large (${prompt.length} chars) - contains full Swiss data`);
+  }
 
   const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
   const resp = await fetch(geminiUrl, {
