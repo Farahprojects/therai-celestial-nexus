@@ -142,45 +142,23 @@ export const SyncShareModal: React.FC<SyncShareModalProps> = ({
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/30 backdrop-blur-sm">
+        <div className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 shadow-2xl">
           <motion.div
             initial={{ opacity: 0, y: 100 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 100 }}
             transition={{ duration: 0.2, ease: 'easeOut' }}
-            className="bg-white rounded-t-3xl w-full max-w-lg shadow-2xl overflow-hidden"
+            className="w-full"
             style={{ paddingBottom: 'env(safe-area-inset-bottom, 0)' }}
           >
-            {/* Header */}
-            <div className="relative px-6 py-5 border-b border-gray-100">
-              <button
-                onClick={onClose}
-                className="absolute top-4 right-4 w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center transition-colors"
-              >
-                <X className="w-5 h-5 text-gray-600" />
-              </button>
-              
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center">
-                  <Sparkles className="w-6 h-6 text-purple-600" />
-                </div>
-                <div>
-                  <h3 className="text-xl font-light text-gray-900">Share Your Connection</h3>
-                  <p className="text-sm text-gray-500 font-light">
-                    {score}% Sync • {personAName} & {personBName}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Incentive Banner */}
+            {/* Incentive Banner - Always visible at top */}
             {!hasSharedToday && (
-              <div className="mx-6 mt-4 px-4 py-3 bg-gradient-to-r from-purple-50 to-pink-50 rounded-2xl border border-purple-100">
-                <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+              <div className="px-4 py-3 bg-gradient-to-r from-purple-50 to-pink-50 border-b border-purple-100">
+                <div className="flex items-center gap-3 max-w-3xl mx-auto">
+                  <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0">
                     <Sparkles className="w-4 h-4 text-purple-600" />
                   </div>
-                  <div className="flex-1">
+                  <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-purple-900">Share & Unlock</p>
                     <p className="text-xs text-purple-700 mt-0.5">
                       Share once today to unlock +1 free image generation
@@ -190,63 +168,57 @@ export const SyncShareModal: React.FC<SyncShareModalProps> = ({
               </div>
             )}
 
-            {/* Share Options */}
-            <div className="p-6 space-y-3">
-              {/* Twitter/X */}
-              <button
-                onClick={() => handleShare('twitter')}
-                className="w-full flex items-center gap-4 px-5 py-4 bg-gray-50 hover:bg-gray-100 rounded-2xl transition-all group"
-              >
-                <div className="w-11 h-11 rounded-full bg-black flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <XIcon className="w-5 h-5 text-white" />
+            {/* Share Options Bar - Horizontal compact layout */}
+            <div className="px-4 py-3 max-w-3xl mx-auto">
+              <div className="flex items-center justify-between gap-2">
+                {/* Connection Info */}
+                <div className="flex items-center gap-3 flex-1 min-w-0">
+                  <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0">
+                    <Sparkles className="w-5 h-5 text-purple-600" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-900 truncate">
+                      {personAName} & {personBName}
+                    </p>
+                    <p className="text-xs text-gray-500">{score}% Sync</p>
+                  </div>
                 </div>
-                <div className="flex-1 text-left">
-                  <p className="font-medium text-gray-900">Share on X</p>
-                  <p className="text-xs text-gray-500">Post your connection card</p>
-                </div>
-              </button>
 
-              {/* Facebook */}
-              <button
-                onClick={() => handleShare('facebook')}
-                className="w-full flex items-center gap-4 px-5 py-4 bg-gray-50 hover:bg-gray-100 rounded-2xl transition-all group"
-              >
-                <div className="w-11 h-11 rounded-full bg-blue-600 flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <Facebook className="w-5 h-5 text-white" fill="currentColor" />
-                </div>
-                <div className="flex-1 text-left">
-                  <p className="font-medium text-gray-900">Share on Facebook</p>
-                  <p className="text-xs text-gray-500">Share with friends</p>
-                </div>
-              </button>
+                {/* Share Buttons */}
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => handleShare('twitter')}
+                    className="w-10 h-10 rounded-full bg-black hover:bg-gray-800 flex items-center justify-center transition-colors"
+                    title="Share on X"
+                  >
+                    <XIcon className="w-5 h-5 text-white" />
+                  </button>
 
-              {/* WhatsApp */}
-              <button
-                onClick={() => handleShare('whatsapp')}
-                className="w-full flex items-center gap-4 px-5 py-4 bg-gray-50 hover:bg-gray-100 rounded-2xl transition-all group"
-              >
-                <div className="w-11 h-11 rounded-full bg-green-500 flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <MessageCircle className="w-5 h-5 text-white" fill="currentColor" />
-                </div>
-                <div className="flex-1 text-left">
-                  <p className="font-medium text-gray-900">Share on WhatsApp</p>
-                  <p className="text-xs text-gray-500">Send to contacts</p>
-                </div>
-              </button>
+                  <button
+                    onClick={() => handleShare('facebook')}
+                    className="w-10 h-10 rounded-full bg-blue-600 hover:bg-blue-700 flex items-center justify-center transition-colors"
+                    title="Share on Facebook"
+                  >
+                    <Facebook className="w-5 h-5 text-white" fill="currentColor" />
+                  </button>
 
-              {/* Download */}
-              <button
-                onClick={handleDownload}
-                className="w-full flex items-center gap-4 px-5 py-4 bg-gray-50 hover:bg-gray-100 rounded-2xl transition-all group"
-              >
-                <div className="w-11 h-11 rounded-full bg-gray-900 flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <Download className="w-5 h-5 text-white" />
+                  <button
+                    onClick={() => handleShare('whatsapp')}
+                    className="w-10 h-10 rounded-full bg-green-500 hover:bg-green-600 flex items-center justify-center transition-colors"
+                    title="Share on WhatsApp"
+                  >
+                    <MessageCircle className="w-5 h-5 text-white" fill="currentColor" />
+                  </button>
+
+                  <button
+                    onClick={handleDownload}
+                    className="w-10 h-10 rounded-full bg-gray-900 hover:bg-gray-800 flex items-center justify-center transition-colors"
+                    title="Download Card"
+                  >
+                    <Download className="w-5 h-5 text-white" />
+                  </button>
                 </div>
-                <div className="flex-1 text-left">
-                  <p className="font-medium text-gray-900">Download Card</p>
-                  <p className="text-xs text-gray-500">Save to device</p>
-                </div>
-              </button>
+              </div>
             </div>
           </motion.div>
         </div>
