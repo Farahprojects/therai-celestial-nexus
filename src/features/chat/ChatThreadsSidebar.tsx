@@ -28,6 +28,7 @@ import { FoldersList } from '@/components/folders/FoldersList';
 import { FolderModal } from '@/components/folders/FolderModal';
 import { useSettingsModal } from '@/contexts/SettingsModalContext';
 import { ConversationActionsMenuContent } from '@/components/chat/ConversationActionsMenu';
+import { ShareConversationModal } from '@/components/chat/ShareConversationModal';
 import { getConversation, updateConversationTitle } from '@/services/conversations';
 import { getUserFolders, createFolder, updateFolderName, deleteFolder, getFolderConversations, getSharedFolder, moveConversationToFolder } from '@/services/folders';
 import { supabase } from '@/integrations/supabase/client';
@@ -177,6 +178,7 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
   const [editTitle, setEditTitle] = useState('');
   const [confirmDeleteFor, setConfirmDeleteFor] = useState<string | null>(null);
   const [shouldCollapseFolders, setShouldCollapseFolders] = useState(false);
+  const [shareConversationId, setShareConversationId] = useState<string | null>(null);
 
   /** Load folders on mount and when user/folder changes */
   useEffect(() => { load(); }, [load]);
@@ -527,6 +529,7 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
                             currentTitle={c.title || ''}
                             onEdit={(id, current) => { setEditTitleFor(id); setEditTitle(current || ''); }}
                             onDelete={(id) => setConfirmDeleteFor(id)}
+                            onShare={(id) => setShareConversationId(id)}
                             onMoveToFolder={handleMoveToFolder}
                             onCreateFolder={(id) => { setConversationToMoveToNewFolder(id); setShowFolderModal(true); }}
                             folders={folders.map(f => ({ id: f.id, name: f.name }))}
@@ -638,6 +641,14 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Share Conversation Modal */}
+      {shareConversationId && (
+        <ShareConversationModal
+          conversationId={shareConversationId}
+          onClose={() => setShareConversationId(null)}
+        />
+      )}
     </div>
   );
 };

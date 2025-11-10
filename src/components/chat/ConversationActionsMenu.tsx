@@ -1,5 +1,5 @@
 import React from 'react';
-import { Sparkles, Edit3, Trash2, FolderInput, X, Folder } from 'lucide-react';
+import { Sparkles, Edit3, Trash2, FolderInput, X, Folder, Share2 } from 'lucide-react';
 import {
   DropdownMenuContent,
   DropdownMenuItem,
@@ -20,6 +20,7 @@ interface ConversationActionsMenuProps {
   conversationId?: string; // Optional - if not provided, uses current chat_id
   onEdit?: (conversationId: string, currentTitle: string) => void;
   onDelete?: (conversationId: string) => void;
+  onShare?: (conversationId: string) => void;
   onMoveToFolder?: (conversationId: string, folderId: string | null) => void;
   onCreateFolder?: (conversationId: string) => void;
   folders?: Folder[];
@@ -33,6 +34,7 @@ export const ConversationActionsMenuContent: React.FC<ConversationActionsMenuPro
   conversationId,
   onEdit,
   onDelete,
+  onShare,
   onMoveToFolder,
   onCreateFolder,
   folders = [],
@@ -80,6 +82,12 @@ export const ConversationActionsMenuContent: React.FC<ConversationActionsMenuPro
     }
   };
 
+  const handleShareClick = () => {
+    if (onShare && targetConversationId) {
+      onShare(targetConversationId);
+    }
+  };
+
   return (
     <DropdownMenuContent align={align} className="bg-white border border-gray-200 shadow-lg min-w-fit rounded-lg p-1">
       <DropdownMenuItem
@@ -100,6 +108,18 @@ export const ConversationActionsMenuContent: React.FC<ConversationActionsMenuPro
             <div className="flex items-center gap-2">
               <Edit3 className="w-4 h-4" />
               <span>Edit</span>
+            </div>
+          </DropdownMenuItem>
+        )}
+        
+        {onShare && (
+          <DropdownMenuItem
+            onClick={handleShareClick}
+            className="px-3 py-1.5 text-sm text-black hover:bg-gray-100 hover:text-black focus:bg-gray-100 focus:text-black cursor-pointer rounded-full"
+          >
+            <div className="flex items-center gap-2">
+              <Share2 className="w-4 h-4" />
+              <span>Share</span>
             </div>
           </DropdownMenuItem>
         )}
