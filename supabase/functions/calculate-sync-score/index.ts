@@ -55,21 +55,52 @@ async function generateMeme(
     ? aspects.slice(0, 15).map((a: any) => `${a.type}: ${a.a}-${a.b}`).join('\n')
     : "No aspects found";
 
-  const prompt = `Create a meme about ${personAName} & ${personBName} based on their synastry:
+  const prompt = `You are a creative meme writer and visual concept designer for an AI that creates poetic astrology memes.
 
+Input:
+- Couple: ${personAName} & ${personBName}
+- Synastry Aspects (top 15):
 ${aspectsText}
 
-Return JSON:
+Your task:
+1. **Analyze the pattern** — determine the dominant emotional tone of this relationship. These are examples only, do not just copy them:
+   - "Harmony / Flow" → warmth, beauty, connection
+   - "Friction / Wounds" → tension, irony, humor
+   - "Ego Clash / Projection" → power, pride, shadow work
+   - "Emotional Avoidance / Overthinking" → irony, subtle humor
+   - "Intensity / Obsession" → magnetic, dramatic, cinematic
+   - "Soul Mirror / Growth" → profound, transformative, poetic
+
+2. **Create a caption** that blends humor, truth, and insight. It should feel emotionally resonant or ironic — something that makes users tag a friend.
+   - Max 20 words
+   - Tone: smart, slightly mystical, relatable
+   - Examples:
+     - "When your Saturn hits their Moon and suddenly you're their therapist."
+     - "It's not toxic, it's karmic ✨"
+     - "When they trigger your shadow but you call it destiny."
+
+3. **Generate an image prompt** that visually expresses the same theme.
+   - Must be 9:16 vertical composition.
+   - Focus on metaphoric imagery (animals, cosmic, abstract, nature, surreal moods).
+   - Include aesthetic cues that fit the emotional tone you identified (e.g., "stormy sky" for conflict, "soft glow" for harmony).
+   - Include small overlay text:
+     - Top: "${personAName} & ${personBName}"
+     - Center: the meme caption
+     - Bottom: "therai.co"
+
+Return only clean JSON with no markdown:
 {
-  "caption": "profound poetic caption, max 20 words",
-  "imagePrompt": "9:16 portrait, NO human faces (use animals/nature/cosmic/abstract), text: '${personAName} & ${personBName}' top, caption center, 'therai.co' bottom, artistic elegant"
+  "caption": "text here",
+  "imagePrompt": "text here"
 }`;
 
   const requestBody = {
     contents: [{ role: "user", parts: [{ text: prompt }] }],
     generationConfig: { 
-      temperature: 0.9, 
-      maxOutputTokens: 1500, // Increased to handle longer image prompts
+      temperature: 1.0, // More creative variability
+      topP: 0.8,
+      topK: 40,
+      maxOutputTokens: 1000,
       responseMimeType: "application/json"
     }
   };
