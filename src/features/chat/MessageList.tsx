@@ -8,8 +8,6 @@ import { useAutoScroll } from '@/hooks/useAutoScroll';
 import { useWordAnimation } from '@/hooks/useWordAnimation';
 import { Button } from '@/components/ui/button';
 import { ShareImageModal } from '@/components/chat/ShareImageModal';
-import { SyncMemeCard } from '@/components/sync/SyncMemeCard';
-import { getSyncScore, MemeData } from '@/services/syncScores';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 // TypewriterText removed - keeping source field logic for future use
@@ -232,42 +230,6 @@ const ImageWithLoading = React.memo(({ message }: { message: Message }) => {
 });
 ImageWithLoading.displayName = 'ImageWithLoading';
 
-// ⚡ SYNC MEME MESSAGE - Displays meme card instead of generic image
-const SyncMemeMessage = React.memo(({ message, chatId }: { message: Message; chatId: string }) => {
-  const [memeData, setMemeData] = useState<MemeData | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    const loadMemeData = async () => {
-      try {
-        const data = await getSyncScore(chatId);
-        if (data) {
-          setMemeData(data);
-        }
-      } catch (error) {
-        console.error('[SyncMemeMessage] Failed to load meme data:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadMemeData();
-  }, [chatId]);
-
-  const metaData = message.meta as any;
-  const imageUrl = metaData?.image_url;
-
-  return (
-    <div className="flex justify-center my-8">
-      <SyncMemeCard 
-        meme={memeData} 
-        imageUrl={imageUrl}
-        isLoading={isLoading}
-      />
-    </div>
-  );
-});
-SyncMemeMessage.displayName = 'SyncMemeMessage';
 
 // Simple message rendering - no complex turn grouping needed with message_number ordering
 const renderMessages = (messages: Message[], currentUserId?: string, chatId?: string) => {
@@ -281,17 +243,8 @@ const renderMessages = (messages: Message[], currentUserId?: string, chatId?: st
       continue;
     }
     
-    // Handle sync meme messages specially
-    const metaData = message.meta as any;
-    if (metaData?.sync_score === true && metaData?.message_type === 'image') {
-      if (chatId) {
-        const messageKey = message.client_msg_id || message.id;
-        elements.push(
-          <SyncMemeMessage key={messageKey} message={message} chatId={chatId} />
-        );
-      }
-      continue;
-    }
+    // Sync meme messages render as regular images (no special card component)
+    // They're handled by the image message rendering below
     
     // Render user messages (own vs other user)
     if (message.role === 'user') {

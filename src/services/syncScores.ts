@@ -10,9 +10,6 @@ export interface MemeCaption {
 
 export interface MemeData {
   caption: MemeCaption;
-  pattern_category: string;
-  theme_core: string;
-  tone: string;
   calculated_at: string;
   image_url?: string | null;
 }

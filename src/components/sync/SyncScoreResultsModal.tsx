@@ -110,7 +110,7 @@ export const SyncScoreResultsModal: React.FC<SyncScoreResultsModalProps> = ({
             </h3>
             
             <p className="text-base font-light text-gray-600 leading-relaxed max-w-md mx-auto">
-              Your personalized connection card is being generated and will appear in your chat in just a moment.
+              Your personalized meme is being generated and will appear in your chat in just a moment.
             </p>
 
             {/* Score Preview */}
