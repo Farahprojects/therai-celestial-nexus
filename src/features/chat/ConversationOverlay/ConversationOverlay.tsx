@@ -22,6 +22,8 @@ import { unifiedChannel } from '@/services/websocket/UnifiedChannelService';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Mic } from 'lucide-react';
 import { UpgradeNotification } from '@/components/subscription/UpgradeNotification';
+import { Capacitor } from '@capacitor/core';
+import BluetoothAudio from '@/plugins/BluetoothAudio';
 
 type ConversationState = 'listening' | 'thinking' | 'replying' | 'connecting' | 'establishing';
 
@@ -258,7 +260,25 @@ export const ConversationOverlay: React.FC = () => {
     setState('establishing');
     
     try {
-      // 2. MIC PERMISSION PREFLIGHT - Android requires this before AudioContext
+      // 2. BLUETOOTH ROUTING - SESSION LEVEL (ONCE for entire conversation)
+      if (Capacitor.isNativePlatform()) {
+        try {
+          console.log('[ConversationOverlay] 🔵 Starting Bluetooth SCO for conversation session...');
+          const result = await BluetoothAudio.startBluetoothAudio();
+          console.log('[ConversationOverlay] ✅ Bluetooth audio session established:', result);
+          
+          // Wait for routing to stabilize
+          await new Promise(resolve => setTimeout(resolve, 500));
+          
+          const status = await BluetoothAudio.isBluetoothConnected();
+          console.log('[ConversationOverlay] Bluetooth connection status:', status);
+        } catch (error) {
+          console.warn('[ConversationOverlay] Bluetooth audio setup failed:', error);
+          // Continue anyway - might not have Bluetooth connected
+        }
+      }
+      
+      // 3. MIC PERMISSION PREFLIGHT - Android requires this before AudioContext
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         // Immediately stop tracks to release mic
@@ -268,7 +288,7 @@ export const ConversationOverlay: React.FC = () => {
         throw new Error('Microphone permission required for conversation mode');
       }
       
-      // 3. AUDIOCONTEXT UNLOCK - Ensure unlock happens within this user gesture
+      // 4. AUDIOCONTEXT UNLOCK - Ensure unlock happens within this user gesture
       const ctx = audioContext || initializeAudioContext();
       await resumeAudioContext();
       
@@ -366,6 +386,17 @@ export const ConversationOverlay: React.FC = () => {
 
     // Fire-and-forget microphone release
     try { recorderRef.current?.dispose(); } catch {}
+    
+    // BLUETOOTH ROUTING - SESSION LEVEL CLEANUP (ONCE when conversation ends)
+    if (Capacitor.isNativePlatform()) {
+      try {
+        console.log('[ConversationOverlay] 🔴 Stopping Bluetooth SCO session...');
+        await BluetoothAudio.stopBluetoothAudio();
+        console.log('[ConversationOverlay] ✅ Bluetooth audio session ended');
+      } catch (error) {
+        console.warn('[ConversationOverlay] Bluetooth audio stop failed:', error);
+      }
+    }
     
     // Fire-and-forget WebSocket cleanup
     if (connectionRef.current) {
