@@ -104,6 +104,7 @@ const ImageWithLoading = React.memo(({ message }: { message: Message }) => {
   const imagePrompt = metaData?.image_prompt;
   const [imageLoaded, setImageLoaded] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
+  const [blurPhase, setBlurPhase] = useState<0 | 1 | 2>(0); // 0 heavy blur, 1 medium after 3s, 2 none when loaded
 
   // Reset imageLoaded when imageUrl changes
   React.useEffect(() => {
@@ -111,6 +112,18 @@ const ImageWithLoading = React.memo(({ message }: { message: Message }) => {
       setImageLoaded(false);
     }
   }, [imageUrl]);
+
+  // Progressive blur while waiting (gives sense of progress)
+  React.useEffect(() => {
+    if (imageUrl && imageLoaded) {
+      setBlurPhase(2);
+      return;
+    }
+    // Start with heavy blur, reduce after 3s
+    setBlurPhase(0);
+    const t = setTimeout(() => setBlurPhase(1), 3000);
+    return () => clearTimeout(t);
+  }, [imageUrl, imageLoaded]);
 
   const handleShare = () => {
     setShowShareModal(true);
@@ -141,9 +154,16 @@ const ImageWithLoading = React.memo(({ message }: { message: Message }) => {
   return (
     <div className="flex justify-center mb-8">
       <div className="relative group inline-block max-w-[80vw] rounded-2xl overflow-hidden shadow-md">
-        {/* Skeleton background - shows while loading or before image loads */}
-        <div className={`w-[512px] h-[512px] bg-gray-50 flex items-center justify-center transition-opacity duration-500 ${imageLoaded ? 'opacity-0' : 'opacity-100'}`}>
-          <div className="absolute inset-0 bg-gradient-to-br from-gray-100/50 via-gray-50 to-gray-100/50 animate-pulse" />
+        {/* Placeholder canvas - purple cosmic gradient with progressive blur */}
+        <div className={`w-[512px] h-[512px] flex items-center justify-center transition-opacity duration-500 ${imageLoaded ? 'opacity-0' : 'opacity-100'}`}>
+          <div className={`absolute inset-0 bg-gradient-to-br from-purple-900 via-purple-700 to-fuchsia-700`}>
+            {/* subtle stars */}
+            <div className="absolute inset-0 bg-[radial-gradient(white,transparent_40%)] opacity-10 mix-blend-screen" />
+          </div>
+          <div className={`absolute inset-0 ${blurPhase === 0 ? 'backdrop-blur-[16px]' : blurPhase === 1 ? 'backdrop-blur-[8px]' : 'backdrop-blur-0'} transition-all duration-700`} />
+          <div className="relative z-10 text-white/80 text-sm font-light">
+            Generating your connection card…
+          </div>
         </div>
         
         {/* Actual image - fades in when loaded */}

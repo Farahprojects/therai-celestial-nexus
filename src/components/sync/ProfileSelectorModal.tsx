@@ -113,7 +113,7 @@ export const ProfileSelectorModal: React.FC<ProfileSelectorModalProps> = ({
             </div>
             <div>
               <h2 className="text-xl font-light text-gray-900">
-                Calculate Sync Score
+                Sync Score
               </h2>
               <p className="text-sm text-gray-500 font-light">
                 Choose a connection
@@ -214,7 +214,7 @@ export const ProfileSelectorModal: React.FC<ProfileSelectorModalProps> = ({
           <Button
             onClick={handleNext}
             disabled={!selectedProfile || isGenerating}
-            className="w-full rounded-full py-6 bg-gray-900 hover:bg-gray-800 disabled:bg-gray-200 disabled:text-gray-400 text-white font-light transition-all"
+            className="w-full rounded-full py-6 bg-gray-900 hover:bg-gray-800 disabled:bg-gray-200 disabled:!text-black text-white font-light transition-all"
           >
             {isGenerating ? (
               <>
