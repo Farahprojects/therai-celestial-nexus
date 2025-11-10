@@ -357,6 +357,11 @@ Deno.serve(async (req) => {
     console.log(`[calculate-sync-score] Asking LLM to analyze ${personAName} & ${personBName}`);
     const llmAnalysis = await analyzeSyncWithLLM(swissData, personAName, personBName);
 
+    // Strip commas from text to keep it clean
+    llmAnalysis.insight = llmAnalysis.insight.replace(/,/g, '');
+    llmAnalysis.challenge = llmAnalysis.challenge.replace(/,/g, '');
+    llmAnalysis.archetype = llmAnalysis.archetype.replace(/,/g, '');
+
     console.log(`[calculate-sync-score] LLM generated: ${llmAnalysis.score}% - ${llmAnalysis.archetype}`);
     console.log(`[calculate-sync-score] Insight: ${llmAnalysis.insight}`);
     console.log(`[calculate-sync-score] Challenge: ${llmAnalysis.challenge}`);
