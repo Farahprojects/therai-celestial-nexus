@@ -18,6 +18,7 @@ import { ShareFolderModal } from '@/components/folders/ShareFolderModal';
 import { ChatCreationProvider } from '@/components/chat/ChatCreationProvider';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { calculateSyncScore, getSyncScore, type ScoreBreakdown } from '@/services/syncScores';
+import { SyncShareModal } from '@/components/sync/SyncShareModal';
  
 
 // Lazy load components for better performance
@@ -48,6 +49,13 @@ export const ChatBox: React.FC<ChatBoxProps> = ({ onDelete }) => {
   const [showShareModal, setShowShareModal] = useState(false);
   const [showFolderShareModal, setShowFolderShareModal] = useState(false);
   const [hasCheckedTogetherModeShare, setHasCheckedTogetherModeShare] = useState(false);
+  const [showSyncShareModal, setShowSyncShareModal] = useState(false);
+  const [syncShareData, setSyncShareData] = useState<{
+    imageUrl: string;
+    score: number;
+    personAName: string;
+    personBName: string;
+  } | null>(null);
   const navigate = useNavigate();
   const { uuid } = getChatTokens();
   const isConversationOpen = useConversationUIStore((s) => s.isConversationOpen);
@@ -82,7 +90,75 @@ export const ChatBox: React.FC<ChatBoxProps> = ({ onDelete }) => {
     feature: '' 
   });
   
+  // Track conversation mode to hide chat input in sync_score mode
+  const [conversationMode, setConversationMode] = useState<string>('chat');
   
+  useEffect(() => {
+    if (chat_id) {
+      supabase
+        .from('conversations')
+        .select('mode, meta')
+        .eq('id', chat_id)
+        .single()
+        .then(({ data }) => {
+          setConversationMode(data?.mode || 'chat');
+        });
+    }
+  }, [chat_id]);
+
+  // Listen for sync score card completion and auto-open share modal
+  useEffect(() => {
+    if (!chat_id || conversationMode !== 'sync_score') return;
+
+    const channel = supabase
+      .channel(`sync-card-${chat_id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'messages',
+          filter: `chat_id=eq.${chat_id}`
+        },
+        (payload) => {
+          const message = payload.new as any;
+          // Check if this is a completed sync score image
+          if (
+            message.meta?.sync_score === true &&
+            message.meta?.message_type === 'image' &&
+            message.meta?.image_url &&
+            message.status === 'complete'
+          ) {
+            // Extract data from conversation title and meta
+            supabase
+              .from('conversations')
+              .select('title, meta')
+              .eq('id', chat_id)
+              .single()
+              .then(({ data }) => {
+                if (data) {
+                  const title = data.title?.replace('Sync Score: ', '') || '';
+                  const [personAName, personBName] = title.split(' & ');
+                  const score = data.meta?.sync_score?.overall || 0;
+
+                  setSyncShareData({
+                    imageUrl: message.meta.image_url,
+                    score,
+                    personAName: personAName || 'Person A',
+                    personBName: personBName || 'Person B'
+                  });
+                  setShowSyncShareModal(true);
+                }
+              });
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [chat_id, conversationMode]);
 
 
 
@@ -355,8 +431,8 @@ export const ChatBox: React.FC<ChatBoxProps> = ({ onDelete }) => {
                 )}
               </div>
 
-              {/* Footer Area - Only show ChatInput when in chat view */}
-              {viewMode === 'chat' && (
+              {/* Footer Area - Only show ChatInput when in chat view AND not sync_score mode */}
+              {viewMode === 'chat' && conversationMode !== 'sync_score' && (
                 <div 
                   className="mobile-input-area mobile-input-container"
                 >
@@ -428,6 +504,18 @@ export const ChatBox: React.FC<ChatBoxProps> = ({ onDelete }) => {
         <ShareFolderModal
           folderId={selectedFolderId || urlFolderId || ''}
           onClose={() => setShowFolderShareModal(false)}
+        />
+      )}
+
+      {/* Sync Score Share Modal */}
+      {showSyncShareModal && syncShareData && (
+        <SyncShareModal
+          isOpen={showSyncShareModal}
+          onClose={() => setShowSyncShareModal(false)}
+          imageUrl={syncShareData.imageUrl}
+          score={syncShareData.score}
+          personAName={syncShareData.personAName}
+          personBName={syncShareData.personBName}
         />
       )}
 

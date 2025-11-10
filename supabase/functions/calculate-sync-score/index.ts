@@ -357,10 +357,16 @@ Deno.serve(async (req) => {
     console.log(`[calculate-sync-score] Asking LLM to analyze ${personAName} & ${personBName}`);
     const llmAnalysis = await analyzeSyncWithLLM(swissData, personAName, personBName);
 
-    // Strip commas from text to keep it clean
+    // Strip ALL commas from text to keep it clean
     llmAnalysis.insight = llmAnalysis.insight.replace(/,/g, '');
     llmAnalysis.challenge = llmAnalysis.challenge.replace(/,/g, '');
     llmAnalysis.archetype = llmAnalysis.archetype.replace(/,/g, '');
+    
+    // Also strip commas from names and signs for image generation
+    const cleanPersonAName = personAName.replace(/,/g, '');
+    const cleanPersonBName = personBName.replace(/,/g, '');
+    const cleanPersonASign = personASign.replace(/,/g, '');
+    const cleanPersonBSign = personBSign.replace(/,/g, '');
 
     console.log(`[calculate-sync-score] LLM generated: ${llmAnalysis.score}% - ${llmAnalysis.archetype}`);
     console.log(`[calculate-sync-score] Insight: ${llmAnalysis.insight}`);
@@ -393,10 +399,10 @@ Deno.serve(async (req) => {
       llmAnalysis.archetype,
       llmAnalysis.insight,
       llmAnalysis.challenge,
-      personAName,
-      personBName,
-      personASign,
-      personBSign,
+      cleanPersonAName,
+      cleanPersonBName,
+      cleanPersonASign,
+      cleanPersonBSign,
       rarityPercentile
     );
 

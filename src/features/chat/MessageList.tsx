@@ -242,6 +242,12 @@ const renderMessages = (messages: Message[], currentUserId?: string) => {
       continue;
     }
     
+    // Skip sync score image messages (they're in gallery only)
+    const metaData = message.meta as any;
+    if (metaData?.sync_score === true && metaData?.message_type === 'image') {
+      continue;
+    }
+    
     // Render user messages (own vs other user)
     if (message.role === 'user') {
       // Treat missing user_id as own message to avoid mis-coloring older rows
