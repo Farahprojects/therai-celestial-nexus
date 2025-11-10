@@ -194,9 +194,6 @@ if (messages && Array.isArray(messages) && messages.length > 0) {
     }
   }
 
-  // Flush logs before returning response
-  await new Promise(r => setTimeout(r, 50));
-
   return json(200, {
     message: `Saved ${messagesToInsert.length} messages`,
     saved: insertedMessages || messagesToInsert
@@ -398,7 +395,7 @@ const determineLLMHandler = async () => {
     return 'llm-handler-together-mode';
   } else {
     // Normal chat flow
-    return await getLLMHandler(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    return getLLMHandler(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
   }
 };
 
@@ -614,9 +611,11 @@ if (role === "user") {
 // Trigger memory extraction if needed (fire-and-forget)
 // Optimized with sampling to reduce edge function invocations by 70-80%
 // Only runs for assistant messages (insertedMessage will be null for user messages in fire-and-forget path)
+// Runs after response is returned to avoid blocking
 if (role === "assistant" && insertedMessage?.id) {
-  // Check if we should extract memories based on heuristics
-  const shouldSampleExtraction = await (async () => {
+  // Fire-and-forget: run sampling and extraction after response
+  Promise.resolve().then(async () => {
+    // Check if we should extract memories based on heuristics
     // Skip short responses (< 50 chars) - likely generic acknowledgments
     if (!text || text.length < 50) {
       console.info(JSON.stringify({
@@ -624,7 +623,7 @@ if (role === "assistant" && insertedMessage?.id) {
         request_id: requestId,
         text_length: text?.length || 0
       }));
-      return false;
+      return;
     }
 
     // Check conversation message count - skip early conversations
@@ -639,7 +638,7 @@ if (role === "assistant" && insertedMessage?.id) {
         request_id: requestId,
         message_count: messageCount || 0
       }));
-      return false;
+      return;
     }
 
     // Sampling strategy: 20-30% of messages, weighted by conversation turn
@@ -658,25 +657,21 @@ if (role === "assistant" && insertedMessage?.id) {
       will_extract: shouldExtract
     }));
 
-    return shouldExtract;
-  })();
+    if (shouldExtract) {
+      shouldExtractMemory = true;
+      const payload = {
+        conversation_id: chat_id,
+        message_id: insertedMessage.id,
+        user_id: user_id
+      };
 
-  if (shouldSampleExtraction) {
-    shouldExtractMemory = true;
-    const payload = {
-      conversation_id: chat_id,
-      message_id: insertedMessage.id,
-      user_id: user_id
-    };
+      console.info(JSON.stringify({
+        event: "memory_extraction_triggered",
+        request_id: requestId,
+        conversation_id: chat_id,
+        message_id: insertedMessage.id
+      }));
 
-    console.info(JSON.stringify({
-      event: "memory_extraction_triggered",
-      request_id: requestId,
-      conversation_id: chat_id,
-      message_id: insertedMessage.id
-    }));
-
-    Promise.resolve().then(() =>
       fetch(`${SUPABASE_URL}/functions/v1/extract-user-memory`, {
         method: "POST",
         headers: {
@@ -690,13 +685,10 @@ if (role === "assistant" && insertedMessage?.id) {
           request_id: requestId,
           error: err instanceof Error ? err.message : String(err)
         }));
-      })
-    );
-  }
+      });
+    }
+  });
 }
-
-// Flush logs before returning response
-await new Promise(r => setTimeout(r, 50));
 
 // Return immediately (no await, both operations already non-blocking)
 console.info(JSON.stringify({

@@ -350,7 +350,7 @@ Deno.serve(async (req: Request) => {
     }));
   }
 
-  // Parallel fetch: cache, system message, conversation meta, latest summary, recent history
+  // Parallel fetch: cache, system message, conversation meta, latest summary, recent history, memories
   let systemText = "";
   let historyRows: Array<{ role: string; text: string; created_at: string }> = [];
   let conversationMeta: { turn_count?: number; last_summary_at_turn?: number } = {};
@@ -362,7 +362,8 @@ Deno.serve(async (req: Request) => {
       systemMessageRes,
       conversationRes,
       summaryRes,
-      historyRes
+      historyRes,
+      memoryResult
     ] = await Promise.all([
       // cache lookup (skip for free users)
       skipCache 
@@ -383,7 +384,12 @@ Deno.serve(async (req: Request) => {
         .not("text", "is", null)
         .neq("text", "")
         .order("created_at", { ascending: false })
-        .limit(HISTORY_LIMIT)
+        .limit(HISTORY_LIMIT),
+      // memories (parallelized to reduce latency)
+      fetchAndFormatMemories(supabase, chat_id).catch((e) => {
+        console.warn("[memories] fetch failed:", (e as any)?.message || e);
+        return { memoryContext: "", memoryIds: [] };
+      })
     ]);
 
     if (systemMessageRes?.data?.text) systemText = String(systemMessageRes.data.text || "");
@@ -397,6 +403,8 @@ Deno.serve(async (req: Request) => {
 
     if (historyRes?.data) historyRows = historyRes.data;
 
+    const { memoryContext = "", memoryIds = [] } = memoryResult || { memoryContext: "", memoryIds: [] };
+
     // Validate cache vs system hash (skip for free users)
     let cacheName: string | null = null;
     
@@ -409,9 +417,9 @@ Deno.serve(async (req: Request) => {
       cacheName = cacheHashMatches ? cacheData.cache_name : null;
 
       if (!cacheName && systemText) {
-        // If there was a stale cache, remove. Then create a new cache.
+        // If there was a stale cache, remove it (fire-and-forget - upsert will overwrite anyway)
         if (cacheExists && cacheData.system_data_hash !== currentHash) {
-          await supabase.from("conversation_caches").delete().eq("chat_id", chat_id).catch(() => { });
+          void supabase.from("conversation_caches").delete().eq("chat_id", chat_id).catch(() => { });
         }
         cacheName = await createCache(chat_id, systemText);
       }
@@ -423,13 +431,6 @@ Deno.serve(async (req: Request) => {
         user_plan: userPlan
       }));
     }
-
-    // Fetch memories (store for later use)
-    const memoryResult = await fetchAndFormatMemories(supabase, chat_id).catch((e) => {
-      console.warn("[memories] fetch failed:", (e as any)?.message || e);
-      return { memoryContext: "", memoryIds: [] };
-    });
-    const { memoryContext = "", memoryIds = [] } = memoryResult || { memoryContext: "", memoryIds: [] };
 
     // Build contents (oldest -> newest)
     type GeminiContent = { role: "user" | "model"; parts: { text: string }[] };
@@ -556,22 +557,21 @@ Deno.serve(async (req: Request) => {
           console.error("[image-start] Failed to insert placeholder:", placeholderError);
           // Continue anyway - image generation will still work
         } else if (placeholderMessage) {
-          // Broadcast placeholder message to unified channel for instant loading state
-          try {
-            const channelName = `user-realtime:${user_id}`;
-            await supabase.channel(channelName).send({
-              type: 'broadcast',
-              event: 'message-insert',
-              payload: {
-                chat_id,
-                message: placeholderMessage
-              }
+          // Broadcast placeholder message to unified channel for instant loading state (fire-and-forget)
+          const channelName = `user-realtime:${user_id}`;
+          void supabase.channel(channelName).send({
+            type: 'broadcast',
+            event: 'message-insert',
+            payload: {
+              chat_id,
+              message: placeholderMessage
+            }
+          })
+            .then(() => console.log(`[image-start] Broadcast placeholder to ${channelName}`))
+            .catch((broadcastError) => {
+              console.error("[image-start] Broadcast failed:", broadcastError);
+              // Non-critical - continue with image generation
             });
-            console.log(`[image-start] Broadcast placeholder to ${channelName}`);
-          } catch (broadcastError) {
-            console.error("[image-start] Broadcast failed:", broadcastError);
-            // Non-critical - continue with image generation
-          }
         }
         
       // 🚀 FIRE-AND-FORGET: Don't await image generation - return immediately
