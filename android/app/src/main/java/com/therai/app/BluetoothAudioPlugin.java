@@ -22,6 +22,7 @@ public class BluetoothAudioPlugin extends Plugin {
     private int previousAudioMode = AudioManager.MODE_NORMAL;
     private boolean wasSpeakerphoneOn = false;
     private boolean keepRoutingLocked = false;
+    private AudioManager.AudioDeviceCallback deviceCallback;
 
     // Audio focus handling
     private AudioManager.OnAudioFocusChangeListener focusChangeListener;
@@ -66,6 +67,24 @@ public class BluetoothAudioPlugin extends Plugin {
             Log.d(TAG, "Audio focus change: " + focusChange);
             // If focus is lost, we keep routing locked flag. SCO receiver will try to recover if dropped.
         };
+        // Device change callback to re-assert communication device on API 31+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            deviceCallback = new AudioManager.AudioDeviceCallback() {
+                @Override
+                public void onAudioDevicesAdded(AudioDeviceInfo[] addedDevices) {
+                    maybeSetCommunicationDevice();
+                }
+                @Override
+                public void onAudioDevicesRemoved(AudioDeviceInfo[] removedDevices) {
+                    maybeSetCommunicationDevice();
+                }
+            };
+            try {
+                audioManager.registerAudioDeviceCallback(deviceCallback, null);
+            } catch (Exception e) {
+                Log.w(TAG, "Failed to register audio device callback", e);
+            }
+        }
     }
 
     @PluginMethod
@@ -105,6 +124,8 @@ public class BluetoothAudioPlugin extends Plugin {
                 } else {
                     Log.d(TAG, "Bluetooth SCO already on, skipping start");
                 }
+                // On API 31+, explicitly pick BT SCO as communication device
+                maybeSetCommunicationDevice();
                 
                 // CRITICAL: Wait for SCO to actually connect
                 // startBluetoothSco() is asynchronous - takes 200-500ms
@@ -233,6 +254,13 @@ public class BluetoothAudioPlugin extends Plugin {
         } catch (Exception e) {
             // ignore
         }
+        // Unregister device callback
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && deviceCallback != null) {
+            try {
+                audioManager.unregisterAudioDeviceCallback(deviceCallback);
+            } catch (Exception ignored) {}
+            deviceCallback = null;
+        }
     }
 
     private boolean requestAudioFocus() {
@@ -279,6 +307,28 @@ public class BluetoothAudioPlugin extends Plugin {
             Log.w(TAG, "Abandon audio focus failed", e);
         } finally {
             hasAudioFocus = false;
+        }
+    }
+
+    private void maybeSetCommunicationDevice() {
+        if (audioManager == null) return;
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return;
+        try {
+            AudioDeviceInfo[] inputs = audioManager.getDevices(AudioManager.GET_DEVICES_INPUTS);
+            AudioDeviceInfo btSco = null;
+            for (AudioDeviceInfo dev : inputs) {
+                if (dev.getType() == AudioDeviceInfo.TYPE_BLUETOOTH_SCO) {
+                    btSco = dev; break;
+                }
+            }
+            if (btSco != null) {
+                boolean ok = audioManager.setCommunicationDevice(btSco);
+                Log.d(TAG, "setCommunicationDevice(BT_SCO) -> " + ok);
+            } else {
+                Log.d(TAG, "No BT_SCO input device found for setCommunicationDevice");
+            }
+        } catch (Exception e) {
+            Log.w(TAG, "setCommunicationDevice failed", e);
         }
     }
 }

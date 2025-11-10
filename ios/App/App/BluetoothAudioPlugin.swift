@@ -26,11 +26,8 @@ public class BluetoothAudioPlugin: CAPPlugin {
             // Step 2: Set mode to voiceChat (optimized for voice communication)
             // Step 3: Add allowBluetooth option (enables Bluetooth routing)
             // NOTE: Do NOT default to speaker to avoid route oscillation when using headsets
-            try audioSession.setCategory(
-                .playAndRecord,
-                mode: .voiceChat,
-                options: [.allowBluetooth, .allowBluetoothA2DP]
-            )
+            // For stability: prefer HFP (call profile) only; avoid A2DP switches during conversation
+            try audioSession.setCategory(.playAndRecord, mode: .voiceChat, options: [.allowBluetooth])
             
             // Step 5: Activate the audio session
             try audioSession.setActive(true, options: [])
