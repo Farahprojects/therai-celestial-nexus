@@ -1,8 +1,6 @@
 // Simple Universal STT Recorder - no chunks, no rolling buffer, just record and stop
 
 import { STTLimitExceededError } from '@/services/voice/stt';
-import { Capacitor } from '@capacitor/core';
-import BluetoothAudio from '@/plugins/BluetoothAudio';
 
 export interface STTRecorderOptions {
   onTranscriptReady?: (transcript: string) => void;
@@ -102,34 +100,7 @@ export class UniversalSTTRecorder {
     if (this.isRecording) return;
 
     try {
-      // Step 0: On native mobile, configure Bluetooth audio routing BEFORE requesting mic
-      if (Capacitor.isNativePlatform()) {
-        try {
-          console.log('[UniversalSTTRecorder] 🔵 Starting Bluetooth SCO...');
-          const result = await BluetoothAudio.startBluetoothAudio();
-          console.log('[UniversalSTTRecorder] ✅ Bluetooth audio routing enabled:', result);
-          
-          // CRITICAL: Add extra delay for SCO to fully stabilize
-          // The Java code waits up to 1s, but audio routing can take additional time
-          console.log('[UniversalSTTRecorder] ⏳ Waiting 500ms for Bluetooth audio to stabilize...');
-          await new Promise(resolve => setTimeout(resolve, 500));
-          
-          // Check if Bluetooth is actually connected
-          try {
-            const status = await BluetoothAudio.isBluetoothConnected();
-            console.log('[UniversalSTTRecorder] Bluetooth connection status:', status);
-          } catch (e) {
-            console.warn('[UniversalSTTRecorder] Could not check Bluetooth status:', e);
-          }
-          
-          console.log('[UniversalSTTRecorder] ✅ Bluetooth routing complete, ready to request mic');
-        } catch (error) {
-          console.warn('[UniversalSTTRecorder] Could not start Bluetooth audio:', error);
-          // Continue anyway - might not have Bluetooth connected
-        }
-      }
-      
-      // Step 1: Request mic access AFTER Bluetooth routing is complete
+      // Step 1: Request mic access
       console.log('[UniversalSTTRecorder] 🎤 Requesting microphone access...');
       this.mediaStream = await this.requestMicrophoneAccess();
       console.log('[UniversalSTTRecorder] ✅ Microphone access granted, stream active');
@@ -187,9 +158,9 @@ export class UniversalSTTRecorder {
 
     // Request mic access with reasonable comms-style constraints
     const audioConstraints: MediaTrackConstraints = {
-      noiseSuppression: true,
-      echoCancellation: true,
-      autoGainControl: false,
+        noiseSuppression: true,
+        echoCancellation: true,
+        autoGainControl: false,
       channelCount: 1,
       // Some browsers honor these; harmless where unsupported
       sampleRate: 48000
@@ -880,13 +851,6 @@ export class UniversalSTTRecorder {
     if (this.audioContext) {
       this.audioContext.close().catch(() => {});
       this.audioContext = null;
-    }
-
-    // 🔥 CLEANUP: Stop Bluetooth audio routing on native platforms
-    if (Capacitor.isNativePlatform()) {
-      BluetoothAudio.stopBluetoothAudio().catch((error) => {
-        console.warn('[UniversalSTTRecorder] Error stopping Bluetooth audio:', error);
-      });
     }
 
     // 🔥 CLEANUP: Clear all buffers and arrays
