@@ -1,24 +1,31 @@
 import { supabase } from '@/integrations/supabase/client';
 
-export interface ScoreBreakdown {
-  overall: number;
-  archetype_name: string;
-  ai_insight: string;
-  ai_challenge: string;
+export interface MemeCaption {
+  format: 'top_bottom' | 'quote' | 'text_only';
+  topText?: string;
+  bottomText?: string;
+  quoteText?: string;
+  attribution?: string;
+}
+
+export interface MemeData {
+  caption: MemeCaption;
+  pattern_category: string;
+  theme_core: string;
+  tone: string;
   calculated_at: string;
-  rarity_percentile: number;
-  card_image_url?: string | null;
+  image_url?: string | null;
 }
 
 /**
- * Calculate sync score for a conversation
+ * Generate sync meme for a conversation
  * @param conversationId - The conversation ID
  * @param placeholderMessageId - Optional pre-created placeholder message ID (avoids duplicate creation)
  */
 export const calculateSyncScore = async (
   conversationId: string,
   placeholderMessageId?: string
-): Promise<ScoreBreakdown> => {
+): Promise<MemeData> => {
   const { data, error } = await supabase.functions.invoke('calculate-sync-score', {
     body: { 
       chat_id: conversationId,
@@ -27,21 +34,21 @@ export const calculateSyncScore = async (
   });
 
   if (error) {
-    console.error('[syncScores] Error calculating score:', error);
-    throw new Error('Failed to calculate sync score');
+    console.error('[syncMeme] Error generating meme:', error);
+    throw new Error('Failed to generate sync meme');
   }
 
-  if (!data?.success || !data?.score) {
-    throw new Error('Invalid response from score calculation');
+  if (!data?.success || !data?.meme) {
+    throw new Error('Invalid response from meme generation');
   }
 
-  return data.score;
+  return data.meme;
 };
 
 /**
- * Get sync score from conversation metadata
+ * Get sync meme from conversation metadata
  */
-export const getSyncScore = async (conversationId: string): Promise<ScoreBreakdown | null> => {
+export const getSyncScore = async (conversationId: string): Promise<MemeData | null> => {
   const { data, error } = await supabase
     .from('conversations')
     .select('meta')
@@ -49,12 +56,12 @@ export const getSyncScore = async (conversationId: string): Promise<ScoreBreakdo
     .single();
 
   if (error) {
-    console.error('[syncScores] Error fetching conversation:', error);
+    console.error('[syncMeme] Error fetching conversation:', error);
     return null;
   }
 
-  const syncScore = (data?.meta as any)?.sync_score;
-  return syncScore || null;
+  const syncMeme = (data?.meta as any)?.sync_meme;
+  return syncMeme || null;
 };
 
 /**

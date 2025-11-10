@@ -13,35 +13,134 @@ const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-interface ScoreBreakdown {
-  overall: number;
-  archetype_name: string;
-  ai_insight: string;
-  ai_challenge: string;
-  calculated_at: string;
-  rarity_percentile: number;
-  card_image_url?: string | null;
+interface MemeCaption {
+  format: 'top_bottom' | 'quote' | 'text_only';
+  topText?: string;
+  bottomText?: string;
+  quoteText?: string;
+  attribution?: string;
 }
 
-interface LLMSyncResponse {
-  score: number;
-  archetype: string;
-  insight: string;
-  challenge: string;
+interface PatternAnalysis {
+  category: 'wounds' | 'harmony' | 'ego_clash' | 'emotional_avoidance' | 'intensity' | 'soul_mirror';
+  intensity: number;
+  primaryAspects: string[];
+  secondaryPattern?: string;
+}
+
+interface PsychologicalTheme {
+  core: string;
+  subtext: string;
+  tone: 'funny' | 'ironic' | 'deep' | 'smart' | 'chaotic';
+}
+
+interface MemeData {
+  caption: MemeCaption;
+  pattern_category: string;
+  theme_core: string;
+  tone: string;
+  calculated_at: string;
+  image_url?: string | null;
 }
 
 /**
- * Calculate rarity percentile based on score distribution
+ * Step 1: PATTERN DETECTION
+ * Analyze aspects to identify dominant emotional/relational pattern
  */
-function calculateRarity(score: number): number {
-  if (score >= 95) return 99;
-  if (score >= 90) return 95;
-  if (score >= 85) return 90;
-  if (score >= 80) return 85;
-  if (score >= 75) return 75;
-  if (score >= 70) return 65;
-  if (score >= 60) return 50;
-  return Math.max(0, Math.round((score / 60) * 50));
+function detectDominantPattern(swissData: any): PatternAnalysis {
+  const aspects = swissData?.blocks?.synastry_aspects?.pairs || 
+                  swissData?.synastry_aspects?.pairs || 
+                  [];
+  
+  // Scoring for each category
+  const scores = {
+    wounds: 0,
+    harmony: 0,
+    ego_clash: 0,
+    emotional_avoidance: 0,
+    intensity: 0,
+    soul_mirror: 0
+  };
+  
+  const primaryAspects: string[] = [];
+  
+  aspects.forEach((aspect: any) => {
+    const type = aspect.type?.toLowerCase();
+    const planetA = aspect.a?.toLowerCase();
+    const planetB = aspect.b?.toLowerCase();
+    
+    if (!type || !planetA || !planetB) return;
+    
+    // WOUNDS / FRICTION: squares, oppositions, Saturn/Chiron involvement
+    if (type === 'opposition' || type === 'square') {
+      scores.wounds += 15;
+      if (planetA.includes('saturn') || planetB.includes('saturn') ||
+          planetA.includes('chiron') || planetB.includes('chiron')) {
+        scores.wounds += 10;
+        primaryAspects.push(`${planetA}-${planetB} ${type}`);
+      }
+      // Mars-Venus tension = classic friction
+      if ((planetA.includes('mars') && planetB.includes('venus')) ||
+          (planetA.includes('venus') && planetB.includes('mars'))) {
+        scores.wounds += 12;
+        primaryAspects.push(`Mars-Venus ${type}`);
+      }
+    }
+    
+    // HARMONY / FLOW: trines, sextiles, Moon-Venus connections
+    if (type === 'trine' || type === 'sextile') {
+      scores.harmony += 15;
+      if ((planetA.includes('moon') || planetB.includes('moon')) &&
+          (planetA.includes('venus') || planetB.includes('venus'))) {
+        scores.harmony += 12;
+        primaryAspects.push(`Moon-Venus ${type}`);
+      }
+    }
+    
+    // EGO CLASH: Sun-Pluto, Sun-Mars, Mercury-Mars
+    if ((planetA.includes('sun') && planetB.includes('pluto')) ||
+        (planetA.includes('pluto') && planetB.includes('sun'))) {
+      scores.ego_clash += 20;
+      primaryAspects.push(`Sun-Pluto ${type}`);
+    }
+    if ((planetA.includes('sun') && planetB.includes('mars')) ||
+        (planetA.includes('mars') && planetB.includes('sun'))) {
+      scores.ego_clash += 15;
+      primaryAspects.push(`Sun-Mars ${type}`);
+    }
+    
+    // EMOTIONAL AVOIDANCE: Moon-Saturn, Mercury-Saturn
+    if (((planetA.includes('moon') || planetA.includes('mercury')) && planetB.includes('saturn')) ||
+        ((planetB.includes('moon') || planetB.includes('mercury')) && planetA.includes('saturn'))) {
+      scores.emotional_avoidance += 18;
+      primaryAspects.push(`${planetA}-Saturn ${type}`);
+    }
+    
+    // INTENSITY / OBSESSION: Pluto involvement, 8th house, Scorpio
+    if (planetA.includes('pluto') || planetB.includes('pluto')) {
+      scores.intensity += 15;
+      primaryAspects.push(`Pluto ${type}`);
+    }
+    
+    // SOUL MIRROR / GROWTH: North Node, Uranus, Neptune harmonics
+    if ((planetA.includes('node') || planetB.includes('node') ||
+         planetA.includes('uranus') || planetB.includes('uranus') ||
+         planetA.includes('neptune') || planetB.includes('neptune')) &&
+        (type === 'trine' || type === 'sextile' || type === 'conjunction')) {
+      scores.soul_mirror += 18;
+      primaryAspects.push(`${planetA}-${planetB} ${type}`);
+    }
+  });
+  
+  // Find dominant category
+  const dominant = Object.entries(scores)
+    .sort(([, a], [, b]) => b - a)[0];
+  
+  return {
+    category: dominant[0] as any,
+    intensity: dominant[1],
+    primaryAspects: primaryAspects.slice(0, 3),
+  };
 }
 
 /**
@@ -72,149 +171,160 @@ function extractAspectsForLLM(swissData: any): string {
 }
 
 /**
- * Ask Gemini Flash to analyze synastry and generate dynamic score
- * Uses same structure as llm-handler-gemini for consistency
+ * Step 2: PSYCHOLOGICAL THEME EXTRACTION
+ * Convert astrological pattern into human psychology
  */
-async function analyzeSyncWithLLM(
-  swissData: any,
+function extractPsychologicalTheme(
+  pattern: PatternAnalysis, 
   personAName: string,
   personBName: string
-): Promise<LLMSyncResponse> {
-  const GOOGLE_API_KEY = Deno.env.get("GOOGLE-LLM-NEW");
-  const GEMINI_MODEL = Deno.env.get("GEMINI_MODEL") || "gemini-2.5-flash";
-  const GEMINI_TIMEOUT_MS = 30_000;
+): PsychologicalTheme {
+  const themes: Record<string, PsychologicalTheme> = {
+    wounds: {
+      core: "Love through friction",
+      subtext: "growth happens in the tension",
+      tone: 'ironic'
+    },
+    harmony: {
+      core: "Effortless understanding",
+      subtext: "rare cosmic luck",
+      tone: 'deep'
+    },
+    ego_clash: {
+      core: "Who runs this relationship",
+      subtext: "both think it's them",
+      tone: 'funny'
+    },
+    emotional_avoidance: {
+      core: "Feelings are scary",
+      subtext: "so we intellectualize everything",
+      tone: 'funny'
+    },
+    intensity: {
+      core: "It's not toxic it's transformative",
+      subtext: "obsessive but make it spiritual",
+      tone: 'chaotic'
+    },
+    soul_mirror: {
+      core: "They came to change your life",
+      subtext: "not fix it",
+      tone: 'deep'
+    }
+  };
+  
+  return themes[pattern.category] || themes.harmony;
+}
 
+/**
+ * Step 3: MEME CAPTION GENERATION
+ * LLM generates the perfect meme text based on theme
+ */
+async function generateMemeCaption(
+  theme: PsychologicalTheme,
+  pattern: PatternAnalysis,
+  personAName: string,
+  personBName: string,
+  aspectsSummary: string
+): Promise<MemeCaption> {
+  const GOOGLE_API_KEY = Deno.env.get("GOOGLE-LLM-NEW");
+  const GEMINI_MODEL = "gemini-2.5-flash";
+  
   if (!GOOGLE_API_KEY) throw new Error("Missing GOOGLE-LLM-NEW");
 
-  // Extract aspects for analysis
-  const aspectsSummary = extractAspectsForLLM(swissData);
-  const today = new Date().toISOString().split('T')[0];
+  const prompt = `You are a cosmic meme curator creating viral relationship content.
 
-  // System prompt for dynamic sync analysis
-  const prompt = `You are a cosmic relationship analyst. Analyze this astrological synastry data and provide FOUR specific outputs:
+RELATIONSHIP DATA:
+${personAName} & ${personBName}
 
-TODAY'S DATE: ${today}
+DOMINANT PATTERN: ${pattern.category}
+PSYCHOLOGICAL THEME: ${theme.core} - ${theme.subtext}
+TONE: ${theme.tone}
+KEY ASPECTS: ${aspectsSummary}
 
-SYNASTRY ASPECTS BETWEEN ${personAName} & ${personBName}:
-${aspectsSummary}
+Your task: Create a MEME CAPTION that captures their dynamic.
 
-Your task:
-1. Calculate a SYNC SCORE (0-100) based on how these two souls align RIGHT NOW at this cosmic moment
-2. Assign them an ARCHETYPE (a poetic 2-4 word name like "The Phoenix Pair" "Cosmic Counterparts" "Fire Meets Fire")
-3. Write ONE short sentence (max 12 words) explaining WHY they sync (the magic between them - make them feel SEEN)
-4. Write ONE short sentence (max 12 words) about their GROWTH EDGE (what they're learning together - keep it hopeful and constructive)
+CATEGORY-SPECIFIC ANGLES:
+- wounds/friction: "when you love them but also want to strangle them" humor
+- harmony: "that rare kind of peace you can't explain" beauty
+- ego_clash: "who's really running the relationship?" irony
+- emotional_avoidance: "when you write a 3-page text instead of saying how you feel" dry wit
+- intensity: "it's not toxic it's transformative 😇" dark humor  
+- soul_mirror: "they came to shake your timeline not your peace" deep aesthetic
 
-CRITICAL RULES:
-- Use perfect grammar and spelling
-- Write "and" NOT "ad"
-- Complete sentences only - no partial words or typos
-- No commas in any text
-- Be poetic profound and specific
-- Make it feel like a yin-yang pair (insight + growth edge complement each other)
-- ASCII letters only, no symbols beyond % and & and •
+FORMAT OPTIONS:
+1. TOP/BOTTOM: Two-line impact meme
+   Example: 
+   TOP: "When your Saturn hits their Moon"
+   BOTTOM: "and suddenly you're their therapist"
 
-Consider:
-- Harmonious aspects (trine sextile conjunction) increase the score
-- Challenging aspects (square opposition) add intensity but can lower score
-- Today's cosmic energy and how it affects their connection
-- The FEELING of their bond not just the math
+2. QUOTE: Single profound statement
+   Example: "The chaos between us isn't a warning. It's the point."
+
+3. TEXT_ONLY: One killer line
+   Example: "Love language: pointing out each other's cognitive distortions"
+
+RULES:
+- Max 15 words per line
+- Must feel REAL and shareable
+- No generic therapy speak
+- Make them laugh think or feel seen
+- Be specific to their aspects
+- ${theme.tone === 'funny' ? 'Prioritize humor' : theme.tone === 'deep' ? 'Prioritize profundity' : 'Balance wit and insight'}
 
 Respond in JSON format ONLY:
 {
-  "score": 85,
-  "archetype": "The Phoenix Pair",
-  "insight": "Honesty meets flow and curiosity grows together",
-  "challenge": "Stay open when uncertainty rises"
-}
-
-Make them FEEL the magic and see the path forward.`;
+  "format": "top_bottom",
+  "topText": "...",
+  "bottomText": "...",
+  "quoteText": "...",
+  "attribution": "${personAName} & ${personBName}"
+}`;
 
   try {
-    // Build request body (same structure as llm-handler-gemini)
     const requestBody = {
-      contents: [
-        {
-          role: "user",
-          parts: [{ text: prompt }]
-        }
-      ],
-      generationConfig: {
-        temperature: 0.7,
-        maxOutputTokens: 500
-      }
+      contents: [{ role: "user", parts: [{ text: prompt }] }],
+      generationConfig: { temperature: 0.85, maxOutputTokens: 300 }
     };
-
-    // Gemini API call with timeout (same pattern as llm-handler-gemini)
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), GEMINI_TIMEOUT_MS);
 
     const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
+    const resp = await fetch(geminiUrl, {
+      method: "POST",
+      headers: { 
+        "Content-Type": "application/json", 
+        "x-goog-api-key": GOOGLE_API_KEY 
+      },
+      body: JSON.stringify(requestBody)
+    });
 
-    let geminiResponseJson: any;
-    try {
-      const resp = await fetch(geminiUrl, {
-        method: "POST",
-        headers: { 
-          "Content-Type": "application/json", 
-          "x-goog-api-key": GOOGLE_API_KEY 
-        },
-        body: JSON.stringify(requestBody),
-        signal: controller.signal
-      });
-      clearTimeout(timeoutId);
-
-      if (!resp.ok) {
-        const errText = await resp.text().catch(() => "");
-        console.error("[calculate-sync-score] Gemini API error:", resp.status, errText);
-        throw new Error(`Gemini API request failed: ${resp.status}`);
-      }
-      geminiResponseJson = await resp.json();
-    } catch (err) {
-      clearTimeout(timeoutId);
-      console.error("[calculate-sync-score] Gemini request failed:", (err as any)?.message || err);
-      throw new Error("Gemini request error");
+    if (!resp.ok) {
+      throw new Error(`Gemini API error: ${resp.status}`);
     }
 
-    const responseText = geminiResponseJson?.candidates?.[0]?.content?.parts?.[0]?.text;
+    const data = await resp.json();
+    const responseText = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
     
-    if (!responseText) {
-      throw new Error('No response text from Gemini API');
-    }
+    console.log('[Meme] LLM raw response:', responseText);
     
-    console.log('[calculate-sync-score] LLM raw response:', responseText);
-    
-    // Parse JSON from response (handle markdown code blocks)
-    let jsonText = responseText.trim();
-    if (jsonText.startsWith('```json')) {
-      jsonText = jsonText.replace(/^```json\n/, '').replace(/\n```$/, '');
-    } else if (jsonText.startsWith('```')) {
-      jsonText = jsonText.replace(/^```\n/, '').replace(/\n```$/, '');
-    }
+    let jsonText = responseText.trim()
+      .replace(/^```json\n/, '')
+      .replace(/\n```$/, '')
+      .replace(/^```\n/, '')
+      .replace(/\n```$/, '');
     
     const parsed = JSON.parse(jsonText);
+    return parsed;
     
-    // Validate response
-    if (!parsed.score || !parsed.archetype || !parsed.insight || !parsed.challenge) {
-      throw new Error('LLM response missing required fields');
-    }
-    
-    // Ensure score is in range
-    const score = Math.min(100, Math.max(0, Math.round(parsed.score)));
-    
-    return {
-      score,
-      archetype: parsed.archetype,
-      insight: parsed.insight,
-      challenge: parsed.challenge,
-    };
   } catch (error) {
-    console.error('[calculate-sync-score] LLM analysis failed:', error);
-    // Fallback to basic calculation
+    console.error('[Meme] Caption generation failed:', error);
+    // Fallback meme based on theme
     return {
-      score: 75,
-      archetype: "Cosmic Connection",
-      insight: "Your energies create a unique space of understanding and growth",
-      challenge: "Finding balance between independence and togetherness",
+      format: 'quote',
+      quoteText: theme.tone === 'funny' 
+        ? "When you both think you're the therapist in this relationship"
+        : theme.tone === 'chaotic'
+        ? "The chaos between us isn't a warning. It's the point."
+        : "That rare kind of peace you can't explain to anyone else",
+      attribution: `${personAName} & ${personBName}`
     };
   }
 }
@@ -245,82 +355,90 @@ function getZodiacSign(birthDate: string): string {
 }
 
 /**
- * Generate image prompt for connection card
+ * Step 4: CINEMATIC IMAGE PROMPT
+ * Generate visual that matches emotional tone
  */
-function generateSyncCardPrompt(
-  score: number,
-  archetype: string,
-  insight: string,
-  challenge: string,
-  personAName: string,
-  personBName: string,
+function generateMemeImagePrompt(
+  caption: MemeCaption,
+  theme: PsychologicalTheme,
+  pattern: PatternAnalysis,
   personASign: string,
-  personBSign: string,
-  rarityPercentile: number
+  personBSign: string
 ): string {
-  // Always use purple/magenta for that premium mystical feel
-  const colorScheme = score >= 80 
-    ? 'deep purple and magenta gradient with cosmic sparkles'
-    : score >= 60
-      ? 'rich purple and violet gradient with soft glow'
-      : 'warm purple and pink gradient with gentle shimmer';
-  const includeBadge = rarityPercentile >= 50;
-  const layerCount = includeBadge ? 6 : 5;
+  // Map tone to visual style
+  const visualStyles = {
+    funny: {
+      mood: "playfully ironic",
+      scene: "couple in an absurdly cinematic everyday moment",
+      color: "warm desaturated tones with dramatic lighting",
+      energy: "comedic tension"
+    },
+    ironic: {
+      mood: "beautifully contradictory",
+      scene: "two figures in opposing poses that somehow work together",
+      color: "contrasting warm and cool tones",
+      energy: "push-pull dynamic"
+    },
+    deep: {
+      mood: "profoundly intimate",
+      scene: "two souls in a cosmic ethereal space",
+      color: "dreamy purples and deep blues with soft glows",
+      energy: "transcendent connection"
+    },
+    smart: {
+      mood: "intellectually charged",
+      scene: "couple in a minimalist modern setting with symbolic elements",
+      color: "clean monochrome with accent color",
+      energy: "cerebral chemistry"
+    },
+    chaotic: {
+      mood: "intense and magnetic",
+      scene: "dramatic storm or fire metaphor with two figures drawn together",
+      color: "high contrast reds and blacks",
+      energy: "obsessive attraction"
+    }
+  };
+  
+  const style = visualStyles[theme.tone] || visualStyles.deep;
+  
+  // Build meme-specific text layout
+  const textLayout = caption.format === 'top_bottom' 
+    ? `
+TOP TEXT (white bold sans-serif, top edge): "${caption.topText}"
+BOTTOM TEXT (white bold sans-serif, bottom edge): "${caption.bottomText}"`
+    : caption.format === 'quote'
+    ? `
+CENTER TEXT (elegant white serif, centered): "${caption.quoteText}"
+ATTRIBUTION (small text, bottom right): "— ${caption.attribution}"`
+    : `
+TEXT (centered, white bold): "${caption.quoteText}"`;
 
-  return `CRITICAL: Copy all text EXACTLY as written below. Perfect spelling required.
+  return `Create a cinematic meme-style image (9:16 portrait ratio).
 
-Create a vertical portrait card (9:16 ratio) with ${colorScheme} cosmic background and stars.
+VISUAL STYLE:
+- Mood: ${style.mood}
+- Scene: ${style.scene}
+- Color palette: ${style.color}
+- Energy: ${style.energy}
+- Zodiac elements: subtle ${personASign} and ${personBSign} symbolism
 
-EXACT LAYOUT (top to bottom):
+AESTHETIC RULES:
+- Cinematic film grain
+- Emotionally charged
+- Instagram-worthy shareable quality
+- NOT stock photo - feels like a movie still
+- Faces can be silhouetted or obscured (mystery > clarity)
 
-1. "${archetype}"
-   - top center, white elegant serif, large
+TEXT OVERLAY:
+${textLayout}
 
-2. "${score}%"
-   - center of card
-   - inside transparent circular glass orb
-   - sparkles around it
-   - NO solid background
+DO NOT:
+- Make it look like a standard infographic
+- Use generic couple poses
+- Add extra labels or decorative text
+- Make it overly literal
 
-3. "${personAName} & ${personBName}"
-   - below score
-   - white sans-serif, medium size
-
-4. "${personASign} • ${personBSign}"
-   - below names
-   - add small ${personASign} icon on LEFT side only
-   - add small ${personBSign} icon on RIGHT side only
-   - icons outlined (not filled)
-   - exactly 2 icons total
-
-5. "${insight}"
-   - below zodiac line
-   - white text, 2 lines max
-   - NO quotes around it
-
-6. "${challenge}"
-   - below insight
-   - white text, 1 line
-   - smaller than insight
-
-${includeBadge ? `7. "Top ${100 - rarityPercentile}% Connection"
-   - small purple badge at bottom
-   - separate from text above
-` : ''}
-
-${includeBadge ? '8' : '7'}. "therai.co"
-   - very bottom, small white text
-
-DO NOT ADD:
-- Any labels like "NAMES" "ZODIAC" "INSIGHT" "GROWTH EDGE"
-- Extra text not listed above
-- Solid panels or borders
-- Quotation marks
-- Random numbers or words
-
-VERIFY spelling of: ${archetype}, ${personAName}, ${personBName}, ${personASign}, ${personBSign}
-
-Final check: exactly ${layerCount} text elements, generous spacing, clean minimal design.`;
+The image should make someone FEEL the emotion before they read the text.`;
 }
 
 Deno.serve(async (req) => {
@@ -406,53 +524,45 @@ Deno.serve(async (req) => {
     const personASign = personABirthDate ? getZodiacSign(personABirthDate) : '';
     const personBSign = personBBirthDate ? getZodiacSign(personBBirthDate) : '';
     
-    console.log(`[calculate-sync-score] Zodiac signs: ${personASign} & ${personBSign}`);
+    console.log(`[Meme] Zodiac signs: ${personASign} & ${personBSign}`);
 
-    // 🤖 LLM-DRIVEN ANALYSIS: Ask Gemini Flash to analyze the connection
-    console.log(`[calculate-sync-score] Asking LLM to analyze ${personAName} & ${personBName}`);
-    const llmAnalysis = await analyzeSyncWithLLM(swissData, personAName, personBName);
-
-    // Strip ALL commas from text to keep it clean
-    llmAnalysis.insight = llmAnalysis.insight.replace(/,/g, '');
-    llmAnalysis.challenge = llmAnalysis.challenge.replace(/,/g, '');
-    llmAnalysis.archetype = llmAnalysis.archetype.replace(/,/g, '');
+    // 🎭 MEME GENERATION PIPELINE
+    console.log(`[Meme] Generating meme for ${personAName} & ${personBName}`);
     
-    // Also strip commas from names and signs for image generation
-    const cleanPersonAName = personAName.replace(/,/g, '');
-    const cleanPersonBName = personBName.replace(/,/g, '');
-    const cleanPersonASign = personASign.replace(/,/g, '');
-    const cleanPersonBSign = personBSign.replace(/,/g, '');
-
-    console.log(`[calculate-sync-score] LLM generated: ${llmAnalysis.score}% - ${llmAnalysis.archetype}`);
-    console.log(`[calculate-sync-score] Insight: ${llmAnalysis.insight}`);
-    console.log(`[calculate-sync-score] Challenge: ${llmAnalysis.challenge}`);
-
-    // Calculate rarity percentile
-    const rarityPercentile = calculateRarity(llmAnalysis.score);
-
-    // Build score breakdown for storage and API response
-    const scoreBreakdown: ScoreBreakdown = {
-      overall: llmAnalysis.score,
-      archetype_name: llmAnalysis.archetype,
-      ai_insight: llmAnalysis.insight,
-      ai_challenge: llmAnalysis.challenge,
+    // Step 1: Detect dominant pattern
+    const pattern = detectDominantPattern(swissData);
+    console.log(`[Meme] Pattern detected: ${pattern.category} (intensity: ${pattern.intensity})`);
+    
+    // Step 2: Extract psychological theme
+    const theme = extractPsychologicalTheme(pattern, personAName, personBName);
+    console.log(`[Meme] Theme: ${theme.core} (${theme.tone})`);
+    
+    // Step 3: Generate meme caption via LLM
+    const aspectsSummary = extractAspectsForLLM(swissData);
+    const caption = await generateMemeCaption(theme, pattern, personAName, personBName, aspectsSummary);
+    console.log(`[Meme] Caption format: ${caption.format}`);
+    if (caption.topText) console.log(`[Meme] Top: ${caption.topText}`);
+    if (caption.bottomText) console.log(`[Meme] Bottom: ${caption.bottomText}`);
+    if (caption.quoteText) console.log(`[Meme] Quote: ${caption.quoteText}`);
+    
+    // Build meme data for storage
+    const memeData: MemeData = {
+      caption,
+      pattern_category: pattern.category,
+      theme_core: theme.core,
+      tone: theme.tone,
       calculated_at: new Date().toISOString(),
-      rarity_percentile: rarityPercentile,
     };
 
-    // 📸 Generate connection card image
-    console.log('[calculate-sync-score] Generating connection card...');
+    // 📸 Generate cinematic meme image
+    console.log('[Meme] Generating cinematic image...');
     
-    const cardPrompt = generateSyncCardPrompt(
-      llmAnalysis.score,
-      llmAnalysis.archetype,
-      llmAnalysis.insight,
-      llmAnalysis.challenge,
-      cleanPersonAName,
-      cleanPersonBName,
-      cleanPersonASign,
-      cleanPersonBSign,
-      rarityPercentile
+    const imagePrompt = generateMemeImagePrompt(
+      caption,
+      theme,
+      pattern,
+      personASign,
+      personBSign
     );
 
     // ✅ OPTIMIZATION: Use existing placeholder message if provided (avoids duplicate creation)
@@ -515,20 +625,20 @@ Deno.serve(async (req) => {
       });
     }
 
-    // 🚀 FIRE-AND-FORGET: Store score metadata immediately (don't wait for image)
+    // 🚀 FIRE-AND-FORGET: Store meme metadata immediately (don't wait for image)
     supabase
       .from('conversations')
       .update({
         meta: {
-          sync_score: scoreBreakdown,
+          sync_meme: memeData,
         },
       })
       .eq('id', chat_id)
       .then(({ error: updateError }) => {
         if (updateError) {
-          console.error('[calculate-sync-score] Error updating conversation:', updateError);
+          console.error('[Meme] Error updating conversation:', updateError);
         } else {
-          console.log('[calculate-sync-score] Score metadata stored');
+          console.log('[Meme] Meme metadata stored');
         }
       });
 
@@ -542,7 +652,7 @@ Deno.serve(async (req) => {
         },
         body: JSON.stringify({
           chat_id: chat_id,
-          prompt: cardPrompt,
+          prompt: imagePrompt,
           user_id: userId,
           mode: 'sync',
           image_id: targetMessage.id,
@@ -551,35 +661,35 @@ Deno.serve(async (req) => {
         .then(async (imageResponse) => {
           if (imageResponse.ok) {
             const imageData = await imageResponse.json();
-            console.log('[calculate-sync-score] Card image generated:', imageData.image_url);
+            console.log('[Meme] Image generated:', imageData.image_url);
             
             // Update conversation meta with image URL
             await supabase
               .from('conversations')
               .update({
                 meta: {
-                  sync_score: {
-                    ...scoreBreakdown,
-                    card_image_url: imageData.image_url,
+                  sync_meme: {
+                    ...memeData,
+                    image_url: imageData.image_url,
                   },
                 },
               })
               .eq('id', chat_id);
           } else {
-            console.error('[calculate-sync-score] Image generation failed:', await imageResponse.text());
+            console.error('[Meme] Image generation failed:', await imageResponse.text());
           }
         })
         .catch((imageError) => {
-          console.error('[calculate-sync-score] Image generation error:', imageError);
+          console.error('[Meme] Image generation error:', imageError);
         });
     }
 
     // ⚡ Return immediately (don't wait for image!)
-    console.log('[calculate-sync-score] Returning immediately, image generating in background');
+    console.log('[Meme] Returning immediately, image generating in background');
     return new Response(
       JSON.stringify({ 
         success: true, 
-        score: scoreBreakdown,
+        meme: memeData,
       }),
       { status: 200, headers: corsHeaders }
     );

@@ -8,6 +8,8 @@ import { useAutoScroll } from '@/hooks/useAutoScroll';
 import { useWordAnimation } from '@/hooks/useWordAnimation';
 import { Button } from '@/components/ui/button';
 import { ShareImageModal } from '@/components/chat/ShareImageModal';
+import { SyncMemeCard } from '@/components/sync/SyncMemeCard';
+import { getSyncScore, MemeData } from '@/services/syncScores';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 // TypewriterText removed - keeping source field logic for future use
@@ -230,8 +232,49 @@ const ImageWithLoading = React.memo(({ message }: { message: Message }) => {
 });
 ImageWithLoading.displayName = 'ImageWithLoading';
 
+// ⚡ SYNC MEME MESSAGE - Displays meme card instead of generic image
+const SyncMemeMessage = React.memo(({ message, chatId }: { message: Message; chatId: string }) => {
+  const [memeData, setMemeData] = useState<MemeData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const loadMemeData = async () => {
+      try {
+        const data = await getSyncScore(chatId);
+        if (data) {
+          setMemeData(data);
+        }
+      } catch (error) {
+        console.error('[SyncMemeMessage] Failed to load meme data:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadMemeData();
+  }, [chatId]);
+
+  const metaData = message.meta as any;
+  const imageUrl = metaData?.image_url;
+
+  if (!memeData && !isLoading) {
+    return null; // Don't render if no meme data
+  }
+
+  return (
+    <div className="flex justify-center my-8">
+      <SyncMemeCard 
+        meme={memeData!} 
+        imageUrl={imageUrl}
+        isLoading={isLoading || !memeData}
+      />
+    </div>
+  );
+});
+SyncMemeMessage.displayName = 'SyncMemeMessage';
+
 // Simple message rendering - no complex turn grouping needed with message_number ordering
-const renderMessages = (messages: Message[], currentUserId?: string) => {
+const renderMessages = (messages: Message[], currentUserId?: string, chatId?: string) => {
   const elements: React.ReactNode[] = [];
   
   for (let i = 0; i < messages.length; i++) {
@@ -242,9 +285,15 @@ const renderMessages = (messages: Message[], currentUserId?: string) => {
       continue;
     }
     
-    // Skip sync score image messages (they're in gallery only)
+    // Handle sync meme messages specially
     const metaData = message.meta as any;
     if (metaData?.sync_score === true && metaData?.message_type === 'image') {
+      if (chatId) {
+        const messageKey = message.client_msg_id || message.id;
+        elements.push(
+          <SyncMemeMessage key={messageKey} message={message} chatId={chatId} />
+        );
+      }
       continue;
     }
     
@@ -373,8 +422,8 @@ export const MessageList = () => {
 
   // ⚡ OPTIMIZED: Memoize rendered messages - prevents recreating JSX for unchanged messages
   const renderedMessages = useMemo(() => 
-    renderMessages(messages, user?.id),
-    [messages, user?.id]
+    renderMessages(messages, user?.id, chat_id),
+    [messages, user?.id, chat_id]
   );
 
   // Render messages directly in message_number order - no complex turn grouping needed
