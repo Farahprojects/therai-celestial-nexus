@@ -94,6 +94,58 @@ export const ChatBox: React.FC<ChatBoxProps> = ({ onDelete }) => {
   // Track conversation mode to hide chat input in sync_score mode
   const [conversationMode, setConversationMode] = useState<string>('chat');
   
+  // Function to check for existing sync card (can be called from multiple places)
+  const checkForSyncCard = React.useCallback(async (chatId: string) => {
+    try {
+      const { data: conversation } = await supabase
+        .from('conversations')
+        .select('title, meta')
+        .eq('id', chatId)
+        .single();
+
+      if (!conversation) return;
+
+      // Find the sync score image message
+      const { data: messages } = await supabase
+        .from('messages')
+        .select('*')
+        .eq('chat_id', chatId)
+        .eq('role', 'assistant')
+        .order('created_at', { ascending: false })
+        .limit(10);
+
+      const syncMessage = messages?.find((m: any) => 
+        m.meta?.sync_score === true && 
+        m.meta?.message_type === 'image' && 
+        m.meta?.image_url
+      );
+
+      if (syncMessage && syncMessage.meta?.image_url) {
+        const title = conversation.title?.replace('Sync Score: ', '') || '';
+        const [personAName, personBName] = title.split(' & ');
+        const score = conversation.meta?.sync_score?.overall || 0;
+
+        console.log('[ChatBox] Found existing sync card, showing share bar:', {
+          imageUrl: syncMessage.meta.image_url,
+          score,
+          personAName,
+          personBName
+        });
+
+        setSyncShareData({
+          imageUrl: syncMessage.meta.image_url,
+          score,
+          personAName: personAName || 'Person A',
+          personBName: personBName || 'Person B'
+        });
+        setShowSyncShareModal(true);
+        setHasShownSyncModal(true);
+      }
+    } catch (error) {
+      console.error('[ChatBox] Error checking sync card:', error);
+    }
+  }, []);
+
   useEffect(() => {
     if (chat_id) {
       supabase
@@ -102,91 +154,24 @@ export const ChatBox: React.FC<ChatBoxProps> = ({ onDelete }) => {
         .eq('id', chat_id)
         .single()
         .then(({ data }) => {
-          setConversationMode(data?.mode || 'chat');
+          const mode = data?.mode || 'chat';
+          setConversationMode(mode);
+          
+          // If sync_score mode, immediately check for existing card
+          if (mode === 'sync_score') {
+            checkForSyncCard(chat_id);
+          }
         });
     }
-  }, [chat_id]);
+  }, [chat_id, checkForSyncCard]);
 
-  // Check for existing sync card and listen for completion
+  // Listen for new sync card completion (realtime updates)
   useEffect(() => {
     if (!chat_id || conversationMode !== 'sync_score') {
-      setShowSyncShareModal(false);
-      setSyncShareData(null);
-      setHasShownSyncModal(false);
       return;
     }
 
-    let hasOpened = false;
-
-    // Function to open share modal with data
-    const openShareModal = async () => {
-      // Only open once per chat_id
-      if (hasOpened) return;
-
-      try {
-        const { data: conversation } = await supabase
-          .from('conversations')
-          .select('title, meta')
-          .eq('id', chat_id)
-          .single();
-
-        if (!conversation) return;
-
-        // Find the sync score image message
-        const { data: messages } = await supabase
-          .from('messages')
-          .select('*')
-          .eq('chat_id', chat_id)
-          .eq('role', 'assistant')
-          .order('created_at', { ascending: false })
-          .limit(10);
-
-        const syncMessage = messages?.find((m: any) => 
-          m.meta?.sync_score === true && 
-          m.meta?.message_type === 'image' && 
-          m.meta?.image_url
-        );
-
-        if (syncMessage && syncMessage.meta?.image_url) {
-          const title = conversation.title?.replace('Sync Score: ', '') || '';
-          const [personAName, personBName] = title.split(' & ');
-          const score = conversation.meta?.sync_score?.overall || 0;
-
-          console.log('[ChatBox] Opening sync share modal:', {
-            imageUrl: syncMessage.meta.image_url,
-            score,
-            personAName,
-            personBName
-          });
-
-          hasOpened = true;
-          setSyncShareData({
-            imageUrl: syncMessage.meta.image_url,
-            score,
-            personAName: personAName || 'Person A',
-            personBName: personBName || 'Person B'
-          });
-          setShowSyncShareModal(true);
-          setHasShownSyncModal(true);
-        }
-      } catch (error) {
-        console.error('[ChatBox] Error checking sync card:', error);
-      }
-    };
-
-    // Check existing messages first (with small delay to ensure data is ready)
-    const timeoutId = setTimeout(() => {
-      openShareModal();
-    }, 500);
-
-    // Polling fallback: check every 2 seconds if modal hasn't opened yet
-    const pollInterval = setInterval(() => {
-      if (!hasOpened) {
-        openShareModal();
-      }
-    }, 2000);
-
-    // Then listen for updates
+    // Listen for updates
     const channel = supabase
       .channel(`sync-card-${chat_id}`)
       .on(
@@ -211,10 +196,10 @@ export const ChatBox: React.FC<ChatBoxProps> = ({ onDelete }) => {
             message.meta?.message_type === 'image' &&
             message.meta?.image_url
           ) {
-            console.log('[ChatBox] Sync card detected, opening share modal');
+            console.log('[ChatBox] Sync card detected, opening share bar');
             // Small delay to ensure message is fully saved
             setTimeout(() => {
-              openShareModal();
+              checkForSyncCard(chat_id);
             }, 300);
           }
         }
@@ -222,11 +207,9 @@ export const ChatBox: React.FC<ChatBoxProps> = ({ onDelete }) => {
       .subscribe();
 
     return () => {
-      clearTimeout(timeoutId);
-      clearInterval(pollInterval);
       supabase.removeChannel(channel);
     };
-  }, [chat_id, conversationMode]);
+  }, [chat_id, conversationMode, checkForSyncCard]);
 
 
 
