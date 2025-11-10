@@ -99,7 +99,7 @@ Return only clean JSON with no markdown:
       temperature: 1.0, // More creative variability
       topP: 0.8,
       topK: 40,
-      maxOutputTokens: 2000, // Increased to handle reasoning tokens (thoughtsTokenCount ~999) + output
+      maxOutputTokens: 20000, // Increased to handle reasoning tokens (thoughtsTokenCount ~999) + output
       responseMimeType: "application/json"
     }
   };
