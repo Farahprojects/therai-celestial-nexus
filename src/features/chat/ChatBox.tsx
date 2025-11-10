@@ -91,9 +91,13 @@ export const ChatBox: React.FC<ChatBoxProps> = ({ onDelete }) => {
         .from('conversations')
         .select('mode')
         .eq('id', chat_id)
-        .single()
+        .maybeSingle()
         .then(({ data }) => {
           setConversationMode(data?.mode || 'chat');
+        })
+        .catch(() => {
+          // Silently handle errors - conversation may not exist yet or have no messages
+          setConversationMode('chat');
         });
     }
   }, [chat_id]);
@@ -112,10 +116,10 @@ export const ChatBox: React.FC<ChatBoxProps> = ({ onDelete }) => {
           .from('conversations')
           .select('mode, is_public')
           .eq('id', chat_id)
-          .single();
+          .maybeSingle();
         
-        if (convError) {
-          console.error('[ChatBox] Error fetching conversation:', convError);
+        if (convError || !conversation) {
+          // Silently handle - conversation may not exist yet or have no messages
           return;
         }
         
@@ -170,9 +174,12 @@ export const ChatBox: React.FC<ChatBoxProps> = ({ onDelete }) => {
           .from('conversations')
           .select('mode, meta')
           .eq('id', chat_id)
-          .single();
+          .maybeSingle();
         
-        if (convError || !conversation) return;
+        if (convError || !conversation) {
+          // Silently handle - conversation may not exist yet or have no messages
+          return;
+        }
         
         if (conversation.mode === 'sync_score') {
           console.log('[ChatBox] Sync score mode detected');
@@ -420,7 +427,9 @@ export const ChatBox: React.FC<ChatBoxProps> = ({ onDelete }) => {
                 .from('conversations')
                 .select('is_public')
                 .eq('id', chat_id)
-                .single();
+                .maybeSingle();
+              
+              if (!conversation) return; // Conversation may not exist yet
               
               const { data: participants } = await supabase
                 .from('conversations_participants')
