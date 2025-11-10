@@ -49,25 +49,7 @@ export const ShareImageModal: React.FC<ShareImageModalProps> = ({
     onClose();
   };
 
-  const handleShareInstagram = () => {
-    // Instagram deep link for mobile, fallback to web
-    const url = `instagram://library?AssetPath=${encodeURIComponent(imageUrl)}`;
-    window.location.href = url;
-    
-    // Fallback: if Instagram app doesn't open, copy link
-    setTimeout(() => {
-      handleCopyLink();
-    }, 1000);
-  };
-
-  const handleShareTikTok = () => {
-    // TikTok deep link for mobile
-    const url = `https://www.tiktok.com/upload?lang=en`;
-    window.open(url, '_blank');
-    onClose();
-  };
-
-  const handleDownload = async () => {
+  const downloadImage = async (closeModal = true) => {
     try {
       const response = await fetch(imageUrl);
       const blob = await response.blob();
@@ -80,12 +62,54 @@ export const ShareImageModal: React.FC<ShareImageModalProps> = ({
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
-      toast.success('Image downloaded');
-      onClose();
+      
+      if (closeModal) {
+        toast.success('Image downloaded');
+        onClose();
+      }
     } catch (error) {
       console.error('Failed to download image:', error);
       toast.error('Failed to download image');
+      throw error;
     }
+  };
+
+  const handleShareInstagram = async () => {
+    // Instagram doesn't support direct image URL sharing via deep links
+    // Download image and show instructions
+    try {
+      // Download the image (don't close modal)
+      await downloadImage(false);
+      
+      toast.info('Image downloaded! Open Instagram and share from your gallery', {
+        duration: 4000
+      });
+    } catch (error) {
+      console.error('Failed to share to Instagram:', error);
+    }
+  };
+
+  const handleShareTikTok = async () => {
+    // TikTok doesn't support direct image URL sharing
+    // Download image first, then open TikTok upload page
+    try {
+      // Download the image (don't close modal)
+      await downloadImage(false);
+      
+      // Open TikTok upload page
+      const url = `https://www.tiktok.com/upload?lang=en`;
+      window.open(url, '_blank');
+      
+      toast.info('Image downloaded! Upload it on TikTok', {
+        duration: 4000
+      });
+    } catch (error) {
+      console.error('Failed to share to TikTok:', error);
+    }
+  };
+
+  const handleDownload = async () => {
+    await downloadImage(true);
   };
 
   if (!isOpen) return null;
