@@ -12,10 +12,18 @@ export interface ScoreBreakdown {
 
 /**
  * Calculate sync score for a conversation
+ * @param conversationId - The conversation ID
+ * @param placeholderMessageId - Optional pre-created placeholder message ID (avoids duplicate creation)
  */
-export const calculateSyncScore = async (conversationId: string): Promise<ScoreBreakdown> => {
+export const calculateSyncScore = async (
+  conversationId: string,
+  placeholderMessageId?: string
+): Promise<ScoreBreakdown> => {
   const { data, error } = await supabase.functions.invoke('calculate-sync-score', {
-    body: { chat_id: conversationId },
+    body: { 
+      chat_id: conversationId,
+      message_id: placeholderMessageId // Pass existing message ID if provided
+    },
   });
 
   if (error) {

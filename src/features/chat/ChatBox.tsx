@@ -206,7 +206,26 @@ export const ChatBox: React.FC<ChatBoxProps> = ({ onDelete }) => {
           
           if (existingLog && existingLog.swiss_data) {
             console.log('[ChatBox] Swiss data already exists, calculating score immediately');
-            const score = await calculateSyncScore(chat_id);
+            
+            // ✅ Create optimistic placeholder message immediately (instant canvas loader)
+            const placeholderMessageId = crypto.randomUUID();
+            const { addOptimisticMessage } = await import('@/stores/messageStore').then(m => m.useMessageStore.getState());
+            addOptimisticMessage({
+              id: placeholderMessageId,
+              chat_id: chat_id,
+              role: 'assistant',
+              text: '',
+              status: 'pending',
+              createdAt: new Date().toISOString(),
+              user_id: user.id,
+              meta: {
+                message_type: 'image',
+                sync_score: true,
+                status: 'generating'
+              }
+            });
+            
+            const score = await calculateSyncScore(chat_id, placeholderMessageId);
             console.log('[ChatBox] Score calculated:', score);
             return;
           }
@@ -248,7 +267,25 @@ export const ChatBox: React.FC<ChatBoxProps> = ({ onDelete }) => {
           const dataReady = await pollForData();
           
           if (dataReady) {
-            const score = await calculateSyncScore(chat_id);
+            // ✅ Create optimistic placeholder message immediately (instant canvas loader)
+            const placeholderMessageId = crypto.randomUUID();
+            const { addOptimisticMessage } = await import('@/stores/messageStore').then(m => m.useMessageStore.getState());
+            addOptimisticMessage({
+              id: placeholderMessageId,
+              chat_id: chat_id,
+              role: 'assistant',
+              text: '',
+              status: 'pending',
+              createdAt: new Date().toISOString(),
+              user_id: user.id,
+              meta: {
+                message_type: 'image',
+                sync_score: true,
+                status: 'generating'
+              }
+            });
+            
+            const score = await calculateSyncScore(chat_id, placeholderMessageId);
             console.log('[ChatBox] Score calculated:', score);
             // Image will appear in chat automatically via message updates
           } else {

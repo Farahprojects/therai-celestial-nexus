@@ -330,7 +330,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { chat_id } = await req.json();
+    const { chat_id, message_id } = await req.json();
 
     if (!chat_id) {
       return new Response(
@@ -339,7 +339,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log(`[calculate-sync-score] Processing for chat_id: ${chat_id}`);
+    console.log(`[calculate-sync-score] Processing for chat_id: ${chat_id}, message_id: ${message_id || 'none'}`);
 
     // 🚀 PARALLEL FETCH: Get translator log and conversation data simultaneously
     const [logResult, conversationResult] = await Promise.all([
@@ -455,36 +455,60 @@ Deno.serve(async (req) => {
       rarityPercentile
     );
 
-    // Create a placeholder message for the connection card
-    const { data: newMessage, error: messageError } = await supabase
-      .from('messages')
-      .insert({
-        chat_id: chat_id,
-        user_id: userId,
-        role: 'assistant',
-        text: 'Generating your connection card...',
-        status: 'pending',
-        meta: {
-          message_type: 'image',
-          sync_score: true,
-        }
-      })
-      .select()
-      .single();
+    // ✅ OPTIMIZATION: Use existing placeholder message if provided (avoids duplicate creation)
+    let targetMessage = null;
+    
+    if (message_id) {
+      // Check if placeholder already exists (created by frontend)
+      const { data: existingMessage } = await supabase
+        .from('messages')
+        .select('*')
+        .eq('id', message_id)
+        .single();
+      
+      if (existingMessage) {
+        console.log('[calculate-sync-score] Using existing placeholder message:', message_id);
+        targetMessage = existingMessage;
+      }
+    }
+    
+    // Create placeholder only if not provided or doesn't exist
+    if (!targetMessage) {
+      console.log('[calculate-sync-score] Creating new placeholder message');
+      const { data: newMessage, error: messageError } = await supabase
+        .from('messages')
+        .insert({
+          id: message_id || crypto.randomUUID(), // Use provided ID if available
+          chat_id: chat_id,
+          user_id: userId,
+          role: 'assistant',
+          text: '',
+          status: 'pending',
+          meta: {
+            message_type: 'image',
+            sync_score: true,
+            status: 'generating'
+          }
+        })
+        .select()
+        .single();
 
-    if (messageError || !newMessage) {
-      console.error('[calculate-sync-score] Failed to create message:', messageError);
+      if (messageError || !newMessage) {
+        console.error('[calculate-sync-score] Failed to create message:', messageError);
+      } else {
+        targetMessage = newMessage;
+      }
     }
 
-    // 🚀 Broadcast the placeholder message so frontend displays it immediately
-    if (newMessage) {
+    // 🚀 Broadcast the placeholder message so frontend displays it (skip if frontend already has it)
+    if (targetMessage && !message_id) {
       const channelName = `user-realtime:${userId}`;
       supabase.channel(channelName).send({
         type: 'broadcast',
         event: 'message-insert',
         payload: {
           chat_id: chat_id,
-          message: newMessage
+          message: targetMessage
         }
       }, { httpSend: true }).catch((broadcastError) => {
         console.error('[calculate-sync-score] Message broadcast failed:', broadcastError);
@@ -509,7 +533,7 @@ Deno.serve(async (req) => {
       });
 
     // 🚀 FIRE-AND-FORGET: Generate image asynchronously (don't block response)
-    if (newMessage) {
+    if (targetMessage) {
       fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/image-generate`, {
         method: 'POST',
         headers: {
@@ -521,7 +545,7 @@ Deno.serve(async (req) => {
           prompt: cardPrompt,
           user_id: userId,
           mode: 'sync',
-          image_id: newMessage.id,
+          image_id: targetMessage.id,
         }),
       })
         .then(async (imageResponse) => {
