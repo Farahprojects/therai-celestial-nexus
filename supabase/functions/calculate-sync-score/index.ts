@@ -33,6 +33,17 @@ interface MemeData {
 }
 
 /**
+ * Extract first name from full name (removes surnames)
+ * Handles: "John Doe" -> "John", "Mary Jane Smith" -> "Mary", "SingleName" -> "SingleName"
+ */
+function getFirstName(fullName: string): string {
+  if (!fullName || !fullName.trim()) return fullName;
+  const trimmed = fullName.trim();
+  const parts = trimmed.split(/\s+/);
+  return parts[0] || trimmed; // Return first word, or original if empty
+}
+
+/**
  * Generate meme caption and image prompt from Swiss synastry data
  * Single LLM call - no lookup tables, no fallbacks, fail fast
  */
@@ -244,10 +255,14 @@ Deno.serve(async (req) => {
       personBName = parts[1] || 'Person B';
     }
 
+    // ✅ Extract first names only (cleaner for meme card)
+    const personAFirstName = getFirstName(personAName);
+    const personBFirstName = getFirstName(personBName);
+
     // 🎭 MEME GENERATION - Single LLM call, no lookup tables, fail fast
-    console.log(`[Meme] Generating meme for ${personAName} & ${personBName}`);
+    console.log(`[Meme] Generating meme for ${personAFirstName} & ${personBFirstName}`);
     
-    const memeGeneration = await generateMeme(swissData, personAName, personBName);
+    const memeGeneration = await generateMeme(swissData, personAFirstName, personBFirstName);
     
     console.log(`[Meme] Caption: ${memeGeneration.caption.quoteText}`);
     console.log(`[Meme] Image prompt: ${memeGeneration.imagePrompt.length} chars`);
