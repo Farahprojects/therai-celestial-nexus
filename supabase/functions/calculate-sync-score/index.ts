@@ -46,50 +46,31 @@ async function generateMeme(
 
   if (!GOOGLE_API_KEY) throw new Error("Missing GOOGLE-LLM-NEW");
 
-  // Format Swiss data for LLM
+  // Format Swiss data for LLM - limit to top 15 most significant aspects
   const aspects = swissData?.blocks?.synastry_aspects?.pairs || 
                   swissData?.synastry_aspects?.pairs || 
                   [];
   
   const aspectsText = aspects.length > 0
-    ? aspects.slice(0, 20).map((a: any) => `${a.type}: ${a.a}-${a.b}`).join('\n')
+    ? aspects.slice(0, 15).map((a: any) => `${a.type}: ${a.a}-${a.b}`).join('\n')
     : "No aspects found";
 
-  const prompt = `You are a meme expert. Use this synastry data and come up with:
-1. A meme caption about these two people
-2. A detailed prompt to send to an image generator for creating a meme
+  const prompt = `Create a meme about ${personAName} & ${personBName} based on their synastry:
 
-PEOPLE: ${personAName} & ${personBName}
-
-SYNASTRY ASPECTS:
 ${aspectsText}
 
-TASK:
-Create a profound, shareable meme that captures their relationship dynamic. Then write a detailed image generation prompt.
-
-REQUIREMENTS:
-- Caption should be deep, poetic, and make them feel seen
-- Image prompt must specify: NO human faces or silhouettes (use animals, nature, cosmic elements, or abstract shapes)
-- Image should be 9:16 portrait ratio, Instagram-worthy
-- Text layout: Names at top ("${personAName} & ${personBName}"), caption in center, "therai.co" at bottom
-- Make it artistic and elegant, not literal
-
-Respond in JSON format ONLY:
+Return JSON:
 {
-  "caption": {
-    "format": "quote",
-    "quoteText": "your profound caption here",
-    "attribution": "${personAName} & ${personBName}"
-  },
-  "imagePrompt": "detailed prompt for image generator describing the visual metaphor, colors, mood, and text layout"
+  "caption": "profound poetic caption, max 20 words",
+  "imagePrompt": "9:16 portrait, NO human faces (use animals/nature/cosmic/abstract), text: '${personAName} & ${personBName}' top, caption center, 'therai.co' bottom, artistic elegant"
 }`;
 
   const requestBody = {
     contents: [{ role: "user", parts: [{ text: prompt }] }],
     generationConfig: { 
       temperature: 0.9, 
-      maxOutputTokens: 800,
-      responseMimeType: "application/json" // Force JSON response like extract-user-memory does
+      maxOutputTokens: 1500, // Increased to handle longer image prompts
+      responseMimeType: "application/json"
     }
   };
 
@@ -116,8 +97,7 @@ Respond in JSON format ONLY:
   const textPart = candidateParts.find((p: any) => p?.text);
   const responseText = textPart?.text || '';
   
-  console.log('[Meme] LLM raw response length:', responseText.length);
-  console.log('[Meme] LLM raw response:', responseText.substring(0, 200));
+  console.log('[Meme] Response received:', responseText.length, 'chars');
   
   // Fail fast if empty response
   if (!responseText || responseText.trim().length === 0) {
@@ -141,13 +121,15 @@ Respond in JSON format ONLY:
     throw new Error('LLM response missing required fields: caption or imagePrompt');
   }
   
-  if (!parsed.caption.format) {
-    console.error('[Meme] Caption missing format:', parsed.caption);
-    throw new Error('Caption missing format field');
-  }
+  // Convert simple caption string to MemeCaption format for compatibility
+  const memeCaption = {
+    format: 'quote' as const,
+    quoteText: parsed.caption,
+    attribution: `${personAName} & ${personBName}`
+  };
   
   return {
-    caption: parsed.caption,
+    caption: memeCaption,
     imagePrompt: parsed.imagePrompt
   };
 }
@@ -174,7 +156,7 @@ Deno.serve(async (req) => {
     const [logResult, conversationResult] = await Promise.all([
       supabase
         .from('translator_logs')
-        .select('swiss_data, request_payload')
+        .select('swiss_data')
         .eq('chat_id', chat_id)
         .order('created_at', { ascending: false })
         .limit(1)
@@ -206,15 +188,12 @@ Deno.serve(async (req) => {
 
     const swissData = translatorLog.swiss_data;
     const userId = conversation.user_id;
-    const requestPayload = translatorLog.request_payload || {};
 
     console.log('[calculate-sync-score] Swiss data fetched');
 
-    // Extract person names and birth dates from request payload
+    // Extract person names from conversation title
     let personAName = 'Person A';
     let personBName = 'Person B';
-    let personABirthDate = '';
-    let personBBirthDate = '';
     
     if (conversation?.title) {
       const title = conversation.title.replace('Sync Score: ', '');
@@ -228,11 +207,8 @@ Deno.serve(async (req) => {
     
     const memeGeneration = await generateMeme(swissData, personAName, personBName);
     
-    console.log(`[Meme] Caption format: ${memeGeneration.caption.format}`);
-    if (memeGeneration.caption.topText) console.log(`[Meme] Top: ${memeGeneration.caption.topText}`);
-    if (memeGeneration.caption.bottomText) console.log(`[Meme] Bottom: ${memeGeneration.caption.bottomText}`);
-    if (memeGeneration.caption.quoteText) console.log(`[Meme] Quote: ${memeGeneration.caption.quoteText}`);
-    console.log(`[Meme] Image prompt length: ${memeGeneration.imagePrompt.length} chars`);
+    console.log(`[Meme] Caption: ${memeGeneration.caption.quoteText}`);
+    console.log(`[Meme] Image prompt: ${memeGeneration.imagePrompt.length} chars`);
 
     // Build meme data for storage
     const memeData: MemeData = {
