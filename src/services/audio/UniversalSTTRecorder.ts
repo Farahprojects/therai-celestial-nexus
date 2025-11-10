@@ -157,14 +157,49 @@ export class UniversalSTTRecorder {
       throw new Error('getUserMedia is not supported in this browser');
     }
 
-    // Request mic access - simple approach
-    const stream = await navigator.mediaDevices.getUserMedia({ 
-      audio: {
-        noiseSuppression: true,
-        echoCancellation: true,
-        autoGainControl: false,
+    // Prefer Bluetooth device when available (web fallback)
+    // Note: On mobile Chrome, device labels may be empty until permission is granted
+    let preferredDeviceId: string | undefined;
+    try {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const inputs = devices.filter(d => d.kind === 'audioinput');
+      // Heuristics: prefer Bluetooth/Headset devices
+      const bluetoothLike = inputs.find(d =>
+        /bluetooth|headset|buds|sco|le/i.test(d.label)
+      );
+      if (bluetoothLike?.deviceId) {
+        preferredDeviceId = bluetoothLike.deviceId;
+        console.log('[UniversalSTTRecorder] 🎯 Preferring audio input device:', {
+          label: bluetoothLike.label,
+          deviceId: bluetoothLike.deviceId
+        });
+      } else if (inputs.length > 0) {
+        console.log('[UniversalSTTRecorder] Using default audio input device:', {
+          label: inputs[0].label,
+          deviceId: inputs[0].deviceId
+        });
+      } else {
+        console.log('[UniversalSTTRecorder] No audioinput devices enumerated, using default');
       }
-    });
+    } catch (e) {
+      console.warn('[UniversalSTTRecorder] enumerateDevices failed, using default mic:', e);
+    }
+
+    // Request mic access with reasonable comms-style constraints
+    const audioConstraints: MediaTrackConstraints = {
+      noiseSuppression: true,
+      echoCancellation: true,
+      autoGainControl: false,
+      channelCount: 1,
+      // Some browsers honor these; harmless where unsupported
+      sampleRate: 48000
+    };
+    if (preferredDeviceId) {
+      (audioConstraints as any).deviceId = { exact: preferredDeviceId };
+    }
+
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: audioConstraints });
+    console.log('[UniversalSTTRecorder] 🎤 getUserMedia succeeded with constraints:', audioConstraints);
 
     return stream;
   }
@@ -334,6 +369,7 @@ export class UniversalSTTRecorder {
     let lowRmsSinceTs: number | null = null;
     let zeroCheckCount = 0;
     let hasLoggedZeroWarning = false;
+    let attemptedDeadInputRecovery = false;
     
     const updateAnimation = () => {
       // Always sample analyser while the graph exists
@@ -352,6 +388,40 @@ export class UniversalSTTRecorder {
           console.error('[VAD] ⚠️ AUDIO INPUT IS ALL ZEROS - No audio data flowing from microphone!');
           console.error('[VAD] This usually means Bluetooth SCO routing failed or mic permissions issue');
           hasLoggedZeroWarning = true;
+        }
+        // After sustained zeros, attempt recovery on web by reopening stream with default device
+        if (zeroCheckCount > 60 && !attemptedDeadInputRecovery && !(window as any).Capacitor?.isNativePlatform?.()) {
+          attemptedDeadInputRecovery = true;
+          console.warn('[VAD] ♻️ Attempting mic recovery: reopening stream with default device (fallback to built-in mic)');
+          try {
+            // Stop current tracks
+            if (this.mediaStream) {
+              this.mediaStream.getTracks().forEach(t => t.stop());
+              this.mediaStream = null;
+            }
+            // Close current context
+            if (this.audioContext) {
+              this.audioContext.close().catch(() => {});
+              this.audioContext = null;
+            }
+            // Re-request with default constraints (no deviceId)
+            navigator.mediaDevices.getUserMedia({
+              audio: {
+                noiseSuppression: true,
+                echoCancellation: true,
+                autoGainControl: false,
+                channelCount: 1
+              }
+            }).then((stream) => {
+              console.log('[VAD] ✅ Mic recovery success - rebuilding audio graph');
+              this.mediaStream = stream;
+              this.setupEnergyMonitoring();
+            }).catch((err) => {
+              console.error('[VAD] ❌ Mic recovery failed:', err);
+            });
+          } catch (e) {
+            console.error('[VAD] ❌ Mic recovery threw error:', e);
+          }
         }
       } else if (zeroCheckCount > 0) {
         // We have audio now
