@@ -78,10 +78,14 @@ Your task:
 
 3. **Generate an image prompt** that visually expresses the same theme.
    - Must be 9:16 vertical composition.
-   - Focus on metaphoric imagery (animals, cosmic, abstract, nature, surreal moods).
-   - Include aesthetic cues that fit the emotional tone you identified (e.g., "stormy sky" for conflict, "soft glow" for harmony).
-   - DO NOT include any text in the image - text will be overlaid separately
-
+   - Focus on viral styles.
+   - Include aesthetic cues that fit the emotional tone you identified.
+   - Include overlay text:
+     - Top: "${personAName} & ${personBName}"
+     - Center: the meme caption
+     - Bottom: "therai.co"
+     
+**IMPORTANT Check spelling before printing 
 Return only clean JSON with no markdown:
 {
   "caption": "text here",
@@ -335,11 +339,6 @@ Deno.serve(async (req) => {
           user_id: userId,
           mode: 'sync',
           image_id: targetMessage.id,
-          text_overlay: {
-            top: `${personAName} & ${personBName}`,
-            center: memeGeneration.caption.quoteText || '',
-            bottom: 'therai.co'
-          }
         }),
       })
         .then(async (imageResponse) => {

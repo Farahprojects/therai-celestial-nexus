@@ -4,7 +4,6 @@
 // - Uses @google/genai SDK (Imagen not available via REST API)
 // - Uploads to Supabase Storage
 // - Creates message with image metadata
-// NOTE: Text overlay removed - Sharp doesn't work in Deno Edge Functions (native bindings)
 
 import { createPooledClient } from "../_shared/supabaseClient.ts";
 import { GoogleGenAI } from "https://esm.sh/@google/genai@^1.0.0";
@@ -48,7 +47,6 @@ function decodeBase64(base64: string): Uint8Array {
   return bytes;
 }
 
-
 Deno.serve(async (req) => {
   const startTime = Date.now();
   const requestId = crypto.randomUUID().substring(0, 8);
@@ -69,7 +67,7 @@ Deno.serve(async (req) => {
     return json(400, { error: "Invalid JSON body" });
   }
 
-  const { chat_id, prompt, user_id, mode, image_id, text_overlay } = body || {};
+  const { chat_id, prompt, user_id, mode, image_id } = body || {};
 
   if (!chat_id || typeof chat_id !== "string") {
     return json(400, { error: "Missing or invalid field: chat_id" });
@@ -179,16 +177,6 @@ Deno.serve(async (req) => {
       error: error instanceof Error ? error.message : String(error)
     }));
     return json(500, { error: "Failed to decode image data" });
-  }
-
-  // Text overlay removed - Sharp doesn't work in Deno Edge Functions
-  // TODO: Implement text overlay using Canvas API or external service
-  if (text_overlay && mode === 'sync') {
-    console.warn(JSON.stringify({
-      event: "text_overlay_skipped",
-      request_id: requestId,
-      reason: "Text overlay not yet implemented - Sharp incompatible with Deno Edge Functions"
-    }));
   }
 
   const originalSize = imageBytes.length;
