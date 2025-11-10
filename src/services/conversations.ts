@@ -61,29 +61,19 @@ export const createConversation = async (
     }
   });
 
+  // Handle network/HTTP errors
   if (error) {
     console.error('[Conversations] Error creating conversation:', error);
-    // Extract error message from response body if available
-    let errorMessage = 'Failed to create conversation';
-    
-    // Try to get error from response data
-    if (data?.error) {
-      errorMessage = data.error;
-    } else if (error.message) {
-      errorMessage = error.message;
-    } else if (error.context?.msg) {
-      errorMessage = error.context.msg;
-    }
-    
-    throw new Error(errorMessage);
+    throw new Error(error.message || 'Failed to create conversation');
   }
 
-  // Check if response contains error (shouldn't happen if error is null, but double-check)
-  if (data?.error) {
-    throw new Error(data.error);
+  // Check for application-level errors (returned as 200 with success: false)
+  if (data && !data.success) {
+    throw new Error(data.error || 'Failed to create conversation');
   }
 
-  return data.id;
+  // Return conversation ID from data.data (wrapped in success response)
+  return data?.data?.id || data?.id;
 };
 
 /**

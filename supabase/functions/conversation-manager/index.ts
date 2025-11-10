@@ -54,6 +54,11 @@ function errorJson(message: string, status = 400) {
 return json({ error: message }, { status });
 }
 
+// Return success/error in JSON payload with 200 status (better for Edge Functions)
+function jsonResponse(payload: { success: boolean; error?: string; data?: any }) {
+return json(payload, { status: 200 });
+}
+
 async function getAuthUserId(req: Request): Promise<string> {
 const auth = req.headers.get('Authorization');
 if (!auth) throw new Error('Missing Authorization header');
@@ -131,7 +136,10 @@ if (mode === 'sync_score') {
   const limitCheck = await checkLimit(admin, userId, 'image_generation', 1);
   
   if (!limitCheck.allowed || (limitCheck.current_usage !== undefined && limitCheck.current_usage >= 6)) {
-    return errorJson('Daily limit exceeded. You\'ve used 6 images today. Try again tomorrow or upgrade for unlimited access.', 429);
+    return jsonResponse({
+      success: false,
+      error: 'Daily limit exceeded. You\'ve used 6 images today. Try again tomorrow or upgrade for unlimited access.'
+    });
   }
 }
 
@@ -193,10 +201,13 @@ if (isProfileMode) {
     }).catch((e) => console.error('[conversation-manager] initiate-auth-report error', e));
   }
   
-  return json({
-    ...data,
-    is_generating_report: false,
-    reportType: (report_data as any)?.reportType ?? null,
+  return jsonResponse({
+    success: true,
+    data: {
+      ...data,
+      is_generating_report: false,
+      reportType: (report_data as any)?.reportType ?? null,
+    }
   });
 }
 
@@ -256,10 +267,13 @@ if (mode === 'chat' || mode === 'together') {
   }
 }
 
-return json({
-  ...data,
-  is_generating_report,
-  reportType: (report_data as any)?.reportType ?? null,
+return jsonResponse({
+  success: true,
+  data: {
+    ...data,
+    is_generating_report,
+    reportType: (report_data as any)?.reportType ?? null,
+  }
 });
 },
 
