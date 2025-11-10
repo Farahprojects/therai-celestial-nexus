@@ -126,6 +126,7 @@ class TTSPlaybackService {
   }
 
   private stopAnimation() {
+    // 🔥 CLEANUP: Ensure timer is cleared
     if (this.animationTimer) {
       clearTimeout(this.animationTimer);
       this.animationTimer = null;
@@ -387,14 +388,32 @@ class TTSPlaybackService {
   }
 
   async destroy(): Promise<void> {
+    // 🔥 CLEANUP: Stop all playback and animation
     this.internalStop();
-    // Only close when we created/own the context. Never close a shared external context.
+    
+    // 🔥 CLEANUP: Ensure animation is fully stopped
+    this.stopAnimation();
+    
+    // 🔥 CLEANUP: Only close when we created/own the context. Never close a shared external context.
     if (this.audioContext && this.audioContext.state !== 'closed' && !this.isUsingExternalContext) {
-      try { await this.audioContext.close(); } catch {}
+      try { 
+        await this.audioContext.close(); 
+      } catch {}
     }
     this.audioContext = null;
     this.isUsingExternalContext = false;
+    this.externalContextProvider = null;
+    
+    // 🔥 CLEANUP: Clear all listeners and state
     this.listeners.clear();
+    this.currentSource = null;
+    this.mediaElementNode = null;
+    this.analyser = null;
+    this.bufferSource = null;
+    this.currentUrl = null;
+    this.isPlaying = false;
+    this.isPaused = false;
+    this.isStopping = false;
     
     // 🎵 RELEASE AUDIO CONTROL on destroy
     audioArbitrator.releaseControl('tts');

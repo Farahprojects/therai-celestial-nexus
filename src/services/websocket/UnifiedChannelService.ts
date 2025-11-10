@@ -31,6 +31,7 @@ class UnifiedChannelService {
   private isActive: boolean = false;
   private idleTimeout: number | null = null;
   private visibilityHandlersSetup: boolean = false;
+  private visibilityChangeHandler: (() => void) | null = null;
 
   constructor() {
     this.setupVisibilityHandlers();
@@ -127,7 +128,7 @@ class UnifiedChannelService {
     if (this.visibilityHandlersSetup || typeof document === 'undefined') return;
     this.visibilityHandlersSetup = true;
     
-    document.addEventListener('visibilitychange', () => {
+    this.visibilityChangeHandler = () => {
       if (document.hidden) {
         // Tab hidden - start idle timer (close after 5 minutes)
         if (DEBUG) console.log('[UnifiedChannel] 🌙 Tab hidden, starting idle timer');
@@ -144,7 +145,9 @@ class UnifiedChannelService {
         }
         this.resume();
       }
-    });
+    };
+    
+    document.addEventListener('visibilitychange', this.visibilityChangeHandler);
   }
 
   private pause() {
@@ -191,9 +194,18 @@ class UnifiedChannelService {
       this.idleTimeout = null;
     }
     
+    // 🔥 CLEANUP: Remove visibility change listener
+    if (this.visibilityChangeHandler) {
+      try {
+        document.removeEventListener('visibilitychange', this.visibilityChangeHandler);
+      } catch (_) {}
+      this.visibilityChangeHandler = null;
+    }
+    
     this.listeners.clear();
     this.isActive = false;
     this.userId = null;
+    this.visibilityHandlersSetup = false;
   }
 
   getStatus() {

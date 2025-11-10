@@ -359,8 +359,8 @@ if (typeof window !== 'undefined' && !(window as any).__msgStoreListenerInstalle
   // Initialize on load
   initializeUnifiedChannel();
   
-  // Re-initialize on auth state changes
-  supabase.auth.onAuthStateChange((event, session) => {
+  // Re-initialize on auth state changes - STORE UNSUBSCRIBE FUNCTION
+  const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
     if (event === 'SIGNED_IN' && session?.user) {
       if (DEBUG) console.log('[MessageStore] 🔌 Auth changed, subscribing to unified channel');
       unifiedChannel.subscribe(session.user.id);
@@ -369,6 +369,9 @@ if (typeof window !== 'undefined' && !(window as any).__msgStoreListenerInstalle
       unifiedChannel.cleanup();
     }
   });
+  
+  // Store cleanup function globally for cleanup
+  (window as any).__msgStoreAuthCleanup = authListener?.subscription.unsubscribe.bind(authListener.subscription);
   
   // Listen for message-insert events from unified channel
   unifiedChannel.on('message-insert', (payload: any) => {

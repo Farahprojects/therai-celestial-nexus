@@ -673,31 +673,83 @@ export class UniversalSTTRecorder {
   }
 
   private cleanup(): void {
+    // 🔥 CLEANUP: Clear all timers
     if (this.silenceTimer) {
       clearTimeout(this.silenceTimer);
       this.silenceTimer = null;
     }
 
+    // 🔥 CLEANUP: Cancel animation frame
     if (this.animationFrame) {
       cancelAnimationFrame(this.animationFrame);
       this.animationFrame = null;
     }
 
+    // 🔥 CLEANUP: Disconnect and clear ALL audio nodes
+    if (this.scriptProcessor) {
+      try {
+        this.scriptProcessor.onaudioprocess = null;
+        this.scriptProcessor.disconnect();
+      } catch (_) {}
+      this.scriptProcessor = null;
+    }
+    
+    if (this.silentGain) {
+      try {
+        this.silentGain.disconnect();
+      } catch (_) {}
+      this.silentGain = null;
+    }
+    
+    if (this.adaptiveGain) {
+      try {
+        this.adaptiveGain.disconnect();
+      } catch (_) {}
+      this.adaptiveGain = null;
+    }
+    
+    if (this.analyser) {
+      try {
+        this.analyser.disconnect();
+      } catch (_) {}
+      this.analyser = null;
+    }
+    
+    if (this.highPassFilter) {
+      try {
+        this.highPassFilter.disconnect();
+      } catch (_) {}
+      this.highPassFilter = null;
+    }
+    
+    if (this.lowPassFilter) {
+      try {
+        this.lowPassFilter.disconnect();
+      } catch (_) {}
+      this.lowPassFilter = null;
+    }
+    
+    this.bandpassFilter = null;
+
+    // 🔥 CLEANUP: Stop and release microphone stream
     if (this.mediaStream) {
       this.mediaStream.getTracks().forEach(track => track.stop());
       this.mediaStream = null;
     }
 
+    // 🔥 CLEANUP: Close AudioContext
     if (this.audioContext) {
-      this.audioContext.close();
+      this.audioContext.close().catch(() => {});
       this.audioContext = null;
     }
 
-    this.analyser = null;
-    this.highPassFilter = null;
-    this.lowPassFilter = null;
-    this.bandpassFilter = null;
+    // 🔥 CLEANUP: Clear all buffers and arrays
     this.dataArray = null;
+    this.freqData = null;
+    this.preRollSampleChunks = [];
+    this.preRollTotalSamples = 0;
+    this.activeSampleChunks = [];
+    this.activeTotalSamples = 0;
     this.vadActive = false;
     
     // Reset baseline capture state
@@ -705,6 +757,7 @@ export class UniversalSTTRecorder {
     this.baselineCapturing = false;
     this.baselineEnergySum = 0;
     this.baselineEnergyCount = 0;
+    this.earlyVoiceDetected = false;
   }
 
   dispose(): void {

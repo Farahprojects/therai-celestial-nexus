@@ -12,6 +12,8 @@ import { initDevConsoleFilter } from './utils/devConsoleFilter';
 import { cleanupOldStorage } from './utils/cleanupOldStorage';
 // Initialize WebSocket early for fast message fetching
 import './stores/initializeApp';
+// 🔥 Initialize memory cleanup handlers (development only)
+import { setupDevCleanup, logMemoryStats } from './utils/memoryCleanup';
 
 // Force deploy - 2025-06-29
 if (typeof window !== 'undefined') {
@@ -21,6 +23,10 @@ if (typeof window !== 'undefined') {
   // Enable console filter in development only
   if (import.meta.env.DEV) {
     initDevConsoleFilter();
+    // 🔥 Setup memory cleanup handlers for development
+    setupDevCleanup();
+    // Log initial memory stats
+    logMemoryStats();
   }
   // Initialize unified auth manager AFTER window is available
   // Ensures Capacitor bridge is ready before platform detection

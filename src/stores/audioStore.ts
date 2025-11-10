@@ -6,6 +6,7 @@ interface AudioState {
   setAudioUnlocked: (val: boolean) => void;
   initializeAudioContext: () => AudioContext;
   resumeAudioContext: () => Promise<boolean>;
+  cleanup: () => Promise<void>;
 }
 
 export const useAudioStore = create<AudioState>((set, get) => ({
@@ -41,5 +42,19 @@ export const useAudioStore = create<AudioState>((set, get) => ({
       set({ isAudioUnlocked: true });
       return true;
     }
+  },
+  
+  // 🔥 CLEANUP: Close AudioContext and reset state
+  cleanup: async () => {
+    const { audioContext } = get();
+    if (audioContext && audioContext.state !== 'closed') {
+      try {
+        await audioContext.close();
+        console.log('[AudioStore] 🔥 AudioContext closed');
+      } catch (error) {
+        console.error('[AudioStore] ❌ Failed to close AudioContext:', error);
+      }
+    }
+    set({ audioContext: null, isAudioUnlocked: false });
   }
 }));

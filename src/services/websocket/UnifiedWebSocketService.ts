@@ -18,6 +18,12 @@ class UnifiedWebSocketService {
   private coldReconnectAttempts: number = 0;
   private wakeListenersAttached: boolean = false;
   private subscribeToken: number = 0; // Guard against stale subscribe calls
+  
+  // Track event listeners for cleanup
+  private visibilityListener: (() => void) | null = null;
+  private onlineListener: (() => void) | null = null;
+  private focusListener: (() => void) | null = null;
+  private debounceTimer: number | null = null;
 
   // No callbacks - just emit events
 
@@ -32,21 +38,24 @@ class UnifiedWebSocketService {
       }, 250);
 
       try {
-        document.addEventListener('visibilitychange', () => {
+        this.visibilityListener = () => {
           if (document.visibilityState === 'visible') {
             wakeReconnect();
           }
-        });
+        };
+        document.addEventListener('visibilitychange', this.visibilityListener);
       } catch (_) {}
       try {
-        window.addEventListener('online', () => {
+        this.onlineListener = () => {
           wakeReconnect();
-        });
+        };
+        window.addEventListener('online', this.onlineListener);
       } catch (_) {}
       try {
-        window.addEventListener('focus', () => {
+        this.focusListener = () => {
           wakeReconnect();
-        });
+        };
+        window.addEventListener('focus', this.focusListener);
       } catch (_) {}
     }
   }
@@ -332,13 +341,12 @@ class UnifiedWebSocketService {
    * Simple debounce helper to avoid repeated reconnects from multiple wake signals
    */
   private debounce<T extends (...args: any[]) => void>(fn: T, wait: number): T {
-    let t: number | null = null;
     return ((...args: any[]) => {
-      if (t !== null) {
-        clearTimeout(t);
+      if (this.debounceTimer !== null) {
+        clearTimeout(this.debounceTimer);
       }
-      t = window.setTimeout(() => {
-        t = null;
+      this.debounceTimer = window.setTimeout(() => {
+        this.debounceTimer = null;
         fn(...args);
       }, wait);
     }) as T;
@@ -347,7 +355,7 @@ class UnifiedWebSocketService {
   // WebSocket = notification only, DB = source of truth
 
   /**
-   * Cleanup WebSocket connection
+   * Cleanup WebSocket connection and ALL event listeners
    */
   cleanup() {
     if (this.realtimeChannel) {
@@ -359,6 +367,34 @@ class UnifiedWebSocketService {
       clearTimeout(this.connectTimeoutId);
       this.connectTimeoutId = null;
     }
+    
+    // 🔥 CLEANUP: Remove all global event listeners
+    if (this.visibilityListener) {
+      try {
+        document.removeEventListener('visibilitychange', this.visibilityListener);
+      } catch (_) {}
+      this.visibilityListener = null;
+    }
+    if (this.onlineListener) {
+      try {
+        window.removeEventListener('online', this.onlineListener);
+      } catch (_) {}
+      this.onlineListener = null;
+    }
+    if (this.focusListener) {
+      try {
+        window.removeEventListener('focus', this.focusListener);
+      } catch (_) {}
+      this.focusListener = null;
+    }
+    
+    // Clear debounce timer
+    if (this.debounceTimer !== null) {
+      clearTimeout(this.debounceTimer);
+      this.debounceTimer = null;
+    }
+    
+    this.wakeListenersAttached = false;
   }
 }
 

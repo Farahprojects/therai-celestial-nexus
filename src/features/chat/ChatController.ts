@@ -18,14 +18,16 @@ class ChatController {
   // Using unified message store for all message management
   private isProcessingRef = false;
   private isInitializing = false; // Guard against concurrent initializations
+  private networkRetryHandler: ((event: Event) => void) | null = null;
 
 
   constructor() {
     // Don't load messages in constructor - wait for initializeForConversation
     // this.loadExistingMessages();
     
-    // Listen for network retry events
-    window.addEventListener('network-retry', this.handleNetworkRetry.bind(this));
+    // Listen for network retry events - STORE HANDLER FOR CLEANUP
+    this.networkRetryHandler = this.handleNetworkRetry.bind(this);
+    window.addEventListener('network-retry', this.networkRetryHandler);
   }
 
   private async loadExistingMessages(chat_id?: string) {
@@ -223,6 +225,12 @@ class ChatController {
     if (this.resetTimeout) {
       clearTimeout(this.resetTimeout);
       this.resetTimeout = null;
+    }
+    
+    // 🔥 CLEANUP: Remove network retry listener
+    if (this.networkRetryHandler) {
+      window.removeEventListener('network-retry', this.networkRetryHandler);
+      this.networkRetryHandler = null;
     }
     
     // Clean up unified WebSocket service
