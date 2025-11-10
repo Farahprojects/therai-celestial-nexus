@@ -4,10 +4,12 @@
 // - Uses @google/genai SDK (Imagen not available via REST API)
 // - Uploads to Supabase Storage
 // - Creates message with image metadata
+// - Text overlay using Sharp for clean, crisp text rendering
 
 import { createPooledClient } from "../_shared/supabaseClient.ts";
 import { GoogleGenAI } from "https://esm.sh/@google/genai@^1.0.0";
 import { checkLimit, incrementUsage } from "../_shared/limitChecker.ts";
+import sharp from "npm:sharp@0.33.5";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -47,6 +49,42 @@ function decodeBase64(base64: string): Uint8Array {
   return bytes;
 }
 
+// XML escape helper for SVG text
+function escapeXml(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
+}
+
+// Simple text wrapping for multiline captions
+function wrapText(text: string, maxWidth: number, fontSize: number): string[] {
+  const words = text.split(' ');
+  const lines: string[] = [];
+  let currentLine = '';
+  
+  // Rough estimate: each char is ~0.6 * fontSize in width
+  const avgCharWidth = fontSize * 0.6;
+  const maxCharsPerLine = Math.floor(maxWidth / avgCharWidth);
+  
+  for (const word of words) {
+    const testLine = currentLine ? `${currentLine} ${word}` : word;
+    
+    if (testLine.length <= maxCharsPerLine) {
+      currentLine = testLine;
+    } else {
+      if (currentLine) lines.push(currentLine);
+      currentLine = word;
+    }
+  }
+  
+  if (currentLine) lines.push(currentLine);
+  
+  return lines.length > 0 ? lines : [text];
+}
+
 Deno.serve(async (req) => {
   const startTime = Date.now();
   const requestId = crypto.randomUUID().substring(0, 8);
@@ -67,7 +105,7 @@ Deno.serve(async (req) => {
     return json(400, { error: "Invalid JSON body" });
   }
 
-  const { chat_id, prompt, user_id, mode, image_id } = body || {};
+  const { chat_id, prompt, user_id, mode, image_id, text_overlay } = body || {};
 
   if (!chat_id || typeof chat_id !== "string") {
     return json(400, { error: "Missing or invalid field: chat_id" });
@@ -177,6 +215,104 @@ Deno.serve(async (req) => {
       error: error instanceof Error ? error.message : String(error)
     }));
     return json(500, { error: "Failed to decode image data" });
+  }
+
+  // Apply text overlay if provided (for sync memes)
+  if (text_overlay && mode === 'sync') {
+    try {
+      console.info(JSON.stringify({
+        event: "text_overlay_start",
+        request_id: requestId,
+        text_top: text_overlay.top,
+        text_center: text_overlay.center?.substring(0, 50),
+        text_bottom: text_overlay.bottom
+      }));
+
+      // Get image dimensions
+      const metadata = await sharp(imageBytes).metadata();
+      const width = metadata.width || 1024;
+      const height = metadata.height || 1820;
+
+      // Create SVG overlay with text
+      // Using simple, clean layout with shadow for readability
+      const svgOverlay = `
+        <svg width="${width}" height="${height}">
+          <defs>
+            <style type="text/css">
+              @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&amp;display=swap');
+            </style>
+            <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
+              <feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="#000000" flood-opacity="0.8"/>
+            </filter>
+          </defs>
+          
+          <!-- Top text: Names -->
+          <text 
+            x="${width / 2}" 
+            y="120" 
+            font-family="Inter, -apple-system, sans-serif" 
+            font-size="48" 
+            font-weight="600" 
+            fill="white" 
+            text-anchor="middle"
+            filter="url(#shadow)"
+          >${escapeXml(text_overlay.top || '')}</text>
+          
+          <!-- Center text: Caption (multiline support) -->
+          <text 
+            x="${width / 2}" 
+            y="${height / 2}" 
+            font-family="Inter, -apple-system, sans-serif" 
+            font-size="56" 
+            font-weight="700" 
+            fill="white" 
+            text-anchor="middle"
+            filter="url(#shadow)"
+          >
+            ${wrapText(escapeXml(text_overlay.center || ''), width - 120, 56).map((line, i) => 
+              `<tspan x="${width / 2}" dy="${i === 0 ? 0 : 70}">${line}</tspan>`
+            ).join('')}
+          </text>
+          
+          <!-- Bottom text: Brand -->
+          <text 
+            x="${width / 2}" 
+            y="${height - 80}" 
+            font-family="Inter, -apple-system, sans-serif" 
+            font-size="36" 
+            font-weight="400" 
+            fill="white" 
+            text-anchor="middle"
+            filter="url(#shadow)"
+          >${escapeXml(text_overlay.bottom || '')}</text>
+        </svg>
+      `;
+
+      // Composite text overlay onto image
+      imageBytes = await sharp(imageBytes)
+        .composite([{
+          input: Buffer.from(svgOverlay),
+          top: 0,
+          left: 0
+        }])
+        .png()
+        .toBuffer();
+
+      console.info(JSON.stringify({
+        event: "text_overlay_complete",
+        request_id: requestId,
+        final_size: imageBytes.length
+      }));
+
+    } catch (overlayError) {
+      console.error(JSON.stringify({
+        event: "text_overlay_failed",
+        request_id: requestId,
+        error: overlayError instanceof Error ? overlayError.message : String(overlayError),
+        stack: overlayError instanceof Error ? overlayError.stack : undefined
+      }));
+      // Continue without overlay rather than failing entirely
+    }
   }
 
   const originalSize = imageBytes.length;

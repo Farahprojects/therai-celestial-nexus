@@ -83,10 +83,7 @@ Your task:
    - Must be 9:16 vertical composition.
    - Focus on metaphoric imagery (animals, cosmic, abstract, nature, surreal moods).
    - Include aesthetic cues that fit the emotional tone you identified (e.g., "stormy sky" for conflict, "soft glow" for harmony).
-   - Include small overlay text:
-     - Top: "${personAName} & ${personBName}"
-     - Center: the meme caption
-     - Bottom: "therai.co"
+   - DO NOT include any text in the image - text will be overlaid separately
 
 Return only clean JSON with no markdown:
 {
@@ -341,6 +338,11 @@ Deno.serve(async (req) => {
           user_id: userId,
           mode: 'sync',
           image_id: targetMessage.id,
+          text_overlay: {
+            top: `${personAName} & ${personBName}`,
+            center: memeGeneration.caption.quoteText || '',
+            bottom: 'therai.co'
+          }
         }),
       })
         .then(async (imageResponse) => {
