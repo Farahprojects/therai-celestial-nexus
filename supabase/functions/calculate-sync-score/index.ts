@@ -75,7 +75,7 @@ THEN:
    - Max 20 words
    - Tone: Gen Z with humour  
    - Relatable hallmark memes is the goal that relates and will go viral 
-
+   **IMPORTANT Tell image genrator to Check spelling and wording before finalising**
 
 3. **Generate an image prompt** that visually expresses the same theme.
    - Must be 9:16 vertical composition.
@@ -86,7 +86,7 @@ THEN:
      - Center: the meme caption
      - Bottom: "therai.co"
      
-**IMPORTANT Tell image genrator to Check spelling and wording before printing 
+**IMPORTANT Tell image genrator to Check spelling and wording before finalising** 
 Return only clean JSON with no markdown:
 {
   "caption": "text here",
