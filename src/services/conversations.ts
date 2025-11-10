@@ -63,7 +63,24 @@ export const createConversation = async (
 
   if (error) {
     console.error('[Conversations] Error creating conversation:', error);
-    throw new Error('Failed to create conversation');
+    // Extract error message from response body if available
+    let errorMessage = 'Failed to create conversation';
+    
+    // Try to get error from response data
+    if (data?.error) {
+      errorMessage = data.error;
+    } else if (error.message) {
+      errorMessage = error.message;
+    } else if (error.context?.msg) {
+      errorMessage = error.context.msg;
+    }
+    
+    throw new Error(errorMessage);
+  }
+
+  // Check if response contains error (shouldn't happen if error is null, but double-check)
+  if (data?.error) {
+    throw new Error(data.error);
   }
 
   return data.id;

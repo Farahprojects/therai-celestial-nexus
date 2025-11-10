@@ -1,5 +1,6 @@
 // @ts-nocheck - Deno runtime, types checked at deployment
 import { createClient, type SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { checkLimit } from '../_shared/limitChecker.ts';
 
 type Json = Record<string, unknown> | Array<unknown> | string | number | boolean | null;
 
@@ -124,6 +125,15 @@ if (!mode) return errorJson('mode is required for conversation creation');
 
 // Check if profile_mode flag is present
 const isProfileMode = profile_mode === true;
+
+// ✅ Check image generation limit for sync_score mode (6 images per day)
+if (mode === 'sync_score') {
+  const limitCheck = await checkLimit(admin, userId, 'image_generation', 1);
+  
+  if (!limitCheck.allowed || (limitCheck.current_usage !== undefined && limitCheck.current_usage >= 6)) {
+    return errorJson('Daily limit exceeded. You\'ve used 6 images today. Try again tomorrow or upgrade for unlimited access.', 429);
+  }
+}
 
 // ✅ NEW: Free users can create conversations - limits enforced at message level
 // No subscription check needed here - feature gating happens in llm-handler-gemini

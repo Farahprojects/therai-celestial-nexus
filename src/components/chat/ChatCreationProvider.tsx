@@ -163,7 +163,21 @@ export const ChatCreationProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
       // Create the conversation with profile data in metadata
       const { addThread } = useChatStore.getState();
-      const newChatId = await addThread(user.id, 'sync_score', title);
+      let newChatId: string;
+      try {
+        newChatId = await addThread(user.id, 'sync_score', title);
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Failed to create sync score';
+        setIsSyncScoreGenerating(false);
+        
+        // Check if it's a daily limit error
+        if (errorMessage.includes('Daily limit exceeded') || errorMessage.includes('limit exceeded')) {
+          toast.error(errorMessage, { duration: 5000 });
+        } else {
+          toast.error(errorMessage);
+        }
+        return;
+      }
 
       // Navigate to conversation immediately (give instant feedback)
       const { setChatId } = useMessageStore.getState();
