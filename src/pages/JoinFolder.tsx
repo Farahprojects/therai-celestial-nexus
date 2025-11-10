@@ -45,88 +45,61 @@ const JoinFolder: React.FC = () => {
         return;
       }
 
-      try {
-        console.log('[JoinFolder] Fetching folder:', folderId);
-        const folder = await getSharedFolder(folderId);
-        console.log('[JoinFolder] Folder fetched:', folder ? { id: folder.id, name: folder.name, is_public: folder.is_public } : 'null');
-        
-        if (!folder) {
-          console.log('[JoinFolder] Folder not found - navigating to /therai');
-          setLoading(false);
-          navigate('/therai', { replace: true });
-          return;
-        }
-
-        // If folder is public, anyone can view without auth
-        if (folder.is_public) {
-          console.log('[JoinFolder] Public folder - navigating to /folders/:folderId');
-          setLoading(false);
-          navigate(`/folders/${folderId}`, { replace: true });
-          return;
-        }
-
-        // Private folder - user is authenticated (we checked above), check participant status
-        console.log('[JoinFolder] Private folder, user authenticated - checking participant status');
-        // Check if already a participant
-        const participantStatus = await isFolderParticipant(folderId, user.id);
-        console.log('[JoinFolder] Is participant:', participantStatus);
-        
-        if (!participantStatus) {
-          console.log('[JoinFolder] Not a participant - adding as participant', { folderId, userId: user.id });
-          try {
-            await addFolderParticipant(folderId, user.id, 'member');
-            console.log('[JoinFolder] Successfully added as participant');
-            
-            // Clear pending keys immediately after successful join
-            try {
-              localStorage.removeItem('pending_join_folder_id');
-              localStorage.removeItem('pending_redirect_path');
-              console.log('[JoinFolder] Cleared pending folder persistence');
-            } catch (e) {
-              console.warn('[JoinFolder] Could not clear pending keys:', e);
-            }
-            
-            // Small delay to ensure participant record is committed
-            await new Promise(resolve => setTimeout(resolve, 100));
-            console.log('[JoinFolder] Delay completed, participant should be committed');
-          } catch (err) {
-            console.error('[JoinFolder] Error adding participant:', err);
-            throw err;
-          }
-        } else {
-          console.log('[JoinFolder] Already a participant - skipping add');
-        }
-
-        // Store folder in sessionStorage so it appears in sidebar immediately
+      // User is authenticated - navigate immediately for seamless UX
+      console.log('[JoinFolder] User authenticated - navigating immediately to /folders/:folderId');
+      navigate(`/folders/${folderId}`, { replace: true });
+      
+      // Handle folder validation and participant addition in background
+      (async () => {
         try {
-          console.log('[JoinFolder] Saving folder to sessionStorage');
-          const tempFoldersJson = sessionStorage.getItem('temp_folders');
-          const tempFolders = tempFoldersJson ? JSON.parse(tempFoldersJson) : [];
-          const exists = tempFolders.some((f: any) => f.id === folderId);
-          if (!exists) {
-            tempFolders.push({
-              id: folder.id,
-              name: folder.name,
-            });
-            sessionStorage.setItem('temp_folders', JSON.stringify(tempFolders));
-            console.log('[JoinFolder] Folder saved to sessionStorage');
-          } else {
-            console.log('[JoinFolder] Folder already in sessionStorage');
+          const folder = await getSharedFolder(folderId);
+          
+          if (!folder) {
+            console.log('[JoinFolder] Folder not found in background check');
+            return;
           }
-        } catch (error) {
-          console.error('[JoinFolder] Failed to save folder to sessionStorage:', error);
-        }
+          
+          console.log('[JoinFolder] Background: Folder fetched:', { id: folder.id, name: folder.name, is_public: folder.is_public });
+          
+          // Store folder in sessionStorage so it appears in sidebar immediately
+          try {
+            const tempFoldersJson = sessionStorage.getItem('temp_folders');
+            const tempFolders = tempFoldersJson ? JSON.parse(tempFoldersJson) : [];
+            const exists = tempFolders.some((f: any) => f.id === folderId);
+            if (!exists) {
+              tempFolders.push({
+                id: folder.id,
+                name: folder.name,
+              });
+              sessionStorage.setItem('temp_folders', JSON.stringify(tempFolders));
+              console.log('[JoinFolder] Background: Folder saved to sessionStorage');
+            }
+          } catch (error) {
+            console.error('[JoinFolder] Background: Failed to save folder to sessionStorage:', error);
+          }
 
-        // Navigate to folder view
-        console.log('[JoinFolder] Navigating to /folders/:folderId');
-        setLoading(false);
-        navigate(`/folders/${folderId}`, { replace: true });
-      } catch (err) {
-        console.error('[JoinFolder] Error loading folder:', err);
-        setLoading(false);
-        // On error, navigate to main route instead of showing error
-        navigate('/therai', { replace: true });
-      }
+          // If private folder, add user as participant
+          if (!folder.is_public) {
+            const participantStatus = await isFolderParticipant(folderId, user.id);
+            
+            if (!participantStatus) {
+              console.log('[JoinFolder] Background: Adding user as participant');
+              await addFolderParticipant(folderId, user.id, 'member');
+              console.log('[JoinFolder] Background: Successfully added as participant');
+            }
+          }
+          
+          // Clear pending keys
+          try {
+            localStorage.removeItem('pending_join_folder_id');
+            localStorage.removeItem('pending_redirect_path');
+          } catch (e) {
+            // Ignore
+          }
+        } catch (err) {
+          console.error('[JoinFolder] Background error:', err);
+        }
+      })();
     };
 
     loadFolder();

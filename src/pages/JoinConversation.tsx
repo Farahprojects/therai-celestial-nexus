@@ -68,97 +68,53 @@ const JoinConversation: React.FC = () => {
         return;
       }
 
-      try {
-        // User is authenticated - check if conversation exists and is public
-        const { data, error: fetchError } = await supabase
-          .from('conversations')
-          .select('id, user_id, title, created_at, updated_at, meta, is_public')
-          .eq('id', chatId)
-          .eq('is_public', true)
-          .maybeSingle();
-
-        if (fetchError || !data) {
-          // Try fetching as private conversation (user is authenticated)
-          const { data: privateConv } = await supabase
-            .from('conversations')
-            .select('id, user_id, title, created_at, updated_at, meta, is_public')
-            .eq('id', chatId)
-            .maybeSingle();
-          
-          if (!privateConv) {
-            // Conversation doesn't exist at all
-            console.log('[JoinConversation] Conversation not found');
-            setLoading(false);
-            navigate('/therai', { replace: true });
-            return;
-          }
-          
-          // Private conversation found - proceed to add as participant below
-          setConversation(privateConv as Conversation);
-        } else {
-          // Public conversation found
-          setConversation(data as Conversation);
-        }
-
-        // Store the path for backward compatibility
-        try {
-          localStorage.setItem('pending_redirect_path', `/c/${chatId}`);
-        } catch {
-          // Ignore localStorage errors
-        }
-
-        // If user is signed in, add them as a participant; then redirect to /c/:chatId
-        if (isAuthenticated && user) {
-          // Check if user is already a participant
-          const { data: existingParticipant } = await supabase
-            .from('conversations_participants')
-            .select('conversation_id')
-            .eq('conversation_id', chatId)
-            .eq('user_id', user.id)
-            .maybeSingle();
-
-          if (!existingParticipant) {
-            // Add user as a participant
-            const { error: insertError } = await supabase
+      // User is authenticated - navigate immediately for seamless UX
+      // Add as participant in background
+      if (isAuthenticated && user) {
+        console.log('[JoinConversation] User authenticated - navigating immediately');
+        
+        // Navigate first for instant, seamless transition
+        navigate(`/c/${chatId}`, { replace: true });
+        
+        // Add user as participant in background (fire and forget)
+        (async () => {
+          try {
+            const { data: existingParticipant } = await supabase
               .from('conversations_participants')
-              .insert({
-                conversation_id: chatId,
-                user_id: user.id,
-                role: 'member', // Default to member role
-              });
+              .select('conversation_id')
+              .eq('conversation_id', chatId)
+              .eq('user_id', user.id)
+              .maybeSingle();
 
-            if (insertError) {
-              console.error('Error adding user as participant:', insertError);
-              setError('Failed to join conversation');
-              setLoading(false);
-              return;
+            if (!existingParticipant) {
+              await supabase
+                .from('conversations_participants')
+                .insert({
+                  conversation_id: chatId,
+                  user_id: user.id,
+                  role: 'member',
+                });
+              console.log('[JoinConversation] Added user as participant in background');
             }
             
-            // Clear pending keys immediately after successful join
+            // Clear pending keys
             try {
               localStorage.removeItem('pending_join_chat_id');
               localStorage.removeItem('pending_redirect_path');
-              console.log('[JoinConversation] Cleared pending chat persistence');
             } catch (e) {
-              console.warn('[JoinConversation] Could not clear pending keys:', e);
+              // Ignore
             }
+          } catch (err) {
+            console.error('[JoinConversation] Error adding participant in background:', err);
           }
-
-          setIsJoined(true);
-          navigate(`/c/${chatId}`, { replace: true });
-          return;
-        }
-      } catch (err) {
-        console.error('Error loading conversation:', err);
-        // On error, navigate to main route instead of showing error
-        navigate('/therai', { replace: true });
-      } finally {
-        setLoading(false);
+        })();
+        
+        return;
       }
     };
 
     loadPublicConversation();
-  }, [chatId, isAuthenticated, user, authLoading]);
+  }, [chatId, isAuthenticated, user, authLoading, navigate]);
 
   const handleJoin = async () => {
     if (!isAuthenticated || !user || !chatId || !conversation) return;
