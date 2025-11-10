@@ -105,8 +105,14 @@ export class UniversalSTTRecorder {
       // Step 0: On native mobile, configure Bluetooth audio routing BEFORE requesting mic
       if (Capacitor.isNativePlatform()) {
         try {
+          console.log('[UniversalSTTRecorder] 🔵 Starting Bluetooth SCO...');
           const result = await BluetoothAudio.startBluetoothAudio();
           console.log('[UniversalSTTRecorder] ✅ Bluetooth audio routing enabled:', result);
+          
+          // CRITICAL: Add extra delay for SCO to fully stabilize
+          // The Java code waits up to 1s, but audio routing can take additional time
+          console.log('[UniversalSTTRecorder] ⏳ Waiting 500ms for Bluetooth audio to stabilize...');
+          await new Promise(resolve => setTimeout(resolve, 500));
           
           // Check if Bluetooth is actually connected
           try {
@@ -115,14 +121,18 @@ export class UniversalSTTRecorder {
           } catch (e) {
             console.warn('[UniversalSTTRecorder] Could not check Bluetooth status:', e);
           }
+          
+          console.log('[UniversalSTTRecorder] ✅ Bluetooth routing complete, ready to request mic');
         } catch (error) {
           console.warn('[UniversalSTTRecorder] Could not start Bluetooth audio:', error);
           // Continue anyway - might not have Bluetooth connected
         }
       }
       
-      // Step 1: Request mic access
+      // Step 1: Request mic access AFTER Bluetooth routing is complete
+      console.log('[UniversalSTTRecorder] 🎤 Requesting microphone access...');
       this.mediaStream = await this.requestMicrophoneAccess();
+      console.log('[UniversalSTTRecorder] ✅ Microphone access granted, stream active');
       
       // Step 2: Setup filtered audio chain and energy monitoring
       this.setupEnergyMonitoring();
@@ -209,9 +219,21 @@ export class UniversalSTTRecorder {
       return;
     }
 
+    console.log('[UniversalSTTRecorder] 🎧 Setting up audio monitoring...');
+    console.log('[UniversalSTTRecorder] MediaStream tracks:', this.mediaStream.getTracks().map(t => ({
+      kind: t.kind,
+      label: t.label,
+      enabled: t.enabled,
+      muted: t.muted,
+      readyState: t.readyState
+    })));
+
     // Create AudioContext and simplified filter chain
     this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    console.log('[UniversalSTTRecorder] AudioContext created, sample rate:', this.audioContext.sampleRate);
+    
     const sourceNode = this.audioContext.createMediaStreamSource(this.mediaStream);
+    console.log('[UniversalSTTRecorder] MediaStreamSource node created');
 
     // Essential high-pass filter: cut low-frequency rumble at 80Hz
     this.highPassFilter = this.audioContext.createBiquadFilter();
@@ -310,6 +332,8 @@ export class UniversalSTTRecorder {
     let lastLevel = 0;
     let lastSpeechLikeTs = Date.now();
     let lowRmsSinceTs: number | null = null;
+    let zeroCheckCount = 0;
+    let hasLoggedZeroWarning = false;
     
     const updateAnimation = () => {
       // Always sample analyser while the graph exists
@@ -319,6 +343,24 @@ export class UniversalSTTRecorder {
       const tempArray = new Float32Array(this.analyser.fftSize);
       this.analyser.getFloatTimeDomainData(tempArray);
       this.dataArray = tempArray;
+      
+      // Diagnostic: Check if we're getting ALL zeros (dead mic input)
+      const allZeros = this.dataArray.every(sample => sample === 0);
+      if (allZeros) {
+        zeroCheckCount++;
+        if (zeroCheckCount > 10 && !hasLoggedZeroWarning) {
+          console.error('[VAD] ⚠️ AUDIO INPUT IS ALL ZEROS - No audio data flowing from microphone!');
+          console.error('[VAD] This usually means Bluetooth SCO routing failed or mic permissions issue');
+          hasLoggedZeroWarning = true;
+        }
+      } else if (zeroCheckCount > 0) {
+        // We have audio now
+        if (hasLoggedZeroWarning) {
+          console.log('[VAD] ✅ Audio input recovered - getting non-zero samples');
+        }
+        zeroCheckCount = 0;
+        hasLoggedZeroWarning = false;
+      }
 
       // Frequency-domain snapshot for spectral measures
       if (this.freqData) {
