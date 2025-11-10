@@ -154,15 +154,15 @@ const ImageWithLoading = React.memo(({ message }: { message: Message }) => {
   return (
     <div className="flex justify-center mb-8">
       <div className="relative group inline-block max-w-[80vw] rounded-2xl overflow-hidden shadow-md">
-        {/* Placeholder canvas - purple cosmic gradient with progressive blur */}
+        {/* Placeholder canvas - universal blurred white overlay with subtle animated background */}
         <div className={`w-[512px] h-[512px] flex items-center justify-center transition-opacity duration-500 ${imageLoaded ? 'opacity-0' : 'opacity-100'}`}>
-          <div className={`absolute inset-0 bg-gradient-to-br from-purple-900 via-purple-700 to-fuchsia-700`}>
-            {/* subtle stars */}
-            <div className="absolute inset-0 bg-[radial-gradient(white,transparent_40%)] opacity-10 mix-blend-screen" />
-          </div>
-          <div className={`absolute inset-0 ${blurPhase === 0 ? 'backdrop-blur-[16px]' : blurPhase === 1 ? 'backdrop-blur-[8px]' : 'backdrop-blur-0'} transition-all duration-700`} />
-          <div className="relative z-10 text-white/80 text-sm font-light">
-            Generating your connection card…
+          {/* animated neutral background to imply activity */}
+          <div className="absolute inset-0 bg-gradient-to-br from-slate-300 via-slate-200 to-slate-300 animate-pulse" />
+          {/* heavy white blur overlay that eases over time */}
+          <div className={`absolute inset-0 ${blurPhase === 0 ? 'backdrop-blur-[16px]' : blurPhase === 1 ? 'backdrop-blur-[8px]' : 'backdrop-blur-0'} bg-white/70 transition-all duration-700`} />
+          {/* small centered spinner */}
+          <div className="relative z-10">
+            <div className="w-6 h-6 border-2 border-gray-500 border-t-transparent rounded-full animate-spin" />
           </div>
         </div>
         

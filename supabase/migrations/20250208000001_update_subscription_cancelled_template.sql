@@ -33,3 +33,4 @@ WHERE template_type = 'subscription_cancelled';
 
 
 
+

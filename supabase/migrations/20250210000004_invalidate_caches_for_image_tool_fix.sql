@@ -7,3 +7,4 @@ DELETE FROM conversation_caches;
 -- Add comment explaining the invalidation
 COMMENT ON TABLE conversation_caches IS 'Stores Gemini API cache references. Invalidated 2025-02-10 to update image generation tool constraints.';
 
+
