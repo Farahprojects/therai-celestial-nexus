@@ -86,7 +86,11 @@ Respond in JSON format ONLY:
 
   const requestBody = {
     contents: [{ role: "user", parts: [{ text: prompt }] }],
-    generationConfig: { temperature: 0.9, maxOutputTokens: 800 }
+    generationConfig: { 
+      temperature: 0.9, 
+      maxOutputTokens: 800,
+      responseMimeType: "application/json" // Force JSON response like extract-user-memory does
+    }
   };
 
   const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
@@ -100,36 +104,45 @@ Respond in JSON format ONLY:
   });
 
   if (!resp.ok) {
-    const errorText = await resp.text();
+    const errorText = await resp.text().catch(() => "");
+    console.error('[Meme] Gemini API error:', resp.status, errorText);
     throw new Error(`Gemini API error: ${resp.status} - ${errorText}`);
   }
 
   const data = await resp.json();
-  const responseText = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
   
-  console.log('[Meme] LLM raw response:', responseText);
+  // Extract response text - check multiple possible locations
+  const candidateParts = data?.candidates?.[0]?.content?.parts || [];
+  const textPart = candidateParts.find((p: any) => p?.text);
+  const responseText = textPart?.text || '';
   
-  // Clean up response - remove markdown code blocks and trim
-  let jsonText = responseText.trim();
-  jsonText = jsonText.replace(/```json\n?/g, '').replace(/```\n?/g, '');
-  jsonText = jsonText.trim();
+  console.log('[Meme] LLM raw response length:', responseText.length);
+  console.log('[Meme] LLM raw response:', responseText.substring(0, 200));
   
-  // Try to find JSON object if there's extra text
-  const jsonMatch = jsonText.match(/\{[\s\S]*\}/);
-  if (jsonMatch) {
-    jsonText = jsonMatch[0];
+  // Fail fast if empty response
+  if (!responseText || responseText.trim().length === 0) {
+    console.error('[Meme] Empty response from Gemini:', JSON.stringify(data, null, 2));
+    throw new Error('Empty response from Gemini API');
   }
   
-  console.log('[Meme] Cleaned JSON text:', jsonText);
-  
-  const parsed = JSON.parse(jsonText);
+  // Parse JSON - should be clean since we use responseMimeType
+  let parsed;
+  try {
+    parsed = JSON.parse(responseText.trim());
+  } catch (parseError) {
+    console.error('[Meme] JSON parse error:', parseError);
+    console.error('[Meme] Response text:', responseText);
+    throw new Error(`Failed to parse JSON response: ${parseError}`);
+  }
   
   // Validate required fields - fail fast if missing
   if (!parsed.caption || !parsed.imagePrompt) {
+    console.error('[Meme] Missing required fields:', parsed);
     throw new Error('LLM response missing required fields: caption or imagePrompt');
   }
   
   if (!parsed.caption.format) {
+    console.error('[Meme] Caption missing format:', parsed.caption);
     throw new Error('Caption missing format field');
   }
   
