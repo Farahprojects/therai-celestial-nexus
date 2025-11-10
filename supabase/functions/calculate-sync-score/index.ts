@@ -219,31 +219,45 @@ BACKGROUND:
 STEP-BY-STEP LAYERS:
 
 Layer 1 (Top):
-- Add text "${archetype}" at the top center
-- Add large number "${score}%" below the archetype text
+- Add text "${archetype}" at the top center in white elegant font
 
-Layer 2 (Names and Signs):
-- Add text "${personAName} & ${personBName}" below the score
-- Add text "${personASign} • ${personBSign}" directly below the names
+Layer 2 (Score):
+- Add large number "${score}%" in the center
+- Put the score inside a circular glass frame (transparent round design)
+- NO solid background behind the text
+- Add subtle sparkles around the circle
 
-Layer 3 (Insight):
-- Add text "${insight}" below the zodiac signs
+Layer 3 (Names):
+- Add text "${personAName} & ${personBName}" below the score in white
 
-Layer 4 (Growth Edge):
-- Add text "Growth Edge: ${challenge}" below the insight
+Layer 4 (Zodiac Signs):
+- Add text "${personASign} • ${personBSign}" below the names
+- Add ONE ${personASign} zodiac icon on the left side
+- Add ONE ${personBSign} zodiac icon on the right side
+- Only 2 zodiac icons total (one per sign)
 
-${rarityPercentile >= 50 ? `Layer 5 (Badge):
-- Add purple badge with text "Top ${100 - rarityPercentile}% Connection"
+Layer 5 (Insight):
+- Add text "${insight}" below the zodiac section in white
+
+Layer 6 (Growth Edge):
+- Add label "Growth Edge:" in smaller text
+- Add text "${challenge}" below the label
+
+${rarityPercentile >= 50 ? `Layer 7 (Bottom Badge):
+- Add a purple circular badge at the bottom
+- Badge text: "Top ${100 - rarityPercentile}% Connection"
+- This is its own separate layer at the bottom
 ` : ''}
 
-Layer 6 (Watermark):
-- Add text "therai.co" at the bottom center
+Layer 8 (Watermark):
+- Add text "therai.co" at the very bottom center in small white text
 
 STYLE NOTES:
-- White text on purple background
-- Elegant typography
-- Generous spacing between layers
-- Professional minimalist design`;
+- White text throughout
+- Circular transparent frame for score only
+- Only 2 zodiac icons (one per person)
+- Generous spacing between all layers
+- Clean minimal design`;
 }
 
 Deno.serve(async (req) => {
