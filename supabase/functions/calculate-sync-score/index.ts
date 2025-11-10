@@ -1,5 +1,4 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { GoogleGenAI } from "https://esm.sh/@google/genai@^1.0.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -78,8 +77,6 @@ async function analyzeSyncWithLLM(
   const apiKey = Deno.env.get("GOOGLE-LLM-NEW");
   if (!apiKey) throw new Error("Missing GOOGLE-LLM-NEW");
 
-  const genAI = new GoogleGenAI({ apiKey });
-  
   // Extract aspects for analysis
   const aspectsSummary = extractAspectsForLLM(swissData);
   const today = new Date().toISOString().split('T')[0];
@@ -124,9 +121,39 @@ Respond in JSON format ONLY:
 Make them FEEL the magic and see the path forward.`;
 
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-    const result = await model.generateContent(prompt);
-    const responseText = result.response.text();
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent`;
+    const requestBody = {
+      contents: [
+        {
+          role: "user",
+          parts: [{ text: prompt }]
+        }
+      ],
+      generationConfig: {
+        temperature: 0.7,
+        maxOutputTokens: 500
+      }
+    };
+
+    const response = await fetch(`${geminiUrl}?key=${apiKey}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(requestBody)
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Gemini API error: ${response.status} - ${errorText}`);
+    }
+
+    const data = await response.json();
+    const responseText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+    
+    if (!responseText) {
+      throw new Error('No response text from Gemini API');
+    }
     
     console.log('[calculate-sync-score] LLM raw response:', responseText);
     
@@ -353,6 +380,12 @@ Deno.serve(async (req) => {
       personBBirthDate = requestPayload.person_b.birth_date;
     }
 
+    // Calculate zodiac signs from birth dates (reliable lookup) - BEFORE using them
+    const personASign = personABirthDate ? getZodiacSign(personABirthDate) : '';
+    const personBSign = personBBirthDate ? getZodiacSign(personBBirthDate) : '';
+    
+    console.log(`[calculate-sync-score] Zodiac signs: ${personASign} & ${personBSign}`);
+
     // 🤖 LLM-DRIVEN ANALYSIS: Ask Gemini Flash to analyze the connection
     console.log(`[calculate-sync-score] Asking LLM to analyze ${personAName} & ${personBName}`);
     const llmAnalysis = await analyzeSyncWithLLM(swissData, personAName, personBName);
@@ -387,12 +420,6 @@ Deno.serve(async (req) => {
 
     // 📸 Generate connection card image
     console.log('[calculate-sync-score] Generating connection card...');
-    
-    // Calculate zodiac signs from birth dates (reliable lookup)
-    const personASign = personABirthDate ? getZodiacSign(personABirthDate) : '';
-    const personBSign = personBBirthDate ? getZodiacSign(personBBirthDate) : '';
-    
-    console.log(`[calculate-sync-score] Zodiac signs: ${personASign} & ${personBSign}`);
     
     const cardPrompt = generateSyncCardPrompt(
       llmAnalysis.score,
