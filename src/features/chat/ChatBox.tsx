@@ -17,7 +17,7 @@ import { ShareConversationModal } from '@/components/chat/ShareConversationModal
 import { ShareFolderModal } from '@/components/folders/ShareFolderModal';
 import { ChatCreationProvider } from '@/components/chat/ChatCreationProvider';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { calculateSyncScore, getSyncScore } from '@/services/syncScores';
+import { calculateSyncScore, getSyncScore, type ScoreBreakdown } from '@/services/syncScores';
  
 
 // Lazy load components for better performance
@@ -94,7 +94,8 @@ export const ChatBox: React.FC<ChatBoxProps> = ({ onDelete }) => {
         .maybeSingle()
         .then(({ data }) => {
           setConversationMode(data?.mode || 'chat');
-        }, () => {
+        })
+        .catch(() => {
           // Silently handle errors - conversation may not exist yet or have no messages
           setConversationMode('chat');
         });
