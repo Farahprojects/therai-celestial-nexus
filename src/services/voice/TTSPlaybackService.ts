@@ -141,10 +141,27 @@ class TTSPlaybackService {
     const buffer = await this.decodeToBuffer(audioBytes);
     const source = ctx.createBufferSource();
     source.buffer = buffer;
+    
+    // Same clean audio chain as streaming path
+    const lowPass = ctx.createBiquadFilter();
+    lowPass.type = 'lowpass';
+    lowPass.frequency.value = 8000;
+    lowPass.Q.value = 0.7;
+    
+    const compressor = ctx.createDynamicsCompressor();
+    compressor.threshold.value = -24;
+    compressor.knee.value = 10;
+    compressor.ratio.value = 3;
+    compressor.attack.value = 0.003;
+    compressor.release.value = 0.15;
+    
     const analyser = ctx.createAnalyser();
     analyser.fftSize = 256;
-    analyser.smoothingTimeConstant = 0.8;
-    source.connect(analyser);
+    analyser.smoothingTimeConstant = 0.3;
+    
+    source.connect(lowPass);
+    lowPass.connect(compressor);
+    compressor.connect(analyser);
     analyser.connect(ctx.destination);
 
     // For fallback path, we don't use HTMLAudioElement
@@ -197,13 +214,32 @@ class TTSPlaybackService {
       (audioEl as any).playsInline = true; // iOS inline
       audioEl.src = audioUrl;
 
+      // Create audio processing chain for clean playback
+      const mediaNode = ctx.createMediaElementSource(audioEl);
+      
+      // 1. Low-pass filter at 8kHz to remove high-frequency compression artifacts
+      const lowPass = ctx.createBiquadFilter();
+      lowPass.type = 'lowpass';
+      lowPass.frequency.value = 8000; // Clean TTS range (human voice ~80-8000Hz)
+      lowPass.Q.value = 0.7; // Smooth rolloff
+      
+      // 2. Gentle compression to smooth volume fluctuations
+      const compressor = ctx.createDynamicsCompressor();
+      compressor.threshold.value = -24; // Catch louder peaks
+      compressor.knee.value = 10; // Smooth compression curve
+      compressor.ratio.value = 3; // Gentle 3:1 ratio
+      compressor.attack.value = 0.003; // 3ms attack (fast)
+      compressor.release.value = 0.15; // 150ms release (smooth)
+      
+      // 3. Analyser for visualization (lighter smoothing)
       const analyser = ctx.createAnalyser();
       analyser.fftSize = 256;
-      analyser.smoothingTimeConstant = 0.8;
-
-      const mediaNode = ctx.createMediaElementSource(audioEl);
-      // Route through AudioContext for audible playback and analysis
-      mediaNode.connect(analyser);
+      analyser.smoothingTimeConstant = 0.3; // Reduced from 0.8 to avoid phase artifacts
+      
+      // Chain: mediaNode → lowPass → compressor → analyser → destination
+      mediaNode.connect(lowPass);
+      lowPass.connect(compressor);
+      compressor.connect(analyser);
       analyser.connect(ctx.destination);
 
       this.currentSource = audioEl;
