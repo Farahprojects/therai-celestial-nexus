@@ -2,7 +2,7 @@ import React from 'react';
 import { MemeData } from '@/services/syncScores';
 
 interface SyncMemeCardProps {
-  meme: MemeData;
+  meme: MemeData | null;
   imageUrl?: string;
   isLoading?: boolean;
 }
@@ -12,6 +12,22 @@ export const SyncMemeCard: React.FC<SyncMemeCardProps> = ({
   imageUrl, 
   isLoading = false 
 }) => {
+  // Show loading state if meme is null or explicitly loading
+  if (!meme || isLoading) {
+    return (
+      <div className="w-full max-w-md mx-auto">
+        <div className="aspect-[9/16] rounded-3xl bg-gradient-to-br from-gray-100 to-gray-200 animate-pulse flex items-center justify-center">
+          <div className="text-center space-y-3 px-8">
+            <div className="text-4xl animate-bounce">🎭</div>
+            <p className="text-sm font-light text-gray-600 italic">
+              Generating your meme...
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const { caption, pattern_category, theme_core, tone } = meme;
 
   // Pattern emoji mapping
@@ -36,16 +52,7 @@ export const SyncMemeCard: React.FC<SyncMemeCardProps> = ({
   return (
     <div className="w-full max-w-md mx-auto">
       {/* Image Display */}
-      {isLoading ? (
-        <div className="aspect-[9/16] rounded-3xl bg-gradient-to-br from-gray-100 to-gray-200 animate-pulse flex items-center justify-center">
-          <div className="text-center space-y-3 px-8">
-            <div className="text-4xl animate-bounce">🎭</div>
-            <p className="text-sm font-light text-gray-600 italic">
-              Generating your meme...
-            </p>
-          </div>
-        </div>
-      ) : imageUrl ? (
+      {imageUrl ? (
         <div className="relative group">
           <img 
             src={imageUrl} 

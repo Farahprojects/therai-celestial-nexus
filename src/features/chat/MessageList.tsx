@@ -257,16 +257,12 @@ const SyncMemeMessage = React.memo(({ message, chatId }: { message: Message; cha
   const metaData = message.meta as any;
   const imageUrl = metaData?.image_url;
 
-  if (!memeData && !isLoading) {
-    return null; // Don't render if no meme data
-  }
-
   return (
     <div className="flex justify-center my-8">
       <SyncMemeCard 
-        meme={memeData!} 
+        meme={memeData} 
         imageUrl={imageUrl}
-        isLoading={isLoading || !memeData}
+        isLoading={isLoading}
       />
     </div>
   );

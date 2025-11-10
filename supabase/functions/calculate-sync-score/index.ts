@@ -78,7 +78,7 @@ function detectDominantPattern(swissData: any): PatternAnalysis {
           planetA.includes('chiron') || planetB.includes('chiron')) {
         scores.wounds += 10;
         primaryAspects.push(`${planetA}-${planetB} ${type}`);
-      }
+}
       // Mars-Venus tension = classic friction
       if ((planetA.includes('mars') && planetB.includes('venus')) ||
           (planetA.includes('venus') && planetB.includes('mars'))) {
@@ -193,12 +193,12 @@ function extractPsychologicalTheme(
     ego_clash: {
       core: "Who runs this relationship",
       subtext: "both think it's them",
-      tone: 'funny'
+      tone: 'smart'
     },
     emotional_avoidance: {
       core: "Feelings are scary",
       subtext: "so we intellectualize everything",
-      tone: 'funny'
+      tone: 'smart'
     },
     intensity: {
       core: "It's not toxic it's transformative",
@@ -228,7 +228,7 @@ async function generateMemeCaption(
 ): Promise<MemeCaption> {
   const GOOGLE_API_KEY = Deno.env.get("GOOGLE-LLM-NEW");
   const GEMINI_MODEL = "gemini-2.5-flash";
-  
+
   if (!GOOGLE_API_KEY) throw new Error("Missing GOOGLE-LLM-NEW");
 
   const prompt = `You are a cosmic meme curator creating viral relationship content.
@@ -244,32 +244,33 @@ KEY ASPECTS: ${aspectsSummary}
 Your task: Create a MEME CAPTION that captures their dynamic.
 
 CATEGORY-SPECIFIC ANGLES:
-- wounds/friction: "when you love them but also want to strangle them" humor
-- harmony: "that rare kind of peace you can't explain" beauty
-- ego_clash: "who's really running the relationship?" irony
-- emotional_avoidance: "when you write a 3-page text instead of saying how you feel" dry wit
-- intensity: "it's not toxic it's transformative 😇" dark humor  
-- soul_mirror: "they came to shake your timeline not your peace" deep aesthetic
+- wounds/friction: poetic tension, growth through struggle
+- harmony: profound peace, effortless understanding
+- ego_clash: power dynamics explored with intelligence
+- emotional_avoidance: intellectual observation without mockery
+- intensity: raw transformation, magnetic pull
+- soul_mirror: evolutionary connection, deep recognition
 
 FORMAT OPTIONS:
-1. TOP/BOTTOM: Two-line impact meme
+1. TOP/BOTTOM: Two-line impact statement
    Example: 
-   TOP: "When your Saturn hits their Moon"
-   BOTTOM: "and suddenly you're their therapist"
+   TOP: "The tension between you"
+   BOTTOM: "is where the growth lives"
 
-2. QUOTE: Single profound statement
-   Example: "The chaos between us isn't a warning. It's the point."
+2. QUOTE: Single profound statement (PREFERRED)
+   Example: "That rare kind of peace you can't explain to anyone else."
 
-3. TEXT_ONLY: One killer line
-   Example: "Love language: pointing out each other's cognitive distortions"
+3. TEXT_ONLY: One powerful line
+   Example: "Two souls learning what transformation actually means"
 
 RULES:
 - Max 15 words per line
-- Must feel REAL and shareable
-- No generic therapy speak
-- Make them laugh think or feel seen
-- Be specific to their aspects
-- ${theme.tone === 'funny' ? 'Prioritize humor' : theme.tone === 'deep' ? 'Prioritize profundity' : 'Balance wit and insight'}
+- Must feel DEEP and shareable
+- No jokes or comedy
+- Make them feel seen and understood
+- Be poetic and specific to their aspects
+- Profound over funny, always
+- Favor QUOTE format for elegance
 
 Respond in JSON format ONLY:
 {
@@ -287,31 +288,48 @@ Respond in JSON format ONLY:
     };
 
     const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
-    const resp = await fetch(geminiUrl, {
-      method: "POST",
-      headers: { 
-        "Content-Type": "application/json", 
-        "x-goog-api-key": GOOGLE_API_KEY 
-      },
+      const resp = await fetch(geminiUrl, {
+        method: "POST",
+        headers: { 
+          "Content-Type": "application/json", 
+          "x-goog-api-key": GOOGLE_API_KEY 
+        },
       body: JSON.stringify(requestBody)
-    });
+      });
 
-    if (!resp.ok) {
+      if (!resp.ok) {
       throw new Error(`Gemini API error: ${resp.status}`);
-    }
+      }
 
     const data = await resp.json();
     const responseText = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
     
     console.log('[Meme] LLM raw response:', responseText);
     
-    let jsonText = responseText.trim()
-      .replace(/^```json\n/, '')
-      .replace(/\n```$/, '')
-      .replace(/^```\n/, '')
-      .replace(/\n```$/, '');
+    // Clean up response - remove markdown code blocks and trim
+    let jsonText = responseText.trim();
+    
+    // Remove markdown code blocks
+    jsonText = jsonText.replace(/```json\n?/g, '').replace(/```\n?/g, '');
+    
+    // Remove any leading/trailing whitespace
+    jsonText = jsonText.trim();
+    
+    // Try to find JSON object if there's extra text
+    const jsonMatch = jsonText.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      jsonText = jsonMatch[0];
+    }
+    
+    console.log('[Meme] Cleaned JSON text:', jsonText);
     
     const parsed = JSON.parse(jsonText);
+    
+    // Validate required fields
+    if (!parsed.format) {
+      throw new Error('Missing format field in LLM response');
+    }
+    
     return parsed;
     
   } catch (error) {
@@ -319,11 +337,13 @@ Respond in JSON format ONLY:
     // Fallback meme based on theme
     return {
       format: 'quote',
-      quoteText: theme.tone === 'funny' 
-        ? "When you both think you're the therapist in this relationship"
-        : theme.tone === 'chaotic'
-        ? "The chaos between us isn't a warning. It's the point."
-        : "That rare kind of peace you can't explain to anyone else",
+      quoteText: theme.tone === 'chaotic'
+        ? "The intensity between you is transformation in motion"
+        : theme.tone === 'deep'
+        ? "That rare kind of peace you can't explain to anyone else"
+        : theme.tone === 'smart'
+        ? "Two minds learning each other's language"
+        : "The connection between you defies simple explanation",
       attribution: `${personAName} & ${personBName}`
     };
   }
@@ -362,83 +382,93 @@ function generateMemeImagePrompt(
   caption: MemeCaption,
   theme: PsychologicalTheme,
   pattern: PatternAnalysis,
-  personASign: string,
-  personBSign: string
+  personAName: string,
+  personBName: string
 ): string {
-  // Map tone to visual style
-  const visualStyles = {
+  // Map tone to visual metaphors (NO PEOPLE - use animals/nature/abstract)
+  const visualMetaphors = {
     funny: {
-      mood: "playfully ironic",
-      scene: "couple in an absurdly cinematic everyday moment",
-      color: "warm desaturated tones with dramatic lighting",
-      energy: "comedic tension"
+      imagery: "two cats sitting back-to-back on a windowsill OR two birds on opposite branches of the same tree",
+      mood: "playfully ironic but elegant",
+      color: "warm golden hour tones with soft shadows",
+      style: "artistic illustration, whimsical but refined"
     },
     ironic: {
+      imagery: "two moons in different phases side by side OR fire and water swirling together",
       mood: "beautifully contradictory",
-      scene: "two figures in opposing poses that somehow work together",
-      color: "contrasting warm and cool tones",
-      energy: "push-pull dynamic"
+      color: "contrasting warm orange and cool blue tones",
+      style: "surreal artistic rendering, dreamlike"
     },
     deep: {
-      mood: "profoundly intimate",
-      scene: "two souls in a cosmic ethereal space",
-      color: "dreamy purples and deep blues with soft glows",
-      energy: "transcendent connection"
+      imagery: "two celestial bodies orbiting each other OR intertwined tree roots glowing with cosmic light",
+      mood: "profoundly intimate and cosmic",
+      color: "deep purples, midnight blues, soft ethereal glows",
+      style: "dreamy celestial art, mystical and profound"
     },
     smart: {
-      mood: "intellectually charged",
-      scene: "couple in a minimalist modern setting with symbolic elements",
-      color: "clean monochrome with accent color",
-      energy: "cerebral chemistry"
+      imagery: "two geometric shapes interlocking perfectly OR yin yang made of constellations",
+      mood: "intellectually elegant",
+      color: "clean monochrome with subtle accent colors",
+      style: "minimalist modern art, sophisticated"
     },
     chaotic: {
+      imagery: "lightning meeting storm clouds OR two galaxies colliding in space",
       mood: "intense and magnetic",
-      scene: "dramatic storm or fire metaphor with two figures drawn together",
-      color: "high contrast reds and blacks",
-      energy: "obsessive attraction"
+      color: "dramatic reds, blacks, electric purples, high contrast",
+      style: "dramatic cosmic art, powerful and raw"
     }
   };
   
-  const style = visualStyles[theme.tone] || visualStyles.deep;
+  const metaphor = visualMetaphors[theme.tone] || visualMetaphors.deep;
   
-  // Build meme-specific text layout
+  // Build text layout
   const textLayout = caption.format === 'top_bottom' 
     ? `
-TOP TEXT (white bold sans-serif, top edge): "${caption.topText}"
-BOTTOM TEXT (white bold sans-serif, bottom edge): "${caption.bottomText}"`
+TOP: "${personAName} & ${personBName}" (elegant serif, small, top center)
+
+MIDDLE TOP: "${caption.topText}" (white bold sans-serif)
+MIDDLE BOTTOM: "${caption.bottomText}" (white bold sans-serif)
+
+BOTTOM: "therai.co" (tiny text, bottom center)`
     : caption.format === 'quote'
     ? `
-CENTER TEXT (elegant white serif, centered): "${caption.quoteText}"
-ATTRIBUTION (small text, bottom right): "— ${caption.attribution}"`
+TOP: "${personAName} & ${personBName}" (elegant serif, small, top center)
+
+CENTER: "${caption.quoteText}" (elegant white serif, large, centered)
+
+BOTTOM: "therai.co" (tiny text, bottom center)`
     : `
-TEXT (centered, white bold): "${caption.quoteText}"`;
+TOP: "${personAName} & ${personBName}" (elegant serif, small, top center)
 
-  return `Create a cinematic meme-style image (9:16 portrait ratio).
+CENTER: "${caption.quoteText}" (white bold, centered)
 
-VISUAL STYLE:
-- Mood: ${style.mood}
-- Scene: ${style.scene}
-- Color palette: ${style.color}
-- Energy: ${style.energy}
-- Zodiac elements: subtle ${personASign} and ${personBSign} symbolism
+BOTTOM: "therai.co" (tiny text, bottom center)`;
 
-AESTHETIC RULES:
-- Cinematic film grain
-- Emotionally charged
-- Instagram-worthy shareable quality
-- NOT stock photo - feels like a movie still
-- Faces can be silhouetted or obscured (mystery > clarity)
+  return `Create an artistic meme image (9:16 portrait ratio).
 
-TEXT OVERLAY:
+CRITICAL: NO HUMAN FACES OR SILHOUETTES. Use metaphorical imagery only.
+
+VISUAL METAPHOR:
+${metaphor.imagery}
+
+ARTISTIC STYLE:
+- Mood: ${metaphor.mood}
+- Color palette: ${metaphor.color}
+- Art style: ${metaphor.style}
+- Quality: Instagram-worthy, shareable, elegant
+- Vibe: Emotional but refined, artistic not literal
+
+TEXT OVERLAY (exact layout):
 ${textLayout}
 
-DO NOT:
-- Make it look like a standard infographic
-- Use generic couple poses
-- Add extra labels or decorative text
-- Make it overly literal
+RULES:
+- NO people, faces, or human silhouettes
+- Use animals, nature, cosmic elements, or abstract shapes as metaphor
+- Elegant and shareable
+- Text should be readable and beautifully integrated
+- Make it feel like art, not a template
 
-The image should make someone FEEL the emotion before they read the text.`;
+The image should evoke the emotion through metaphor, not literal representation.`;
 }
 
 Deno.serve(async (req) => {
@@ -544,7 +574,7 @@ Deno.serve(async (req) => {
     if (caption.topText) console.log(`[Meme] Top: ${caption.topText}`);
     if (caption.bottomText) console.log(`[Meme] Bottom: ${caption.bottomText}`);
     if (caption.quoteText) console.log(`[Meme] Quote: ${caption.quoteText}`);
-    
+
     // Build meme data for storage
     const memeData: MemeData = {
       caption,
@@ -561,8 +591,8 @@ Deno.serve(async (req) => {
       caption,
       theme,
       pattern,
-      personASign,
-      personBSign
+      personAName,
+      personBName
     );
 
     // ✅ OPTIMIZATION: Use existing placeholder message if provided (avoids duplicate creation)
