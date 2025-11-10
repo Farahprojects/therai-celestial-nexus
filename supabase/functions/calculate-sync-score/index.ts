@@ -51,9 +51,22 @@ async function generateMeme(
                   swissData?.synastry_aspects?.pairs || 
                   [];
   
+  console.log(`[Meme] Extracted ${aspects.length} aspects from Swiss data`);
+  
+  if (aspects.length === 0) {
+    console.error('[Meme] NO ASPECTS FOUND - Swiss data may be malformed:', JSON.stringify({
+      has_blocks: !!swissData?.blocks,
+      has_synastry_aspects: !!swissData?.synastry_aspects,
+      blocks_synastry_pairs: swissData?.blocks?.synastry_aspects?.pairs?.length || 0,
+      top_synastry_pairs: swissData?.synastry_aspects?.pairs?.length || 0
+    }));
+  }
+  
   const aspectsText = aspects.length > 0
     ? aspects.slice(0, 15).map((a: any) => `${a.type}: ${a.a}-${a.b}`).join('\n')
     : "No aspects found";
+  
+  console.log(`[Meme] Aspects text preview (first 200 chars):`, aspectsText.substring(0, 200));
 
   const prompt = `You are a creative meme writer and visual concept designer for an AI that creates astrology memes. Humour welcome 
 
@@ -103,6 +116,10 @@ Return only clean JSON with no markdown:
       responseMimeType: "application/json"
     }
   };
+  
+  console.log(`[Meme] Sending to LLM - prompt length: ${prompt.length} chars`);
+  console.log(`[Meme] Prompt contains aspects: ${prompt.includes('Synastry Aspects')}`);
+  console.log(`[Meme] Full prompt being sent:\n${prompt}`);
 
   const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
   const resp = await fetch(geminiUrl, {
@@ -220,6 +237,13 @@ Deno.serve(async (req) => {
     const userId = conversation.user_id;
 
     console.log('[calculate-sync-score] Swiss data fetched');
+    console.log('[calculate-sync-score] Swiss data structure:', JSON.stringify({
+      has_blocks: !!swissData?.blocks,
+      has_synastry_aspects: !!swissData?.synastry_aspects,
+      has_blocks_synastry_aspects: !!swissData?.blocks?.synastry_aspects,
+      blocks_keys: swissData?.blocks ? Object.keys(swissData.blocks) : [],
+      top_level_keys: swissData ? Object.keys(swissData) : []
+    }));
 
     // Extract person names from conversation title
     let personAName = 'Person A';
