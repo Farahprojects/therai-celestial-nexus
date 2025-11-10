@@ -186,6 +186,11 @@ async function createCache(chat_id: string, systemText: string): Promise<string 
           parts: [{ text: combinedSystemInstruction }]
         },
         tools: imageGenerationTool,
+        toolConfig: {
+          functionCallingConfig: {
+            mode: "AUTO" // Let Gemini decide when to use tools based on message content
+          }
+        },
         ttl: `${CACHE_TTL_SECONDS}s`
       })
     });
@@ -451,10 +456,10 @@ Deno.serve(async (req: Request) => {
 
     // Build request body
     const requestBody: any = { contents };
-    // Disable function calling by default for this turn; enable only when explicitly requested
-    requestBody.toolConfig = { functionCallingConfig: { mode: enableImageTool ? "AUTO" : "NONE" } };
 
     if (cacheName) {
+      // 🔥 FIX: When using cached content, DO NOT set system_instruction, tools, or toolConfig
+      // These are already defined in the cache and will cause a 400 error if included
       requestBody.cachedContent = cacheName;
     } else {
       // fallback: embed system instruction + memory
@@ -467,6 +472,8 @@ Deno.serve(async (req: Request) => {
       if (enableImageTool) {
         requestBody.tools = imageGenerationTool;
       }
+      // Disable function calling by default for this turn; enable only when explicitly requested
+      requestBody.toolConfig = { functionCallingConfig: { mode: enableImageTool ? "AUTO" : "NONE" } };
     }
 
     requestBody.generationConfig = { temperature: 0.7, thinkingConfig: { thinkingBudget: 0 } };
