@@ -66,6 +66,15 @@ export const ConversationOverlay: React.FC = () => {
     try {
       const { chatController } = await import('@/features/chat/ChatController');
       chatController.setTtsMode(false);
+      
+      // 🔄 CRITICAL: Refetch messages after conversation mode to ensure UI consistency
+      if (chat_id) {
+        const { fetchMessages } = useMessageStore.getState();
+        // Small delay to ensure all async message operations complete
+        await new Promise(resolve => setTimeout(resolve, 300));
+        await fetchMessages();
+        console.log('[ConversationOverlay] ✅ Messages resynced after reset');
+      }
     } catch (e) {
       console.error('[ConversationOverlay] Failed to disable TTS mode:', e);
     }
@@ -96,7 +105,7 @@ export const ConversationOverlay: React.FC = () => {
     setState('connecting');
     hasStarted.current = false;
     isShuttingDown.current = false;
-  }, []);
+  }, [chat_id]);
 
   // 🎵 AUDIOCONTEXT USER GESTURE LISTENER - Critical for Chrome
   useEffect(() => {
@@ -368,16 +377,24 @@ export const ConversationOverlay: React.FC = () => {
       connectionRef.current = null;
     }
     
-    // ▶️ DISABLE TTS MODE: Flush buffered messages back to text mode (fire-and-forget)
-    import('@/features/chat/ChatController').then(({ chatController }) => {
-      try {
-        chatController.setTtsMode(false);
-      } catch (error) {
-        // Ignore mode switch errors
+    // ▶️ DISABLE TTS MODE: Flush buffered messages back to text mode
+    // 🔥 FIX: Wait for TTS mode to disable, then refetch messages to ensure consistency
+    try {
+      const { chatController } = await import('@/features/chat/ChatController');
+      chatController.setTtsMode(false);
+      
+      // 🔄 CRITICAL: Refetch messages after conversation mode to ensure UI consistency
+      // This handles any race conditions or missed messages during voice mode
+      if (chat_id) {
+        const { fetchMessages } = useMessageStore.getState();
+        // Small delay to ensure all async message operations complete
+        await new Promise(resolve => setTimeout(resolve, 300));
+        await fetchMessages();
+        console.log('[ConversationOverlay] ✅ Messages resynced after conversation mode');
       }
-    }).catch(() => {
-      // Ignore import errors
-    });
+    } catch (error) {
+      console.error('[ConversationOverlay] Error during cleanup:', error);
+    }
     
     // Reset state
     setState('connecting');
@@ -385,7 +402,7 @@ export const ConversationOverlay: React.FC = () => {
     isShuttingDown.current = false;
     
     closeConversation();
-  }, [closeConversation]);
+  }, [closeConversation, chat_id]);
 
   // Reset to tap-to-start when entering connecting state (idempotent cleanup)
   useEffect(() => {
