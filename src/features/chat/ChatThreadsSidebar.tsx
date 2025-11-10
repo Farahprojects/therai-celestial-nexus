@@ -237,6 +237,7 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
   const filteredThreads = useMemo(() => {
     return threads.filter(t => {
       if (t.mode === 'profile') return false; // internal
+      if (t.mode === 'sync_score') return false; // hidden from history (images saved in gallery)
       if (t.folder_id) return false; // shown under folders
       return conversationType === 'swiss' ? t.mode === 'swiss' : t.mode !== 'swiss';
     });
