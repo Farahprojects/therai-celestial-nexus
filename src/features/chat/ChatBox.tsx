@@ -56,6 +56,7 @@ export const ChatBox: React.FC<ChatBoxProps> = ({ onDelete }) => {
     personAName: string;
     personBName: string;
   } | null>(null);
+  const [hasShownSyncModal, setHasShownSyncModal] = useState(false);
   const navigate = useNavigate();
   const { uuid } = getChatTokens();
   const isConversationOpen = useConversationUIStore((s) => s.isConversationOpen);
@@ -106,10 +107,86 @@ export const ChatBox: React.FC<ChatBoxProps> = ({ onDelete }) => {
     }
   }, [chat_id]);
 
-  // Listen for sync score card completion and auto-open share modal
+  // Check for existing sync card and listen for completion
   useEffect(() => {
-    if (!chat_id || conversationMode !== 'sync_score') return;
+    if (!chat_id || conversationMode !== 'sync_score') {
+      setShowSyncShareModal(false);
+      setSyncShareData(null);
+      setHasShownSyncModal(false);
+      return;
+    }
 
+    let hasOpened = false;
+
+    // Function to open share modal with data
+    const openShareModal = async () => {
+      // Only open once per chat_id
+      if (hasOpened) return;
+
+      try {
+        const { data: conversation } = await supabase
+          .from('conversations')
+          .select('title, meta')
+          .eq('id', chat_id)
+          .single();
+
+        if (!conversation) return;
+
+        // Find the sync score image message
+        const { data: messages } = await supabase
+          .from('messages')
+          .select('*')
+          .eq('chat_id', chat_id)
+          .eq('role', 'assistant')
+          .order('created_at', { ascending: false })
+          .limit(10);
+
+        const syncMessage = messages?.find((m: any) => 
+          m.meta?.sync_score === true && 
+          m.meta?.message_type === 'image' && 
+          m.meta?.image_url
+        );
+
+        if (syncMessage && syncMessage.meta?.image_url) {
+          const title = conversation.title?.replace('Sync Score: ', '') || '';
+          const [personAName, personBName] = title.split(' & ');
+          const score = conversation.meta?.sync_score?.overall || 0;
+
+          console.log('[ChatBox] Opening sync share modal:', {
+            imageUrl: syncMessage.meta.image_url,
+            score,
+            personAName,
+            personBName
+          });
+
+          hasOpened = true;
+          setSyncShareData({
+            imageUrl: syncMessage.meta.image_url,
+            score,
+            personAName: personAName || 'Person A',
+            personBName: personBName || 'Person B'
+          });
+          setShowSyncShareModal(true);
+          setHasShownSyncModal(true);
+        }
+      } catch (error) {
+        console.error('[ChatBox] Error checking sync card:', error);
+      }
+    };
+
+    // Check existing messages first (with small delay to ensure data is ready)
+    const timeoutId = setTimeout(() => {
+      openShareModal();
+    }, 500);
+
+    // Polling fallback: check every 2 seconds if modal hasn't opened yet
+    const pollInterval = setInterval(() => {
+      if (!hasOpened) {
+        openShareModal();
+      }
+    }, 2000);
+
+    // Then listen for updates
     const channel = supabase
       .channel(`sync-card-${chat_id}`)
       .on(
@@ -122,40 +199,31 @@ export const ChatBox: React.FC<ChatBoxProps> = ({ onDelete }) => {
         },
         (payload) => {
           const message = payload.new as any;
-          // Check if this is a completed sync score image
+          console.log('[ChatBox] Message updated:', {
+            hasSyncScore: message.meta?.sync_score === true,
+            hasImageUrl: !!message.meta?.image_url,
+            status: message.status
+          });
+          
+          // Check if this is a sync score image (status can be 'complete' or just have image_url)
           if (
             message.meta?.sync_score === true &&
             message.meta?.message_type === 'image' &&
-            message.meta?.image_url &&
-            message.status === 'complete'
+            message.meta?.image_url
           ) {
-            // Extract data from conversation title and meta
-            supabase
-              .from('conversations')
-              .select('title, meta')
-              .eq('id', chat_id)
-              .single()
-              .then(({ data }) => {
-                if (data) {
-                  const title = data.title?.replace('Sync Score: ', '') || '';
-                  const [personAName, personBName] = title.split(' & ');
-                  const score = data.meta?.sync_score?.overall || 0;
-
-                  setSyncShareData({
-                    imageUrl: message.meta.image_url,
-                    score,
-                    personAName: personAName || 'Person A',
-                    personBName: personBName || 'Person B'
-                  });
-                  setShowSyncShareModal(true);
-                }
-              });
+            console.log('[ChatBox] Sync card detected, opening share modal');
+            // Small delay to ensure message is fully saved
+            setTimeout(() => {
+              openShareModal();
+            }, 300);
           }
         }
       )
       .subscribe();
 
     return () => {
+      clearTimeout(timeoutId);
+      clearInterval(pollInterval);
       supabase.removeChannel(channel);
     };
   }, [chat_id, conversationMode]);

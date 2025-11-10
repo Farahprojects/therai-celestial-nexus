@@ -33,6 +33,32 @@ export const SyncShareModal: React.FC<SyncShareModalProps> = ({
   const [hasSharedToday, setHasSharedToday] = useState(false);
   const [isClaimingReward, setIsClaimingReward] = useState(false);
 
+  // Check if user has already shared today when modal opens
+  React.useEffect(() => {
+    if (!isOpen || !user) return;
+
+    const checkShareStatus = async () => {
+      try {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('last_share_reward_date')
+          .eq('id', user.id)
+          .single();
+
+        if (profile?.last_share_reward_date) {
+          const today = new Date().toISOString().split('T')[0];
+          if (profile.last_share_reward_date === today) {
+            setHasSharedToday(true);
+          }
+        }
+      } catch (error) {
+        console.error('[SyncShareModal] Error checking share status:', error);
+      }
+    };
+
+    checkShareStatus();
+  }, [isOpen, user]);
+
   const handleShare = async (platform: string) => {
     let url = '';
     const text = `${personAName} & ${personBName}: ${score}% Sync Score ✨\n\ntherai.co`;
