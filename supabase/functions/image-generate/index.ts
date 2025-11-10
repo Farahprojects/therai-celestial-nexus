@@ -9,7 +9,17 @@
 import { createPooledClient } from "../_shared/supabaseClient.ts";
 import { GoogleGenAI } from "https://esm.sh/@google/genai@^1.0.0";
 import { checkLimit, incrementUsage } from "../_shared/limitChecker.ts";
-import sharp from "npm:sharp@0.33.5";
+
+// Lazy import Sharp - may not work in Deno Edge Functions
+async function getSharp() {
+  try {
+    const sharpModule = await import("npm:sharp@0.33.5");
+    return sharpModule.default;
+  } catch (error) {
+    console.warn("Sharp import failed - text overlay disabled:", error);
+    return null;
+  }
+}
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -219,99 +229,126 @@ Deno.serve(async (req) => {
 
   // Apply text overlay if provided (for sync memes)
   if (text_overlay && mode === 'sync') {
-    try {
-      console.info(JSON.stringify({
-        event: "text_overlay_start",
+    const sharpLib = await getSharp();
+    
+    if (!sharpLib) {
+      console.warn(JSON.stringify({
+        event: "text_overlay_skipped",
         request_id: requestId,
-        text_top: text_overlay.top,
-        text_center: text_overlay.center?.substring(0, 50),
-        text_bottom: text_overlay.bottom
+        reason: "Sharp not available in Deno Edge Functions"
       }));
+    } else {
+      try {
+        console.info(JSON.stringify({
+          event: "text_overlay_start",
+          request_id: requestId,
+          text_top: text_overlay.top,
+          text_center: text_overlay.center?.substring(0, 50),
+          text_bottom: text_overlay.bottom,
+          image_bytes_length: imageBytes.length
+        }));
 
-      // Get image dimensions
-      const metadata = await sharp(imageBytes).metadata();
-      const width = metadata.width || 1024;
-      const height = metadata.height || 1820;
+        // Convert Uint8Array to Buffer for Sharp (Deno compatibility)
+        const imageBuffer = Buffer.from(imageBytes);
 
-      // Create SVG overlay with text
-      // Using simple, clean layout with shadow for readability
-      const svgOverlay = `
-        <svg width="${width}" height="${height}">
-          <defs>
-            <style type="text/css">
-              @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&amp;display=swap');
-            </style>
-            <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
-              <feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="#000000" flood-opacity="0.8"/>
-            </filter>
-          </defs>
-          
-          <!-- Top text: Names -->
-          <text 
-            x="${width / 2}" 
-            y="120" 
-            font-family="Inter, -apple-system, sans-serif" 
-            font-size="48" 
-            font-weight="600" 
-            fill="white" 
-            text-anchor="middle"
-            filter="url(#shadow)"
-          >${escapeXml(text_overlay.top || '')}</text>
-          
-          <!-- Center text: Caption (multiline support) -->
-          <text 
-            x="${width / 2}" 
-            y="${height / 2}" 
-            font-family="Inter, -apple-system, sans-serif" 
-            font-size="56" 
-            font-weight="700" 
-            fill="white" 
-            text-anchor="middle"
-            filter="url(#shadow)"
-          >
-            ${wrapText(escapeXml(text_overlay.center || ''), width - 120, 56).map((line, i) => 
-              `<tspan x="${width / 2}" dy="${i === 0 ? 0 : 70}">${line}</tspan>`
-            ).join('')}
-          </text>
-          
-          <!-- Bottom text: Brand -->
-          <text 
-            x="${width / 2}" 
-            y="${height - 80}" 
-            font-family="Inter, -apple-system, sans-serif" 
-            font-size="36" 
-            font-weight="400" 
-            fill="white" 
-            text-anchor="middle"
-            filter="url(#shadow)"
-          >${escapeXml(text_overlay.bottom || '')}</text>
-        </svg>
-      `;
+        // Get image dimensions
+        const metadata = await sharpLib(imageBuffer).metadata();
+        const width = metadata.width || 1024;
+        const height = metadata.height || 1820;
+        
+        console.info(JSON.stringify({
+          event: "text_overlay_metadata",
+          request_id: requestId,
+          width,
+          height
+        }));
 
-      // Composite text overlay onto image
-      imageBytes = await sharp(imageBytes)
-        .composite([{
-          input: Buffer.from(svgOverlay),
-          top: 0,
-          left: 0
-        }])
-        .png()
-        .toBuffer();
+        // Create SVG overlay with text
+        // Using simple, clean layout with shadow for readability
+        const svgOverlay = `
+          <svg width="${width}" height="${height}">
+            <defs>
+              <style type="text/css">
+                @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&amp;display=swap');
+              </style>
+              <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
+                <feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="#000000" flood-opacity="0.8"/>
+              </filter>
+            </defs>
+            
+            <!-- Top text: Names -->
+            <text 
+              x="${width / 2}" 
+              y="120" 
+              font-family="Inter, -apple-system, sans-serif" 
+              font-size="48" 
+              font-weight="600" 
+              fill="white" 
+              text-anchor="middle"
+              filter="url(#shadow)"
+            >${escapeXml(text_overlay.top || '')}</text>
+            
+            <!-- Center text: Caption (multiline support) -->
+            <text 
+              x="${width / 2}" 
+              y="${height / 2}" 
+              font-family="Inter, -apple-system, sans-serif" 
+              font-size="56" 
+              font-weight="700" 
+              fill="white" 
+              text-anchor="middle"
+              filter="url(#shadow)"
+            >
+              ${wrapText(escapeXml(text_overlay.center || ''), width - 120, 56).map((line, i) => 
+                `<tspan x="${width / 2}" dy="${i === 0 ? 0 : 70}">${line}</tspan>`
+              ).join('')}
+            </text>
+            
+            <!-- Bottom text: Brand -->
+            <text 
+              x="${width / 2}" 
+              y="${height - 80}" 
+              font-family="Inter, -apple-system, sans-serif" 
+              font-size="36" 
+              font-weight="400" 
+              fill="white" 
+              text-anchor="middle"
+              filter="url(#shadow)"
+            >${escapeXml(text_overlay.bottom || '')}</text>
+          </svg>
+        `;
 
-      console.info(JSON.stringify({
-        event: "text_overlay_complete",
-        request_id: requestId,
-        final_size: imageBytes.length
-      }));
+        // Composite text overlay onto image
+        const finalBuffer = await sharpLib(imageBuffer)
+          .composite([{
+            input: Buffer.from(svgOverlay),
+            top: 0,
+            left: 0
+          }])
+          .png()
+          .toBuffer();
 
-    } catch (overlayError) {
-      console.error(JSON.stringify({
-        event: "text_overlay_failed",
-        request_id: requestId,
-        error: overlayError instanceof Error ? overlayError.message : String(overlayError),
-        stack: overlayError instanceof Error ? overlayError.stack : undefined
-      }));
-      // Continue without overlay rather than failing entirely
+        // Convert Buffer back to Uint8Array for Deno
+        imageBytes = new Uint8Array(finalBuffer);
+
+        console.info(JSON.stringify({
+          event: "text_overlay_complete",
+          request_id: requestId,
+          final_size: imageBytes.length
+        }));
+
+      } catch (overlayError) {
+        console.error(JSON.stringify({
+          event: "text_overlay_failed",
+          request_id: requestId,
+          error: overlayError instanceof Error ? overlayError.message : String(overlayError),
+          error_name: overlayError instanceof Error ? overlayError.name : 'Unknown',
+          stack: overlayError instanceof Error ? overlayError.stack : undefined,
+          error_stringified: JSON.stringify(overlayError, Object.getOwnPropertyNames(overlayError))
+        }));
+        // Continue without overlay rather than failing entirely
+        // Image will be uploaded without text overlay
+      }
     }
   }
 
