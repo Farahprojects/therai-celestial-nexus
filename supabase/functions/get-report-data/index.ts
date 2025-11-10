@@ -80,12 +80,61 @@ Deno.serve(async (req) => {
     // Initialize Supabase client with service role
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Fetch report data from report_logs where chat_id = chat_id
-    console.log(`[get-report-data][${requestId}] 🔍 Fetching report_logs data...`);
+    // Step 1: Check conversation mode to determine data source
+    console.log(`[get-report-data][${requestId}] 🔍 Checking conversation mode...`);
+    const { data: conversation, error: convError } = await supabase
+      .from("conversations")
+      .select("mode, user_id")
+      .eq("id", chat_id)
+      .single();
+    
+    if (convError || !conversation) {
+      console.error(`[get-report-data] Failed to fetch conversation:`, convError);
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: "Conversation not found",
+          timestamp: new Date().toISOString()
+        }),
+        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const conversationMode = conversation.mode;
+    const userId = conversation.user_id;
+    console.log(`[get-report-data][${requestId}] Conversation mode: ${conversationMode}`);
+
+    // Step 2: Determine which chat_id to use for fetching astro data
+    let dataChatId = chat_id; // Default: use the current chat_id
+
+    // For chat/together modes, fetch from the user's profile conversation
+    if (conversationMode === 'chat' || conversationMode === 'together') {
+      console.log(`[get-report-data][${requestId}] Chat/Together mode detected, looking up profile conversation...`);
+      
+      const { data: profileConv, error: profileError } = await supabase
+        .from("conversations")
+        .select("id")
+        .eq("user_id", userId)
+        .eq("mode", "profile")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      
+      if (profileConv) {
+        dataChatId = profileConv.id;
+        console.log(`[get-report-data][${requestId}] Using profile conversation: ${dataChatId}`);
+      } else {
+        console.warn(`[get-report-data][${requestId}] No profile conversation found for user: ${userId}`);
+        // Continue with original chat_id - may not find data, but that's expected
+      }
+    }
+
+    // Step 3: Fetch report data from report_logs
+    console.log(`[get-report-data][${requestId}] 🔍 Fetching report_logs data from: ${dataChatId}...`);
     const { data: reportLogs, error: reportLogsError } = await supabase
       .from("report_logs")
       .select("report_text, created_at")
-      .eq("chat_id", chat_id)
+      .eq("chat_id", dataChatId)
       .single();
     
     let reportLogData: { report_text: string } | null = null;
@@ -95,12 +144,12 @@ Deno.serve(async (req) => {
       console.warn(`[get-report-data] Could not fetch report_logs:`, reportLogsError);
     }
 
-    // Fetch translator data from translator_logs where chat_id = chat_id
-    console.log(`[get-report-data][${requestId}] 🔍 Fetching translator_logs data...`);
+    // Step 4: Fetch translator data from translator_logs
+    console.log(`[get-report-data][${requestId}] 🔍 Fetching translator_logs data from: ${dataChatId}...`);
     const { data: translatorLogs, error: translatorLogsError } = await supabase
       .from("translator_logs")
       .select("swiss_data, request_type, created_at")
-      .eq("chat_id", chat_id)
+      .eq("chat_id", dataChatId)
       .single();
     
     let translatorLogData: { swiss_data: any; request_type?: string } | null = null;
