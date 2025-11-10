@@ -212,94 +212,62 @@ function generateSyncCardPrompt(
       ? 'rich purple and violet gradient with soft glow'
       : 'warm purple and pink gradient with gentle shimmer';
   const includeBadge = rarityPercentile >= 50;
-  const layerCount = includeBadge ? 8 : 7;
+  const layerCount = includeBadge ? 6 : 5;
 
-  return `CRITICAL: Copy all text EXACTLY as written. Use spell-check. Write "and" not "ad".
-Goal: Create a purple cosmic connection card in portrait orientation (9:16 ratio).
+  return `CRITICAL: Copy all text EXACTLY as written below. Perfect spelling required.
 
-BACKGROUND:
-- ${colorScheme} with stars and cosmic glow
+Create a vertical portrait card (9:16 ratio) with ${colorScheme} cosmic background and stars.
 
-STEP-BY-STEP LAYERS (STRICT):
+EXACT LAYOUT (top to bottom):
 
---- LAYER 1: TOP HEADING (REQUIRED) ---
-Text: "${archetype}"
-Position: top center
-Style: white elegant serif, Title Case
-Verify: no extra text above this layer
+1. "${archetype}"
+   - top center, white elegant serif, large
 
---- LAYER 2: SCORE CIRCLE (REQUIRED) ---
-Text: "${score}%"
-Position: center
-Container: transparent circular glass frame ONLY (no rectangle)
-Decoration: subtle sparkles around the circle
-Verify: no extra labels here and no word "Top"
+2. "${score}%"
+   - center of card
+   - inside transparent circular glass orb
+   - sparkles around it
+   - NO solid background
 
---- LAYER 3: NAMES (REQUIRED) ---
-Text: "${personAName} & ${personBName}"
-Position: below the score, centered
-Style: white, medium-weight sans-serif
-Verify: single line only
+3. "${personAName} & ${personBName}"
+   - below score
+   - white sans-serif, medium size
 
---- LAYER 4: ZODIAC (REQUIRED) ---
-Text: "${personASign} • ${personBSign}"
-Icons: add ONE ${personASign} icon on the left and ONE ${personBSign} icon on the right
-Icon style: small outlined icons (not filled), aligned with text baseline
-Verify: exactly 2 icons total and no icon backgrounds
+4. "${personASign} • ${personBSign}"
+   - below names
+   - add small ${personASign} icon on LEFT side only
+   - add small ${personBSign} icon on RIGHT side only
+   - icons outlined (not filled)
+   - exactly 2 icons total
 
---- LAYER 5: INSIGHT (REQUIRED) ---
-Text: ${"`"}${insight}${"`"}
-Position: below zodiac, centered
-Style: white, max 2 lines, auto-wrap
-Verify: no quotation marks around the text
+5. "${insight}"
+   - below zodiac line
+   - white text, 2 lines max
+   - NO quotes around it
 
---- LAYER 6: GROWTH EDGE (REQUIRED) ---
-Label: "Growth Edge:"
-Text: ${"`"}${challenge}${"`"}
-Position: centered under the label
-Constraint: single short line (max 12 words)
+6. "${challenge}"
+   - below insight
+   - white text, 1 line
+   - smaller than insight
 
-${includeBadge ? `--- LAYER 7: RARITY BADGE (CONDITIONAL) ---
-Shape: small purple circular badge
-Text: "Top ${100 - rarityPercentile}% Connection"
-Position: bottom center
-Verify: separate from other layers, no overlap
+${includeBadge ? `7. "Top ${100 - rarityPercentile}% Connection"
+   - small purple badge at bottom
+   - separate from text above
 ` : ''}
 
---- LAYER ${includeBadge ? '8' : '7'}: WATERMARK (REQUIRED) ---
-Text: "therai.co"
-Position: very bottom center, small white text
-Spacing: leave clear margin below the badge if present
+${includeBadge ? '8' : '7'}. "therai.co"
+   - very bottom, small white text
 
-CRITICAL RULES - DO NOT:
-- Do not add any text not explicitly listed above
-- Do not add extra labels like "Scores" "Divider" "Connection" "Love" etc
-- Do not create filled or solid backgrounds behind zodiac icons
-- Do not add decorative borders around text
-- Do not use quotation marks around the insight text
-- Do not add shadow panels behind layers
-- Do not overlap or merge layers together
+DO NOT ADD:
+- Any labels like "NAMES" "ZODIAC" "INSIGHT" "GROWTH EDGE"
+- Extra text not listed above
+- Solid panels or borders
+- Quotation marks
+- Random numbers or words
 
-SPELLING CHECK - Verify these exact texts appear:
-- "${archetype}"
-- "${personAName} & ${personBName}"
-- "${personASign} • ${personBSign}"
-- "${insight}"
-- "Growth Edge:"
-- "${challenge}"
-- "therai.co"
+VERIFY spelling of: ${archetype}, ${personAName}, ${personBName}, ${personASign}, ${personBSign}
 
-STYLE NOTES:
-- White text throughout
-- Circular transparent frame for score only
-- Only 2 zodiac icons (one per person)
-- Generous spacing between all layers (no crowding)
-- No extra labels like "Scores", "Divider", or random numbers
-- Full-bleed background (no large opaque panels)
-- Clean minimal design
-
-FINAL VALIDATION:
-Count exactly ${layerCount} layers. Each layer must match the specifications above with zero additions or modifications.`;
+Final check: exactly ${layerCount} text elements, generous spacing, clean minimal design.`;
 }
 
 Deno.serve(async (req) => {
