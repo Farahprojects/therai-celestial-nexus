@@ -73,15 +73,12 @@ Your task:
 
 2. **Create a caption** that blends humor, truth, and insight. It should feel emotionally resonant or ironic — something that makes users tag a friend.
    - Max 20 words
-   - Tone: smart, relatable , witty 
-   - Examples:
-     - "When your Saturn hits their Moon and suddenly you're their therapist."
-     - "It's not toxic, it's karmic ✨"
-     - "When they trigger your shadow but you call it destiny."
+   - Tone: Gen Z with humour  
+   - hallmark memes is the goal that relates and will go viral 
 
 3. **Generate an image prompt** that visually expresses the same theme.
    - Must be 9:16 vertical composition.
-   - Focus on metaphoric imagery (animals, cosmic, abstract, nature, surreal moods).
+   - Focus on viral styles.
    - Include aesthetic cues that fit the emotional tone you identified.
    - Include overlay text:
      - Top: "${personAName} & ${personBName}"
