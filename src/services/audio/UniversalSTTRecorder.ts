@@ -105,8 +105,16 @@ export class UniversalSTTRecorder {
       // Step 0: On native mobile, configure Bluetooth audio routing BEFORE requesting mic
       if (Capacitor.isNativePlatform()) {
         try {
-          await BluetoothAudio.startBluetoothAudio();
-          console.log('[UniversalSTTRecorder] Bluetooth audio routing enabled');
+          const result = await BluetoothAudio.startBluetoothAudio();
+          console.log('[UniversalSTTRecorder] ✅ Bluetooth audio routing enabled:', result);
+          
+          // Check if Bluetooth is actually connected
+          try {
+            const status = await BluetoothAudio.isBluetoothConnected();
+            console.log('[UniversalSTTRecorder] Bluetooth connection status:', status);
+          } catch (e) {
+            console.warn('[UniversalSTTRecorder] Could not check Bluetooth status:', e);
+          }
         } catch (error) {
           console.warn('[UniversalSTTRecorder] Could not start Bluetooth audio:', error);
           // Continue anyway - might not have Bluetooth connected
@@ -366,6 +374,9 @@ export class UniversalSTTRecorder {
           // Normal baseline completion
           this.baselineEnergy = this.baselineEnergySum / this.baselineEnergyCount;
           this.baselineCapturing = false;
+          console.log(`[VAD] 🎯 Baseline captured: ${this.baselineEnergy.toFixed(5)} (${this.baselineEnergyCount} samples)`);
+          console.log(`[VAD] 📊 Start threshold: ${(this.baselineEnergy * 1.2).toFixed(5)} (20% above baseline)`);
+          console.log(`[VAD] 📊 Stop threshold: ${(this.baselineEnergy * 0.85).toFixed(5)} (15% below baseline)`);
           // Arm VAD after baseline to avoid UI click/glitch triggers (reduced delay)
           this.vadArmUntilTs = now + 150;
           // Desktop-only: initialize adaptive gain from baseline
@@ -436,12 +447,15 @@ export class UniversalSTTRecorder {
 
           if (!isSpeaking && (lowFloorSatisfied || spectralOrTimeSatisfied)) {
             if (!this.silenceTimer) {
+              console.log(`[VAD] 🔇 Silence detected - starting ${this.options.silenceHangover}ms timer (rms: ${rms.toFixed(5)}, threshold: ${stopThreshold.toFixed(5)})`);
               this.silenceTimer = setTimeout(() => {
+                console.log(`[VAD] ✅ Silence timer completed - finalizing segment`);
                 this.finalizeActiveSegment();
               }, this.options.silenceHangover);
             }
           } else {
             if (this.silenceTimer) {
+              console.log(`[VAD] 🔊 Speech resumed - canceling silence timer (rms: ${rms.toFixed(5)}, threshold: ${stopThreshold.toFixed(5)})`);
               clearTimeout(this.silenceTimer);
               this.silenceTimer = null;
             }

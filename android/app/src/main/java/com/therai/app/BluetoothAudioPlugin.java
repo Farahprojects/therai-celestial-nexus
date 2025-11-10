@@ -38,6 +38,7 @@ public class BluetoothAudioPlugin extends Plugin {
             Log.d(TAG, "Starting Bluetooth audio routing");
             Log.d(TAG, "Previous mode: " + previousAudioMode);
             Log.d(TAG, "Bluetooth SCO available: " + audioManager.isBluetoothScoAvailableOffCall());
+            Log.d(TAG, "Current SCO state: " + audioManager.isBluetoothScoOn());
 
             // Step 1: Set audio mode to IN_COMMUNICATION (phone call mode)
             // This is critical - it tells Android we're doing voice communication
@@ -51,7 +52,32 @@ public class BluetoothAudioPlugin extends Plugin {
             if (audioManager.isBluetoothScoAvailableOffCall()) {
                 audioManager.startBluetoothSco();
                 audioManager.setBluetoothScoOn(true);
-                Log.d(TAG, "Bluetooth SCO started successfully");
+                
+                // CRITICAL: Wait for SCO to actually connect
+                // startBluetoothSco() is asynchronous - takes 200-500ms
+                int maxWaitMs = 1000;
+                int waitedMs = 0;
+                int checkIntervalMs = 50;
+                
+                while (waitedMs < maxWaitMs) {
+                    if (audioManager.isBluetoothScoOn()) {
+                        Log.d(TAG, "Bluetooth SCO connected after " + waitedMs + "ms");
+                        break;
+                    }
+                    try {
+                        Thread.sleep(checkIntervalMs);
+                        waitedMs += checkIntervalMs;
+                    } catch (InterruptedException e) {
+                        Log.w(TAG, "Wait interrupted", e);
+                        break;
+                    }
+                }
+                
+                if (!audioManager.isBluetoothScoOn()) {
+                    Log.w(TAG, "Bluetooth SCO did not connect after " + waitedMs + "ms, continuing anyway");
+                } else {
+                    Log.d(TAG, "Bluetooth SCO ready for recording");
+                }
             } else {
                 Log.w(TAG, "Bluetooth SCO not available, continuing anyway");
             }
