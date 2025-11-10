@@ -95,8 +95,8 @@ ${aspectsSummary}
 Your task:
 1. Calculate a SYNC SCORE (0-100) based on how these two souls align RIGHT NOW at this cosmic moment
 2. Assign them an ARCHETYPE (a poetic 2-4 word name like "The Phoenix Pair" "Cosmic Counterparts" "Fire Meets Fire")
-3. Write ONE powerful sentence explaining WHY they sync (the magic between them - make them feel SEEN)
-4. Write ONE sentence about their GROWTH EDGE (what they're learning together - keep it hopeful and constructive)
+3. Write ONE short sentence (max 12 words) explaining WHY they sync (the magic between them - make them feel SEEN)
+4. Write ONE short sentence (max 12 words) about their GROWTH EDGE (what they're learning together - keep it hopeful and constructive)
 
 CRITICAL RULES:
 - Use perfect grammar and spelling
@@ -105,6 +105,7 @@ CRITICAL RULES:
 - No commas in any text
 - Be poetic profound and specific
 - Make it feel like a yin-yang pair (insight + growth edge complement each other)
+- ASCII letters only, no symbols beyond % and & and •
 
 Consider:
 - Harmonious aspects (trine sextile conjunction) increase the score
@@ -116,8 +117,8 @@ Respond in JSON format ONLY:
 {
   "score": 85,
   "archetype": "The Phoenix Pair",
-  "insight": "You both thrive when honesty meets flow - a bond that grows through shared curiosity",
-  "challenge": "Learning to stay open even when it feels uncertain"
+  "insight": "Honesty meets flow and curiosity grows together",
+  "challenge": "Stay open when uncertainty rises"
 }
 
 Make them FEEL the magic and see the path forward.`;
@@ -218,45 +219,57 @@ BACKGROUND:
 
 STEP-BY-STEP LAYERS:
 
-Layer 1 (Top):
-- Add text "${archetype}" at the top center in white elegant font
+Layer 1 (Top Heading):
+- Add text "${archetype}" at the top center in white elegant serif
+- Title Case only
+- No extra words above it (no logo, no subtitle)
 
 Layer 2 (Score):
 - Add large number "${score}%" in the center
-- Put the score inside a circular glass frame (transparent round design)
-- NO solid background behind the text
-- Add subtle sparkles around the circle
+- Place it inside a circular glass frame (transparent round design)
+- NO solid rectangle or panel behind the circle
+- Subtle sparkles around the circle
+- Do not add the word "Top" or any extra label here
 
 Layer 3 (Names):
-- Add text "${personAName} & ${personBName}" below the score in white
+- Add text "${personAName} & ${personBName}" centered below the score in white
+- Medium weight sans-serif
+- Single line only
 
 Layer 4 (Zodiac Signs):
-- Add text "${personASign} • ${personBSign}" below the names
-- Add ONE ${personASign} zodiac icon on the left side
-- Add ONE ${personBSign} zodiac icon on the right side
+- Add text "${personASign} • ${personBSign}" centered below the names
+- Add ONE ${personASign} zodiac icon on the left side aligned to the text baseline
+- Add ONE ${personBSign} zodiac icon on the right side aligned to the text baseline
 - Only 2 zodiac icons total (one per sign)
+- Icons small and outlined (no filled circles)
 
 Layer 5 (Insight):
 - Add text "${insight}" below the zodiac section in white
+- Max 2 lines, auto-wrap, center aligned
+- No surrounding quotes
 
 Layer 6 (Growth Edge):
-- Add label "Growth Edge:" in smaller text
+- Add label "Growth Edge:" in smaller text, center aligned
 - Add text "${challenge}" below the label
+- Single short line (max 12 words), center aligned
 
 ${rarityPercentile >= 50 ? `Layer 7 (Bottom Badge):
-- Add a purple circular badge at the bottom
+- Add a small purple circular badge at the bottom center
 - Badge text: "Top ${100 - rarityPercentile}% Connection"
-- This is its own separate layer at the bottom
+- Separate from other layers (no overlap)
 ` : ''}
 
 Layer 8 (Watermark):
 - Add text "therai.co" at the very bottom center in small white text
+- Leave clear margin below the badge
 
 STYLE NOTES:
 - White text throughout
 - Circular transparent frame for score only
 - Only 2 zodiac icons (one per person)
-- Generous spacing between all layers
+- Generous spacing between all layers (no crowding)
+- No extra labels like "Scores", "Divider", or random numbers
+- Full-bleed background (no large opaque panels)
 - Clean minimal design`;
 }
 
