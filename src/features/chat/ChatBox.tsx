@@ -116,9 +116,7 @@ export const ChatBox: React.FC<ChatBoxProps> = ({ onDelete }) => {
 
       const syncMessage = messages?.find((m: any) => {
         const meta = m.meta as any;
-        return meta?.sync_score === true && 
-               meta?.message_type === 'image' && 
-               meta?.image_url;
+        return meta?.message_type === 'image' && meta?.image_url;
       });
 
       if (syncMessage) {
@@ -197,7 +195,6 @@ export const ChatBox: React.FC<ChatBoxProps> = ({ onDelete }) => {
           
           // Check if this is a sync score image (status can be 'complete' or just have image_url)
           if (
-            message.meta?.sync_score === true &&
             message.meta?.message_type === 'image' &&
             message.meta?.image_url
           ) {
