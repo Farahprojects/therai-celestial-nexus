@@ -114,17 +114,8 @@ export const ShareImageModal: React.FC<ShareImageModalProps> = ({
 
             {/* Share Options */}
             <div className="p-6 space-y-3">
-              {/* Copy Link */}
-              <button
-                onClick={handleCopyLink}
-                className="w-full px-6 py-3 rounded-full bg-gray-900 hover:bg-gray-800 text-white font-light transition-colors flex items-center justify-center gap-2"
-              >
-                <LinkIcon className="w-4 h-4" />
-                Copy Link
-              </button>
-
               {/* Social Sharing */}
-              <div className="flex items-center justify-center gap-3">
+              <div className="flex items-center justify-center gap-6">
                 <button
                   onClick={handleShareTwitter}
                   className="w-12 h-12 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-900 transition-colors flex items-center justify-center"
@@ -162,14 +153,24 @@ export const ShareImageModal: React.FC<ShareImageModalProps> = ({
                 </button>
               </div>
 
-              {/* Download */}
-              <button
-                onClick={handleDownload}
-                className="w-full px-6 py-3 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-900 font-light transition-colors flex items-center justify-center gap-2"
-              >
-                <Download className="w-4 h-4" />
-                Download
-              </button>
+              {/* Copy & Download */}
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  onClick={handleCopyLink}
+                  className="px-4 py-3 rounded-full bg-gray-900 hover:bg-gray-800 text-white font-light transition-colors flex items-center justify-center gap-2"
+                >
+                  <LinkIcon className="w-4 h-4" />
+                  Copy
+                </button>
+
+                <button
+                  onClick={handleDownload}
+                  className="px-4 py-3 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-900 font-light transition-colors flex items-center justify-center gap-2"
+                >
+                  <Download className="w-4 h-4" />
+                  Download
+                </button>
+              </div>
             </div>
           </motion.div>
         </div>
