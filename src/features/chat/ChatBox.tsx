@@ -196,24 +196,33 @@ export const ChatBox: React.FC<ChatBoxProps> = ({ onDelete }) => {
           // Wait for translator to process, then calculate
           console.log('[ChatBox] Waiting for Swiss data...');
           
-          // Poll for translator log (Swiss data) - translator is fast (~1 sec)
+          // Poll for translator log (Swiss data) - increased timeout for slower responses
           const pollForData = async (attempts = 0): Promise<boolean> => {
-            if (attempts > 15) return false; // Max 15 attempts (3 seconds)
+            const MAX_ATTEMPTS = 50; // Max 50 attempts (10 seconds total)
+            if (attempts >= MAX_ATTEMPTS) {
+              console.warn(`[ChatBox] Swiss data not ready after ${MAX_ATTEMPTS} attempts (10 seconds)`);
+              return false;
+            }
             
-            const { data: translatorLog } = await supabase
+            // Ensure we filter by chat_id to avoid race conditions
+            const { data: translatorLog, error } = await supabase
               .from('translator_logs')
               .select('swiss_data')
-              .eq('chat_id', chat_id)
+              .eq('chat_id', chat_id) // Critical: filter by chat_id
               .order('created_at', { ascending: false })
               .limit(1)
               .maybeSingle();
+            
+            if (error) {
+              console.warn('[ChatBox] Error polling translator logs:', error);
+            }
             
             if (translatorLog && translatorLog.swiss_data) {
               console.log('[ChatBox] Swiss data found, calculating score');
               return true;
             }
             
-            // Wait 200ms before next attempt (faster polling)
+            // Wait 200ms before next attempt
             await new Promise(resolve => setTimeout(resolve, 200));
             return pollForData(attempts + 1);
           };
@@ -225,7 +234,7 @@ export const ChatBox: React.FC<ChatBoxProps> = ({ onDelete }) => {
             console.log('[ChatBox] Score calculated:', score);
             // Image will appear in chat automatically via message updates
           } else {
-            console.error('[ChatBox] Swiss data not ready after polling');
+            console.warn('[ChatBox] Swiss data not ready after polling - score calculation skipped');
           }
         }
       } catch (error) {
