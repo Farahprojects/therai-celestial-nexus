@@ -46,36 +46,23 @@ async function generateMeme(
 
   if (!GOOGLE_API_KEY) throw new Error("Missing GOOGLE-LLM-NEW");
 
-  // Format Swiss data for LLM - limit to top 15 most significant aspects
-  const aspects = swissData?.blocks?.synastry_aspects?.pairs || 
-                  swissData?.synastry_aspects?.pairs || 
-                  [];
+  // Send FULL Swiss data to LLM - let it extract what it needs
+  const swissDataJson = JSON.stringify(swissData, null, 2);
   
-  console.log(`[Meme] Extracted ${aspects.length} aspects from Swiss data`);
-  
-  if (aspects.length === 0) {
-    console.error('[Meme] NO ASPECTS FOUND - Swiss data may be malformed:', JSON.stringify({
-      has_blocks: !!swissData?.blocks,
-      has_synastry_aspects: !!swissData?.synastry_aspects,
-      blocks_synastry_pairs: swissData?.blocks?.synastry_aspects?.pairs?.length || 0,
-      top_synastry_pairs: swissData?.synastry_aspects?.pairs?.length || 0
-    }));
-  }
-  
-  const aspectsText = aspects.length > 0
-    ? aspects.slice(0, 15).map((a: any) => `${a.type}: ${a.a}-${a.b}`).join('\n')
-    : "No aspects found";
-  
-  console.log(`[Meme] Aspects text preview (first 200 chars):`, aspectsText.substring(0, 200));
+  console.log(`[Meme] Swiss data size: ${swissDataJson.length} chars`);
+  console.log(`[Meme] Swiss data preview (first 500 chars):`, swissDataJson.substring(0, 500));
 
   const prompt = `You are a creative meme writer and visual concept designer for an AI that creates astrology memes. Humour welcome 
 
 Input:
 - Couple: ${personAName} & ${personBName}
-- Synastry Aspects (top 15):
-${aspectsText}
+- Swiss Ephemeris Synastry Data (complete):
+${swissDataJson}
 
 Your task:
+FIRST: Analyze the synastry data above and extract the most significant aspects and patterns. Look for aspects between planets, signs, houses, and any other relevant astrological data.
+
+THEN:
 1. **Analyze the pattern** — determine the dominant emotional tone of this relationship. These are examples, do not just copy them:
    - "Harmony / Flow" → warmth, beauty, connection
    - "Friction / Wounds" → tension, irony, humor
