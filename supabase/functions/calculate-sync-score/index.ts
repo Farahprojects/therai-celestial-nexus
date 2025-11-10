@@ -68,14 +68,18 @@ function extractAspectsForLLM(swissData: any): string {
 
 /**
  * Ask Gemini Flash to analyze synastry and generate dynamic score
+ * Uses same structure as llm-handler-gemini for consistency
  */
 async function analyzeSyncWithLLM(
   swissData: any,
   personAName: string,
   personBName: string
 ): Promise<LLMSyncResponse> {
-  const apiKey = Deno.env.get("GOOGLE-LLM-NEW");
-  if (!apiKey) throw new Error("Missing GOOGLE-LLM-NEW");
+  const GOOGLE_API_KEY = Deno.env.get("GOOGLE-LLM-NEW");
+  const GEMINI_MODEL = Deno.env.get("GEMINI_MODEL") || "gemini-2.5-flash";
+  const GEMINI_TIMEOUT_MS = 30_000;
+
+  if (!GOOGLE_API_KEY) throw new Error("Missing GOOGLE-LLM-NEW");
 
   // Extract aspects for analysis
   const aspectsSummary = extractAspectsForLLM(swissData);
@@ -121,7 +125,7 @@ Respond in JSON format ONLY:
 Make them FEEL the magic and see the path forward.`;
 
   try {
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent`;
+    // Build request body (same structure as llm-handler-gemini)
     const requestBody = {
       contents: [
         {
@@ -135,21 +139,38 @@ Make them FEEL the magic and see the path forward.`;
       }
     };
 
-    const response = await fetch(`${geminiUrl}?key=${apiKey}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(requestBody)
-    });
+    // Gemini API call with timeout (same pattern as llm-handler-gemini)
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), GEMINI_TIMEOUT_MS);
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Gemini API error: ${response.status} - ${errorText}`);
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
+
+    let geminiResponseJson: any;
+    try {
+      const resp = await fetch(geminiUrl, {
+        method: "POST",
+        headers: { 
+          "Content-Type": "application/json", 
+          "x-goog-api-key": GOOGLE_API_KEY 
+        },
+        body: JSON.stringify(requestBody),
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+
+      if (!resp.ok) {
+        const errText = await resp.text().catch(() => "");
+        console.error("[calculate-sync-score] Gemini API error:", resp.status, errText);
+        throw new Error(`Gemini API request failed: ${resp.status}`);
+      }
+      geminiResponseJson = await resp.json();
+    } catch (err) {
+      clearTimeout(timeoutId);
+      console.error("[calculate-sync-score] Gemini request failed:", (err as any)?.message || err);
+      throw new Error("Gemini request error");
     }
 
-    const data = await response.json();
-    const responseText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+    const responseText = geminiResponseJson?.candidates?.[0]?.content?.parts?.[0]?.text;
     
     if (!responseText) {
       throw new Error('No response text from Gemini API');

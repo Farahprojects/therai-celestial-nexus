@@ -164,6 +164,8 @@ export const ChatBox: React.FC<ChatBoxProps> = ({ onDelete }) => {
   }, [chat_id]);
 
   // Handle sync_score mode - check if conversation is sync_score and calculate score
+  // Polling starts when: useEffect runs (chat_id or user changes) AND conversation mode is sync_score
+  // Timing: This runs AFTER navigation, so translator might already be processing or finished
   useEffect(() => {
     const handleSyncScoreMode = async () => {
       if (!chat_id || !user) return;
@@ -190,6 +192,22 @@ export const ChatBox: React.FC<ChatBoxProps> = ({ onDelete }) => {
           if (existingScore) {
             console.log('[ChatBox] Score already exists:', existingScore);
             // Score exists, image should already be in chat
+            return;
+          }
+          
+          // Check if translator_logs already exists (might have finished before we started polling)
+          const { data: existingLog } = await supabase
+            .from('translator_logs')
+            .select('swiss_data')
+            .eq('chat_id', chat_id) // Critical: filter by chat_id
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          
+          if (existingLog && existingLog.swiss_data) {
+            console.log('[ChatBox] Swiss data already exists, calculating score immediately');
+            const score = await calculateSyncScore(chat_id);
+            console.log('[ChatBox] Score calculated:', score);
             return;
           }
           
