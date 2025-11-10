@@ -74,7 +74,8 @@ Your task:
 2. **Create a caption** that blends humor, truth, and insight. It should feel emotionally resonant or ironic — something that makes users tag a friend.
    - Max 20 words
    - Tone: Gen Z with humour  
-   - hallmark memes is the goal that relates and will go viral 
+   - Relatable hallmark memes is the goal that relates and will go viral 
+
 
 3. **Generate an image prompt** that visually expresses the same theme.
    - Must be 9:16 vertical composition.
@@ -85,7 +86,7 @@ Your task:
      - Center: the meme caption
      - Bottom: "therai.co"
      
-**IMPORTANT Check spelling before printing 
+**IMPORTANT Tell image genrator to Check spelling and wording before printing 
 Return only clean JSON with no markdown:
 {
   "caption": "text here",
