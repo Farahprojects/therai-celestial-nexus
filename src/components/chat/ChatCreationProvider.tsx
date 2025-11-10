@@ -121,6 +121,22 @@ export const ChatCreationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     try {
       setIsSyncScoreGenerating(true);
 
+      // Validate selectedProfile exists
+      if (!selectedProfile) {
+        toast.error('Please select a profile');
+        setIsSyncScoreGenerating(false);
+        return;
+      }
+
+      // Validate selectedProfile has required fields
+      const requiredFields = ['name', 'birth_date', 'birth_time', 'birth_location'];
+      const missingFields = requiredFields.filter(field => !selectedProfile[field]);
+      if (missingFields.length > 0) {
+        toast.error(`Selected profile is missing required fields: ${missingFields.join(', ')}`);
+        setIsSyncScoreGenerating(false);
+        return;
+      }
+
       // Get user's primary profile
       const { data: primaryProfile, error: primaryError } = await supabase
         .from('user_profile_list')
@@ -130,6 +146,14 @@ export const ChatCreationProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
       if (primaryError || !primaryProfile) {
         toast.error('Please set up your primary profile in Settings first');
+        setIsSyncScoreGenerating(false);
+        return;
+      }
+
+      // Validate primaryProfile has required fields
+      const primaryMissingFields = requiredFields.filter(field => !primaryProfile[field]);
+      if (primaryMissingFields.length > 0) {
+        toast.error(`Primary profile is missing required fields: ${primaryMissingFields.join(', ')}`);
         setIsSyncScoreGenerating(false);
         return;
       }
@@ -156,34 +180,55 @@ export const ChatCreationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       navigate(`/c/${newChatId}`, { replace: true });
 
       // Prepare the data payload for initiate-auth-report
+      const personA = {
+        name: primaryProfile.name,
+        birth_date: primaryProfile.birth_date,
+        birth_time: primaryProfile.birth_time,
+        location: primaryProfile.birth_location,
+        latitude: primaryProfile.birth_latitude,
+        longitude: primaryProfile.birth_longitude,
+        place_id: primaryProfile.birth_place_id,
+        tz: primaryProfile.timezone,
+      };
+
+      const personB = {
+        name: selectedProfile.name,
+        birth_date: selectedProfile.birth_date,
+        birth_time: selectedProfile.birth_time,
+        location: selectedProfile.birth_location,
+        latitude: selectedProfile.birth_latitude,
+        longitude: selectedProfile.birth_longitude,
+        place_id: selectedProfile.birth_place_id,
+        tz: selectedProfile.timezone,
+      };
+
+      // Final validation: ensure both persons have required data
+      if (!personA.birth_date || !personB.birth_date) {
+        console.error('[ProfileSelector] Missing birth dates:', { personA, personB });
+        toast.error('Both profiles must have birth dates');
+        return;
+      }
+
       const payload = {
         chat_id: newChatId,
         mode: 'sync_score',
         report_data: {
           request: 'synastry', // Tell translator this is a synastry request
           reportType: null, // No report needed, just Swiss data for synastry
-          person_a: {
-            name: primaryProfile.name,
-            birth_date: primaryProfile.birth_date,
-            birth_time: primaryProfile.birth_time,
-            location: primaryProfile.birth_location,
-            latitude: primaryProfile.birth_latitude,
-            longitude: primaryProfile.birth_longitude,
-            place_id: primaryProfile.birth_place_id,
-            tz: primaryProfile.timezone,
-          },
-          person_b: {
-            name: selectedProfile.name,
-            birth_date: selectedProfile.birth_date,
-            birth_time: selectedProfile.birth_time,
-            location: selectedProfile.birth_location,
-            latitude: selectedProfile.birth_latitude,
-            longitude: selectedProfile.birth_longitude,
-            place_id: selectedProfile.birth_place_id,
-            tz: selectedProfile.timezone,
-          },
+          person_a: personA,
+          person_b: personB,
         },
       };
+
+      // Log payload for debugging
+      console.log('[ProfileSelector] Sending sync score payload:', {
+        chat_id: payload.chat_id,
+        mode: payload.mode,
+        person_a_name: payload.report_data.person_a.name,
+        person_b_name: payload.report_data.person_b.name,
+        person_a_birth_date: payload.report_data.person_a.birth_date,
+        person_b_birth_date: payload.report_data.person_b.birth_date,
+      });
 
       // 🚀 FIRE-AND-FORGET: Call initiate-auth-report in background
       supabase.functions.invoke('initiate-auth-report', {

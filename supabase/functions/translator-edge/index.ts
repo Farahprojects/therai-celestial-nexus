@@ -272,8 +272,19 @@ Deno.serve(async (req)=>{
     const canon = CANON[requestType];
     if(!canon) throw new Error(`Unknown request '${parsed.request}'`);
 
+    // Validate person_b is present for synastry/sync requests
+    if((canon==="sync" || canon==="synastry") && (!parsed.person_a || !parsed.person_b)){
+      console.error(`[translator-edge-${reqId}] Missing person_a or person_b for ${canon} request:`, {
+        has_person_a: !!parsed.person_a,
+        has_person_b: !!parsed.person_b,
+        request: parsed.request
+      });
+      throw new Error(`${canon} requests require both person_a and person_b`);
+    }
+
     let payload:any;
-    if(canon==="sync" && parsed.person_a && parsed.person_b){
+    // Handle sync/synastry requests with both person_a and person_b
+    if((canon==="sync" || canon==="synastry") && parsed.person_a && parsed.person_b){
       const {data:pa,googleGeoUsed:g1}=await ensureLatLon(parsed.person_a);
       const tzA=await inferTimezone(pa);
       // Assign timezone back to the person object
