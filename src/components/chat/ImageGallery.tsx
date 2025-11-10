@@ -2,10 +2,21 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { MessageCircle, Share2, Download, X, ArrowLeft } from 'lucide-react';
+import { MessageCircle, Share2, Download, X, ArrowLeft, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { unifiedChannel } from '@/services/websocket/UnifiedChannelService';
+import { showToast } from '@/utils/notifications';
 interface ImageMessage {
   id: string;
   chat_id: string;
@@ -33,6 +44,7 @@ export const ImageGallery = ({
   const [loading, setLoading] = useState(true);
   const [shareSuccess, setShareSuccess] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [deleteImage, setDeleteImage] = useState<ImageMessage | null>(null);
 
   // Detect mobile
   useEffect(() => {
@@ -150,6 +162,59 @@ export const ImageGallery = ({
       console.error('Failed to download image:', error);
     }
   };
+  const handleDelete = (image: ImageMessage) => {
+    setDeleteImage(image);
+  };
+  const confirmDelete = async () => {
+    if (!deleteImage || !user?.id) return;
+    
+    try {
+      // Delete from database
+      const { error: dbError } = await supabase
+        .from('user_images')
+        .delete()
+        .eq('id', deleteImage.id)
+        .eq('user_id', user.id); // Security: ensure user owns the image
+      
+      if (dbError) throw dbError;
+      
+      // Optionally delete from Storage if image_path exists
+      if (deleteImage.meta.image_path) {
+        try {
+          await supabase.storage
+            .from('generated-images')
+            .remove([deleteImage.meta.image_path]);
+        } catch (storageError) {
+          // Storage deletion is optional - log but don't fail
+          console.warn('Failed to delete from storage:', storageError);
+        }
+      }
+      
+      // Remove from local state
+      setImages(prev => prev.filter(img => img.id !== deleteImage.id));
+      
+      // If deleted image was selected, close single view
+      if (selectedImage?.id === deleteImage.id) {
+        setSelectedImage(null);
+      }
+      
+      // Show success toast
+      showToast({
+        title: "Deleted",
+        description: "Image deleted successfully.",
+        variant: "success"
+      });
+      
+      setDeleteImage(null);
+    } catch (error) {
+      console.error('Failed to delete image:', error);
+      showToast({
+        title: "Error",
+        description: "Could not delete image.",
+        variant: "destructive"
+      });
+    }
+  };
   if (!isOpen) return null;
 
   // Gallery Grid View
@@ -175,7 +240,22 @@ export const ImageGallery = ({
             </div> : <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
               {images.map(image => <div key={image.id} className="relative group cursor-pointer rounded-xl overflow-hidden bg-gray-100 aspect-square" onClick={() => setSelectedImage(image)}>
                   <img src={image.meta.image_url} alt={image.meta.image_prompt} className="w-full h-full object-cover md:transition-transform md:group-hover:scale-105" />
-                  <div className="hidden md:flex absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/0 group-hover:from-black/60 group-hover:to-transparent transition-all duration-200 items-center justify-center h-12">
+                  <div className="hidden md:flex absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/0 group-hover:from-black/60 group-hover:to-transparent transition-all duration-200 items-center justify-center h-12 gap-2">
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button variant="ghost" size="icon" className="opacity-0 group-hover:opacity-100 text-white hover:text-white hover:bg-white/20 rounded-full transition-opacity" onClick={e => {
+                      e.stopPropagation();
+                      handleShare(image);
+                    }}>
+                            <Share2 className="w-4 h-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Share</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
@@ -191,6 +271,21 @@ export const ImageGallery = ({
                         </TooltipContent>
                       </Tooltip>
                     </TooltipProvider>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button variant="ghost" size="icon" className="opacity-0 group-hover:opacity-100 text-white hover:text-white hover:bg-white/20 rounded-full transition-opacity" onClick={e => {
+                      e.stopPropagation();
+                      handleDelete(image);
+                    }}>
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Delete</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                   </div>
                 </div>)}
             </div>}
@@ -200,6 +295,27 @@ export const ImageGallery = ({
         {shareSuccess && <div className="fixed bottom-8 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white px-6 py-3 rounded-full font-light">
             Link copied to clipboard
           </div>}
+
+        {/* Delete confirmation dialog */}
+        <AlertDialog open={!!deleteImage} onOpenChange={() => setDeleteImage(null)}>
+          <AlertDialogContent className="font-['Inter']">
+            <AlertDialogHeader>
+              <AlertDialogTitle className="font-light text-xl">Delete Image?</AlertDialogTitle>
+              <AlertDialogDescription className="font-light">
+                This action cannot be undone. This will permanently delete the image.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel className="rounded-full">Cancel</AlertDialogCancel>
+              <AlertDialogAction 
+                className="rounded-full bg-red-600 hover:bg-red-700"
+                onClick={confirmDelete}
+              >
+                Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>;
   }
 
@@ -260,16 +376,58 @@ export const ImageGallery = ({
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
+
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="outline" size="icon" onClick={() => handleDelete(selectedImage)} className="rounded-full hover:bg-gray-100">
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Delete</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </div>
           </div>
 
-          {/* Image Display */}
-          <div className="flex-1 flex items-center justify-center p-12 overflow-auto">
-            <img
-              src={selectedImage.meta.image_url}
-              alt={selectedImage.meta.image_prompt}
-              className="max-w-[92%] max-h-[92%] rounded-xl shadow-2xl mx-auto"
-            />
+          {/* Image Display with Carousel */}
+          <div className="flex-1 flex overflow-hidden">
+            {/* Main image - Left side */}
+            <div className="flex-1 flex items-center justify-center p-12 overflow-auto">
+              <img
+                src={selectedImage.meta.image_url}
+                alt={selectedImage.meta.image_prompt}
+                className="max-w-[92%] max-h-[92%] rounded-xl shadow-2xl mx-auto"
+              />
+            </div>
+
+            {/* Carousel - Right side */}
+            <div className="w-32 border-l border-gray-200 overflow-y-auto scrollbar-hide py-4 px-3">
+              <div className="flex flex-col gap-2">
+                {images.map((img) => (
+                  <button
+                    key={img.id}
+                    onClick={() => setSelectedImage(img)}
+                    className={`
+                      relative aspect-square rounded-lg overflow-hidden
+                      transition-all duration-200 hover:scale-105
+                      ${selectedImage.id === img.id 
+                        ? 'ring-2 ring-gray-900 scale-105' 
+                        : 'opacity-60 hover:opacity-100'
+                      }
+                    `}
+                  >
+                    <img
+                      src={img.meta.image_url}
+                      alt=""
+                      className="w-full h-full object-cover"
+                    />
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
 
           {/* Image Prompt - Hidden per user request */}
@@ -278,6 +436,27 @@ export const ImageGallery = ({
         {shareSuccess && <div className="fixed bottom-8 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white px-6 py-3 rounded-full font-light">
             Link copied to clipboard
           </div>}
+
+        {/* Delete confirmation dialog */}
+        <AlertDialog open={!!deleteImage} onOpenChange={() => setDeleteImage(null)}>
+          <AlertDialogContent className="font-['Inter']">
+            <AlertDialogHeader>
+              <AlertDialogTitle className="font-light text-xl">Delete Image?</AlertDialogTitle>
+              <AlertDialogDescription className="font-light">
+                This action cannot be undone. This will permanently delete the image.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel className="rounded-full">Cancel</AlertDialogCancel>
+              <AlertDialogAction 
+                className="rounded-full bg-red-600 hover:bg-red-700"
+                onClick={confirmDelete}
+              >
+                Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>;
   }
 
@@ -300,6 +479,9 @@ export const ImageGallery = ({
             <Button variant="ghost" size="icon" onClick={() => handleDownload(selectedImage)}>
               <Download className="w-5 h-5" />
             </Button>
+            <Button variant="ghost" size="icon" onClick={() => handleDelete(selectedImage)}>
+              <Trash2 className="w-5 h-5" />
+            </Button>
           </div>
         </div>
       </div>
@@ -313,5 +495,26 @@ export const ImageGallery = ({
       {shareSuccess && <div className="fixed bottom-24 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white px-6 py-3 rounded-full font-light z-50">
           Link copied to clipboard
         </div>}
+
+      {/* Delete confirmation dialog */}
+      <AlertDialog open={!!deleteImage} onOpenChange={() => setDeleteImage(null)}>
+        <AlertDialogContent className="font-['Inter']">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="font-light text-xl">Delete Image?</AlertDialogTitle>
+            <AlertDialogDescription className="font-light">
+              This action cannot be undone. This will permanently delete the image.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="rounded-full">Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              className="rounded-full bg-red-600 hover:bg-red-700"
+              onClick={confirmDelete}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>;
 };
