@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Blend, Sparkles, Orbit, Heart } from 'lucide-react';
+import { Blend, Sparkles, Orbit, Drama } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useChatCreation } from '@/components/chat/ChatCreationProvider';
 
@@ -53,8 +53,8 @@ export const ExploreActions: React.FC = () => {
             className="w-full justify-start gap-1.5 px-3 py-1 text-sm font-light h-auto"
             onClick={openSyncScoreFlow}
           >
-            <Heart className="h-4 w-4" />
-            Sync Score
+            <Drama className="h-4 w-4" />
+            Meme
           </Button>
         </div>
       )}
