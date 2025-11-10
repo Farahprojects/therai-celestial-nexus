@@ -55,7 +55,7 @@ async function generateMeme(
     ? aspects.slice(0, 15).map((a: any) => `${a.type}: ${a.a}-${a.b}`).join('\n')
     : "No aspects found";
 
-  const prompt = `You are a creative meme writer and visual concept designer for an AI that creates poetic astrology memes.
+  const prompt = `You are a creative meme writer and visual concept designer for an AI that creates astrology memes. Humour welcome 
 
 Input:
 - Couple: ${personAName} & ${personBName}
@@ -63,7 +63,7 @@ Input:
 ${aspectsText}
 
 Your task:
-1. **Analyze the pattern** — determine the dominant emotional tone of this relationship. These are examples only, do not just copy them:
+1. **Analyze the pattern** — determine the dominant emotional tone of this relationship. These are examples, do not just copy them:
    - "Harmony / Flow" → warmth, beauty, connection
    - "Friction / Wounds" → tension, irony, humor
    - "Ego Clash / Projection" → power, pride, shadow work
@@ -73,7 +73,7 @@ Your task:
 
 2. **Create a caption** that blends humor, truth, and insight. It should feel emotionally resonant or ironic — something that makes users tag a friend.
    - Max 20 words
-   - Tone: smart, slightly mystical, relatable
+   - Tone: smart, relatable , witty 
    - Examples:
      - "When your Saturn hits their Moon and suddenly you're their therapist."
      - "It's not toxic, it's karmic ✨"
@@ -82,12 +82,13 @@ Your task:
 3. **Generate an image prompt** that visually expresses the same theme.
    - Must be 9:16 vertical composition.
    - Focus on metaphoric imagery (animals, cosmic, abstract, nature, surreal moods).
-   - Include aesthetic cues that fit the emotional tone you identified (e.g., "stormy sky" for conflict, "soft glow" for harmony).
-   - Include small overlay text:
+   - Include aesthetic cues that fit the emotional tone you identified.
+   - Include overlay text:
      - Top: "${personAName} & ${personBName}"
      - Center: the meme caption
      - Bottom: "therai.co"
-
+     
+**IMPORTANT Check spelling before printing 
 Return only clean JSON with no markdown:
 {
   "caption": "text here",
