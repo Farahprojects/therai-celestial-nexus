@@ -56,31 +56,25 @@ async function generateMeme(
 
 Input:
 - Couple: ${personAName} & ${personBName}
-- Swiss Ephemeris Synastry Data (complete):
+- Swiss Ephemeris data (complete):
 ${swissDataJson}
 
 Your task:
-FIRST: Analyze the synastry data above and extract the most significant aspects and patterns. Look for aspects between planets, signs, houses, and any other relevant astrological data.
+FIRST: Analyze the swiss data above and extract the most significant aspects and patterns. Look for aspects between planets, signs, houses, and any other relevant astrological data.
 
 THEN:
 1. **Analyze the pattern** — determine the dominant emotional tone of this relationship. These are examples, do not just copy them:
-   - "Harmony / Flow" → warmth, beauty, connection
-   - "Friction / Wounds" → tension, irony, humor
-   - "Ego Clash / Projection" → power, pride, shadow work
-   - "Emotional Avoidance / Overthinking" → irony, subtle humor
-   - "Intensity / Obsession" → magnetic, dramatic, cinematic
-   - "Soul Mirror / Growth" → profound, transformative, poetic
-
+   
 2. **Create a caption** that blends humor, truth, and insight. It should feel emotionally resonant or ironic — something that makes users tag a friend.
    - Max 20 words
-   - Tone: Gen Z with humour  
-   - Relatable hallmark memes is the goal that relates and will go viral 
+   - Tone: Gen Z with humour   
    **IMPORTANT Tell image genrator to Check spelling and wording before finalising**
 
 3. **Generate an image prompt** that visually expresses the same theme.
    - Must be 9:16 vertical composition.
    - Focus on viral styles.
    - Include aesthetic cues that fit the emotional tone you identified.
+   - Relatable hallmark viral memes is the goal 
    - Include overlay text:
      - Top: "${personAName} & ${personBName}"
      - Center: the meme caption
