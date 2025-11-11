@@ -44,6 +44,10 @@ export const BlogCard: React.FC<BlogCardProps> = ({ post, index }) => {
             src={post.cover_image_url || defaultImage}
             alt={post.title}
             className="w-full h-64 object-cover transition-transform duration-500 group-hover:scale-105"
+            loading="lazy"
+            decoding="async"
+            width={800}
+            height={256}
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent" />
           

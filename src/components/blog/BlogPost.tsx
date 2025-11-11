@@ -122,6 +122,10 @@ export const BlogPost: React.FC<BlogPostProps> = ({ post }) => {
             src={post.cover_image_url || defaultImage}
             alt={post.title}
             className="w-full h-96 object-cover rounded-3xl shadow-lg"
+            loading="lazy"
+            decoding="async"
+            width={1200}
+            height={384}
           />
         </motion.div>
       )}
