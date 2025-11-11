@@ -148,10 +148,10 @@ BEGIN
   END IF;
 
   -- Fetch current usage (treat no-row as 0)
-  SELECT COALESCE(
+  v_current_usage := COALESCE(
     (SELECT seconds_used FROM public.voice_usage WHERE user_id = p_user_id LIMIT 1),
     0
-  ) INTO v_current_usage;
+  );
 
   -- Evaluate allowance
   IF v_current_usage + p_requested_seconds <= v_limit THEN
