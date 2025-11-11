@@ -347,7 +347,13 @@ Deno.serve(async (req: Request) => {
         cacheName = cacheData.cache_name;
       } else {
         if (cacheExists) {
-          void supabase.from("conversation_caches").delete().eq("chat_id", chat_id).catch(() => {});
+          const { error: cacheDeleteError } = await supabase
+            .from("conversation_caches")
+            .delete()
+            .eq("chat_id", chat_id);
+          if (cacheDeleteError) {
+            console.error("[cache] cleanup failed:", cacheDeleteError);
+          }
         }
         cacheName = await createCache(chat_id, systemText);
       }
@@ -577,13 +583,25 @@ Deno.serve(async (req: Request) => {
 
     // Update turn count
     const newTurnCount = (conversationMeta.turn_count || 0) + 1;
-    void supabase.from("conversations").update({ turn_count: newTurnCount }).eq("id", chat_id).catch(() => {});
+    const { error: turnUpdateError } = await supabase
+      .from("conversations")
+      .update({ turn_count: newTurnCount })
+      .eq("id", chat_id);
+    if (turnUpdateError) {
+      console.error("[conversation] turn update failed:", turnUpdateError);
+    }
 
     // Trigger summary if needed
     const lastSummaryTurn = conversationMeta.last_summary_at_turn || 0;
     if (newTurnCount > 0 && newTurnCount % SUMMARY_INTERVAL === 0 && newTurnCount > lastSummaryTurn) {
       triggerSummaryGeneration(chat_id, lastSummaryTurn + 1, newTurnCount);
-      void supabase.from("conversations").update({ last_summary_at_turn: newTurnCount }).eq("id", chat_id).catch(() => {});
+      const { error: summaryTurnUpdateError } = await supabase
+        .from("conversations")
+        .update({ last_summary_at_turn: newTurnCount })
+        .eq("id", chat_id);
+      if (summaryTurnUpdateError) {
+        console.error("[conversation] summary turn update failed:", summaryTurnUpdateError);
+      }
     }
 
     // Save messages
