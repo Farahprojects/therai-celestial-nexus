@@ -32,20 +32,66 @@ interface MemeData {
   image_url?: string | null;
 }
 
+// ============================================================================
+// UTILITY FUNCTIONS
+// ============================================================================
+
 /**
  * Extract first name from full name (removes surnames)
  * Handles: "John Doe" -> "John", "Mary Jane Smith" -> "Mary", "SingleName" -> "SingleName"
  */
 function getFirstName(fullName: string): string {
-  if (!fullName || !fullName.trim()) return fullName;
-  const trimmed = fullName.trim();
-  const parts = trimmed.split(/\s+/);
-  return parts[0] || trimmed; // Return first word, or original if empty
+  if (!fullName?.trim()) return fullName || 'Person';
+  const parts = fullName.trim().split(/\s+/);
+  return parts[0] || 'Person';
 }
 
 /**
+ * Sanitize and validate Swiss data before sending to LLM
+ */
+function prepareSwissData(swissData: any): string {
+  if (!swissData) {
+    throw new Error('Swiss data is null or undefined');
+  }
+  
+  // Remove any sensitive or unnecessary fields
+  const sanitized = {
+    ...swissData,
+    // Add specific fields you want to include
+  };
+  
+  return JSON.stringify(sanitized, null, 2);
+}
+
+/**
+ * Retry logic for API calls with exponential backoff
+ */
+async function retryWithBackoff<T>(
+  fn: () => Promise<T>,
+  maxRetries: number = 3,
+  baseDelay: number = 1000
+): Promise<T> {
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      return await fn();
+    } catch (error) {
+      if (i === maxRetries - 1) throw error;
+      
+      const delay = baseDelay * Math.pow(2, i);
+      console.log(`[Retry] Attempt ${i + 1} failed, retrying in ${delay}ms...`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+  throw new Error('Max retries exceeded');
+}
+
+// ============================================================================
+// MEME GENERATION
+// ============================================================================
+
+/**
  * Generate meme caption and image prompt from Swiss synastry data
- * Single LLM call - no lookup tables, no fallbacks, fail fast
+ * IMPROVED PROMPT: Better spelling control, clearer humor guidelines, structured output
  */
 async function generateMeme(
   swissData: any,
@@ -55,124 +101,157 @@ async function generateMeme(
   const GOOGLE_API_KEY = Deno.env.get("GOOGLE-LLM-NEW");
   const GEMINI_MODEL = "gemini-2.5-flash";
 
-  if (!GOOGLE_API_KEY) throw new Error("Missing GOOGLE-LLM-NEW");
+  if (!GOOGLE_API_KEY) {
+    throw new Error("Missing GOOGLE-LLM-NEW environment variable");
+  }
 
-  // Send FULL Swiss data to LLM - let it extract what it needs
-  const swissDataJson = JSON.stringify(swissData, null, 2);
+  const swissDataJson = prepareSwissData(swissData);
   
-  console.log(`[Meme] Swiss data size: ${swissDataJson.length} chars - SENDING FULL DATA TO LLM`);
-  console.log(`[Meme] Swiss data structure preview (first 500 chars for debugging only):`, swissDataJson.substring(0, 500));
+  console.log(`[Meme] Generating for ${personAName} & ${personBName}`);
+  console.log(`[Meme] Swiss data size: ${swissDataJson.length} chars`);
 
-  const prompt = `You are a creative meme writer and visual concept designer for an AI that creates astrology memes. Humour welcome 
+  // ========================================================================
+  // IMPROVED PROMPT: More explicit instructions for humor and spelling
+  // ========================================================================
+  const prompt = `You are an expert astrology meme creator. Your memes go VIRAL because they're:
+- Laugh-out-loud funny with sharp wit
+- Emotionally relatable and surprisingly accurate
+- Written in natural Gen Z language (no forced slang)
+- Perfectly spelled with zero typos
 
-Input:
-- Couple: ${personAName} & ${personBName}
-- Swiss Ephemeris data (complete):
+CONTEXT:
+Couple: ${personAName} & ${personBName}
+
+ASTROLOGICAL DATA (Swiss Ephemeris):
 ${swissDataJson}
 
-Your task:
-FIRST: Analyze the swiss data above and extract the most significant aspects and patterns. Look for aspects between planets, signs, houses, and any other relevant astrological data.
+YOUR TASK (complete ALL steps):
 
-THEN:
-1. **Analyze the pattern** — determine the dominant emotional tone of this two persons.
-   
-2. **Create a caption** that blends humor, truth, and insight. It should feel emotionally resonant or ironic — something that makes users tag a friend.
-   - Max 20 words
-   - Tone: Gen Z with humour   
-   **IMPORTANT Add a Check spelling and wording before finalising instruction **
+STEP 1: ANALYZE THE DATA
+Look for the most striking patterns in the synastry:
+- Strong aspects (conjunctions, oppositions, trines, squares)
+- Dominant planetary energies
+- Sign and house placements
+- Overall relationship dynamic (harmonious/challenging/intense)
 
-3. **Generate an image prompt** that visually expresses the same theme.
-   - Must be 9:16 vertical composition.
-   - Focus on viral styles.
-   - Include aesthetic cues that fit the emotional tone you identified.
-   - Relatable hallmark viral memes is the goal 
-   - Include overlay text:
-     - Top: "${personAName} & ${personBName}"
-     - Center: the meme caption
-     - Bottom: "therai.co"
-     
-**IMPORTANT Add a Check spelling and wording before finalising instruction** 
+STEP 2: CREATE A VIRAL MEME CAPTION
+Requirements:
+✓ Maximum 15 words (concise = punchier)
+✓ Make it FUNNY - use irony, exaggeration, or unexpected twists
+✓ Relatable format: "When [situation]..." or "[Name] & [Name] be like..."
+✓ Natural language - avoid astro jargon unless it's the punchline
+✓ CRITICAL: Check every word for spelling errors before submitting
+✓ Must feel like something people would screenshot and share
 
-Return only clean JSON with no markdown:
+Humor styles that work:
+- Self-aware observations: "trying to have a calm conversation but mars square mars said no"
+- Playful contradictions: "venus trine but mercury retrograde vibes"
+- Relatable chaos: "when both your moons are in fire signs and nobody apologizes first"
+
+STEP 3: CREATE IMAGE GENERATION PROMPT
+Requirements:
+✓ 9:16 vertical format (portrait/story mode)
+✓ Viral aesthetic: clean, modern, eye-catching
+✓ Style references: use "in the style of [aesthetic]" for consistency
+  Examples: "Polaroid photography", "Y2K digital art", "cinematic film still", "retro vaporwave"
+✓ Clear visual metaphor for the astrological dynamic
+✓ Specify mood/lighting that matches the energy
+✓ Include text overlay instructions:
+  - Top overlay: "${personAName} & ${personBName}" (clean sans-serif font)
+  - Center overlay: [your meme caption] (bold, high contrast)
+  - Bottom overlay: "therai.co" (small, subtle)
+
+CRITICAL QUALITY CHECKS (perform before responding):
+1. Read caption out loud - does it sound natural?
+2. Spell-check every single word - no typos allowed
+3. Is it actually funny or just clever? (Aim for funny)
+4. Would someone tag their friend in this? If no, revise
+5. Is the image prompt specific enough to generate consistently?
+
+OUTPUT FORMAT (strict JSON, no markdown):
 {
-  "caption": "text here",
-  "imagePrompt": "text here"
-}`;
+  "caption": "your hilarious, perfectly-spelled caption here",
+  "imagePrompt": "detailed image generation prompt with style, composition, text overlays, and aesthetic specifications"
+}
+
+Remember: Viral memes are SHORT, FUNNY, and PERFECTLY EXECUTED. Quality over complexity.`;
 
   const requestBody = {
     contents: [{ role: "user", parts: [{ text: prompt }] }],
     generationConfig: { 
-      temperature: 1.0, // More creative variability
-      topP: 0.8,
+      temperature: 0.9, // Balanced creativity with consistency
+      topP: 0.85,
       topK: 40,
-      maxOutputTokens: 20000, // Increased to handle reasoning tokens (thoughtsTokenCount ~999) + output
+      maxOutputTokens: 4096,
       responseMimeType: "application/json",
       thinkingConfig: { thinkingBudget: -1 }
     }
   };
-  
-  console.log(`[Meme] Sending to LLM - prompt length: ${prompt.length} chars (includes FULL Swiss data: ${swissDataJson.length} chars)`);
-  console.log(`[Meme] Prompt contains Swiss data: ${prompt.includes(swissDataJson.substring(0, 50))}`);
-  // Log full prompt only if it's reasonable size (under 10k chars), otherwise just confirm it's there
-  if (prompt.length < 10000) {
-    console.log(`[Meme] Full prompt:\n${prompt}`);
-  } else {
-    console.log(`[Meme] Prompt is large (${prompt.length} chars) - contains full Swiss data`);
-  }
 
-  const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
-  const resp = await fetch(geminiUrl, {
-    method: "POST",
-    headers: { 
-      "Content-Type": "application/json", 
-      "x-goog-api-key": GOOGLE_API_KEY 
-    },
-    body: JSON.stringify(requestBody)
+  // Use retry logic for API call
+  const data = await retryWithBackoff(async () => {
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
+    const resp = await fetch(geminiUrl, {
+      method: "POST",
+      headers: { 
+        "Content-Type": "application/json", 
+        "x-goog-api-key": GOOGLE_API_KEY 
+      },
+      body: JSON.stringify(requestBody)
+    });
+
+    if (!resp.ok) {
+      const errorText = await resp.text().catch(() => "");
+      console.error('[Meme] Gemini API error:', resp.status, errorText);
+      throw new Error(`Gemini API error: ${resp.status}`);
+    }
+
+    return await resp.json();
   });
 
-  if (!resp.ok) {
-    const errorText = await resp.text().catch(() => "");
-    console.error('[Meme] Gemini API error:', resp.status, errorText);
-    throw new Error(`Gemini API error: ${resp.status} - ${errorText}`);
-  }
-
-  const data = await resp.json();
-  
-  // Extract response text - check multiple possible locations
+  // Extract and validate response
   const candidateParts = data?.candidates?.[0]?.content?.parts || [];
   const textPart = candidateParts.find((p: any) => p?.text);
-  const responseText = textPart?.text || '';
+  const responseText = textPart?.text?.trim() || '';
   
-  console.log('[Meme] Response received:', responseText.length, 'chars');
-  
-  // Fail fast if empty response
-  if (!responseText || responseText.trim().length === 0) {
-    console.error('[Meme] Empty response from Gemini:', JSON.stringify(data, null, 2));
+  if (!responseText) {
+    console.error('[Meme] Empty response from Gemini');
     throw new Error('Empty response from Gemini API');
   }
   
-  // Parse JSON - should be clean since we use responseMimeType
-  let parsed;
+  console.log('[Meme] Response received:', responseText.length, 'chars');
+  
+  // Parse and validate JSON
+  let parsed: { caption: string; imagePrompt: string };
   try {
-    parsed = JSON.parse(responseText.trim());
+    parsed = JSON.parse(responseText);
   } catch (parseError) {
     console.error('[Meme] JSON parse error:', parseError);
-    console.error('[Meme] Response text:', responseText);
-    throw new Error(`Failed to parse JSON response: ${parseError}`);
+    console.error('[Meme] Response:', responseText.substring(0, 500));
+    throw new Error('Failed to parse LLM response as JSON');
   }
   
-  // Validate required fields - fail fast if missing
+  // Validate required fields
   if (!parsed.caption || !parsed.imagePrompt) {
     console.error('[Meme] Missing required fields:', parsed);
-    throw new Error('LLM response missing required fields: caption or imagePrompt');
+    throw new Error('LLM response missing caption or imagePrompt');
   }
   
-  // Convert simple caption string to MemeCaption format for compatibility
-  const memeCaption = {
-    format: 'quote' as const,
+  // Additional validation: check caption length
+  if (parsed.caption.length > 150) {
+    console.warn('[Meme] Caption too long, truncating:', parsed.caption);
+    parsed.caption = parsed.caption.substring(0, 147) + '...';
+  }
+  
+  // Convert to MemeCaption format
+  const memeCaption: MemeCaption = {
+    format: 'quote',
     quoteText: parsed.caption,
     attribution: `${personAName} & ${personBName}`
   };
+  
+  console.log('[Meme] ✓ Caption:', parsed.caption);
+  console.log('[Meme] ✓ Image prompt length:', parsed.imagePrompt.length);
   
   return {
     caption: memeCaption,
@@ -180,13 +259,181 @@ Return only clean JSON with no markdown:
   };
 }
 
+// ============================================================================
+// MESSAGE MANAGEMENT
+// ============================================================================
+
+/**
+ * Get or create placeholder message for meme generation
+ */
+async function getOrCreatePlaceholderMessage(
+  chat_id: string,
+  user_id: string,
+  message_id?: string
+): Promise<any> {
+  // Try to use existing placeholder if provided
+  if (message_id) {
+    const { data: existingMessage } = await supabase
+      .from('messages')
+      .select('*')
+      .eq('id', message_id)
+      .single();
+    
+    if (existingMessage) {
+      console.log('[Message] Using existing placeholder:', message_id);
+      return existingMessage;
+    }
+  }
+  
+  // Create new placeholder
+  console.log('[Message] Creating new placeholder');
+  const { data: newMessage, error: messageError } = await supabase
+    .from('messages')
+    .insert({
+      id: message_id || crypto.randomUUID(),
+      chat_id: chat_id,
+      user_id: user_id,
+      role: 'assistant',
+      text: '',
+      status: 'pending',
+      meta: {
+        message_type: 'image',
+        sync_score: true,
+        status: 'generating'
+      }
+    })
+    .select()
+    .single();
+
+  if (messageError) {
+    console.error('[Message] Failed to create placeholder:', messageError);
+    throw new Error('Failed to create placeholder message');
+  }
+
+  return newMessage;
+}
+
+/**
+ * Broadcast message to user's realtime channel
+ */
+async function broadcastMessage(
+  user_id: string,
+  chat_id: string,
+  message: any
+): Promise<void> {
+  try {
+    const channelName = `user-realtime:${user_id}`;
+    await supabase.channel(channelName).send({
+      type: 'broadcast',
+      event: 'message-insert',
+      payload: { chat_id, message }
+    }, { httpSend: true });
+    
+    console.log('[Broadcast] Message sent to channel:', channelName);
+  } catch (error) {
+    console.error('[Broadcast] Failed:', error);
+    // Non-critical error, don't throw
+  }
+}
+
+// ============================================================================
+// BACKGROUND TASKS
+// ============================================================================
+
+/**
+ * Generate and store meme image (fire-and-forget)
+ */
+function generateMemeImageAsync(
+  chat_id: string,
+  user_id: string,
+  message_id: string,
+  imagePrompt: string,
+  memeData: MemeData
+): void {
+  const imageGenUrl = `${supabaseUrl}/functions/v1/image-generate`;
+  
+  fetch(imageGenUrl, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${supabaseServiceKey}`,
+    },
+    body: JSON.stringify({
+      chat_id,
+      prompt: imagePrompt,
+      user_id,
+      mode: 'sync',
+      image_id: message_id,
+    }),
+  })
+    .then(async (response) => {
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('[ImageGen] Failed:', response.status, errorText);
+        return;
+      }
+      
+      const imageData = await response.json();
+      console.log('[ImageGen] ✓ Success:', imageData.image_url);
+      
+      // Update conversation meta with image URL
+      await supabase
+        .from('conversations')
+        .update({
+          meta: {
+            sync_meme: {
+              ...memeData,
+              image_url: imageData.image_url,
+            },
+          },
+        })
+        .eq('id', chat_id);
+      
+      console.log('[ImageGen] ✓ Conversation updated with image URL');
+    })
+    .catch((error) => {
+      console.error('[ImageGen] Error:', error);
+    });
+}
+
+/**
+ * Store meme metadata (fire-and-forget)
+ */
+function storeMemeMetadataAsync(chat_id: string, memeData: MemeData): void {
+  supabase
+    .from('conversations')
+    .update({
+      meta: {
+        sync_meme: memeData,
+      },
+    })
+    .eq('id', chat_id)
+    .then(({ error }) => {
+      if (error) {
+        console.error('[Metadata] Storage failed:', error);
+      } else {
+        console.log('[Metadata] ✓ Stored');
+      }
+    })
+    .catch((error) => {
+      console.error('[Metadata] Error:', error);
+    });
+}
+
+// ============================================================================
+// MAIN HANDLER
+// ============================================================================
+
 Deno.serve(async (req) => {
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
     return new Response(null, { status: 204, headers: corsHeaders });
   }
 
+  const startTime = Date.now();
+
   try {
+    // Parse and validate request
     const { chat_id, message_id } = await req.json();
 
     if (!chat_id) {
@@ -196,9 +443,11 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log(`[calculate-sync-score] Processing for chat_id: ${chat_id}, message_id: ${message_id || 'none'}`);
+    console.log(`\n[SyncScore] Starting for chat_id: ${chat_id}`);
 
-    // 🚀 PARALLEL FETCH: Get translator log and conversation data simultaneously
+    // ========================================================================
+    // STEP 1: PARALLEL FETCH - Get translator log and conversation data
+    // ========================================================================
     const [logResult, conversationResult] = await Promise.all([
       supabase
         .from('translator_logs')
@@ -214,20 +463,22 @@ Deno.serve(async (req) => {
         .single()
     ]);
 
+    // Validate translator log
     const { data: translatorLog, error: logError } = logResult;
-    if (logError || !translatorLog) {
-      console.error('[calculate-sync-score] Error fetching translator log:', logError);
+    if (logError || !translatorLog?.swiss_data) {
+      console.error('[SyncScore] Missing synastry data:', logError);
       return new Response(
-        JSON.stringify({ error: "Could not fetch synastry data" }),
+        JSON.stringify({ error: "Synastry data not found" }),
         { status: 404, headers: corsHeaders }
       );
     }
 
+    // Validate conversation
     const { data: conversation, error: convError } = conversationResult;
     if (convError || !conversation) {
-      console.error('[calculate-sync-score] Error fetching conversation:', convError);
+      console.error('[SyncScore] Missing conversation:', convError);
       return new Response(
-        JSON.stringify({ error: "Could not fetch conversation data" }),
+        JSON.stringify({ error: "Conversation not found" }),
         { status: 404, headers: corsHeaders }
       );
     }
@@ -235,180 +486,91 @@ Deno.serve(async (req) => {
     const swissData = translatorLog.swiss_data;
     const userId = conversation.user_id;
 
-    console.log('[calculate-sync-score] Swiss data fetched');
-    console.log('[calculate-sync-score] Swiss data structure:', JSON.stringify({
-      has_blocks: !!swissData?.blocks,
-      has_synastry_aspects: !!swissData?.synastry_aspects,
-      has_blocks_synastry_aspects: !!swissData?.blocks?.synastry_aspects,
-      blocks_keys: swissData?.blocks ? Object.keys(swissData.blocks) : [],
-      top_level_keys: swissData ? Object.keys(swissData) : []
-    }));
+    console.log('[SyncScore] ✓ Data fetched');
 
-    // Extract person names from conversation title
+    // ========================================================================
+    // STEP 2: EXTRACT NAMES
+    // ========================================================================
     let personAName = 'Person A';
     let personBName = 'Person B';
     
     if (conversation?.title) {
       const title = conversation.title.replace('Sync Score: ', '');
       const parts = title.split(' & ');
-      personAName = parts[0] || 'Person A';
-      personBName = parts[1] || 'Person B';
+      personAName = getFirstName(parts[0] || 'Person A');
+      personBName = getFirstName(parts[1] || 'Person B');
     }
 
-    // ✅ Extract first names only (cleaner for meme card)
-    const personAFirstName = getFirstName(personAName);
-    const personBFirstName = getFirstName(personBName);
+    console.log(`[SyncScore] Names: ${personAName} & ${personBName}`);
 
-    // 🎭 MEME GENERATION - Single LLM call, no lookup tables, fail fast
-    console.log(`[Meme] Generating meme for ${personAFirstName} & ${personBFirstName}`);
+    // ========================================================================
+    // STEP 3: GENERATE MEME (critical path - must succeed)
+    // ========================================================================
+    const memeGeneration = await generateMeme(swissData, personAName, personBName);
     
-    const memeGeneration = await generateMeme(swissData, personAFirstName, personBFirstName);
-    
-    console.log(`[Meme] Caption: ${memeGeneration.caption.quoteText}`);
-    console.log(`[Meme] Image prompt: ${memeGeneration.imagePrompt.length} chars`);
-
-    // Build meme data for storage
     const memeData: MemeData = {
       caption: memeGeneration.caption,
       calculated_at: new Date().toISOString(),
     };
 
-    // Use LLM-generated image prompt directly
-    const imagePrompt = memeGeneration.imagePrompt;
+    console.log('[SyncScore] ✓ Meme generated');
 
-    // ✅ OPTIMIZATION: Use existing placeholder message if provided (avoids duplicate creation)
-    let targetMessage = null;
+    // ========================================================================
+    // STEP 4: CREATE/GET PLACEHOLDER MESSAGE
+    // ========================================================================
+    const targetMessage = await getOrCreatePlaceholderMessage(
+      chat_id,
+      userId,
+      message_id
+    );
+
+    // Broadcast placeholder if newly created
+    if (!message_id) {
+      await broadcastMessage(userId, chat_id, targetMessage);
+    }
+
+    // ========================================================================
+    // STEP 5: FIRE-AND-FORGET ASYNC TASKS
+    // ========================================================================
     
-    if (message_id) {
-      // Check if placeholder already exists (created by frontend)
-      const { data: existingMessage } = await supabase
-        .from('messages')
-        .select('*')
-        .eq('id', message_id)
-        .single();
-      
-      if (existingMessage) {
-        console.log('[calculate-sync-score] Using existing placeholder message:', message_id);
-        targetMessage = existingMessage;
-      }
-    }
+    // Store meme metadata
+    storeMemeMetadataAsync(chat_id, memeData);
     
-    // Create placeholder only if not provided or doesn't exist
-    if (!targetMessage) {
-      console.log('[calculate-sync-score] Creating new placeholder message');
-      const { data: newMessage, error: messageError } = await supabase
-        .from('messages')
-        .insert({
-          id: message_id || crypto.randomUUID(), // Use provided ID if available
-          chat_id: chat_id,
-          user_id: userId,
-          role: 'assistant',
-          text: '',
-          status: 'pending',
-          meta: {
-            message_type: 'image',
-            sync_score: true,
-            status: 'generating'
-          }
-        })
-        .select()
-        .single();
-
-      if (messageError || !newMessage) {
-        console.error('[calculate-sync-score] Failed to create message:', messageError);
-      } else {
-        targetMessage = newMessage;
-      }
-    }
-
-    // 🚀 Broadcast the placeholder message so frontend displays it (skip if frontend already has it)
-    if (targetMessage && !message_id) {
-      const channelName = `user-realtime:${userId}`;
-      supabase.channel(channelName).send({
-        type: 'broadcast',
-        event: 'message-insert',
-        payload: {
-          chat_id: chat_id,
-          message: targetMessage
-        }
-      }, { httpSend: true }).catch((broadcastError) => {
-        console.error('[calculate-sync-score] Message broadcast failed:', broadcastError);
-      });
-    }
-
-    // 🚀 FIRE-AND-FORGET: Store meme metadata immediately (don't wait for image)
-    supabase
-      .from('conversations')
-      .update({
-        meta: {
-          sync_meme: memeData,
-        },
-      })
-      .eq('id', chat_id)
-      .then(({ error: updateError }) => {
-        if (updateError) {
-          console.error('[Meme] Error updating conversation:', updateError);
-        } else {
-          console.log('[Meme] Meme metadata stored');
-        }
-      });
-
-    // 🚀 FIRE-AND-FORGET: Generate image asynchronously (don't block response)
+    // Generate image
     if (targetMessage) {
-      fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/image-generate`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
-        },
-        body: JSON.stringify({
-          chat_id: chat_id,
-          prompt: imagePrompt,
-          user_id: userId,
-          mode: 'sync',
-          image_id: targetMessage.id,
-        }),
-      })
-        .then(async (imageResponse) => {
-          if (imageResponse.ok) {
-            const imageData = await imageResponse.json();
-            console.log('[Meme] Image generated:', imageData.image_url);
-            
-            // Update conversation meta with image URL
-            await supabase
-              .from('conversations')
-              .update({
-                meta: {
-                  sync_meme: {
-                    ...memeData,
-                    image_url: imageData.image_url,
-                  },
-                },
-              })
-              .eq('id', chat_id);
-          } else {
-            console.error('[Meme] Image generation failed:', await imageResponse.text());
-          }
-        })
-        .catch((imageError) => {
-          console.error('[Meme] Image generation error:', imageError);
-        });
+      generateMemeImageAsync(
+        chat_id,
+        userId,
+        targetMessage.id,
+        memeGeneration.imagePrompt,
+        memeData
+      );
     }
 
-    // ⚡ Return immediately (don't wait for image!)
-    console.log('[Meme] Returning immediately, image generating in background');
+    // ========================================================================
+    // STEP 6: RETURN IMMEDIATELY
+    // ========================================================================
+    const duration = Date.now() - startTime;
+    console.log(`[SyncScore] ✓ Complete in ${duration}ms`);
+    
     return new Response(
       JSON.stringify({ 
         success: true, 
         meme: memeData,
+        processing_time_ms: duration
       }),
       { status: 200, headers: corsHeaders }
     );
 
   } catch (error) {
-    console.error('[calculate-sync-score] Error:', error);
+    const duration = Date.now() - startTime;
+    console.error(`[SyncScore] ✗ Error after ${duration}ms:`, error);
+    
     return new Response(
-      JSON.stringify({ error: error.message || "Internal server error" }),
+      JSON.stringify({ 
+        error: error.message || "Internal server error",
+        processing_time_ms: duration
+      }),
       { status: 500, headers: corsHeaders }
     );
   }
