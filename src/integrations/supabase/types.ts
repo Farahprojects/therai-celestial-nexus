@@ -2182,6 +2182,33 @@ export type Database = {
         }
         Relationships: []
       }
+      voice_usage: {
+        Row: {
+          billing_cycle_end: string
+          billing_cycle_start: string
+          created_at: string | null
+          seconds_used: number
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          billing_cycle_end: string
+          billing_cycle_start: string
+          created_at?: string | null
+          seconds_used?: number
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          billing_cycle_end?: string
+          billing_cycle_start?: string
+          created_at?: string | null
+          seconds_used?: number
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       website_templates: {
         Row: {
           created_at: string
@@ -2296,6 +2323,10 @@ export type Database = {
         Args: { user_id_param: string }
         Returns: boolean
       }
+      check_voice_limit: {
+        Args: { p_requested_seconds?: number; p_user_id: string }
+        Returns: Json
+      }
       clean_completed_topups: { Args: never; Returns: undefined }
       clean_edge_function_logs: { Args: never; Returns: undefined }
       clean_old_webhook_events: { Args: never; Returns: undefined }
@@ -2332,6 +2363,13 @@ export type Database = {
         }[]
       }
       get_config: { Args: { config_key: string }; Returns: string }
+      get_current_billing_cycle: {
+        Args: { p_user_id: string }
+        Returns: {
+          cycle_end: string
+          cycle_start: string
+        }[]
+      }
       get_flow_status: {
         Args: { user_email: string }
         Returns: {
@@ -2507,6 +2545,10 @@ export type Database = {
       }
       increment_voice_seconds: {
         Args: { p_period: string; p_seconds: number; p_user_id: string }
+        Returns: undefined
+      }
+      increment_voice_usage: {
+        Args: { p_seconds: number; p_user_id: string }
         Returns: undefined
       }
       is_user_in_trial: { Args: { p_user_id: string }; Returns: boolean }
