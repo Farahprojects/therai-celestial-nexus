@@ -125,7 +125,6 @@ async function generateMeme(
 - Laugh-out-loud funny with sharp wit
 - Emotionally relatable and surprisingly accurate
 - Written in natural Gen Z language (no forced slang)
-- Perfectly spelled with zero typos
 
 CONTEXT:
 Couple: ${personAName} & ${personBName}
@@ -136,7 +135,7 @@ ${swissDataJson}
 YOUR TASK (complete ALL steps):
 
 STEP 1: ANALYZE THE DATA
-Look for the most striking patterns in the synastry:
+Look for the most striking patterns in the synastry that is viral meme worthy:
 - Strong aspects (conjunctions, oppositions, trines, squares)
 - Dominant planetary energies
 - Sign and house placements
@@ -148,13 +147,7 @@ Requirements:
 ✓ Make it FUNNY - use irony, exaggeration, or unexpected twists
 ✓ Relatable format: "When [situation]..." or "[Name] & [Name] be like..."
 ✓ Natural language - avoid astro jargon unless it's the punchline
-✓ CRITICAL: Check every word for spelling errors before submitting
-✓ Must feel like something people would screenshot and share
-
-Humor styles that work:
-- Self-aware observations: "trying to have a calm conversation but mars square mars said no"
-- Playful contradictions: "venus trine but mercury retrograde vibes"
-- Relatable chaos: "when both your moons are in fire signs and nobody apologizes first"
+✓ Must feel like something people would screenshot and share and go viral 
 
 STEP 3: CREATE IMAGE GENERATION PROMPT
 Requirements:
@@ -164,17 +157,14 @@ Requirements:
   Examples: "Polaroid photography", "Y2K digital art", "cinematic film still", "retro vaporwave"
 ✓ Clear visual metaphor for the astrological dynamic
 ✓ Specify mood/lighting that matches the energy
+✓ CRITICAL: Tell image generator how to apply text so there is no spelling mistakes on image
 ✓ Include text overlay instructions:
   - Top overlay: "${personAName} & ${personBName}" (clean sans-serif font)
   - Center overlay: [your meme caption] (bold, high contrast)
   - Bottom overlay: "therai.co" (small, subtle)
 
-CRITICAL QUALITY CHECKS (perform before responding):
-1. Read caption out loud - does it sound natural?
-2. Spell-check every single word - no typos allowed
-3. Is it actually funny or just clever? (Aim for funny)
-4. Would someone tag their friend in this? If no, revise
-5. Is the image prompt specific enough to generate consistently?
+
+
 
 OUTPUT FORMAT (strict JSON, no markdown):
 {
