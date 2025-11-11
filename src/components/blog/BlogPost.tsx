@@ -131,7 +131,7 @@ export const BlogPost: React.FC<BlogPostProps> = ({ post }) => {
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.8, delay: 0.4 }}
-        className="prose prose-lg prose-gray max-w-none font-light leading-relaxed [&>h1]:text-3xl [&>h1]:font-light [&>h1]:text-gray-900 [&>h2]:text-2xl [&>h2]:font-light [&>h2]:text-gray-900 [&>h3]:text-xl [&>h3]:font-light [&>h3]:text-gray-900 [&>p]:text-gray-600 [&>a]:text-primary [&>strong]:text-gray-900 [&>blockquote]:border-gray-200 [&>blockquote]:text-gray-700"
+        className="prose prose-lg prose-gray max-w-none font-light leading-relaxed whitespace-pre-line break-words [&>h1]:text-3xl [&>h1]:font-light [&>h1]:text-gray-900 [&>h2]:text-2xl [&>h2]:font-light [&>h2]:text-gray-900 [&>h3]:text-xl [&>h3]:font-light [&>h3]:text-gray-900 [&>p]:text-gray-600 [&>a]:text-primary [&>strong]:text-gray-900 [&>blockquote]:border-gray-200 [&>blockquote]:text-gray-700"
         dangerouslySetInnerHTML={{ __html: sanitizedContent }}
       />
 
