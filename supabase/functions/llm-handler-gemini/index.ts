@@ -1,6 +1,5 @@
-
 // llm-handler-gemini.ts
-// Optimized version with image generation fix and performance improvements
+// Optimized version with proper image generation control
 
 declare const Deno: {
   env: {
@@ -355,7 +354,7 @@ Deno.serve(async (req: Request) => {
     }
 
     // 🔥 BUILD CONVERSATION HISTORY
-    type GeminiContent = { role: "user" | "model"; parts: { text: string }[] };
+    type GeminiContent = { role: "user" | "model"; parts: Array<{ text?: string; functionCall?: any; functionResponse?: any }> };
     const contents: GeminiContent[] = [];
 
     if (conversationSummary) {
@@ -373,19 +372,17 @@ Deno.serve(async (req: Request) => {
     // Add current message
     contents.push({ role: "user", parts: [{ text }] });
 
-    // 🔥 KEY FIX: Strict tool control based on current message ONLY
+    // 🔥 KEY FIX: Detect if image was explicitly requested
     const enableImageTool = messageExplicitlyRequestsImage(text);
 
     // Build Gemini request
     const requestBody: any = { contents };
 
     if (cacheName) {
+      // When using cache, can't override tools/toolConfig
       requestBody.cachedContent = cacheName;
-      // 🔥 CRITICAL: Override tool config even with cache to control function calling per message
-      if (!enableImageTool) {
-        requestBody.toolConfig = { functionCallingConfig: { mode: "NONE" } };
-      }
     } else {
+      // Fallback: no cache, build full request
       let combinedSystemInstruction = systemText ? `${systemPrompt}\n\n[System Data]\n${systemText}` : systemPrompt;
       if (memoryContext) {
         combinedSystemInstruction += `\n\n<user_memory>\n${memoryContext}\n</user_memory>`;
@@ -393,11 +390,10 @@ Deno.serve(async (req: Request) => {
       combinedSystemInstruction += `\n\n[CRITICAL: Remember Your Instructions]\n${systemPrompt}`;
       requestBody.system_instruction = { role: "system", parts: [{ text: combinedSystemInstruction }] };
       
+      // Only add tools if explicitly requested
       if (enableImageTool) {
         requestBody.tools = imageGenerationTool;
         requestBody.toolConfig = { functionCallingConfig: { mode: "AUTO" } };
-      } else {
-        requestBody.toolConfig = { functionCallingConfig: { mode: "NONE" } };
       }
     }
 
@@ -432,13 +428,13 @@ Deno.serve(async (req: Request) => {
       return JSON_RESPONSE(504, { error: "Gemini request error" });
     }
 
-    // 🔥 HANDLE RESPONSE: Image generation or text
+    // 🔥 HANDLE RESPONSE: Check for function call first
     const candidateParts = geminiResponseJson?.candidates?.[0]?.content?.parts || [];
     const functionCall = candidateParts.find((p: any) => p?.functionCall)?.functionCall;
 
     let assistantText = "";
 
-    // Only process function call if we explicitly enabled tools for this message
+    // 🔥 CRITICAL FIX: Only process function call if current message explicitly requested it
     if (functionCall && functionCall.name === "generate_image" && enableImageTool) {
       const prompt = functionCall.args?.prompt || "";
       
@@ -474,6 +470,66 @@ Deno.serve(async (req: Request) => {
           }).catch(() => {});
         }
         
+        // 🔥 KEY: Return function response to Gemini to complete the turn
+        // This prevents Gemini from trying to generate more images
+        const functionResponseContent = {
+          role: "model" as const,
+          parts: [
+            {
+              functionCall: {
+                name: "generate_image",
+                args: { prompt }
+              }
+            }
+          ]
+        };
+        
+        const functionResultContent = {
+          role: "user" as const,
+          parts: [
+            {
+              functionResponse: {
+                name: "generate_image",
+                response: {
+                  success: true,
+                  message: "Image generation started successfully"
+                }
+              }
+            }
+          ]
+        };
+        
+        // Make second API call with function response
+        const followUpBody = {
+          ...requestBody,
+          contents: [...contents, functionResponseContent, functionResultContent]
+        };
+        
+        try {
+          const followUpResp = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/${ENV.GEMINI_MODEL}:generateContent`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json", "x-goog-api-key": ENV.GOOGLE_API_KEY! },
+              body: JSON.stringify(followUpBody)
+            }
+          );
+          
+          if (followUpResp.ok) {
+            const followUpJson = await followUpResp.json();
+            const followUpParts = followUpJson?.candidates?.[0]?.content?.parts || [];
+            assistantText = followUpParts
+              .filter((p: any) => typeof p?.text === "string" && p.text.trim())
+              .map((p: any) => p.text)
+              .join(" ")
+              .trim() || "Generating your image now...";
+          } else {
+            assistantText = "Generating your image now...";
+          }
+        } catch {
+          assistantText = "Generating your image now...";
+        }
+        
         // Fire-and-forget image generation
         fetch(`${ENV.SUPABASE_URL}/functions/v1/image-generate`, {
           method: "POST",
@@ -483,18 +539,23 @@ Deno.serve(async (req: Request) => {
           },
           body: JSON.stringify({ chat_id, prompt, user_id, mode, image_id: imageId })
         }).catch((err) => console.error("[image-gen] failed:", err));
+      }
+    } else if (functionCall && !enableImageTool) {
+      // 🔥 SAFETY: Function call happened but shouldn't have - ignore it and extract text
+      console.warn("[gemini] unexpected function call ignored - user didn't request image");
+      assistantText = candidateParts
+        .filter((p: any) => typeof p?.text === "string" && p.text.trim())
+        .map((p: any) => p.text)
+        .join(" ")
+        .trim();
       
-        return JSON_RESPONSE(200, {
-          success: true,
-          message: "Image generation started",
-          skip_message_creation: true,
-          total_latency_ms: Date.now() - startMs
-        });
+      if (!assistantText) {
+        assistantText = "I'm here to help! What would you like to know?";
       }
     } else {
-      // Extract text response only
+      // Normal text response
       assistantText = candidateParts
-        .filter((p: any) => typeof p?.text === "string" && p.text.trim().length > 0)
+        .filter((p: any) => typeof p?.text === "string" && p.text.trim())
         .map((p: any) => p.text)
         .join(" ")
         .trim();
