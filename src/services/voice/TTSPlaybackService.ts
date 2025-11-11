@@ -414,7 +414,12 @@ class TTSPlaybackService {
     this.isPaused = false;
     audioArbitrator.releaseControl('tts');
     this.notify();
-    if (onEnded) onEnded();
+    
+    // Delay callback to account for audio system latency (100-300ms buffer drain time)
+    // This prevents UI from showing "thinking" while audio is still audibly playing
+    if (onEnded) {
+      setTimeout(() => onEnded(), 250);
+    }
   }
 
   stop(): void {
