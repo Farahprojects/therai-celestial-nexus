@@ -241,6 +241,17 @@ const Contact = () => {
         description="Reach out to Therai about partnerships, support, or questions about our AI webapp for psychological insights. We're here to help you on your journey of self-discovery."
         keywords="contact therai, AI webapp support, psychological insights, partnership inquiry, customer support, astrology help"
         url="/contact"
+        structuredData={{
+          '@context': 'https://schema.org',
+          '@type': 'ContactPage',
+          name: 'Contact Therai',
+          url: 'https://therai.co/contact',
+          about: {
+            '@type': 'Organization',
+            name: 'Therai',
+            url: 'https://therai.co'
+          }
+        }}
       />
       <div className="flex min-h-screen flex-col">
         <Navbar />

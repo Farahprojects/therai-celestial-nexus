@@ -48,6 +48,18 @@ const Support = () => {
         description="Find answers to common questions about Therai, an AI webapp that helps create psychological insights into momentum. Learn how to use features and troubleshoot issues."
         keywords="therai support, AI webapp help, psychological insights FAQ, astrology troubleshooting, AI-powered insights help"
         url="/support"
+        structuredData={{
+          '@context': 'https://schema.org',
+          '@type': 'FAQPage',
+          mainEntity: (faqData || []).slice(0, 8).map(faq => ({
+            '@type': 'Question',
+            name: faq.question,
+            acceptedAnswer: {
+              '@type': 'Answer',
+              text: faq.answer
+            }
+          }))
+        }}
       />
       <div className="flex flex-col min-h-screen bg-white">
         <Navbar />

@@ -12,6 +12,7 @@ import { useIsNativeApp } from '@/hooks/use-native-app';
 import Logo from '@/components/Logo';
 import { useAuth } from '@/contexts/AuthContext';
 import { getRedirectPath } from '@/utils/redirectUtils';
+import { SEO } from '@/components/SEO';
 type Props = {
   onGoogle?: () => void;
   onApple?: () => void;
@@ -68,7 +69,24 @@ const MobileLanding: React.FC<Props> = ({
     const destination = redirectPath || '/therai';
     return <Navigate to={destination} replace />;
   }
-  return <div className="min-h-screen flex flex-col bg-white">
+  return <>
+    <SEO
+      title="Therai | AI‑Powered Psychological Insights from Rhythms"
+      description="Therai helps you create psychological insights and momentum from natural rhythms. Elegant, private, and fast."
+      keywords="AI webapp, psychological insights, astrology, momentum, self-discovery"
+      url="/"
+      structuredData={{
+        '@context': 'https://schema.org',
+        '@type': 'WebSite',
+        name: 'Therai',
+        url: 'https://therai.co',
+        publisher: {
+          '@type': 'Organization',
+          name: 'Therai'
+        }
+      }}
+    />
+    <div className="min-h-screen flex flex-col bg-white">
       {/* Logo in top left */}
       <div className="absolute top-6 left-5 z-20">
         <Logo size="sm" />
@@ -257,6 +275,7 @@ const MobileLanding: React.FC<Props> = ({
 
       {/* Mobile Auth Modal */}
       <AuthModal isOpen={isAuthModalOpen} onClose={closeAuthModal} defaultMode={authModalMode} />
-    </div>;
+    </div>
+  </>;
 };
 export default MobileLanding;

@@ -14,6 +14,13 @@ const About = () => {
         description="Learn about Therai's mission to create psychological insights through momentum using AI-powered astrology. An AI webapp that helps you understand yourself through natural cycles and energetic patterns."
         keywords="about therai, AI webapp, psychological insights, astrology, momentum, self-discovery, AI-powered insights"
         url="/about"
+        structuredData={{
+          '@context': 'https://schema.org',
+          '@type': 'Organization',
+          name: 'Therai',
+          url: 'https://therai.co',
+          logo: 'https://api.therai.co/storage/v1/object/public/therai-assets/logowhite.jpeg'
+        }}
       />
       <div className="flex flex-col min-h-screen">
         <Navbar />
