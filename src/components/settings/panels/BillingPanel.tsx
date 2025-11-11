@@ -155,13 +155,7 @@ export const BillingPanel = () => {
           </ul>
 
           <div className="pt-4">
-            <p className="text-sm font-light text-gray-600 mb-3">Start your subscription and unlock all Growth features</p>
-            <Button
-              onClick={handleUpgrade}
-              className="w-full md:w-auto bg-gray-900 hover:bg-gray-800 text-white font-light px-6 py-3 rounded-full transition-all duration-200"
-            >
-              Get Growth
-            </Button>
+            <p className="text-sm font-light text-gray-600">Start your subscription and unlock all Growth features</p>
           </div>
         </div>
       )}
