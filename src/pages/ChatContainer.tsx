@@ -4,7 +4,6 @@ import { ReportModalProvider } from '@/contexts/ReportModalContext';
 import { useChatInitialization } from '@/hooks/useChatInitialization';
 import { AuthModal } from '@/components/auth/AuthModal';
 import { StarterQuestionsPopup } from '@/components/onboarding/StarterQuestionsPopup';
-import { MicDebugPanel } from '@/components/debug/MicDebugPanel';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useSearchParams, useNavigate, useLocation, useParams } from 'react-router-dom';
@@ -367,8 +366,6 @@ const ChatContainerContent: React.FC = () => {
         onQuestionSelect={handleQuestionSelect}
       />
       
-      {/* Mic Debug Panel - Production Debug Tool */}
-      <MicDebugPanel />
     </div>
   );
 };
