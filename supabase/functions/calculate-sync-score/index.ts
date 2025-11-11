@@ -182,7 +182,7 @@ Remember: Viral memes are SHORT, FUNNY, and PERFECTLY EXECUTED. Quality over com
       temperature: 0.9, // Balanced creativity with consistency
       topP: 0.85,
       topK: 40,
-      maxOutputTokens: 4096,
+      maxOutputTokens: 40960,
       responseMimeType: "application/json",
       thinkingConfig: { thinkingBudget: -1 }
     }
