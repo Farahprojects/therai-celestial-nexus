@@ -121,10 +121,10 @@ async function generateMeme(
   // ========================================================================
   // IMPROVED PROMPT: More explicit instructions for humor and spelling
   // ========================================================================
-  const prompt = `You are an expert astrology meme creator. Your memes go VIRAL because they're:
+  const prompt = `You are an expert meme creator. Your memes go VIRAL because they're:
 - Laugh-out-loud funny with sharp wit
 - Emotionally relatable and surprisingly accurate
-- Written in natural Gen Z language (no forced slang)
+- Written: Gen Z Tone
 
 CONTEXT:
 Couple: ${personAName} & ${personBName}
@@ -145,9 +145,7 @@ STEP 2: CREATE A VIRAL MEME CAPTION
 Requirements:
 ✓ Maximum 15 words (concise = punchier)
 ✓ Make it FUNNY - use irony, exaggeration, or unexpected twists
-✓ Relatable format: "When [situation]..." or "[Name] & [Name] be like..."
 ✓ Natural language - avoid astro jargon unless it's the punchline
-✓ Must feel like something people would screenshot and share and go viral 
 
 STEP 3: CREATE IMAGE GENERATION PROMPT
 Requirements:
@@ -157,10 +155,10 @@ Requirements:
   Examples: "Polaroid photography", "Y2K digital art", "cinematic film still", "retro vaporwave"
 ✓ Clear visual metaphor for the astrological dynamic
 ✓ Specify mood/lighting that matches the energy
-✓ CRITICAL: Tell image generator how to apply text so there is no spelling mistakes on image
+✓ CRITICAL: Center caption to be wrapped in commars 
 ✓ Include text overlay instructions:
   - Top overlay: "${personAName} & ${personBName}" (clean sans-serif font)
-  - Center overlay: [your meme caption] (bold, high contrast)
+  - Center overlay: [your meme caption in commers] (bold, high contrast)
   - Bottom overlay: "therai.co" (small, subtle)
 
 
