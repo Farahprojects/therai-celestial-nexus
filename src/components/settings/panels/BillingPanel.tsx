@@ -1,26 +1,31 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Loader2, ExternalLink } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { CancelSubscriptionModal } from '@/components/billing/CancelSubscriptionModal';
 import { useSettingsModal } from '@/contexts/SettingsModalContext';
-import type { Tables } from '@/integrations/supabase/types';
 
 interface SubscriptionData {
   subscription_active: boolean;
   subscription_plan: string | null;
   subscription_status: string | null;
-  subscription_end_date: string | null;
+  subscription_next_charge: string | null;
 }
+
+const GROWTH_HIGHLIGHTS = [
+  'Unlimited AI conversations',
+  'Together Mode (2-person sessions)',
+  'Premium HD Voice (10 min/month)',
+  'Image generation (3/day)',
+  'Unlimited folders & sharing'
+];
 
 export const BillingPanel = () => {
   const { user } = useAuth();
   const { closeSettings } = useSettingsModal();
   const [loading, setLoading] = useState(true);
   const [subscriptionData, setSubscriptionData] = useState<SubscriptionData | null>(null);
-  const [showCancelModal, setShowCancelModal] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -35,17 +40,19 @@ export const BillingPanel = () => {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('subscription_active, subscription_plan, subscription_status, subscription_end_date')
+        .select('subscription_active, subscription_plan, subscription_status, subscription_next_charge')
         .eq('id', user.id)
         .single();
 
       if (error) throw error;
 
+      console.log('Billing data fetched:', data);
+
       setSubscriptionData({
         subscription_active: data.subscription_active || false,
         subscription_plan: data.subscription_plan || null,
         subscription_status: data.subscription_status || null,
-        subscription_end_date: data.subscription_end_date || null,
+        subscription_next_charge: data.subscription_next_charge || null,
       });
     } catch (error) {
       console.error('Error fetching billing data:', error);
@@ -56,7 +63,10 @@ export const BillingPanel = () => {
   };
 
   const handleManageSubscription = async () => {
+    console.log('handleManageSubscription clicked');
     try {
+      toast.loading('Opening billing portal...');
+      
       const { data, error } = await supabase.functions.invoke('create-checkout-session', {
         body: { 
           return_url: window.location.origin + '/settings?tab=billing',
@@ -64,10 +74,19 @@ export const BillingPanel = () => {
         }
       });
 
-      if (error) throw error;
+      console.log('Portal response:', { data, error });
+
+      if (error) {
+        console.error('Portal error:', error);
+        throw error;
+      }
 
       if (data?.url) {
+        console.log('Redirecting to:', data.url);
         window.location.href = data.url;
+      } else {
+        console.error('No URL in response:', data);
+        toast.error('No portal URL received');
       }
     } catch (error) {
       console.error('Error opening customer portal:', error);
@@ -91,90 +110,116 @@ export const BillingPanel = () => {
   const isActive = subscriptionData?.subscription_active && 
                   ['active', 'trialing'].includes(subscriptionData?.subscription_status || '');
 
+  const getPlanName = (planId: string | null) => {
+    if (planId === '10_monthly') return 'Growth';
+    if (planId === '18_monthly' || planId === '25_monthly') return 'Premium';
+    return planId || 'Free';
+  };
+
   return (
-    <div className="space-y-6">
-      {/* Subscription Status */}
-      <div className="border-b pb-6">
-        <h3 className="text-lg font-light text-gray-900 mb-4">Subscription</h3>
+    <div className="space-y-8">
+      {/* Header with Upgrade Button */}
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div className="space-y-1">
+          <h3 className="text-2xl font-light italic text-gray-900">Billing</h3>
+          {!isActive && (
+            <p className="text-sm font-light text-gray-600">Upgrade to Therai growth plan</p>
+          )}
+        </div>
         
-        <div className="bg-gray-50 rounded-xl p-6 space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="text-sm text-gray-500 mb-1">Status</div>
-              <div className="text-lg font-medium text-gray-900">
-                {isActive ? (
-                  <span className="text-green-600">Active</span>
-                ) : (
-                  <span className="text-gray-400">No active subscription</span>
-                )}
-              </div>
+        {!isActive && (
+          <Button
+            onClick={handleUpgrade}
+            className="bg-gray-900 hover:bg-gray-800 text-white font-light px-6 py-2 rounded-full transition-all duration-200"
+          >
+            Upgrade
+          </Button>
+        )}
+      </div>
+
+      {/* Free Plan - Show Growth Highlights */}
+      {!isActive && (
+        <div className="space-y-6">
+          <div className="space-y-2">
+            <h4 className="text-lg font-light text-gray-900">Growth Plan Includes</h4>
+            <p className="text-sm font-light text-gray-500">Everything you need to unlock your full potential</p>
+          </div>
+          
+          <ul className="space-y-3">
+            {GROWTH_HIGHLIGHTS.map((highlight, index) => (
+              <li key={index} className="flex items-start text-sm font-light text-gray-700">
+                <div className="w-1.5 h-1.5 bg-gray-400 rounded-full mr-3 mt-2 flex-shrink-0"></div>
+                <span>{highlight}</span>
+              </li>
+            ))}
+          </ul>
+
+          <div className="pt-4">
+            <p className="text-sm font-light text-gray-600 mb-3">Start your subscription and unlock all Growth features</p>
+            <Button
+              onClick={handleUpgrade}
+              className="w-full md:w-auto bg-gray-900 hover:bg-gray-800 text-white font-light px-6 py-3 rounded-full transition-all duration-200"
+            >
+              Get Growth
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Active Subscription */}
+      {isActive && (
+        <div className="space-y-8">
+          {/* Plan and Billing Info */}
+          <div className="space-y-6">
+            <div className="flex items-baseline gap-3">
+              <span className="text-sm font-light text-gray-500">Current Plan:</span>
+              <span className="text-xl font-light text-gray-900">
+                {getPlanName(subscriptionData?.subscription_plan)}
+              </span>
             </div>
-            
-            {subscriptionData?.subscription_plan && (
-              <div className="text-right">
-                <div className="text-sm text-gray-500 mb-1">Plan</div>
-                <div className="text-lg font-medium text-gray-900 capitalize">
-                  {subscriptionData.subscription_plan === '10_monthly' ? 'Growth' : 
-                   subscriptionData.subscription_plan === '18_monthly' ? 'Premium' : 
-                   subscriptionData.subscription_plan}
-                </div>
+
+            {subscriptionData?.subscription_next_charge && (
+              <div className="flex items-baseline gap-3">
+                <span className="text-sm font-light text-gray-500">
+                  {subscriptionData.subscription_status === 'active' ? 'Next billing date:' : 'Ends on:'}
+                </span>
+                <span className="text-base font-light text-gray-900">
+                  {new Date(subscriptionData.subscription_next_charge).toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                  })}
+                </span>
               </div>
             )}
           </div>
 
-          {subscriptionData?.subscription_end_date && (
-            <div>
-              <div className="text-sm text-gray-500 mb-1">
-                {subscriptionData.subscription_status === 'active' ? 'Renews on' : 'Ends on'}
-              </div>
-              <div className="text-sm text-gray-900">
-                {new Date(subscriptionData.subscription_end_date).toLocaleDateString('en-US', {
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric'
-                })}
-              </div>
-            </div>
-          )}
-        </div>
-
-        <div className="mt-4 flex gap-3">
-          {isActive ? (
-            <>
+          {/* Action Buttons - Stacked with aligned buttons */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between gap-4">
+              <p className="text-sm font-light text-gray-600 flex-1">Update payment method, view invoices, or cancel</p>
               <Button
                 onClick={handleManageSubscription}
-                variant="outline"
-                className="flex items-center gap-2"
+                className="bg-gray-900 hover:bg-gray-800 text-white font-light px-6 py-2 rounded-full transition-all duration-200 flex-shrink-0"
               >
-                <ExternalLink className="w-4 h-4" />
-                Manage Subscription
+                Manage
               </Button>
-              {subscriptionData?.subscription_plan === '10_monthly' && (
+            </div>
+            
+            {subscriptionData?.subscription_plan === '10_monthly' && (
+              <div className="flex items-center justify-between gap-4">
+                <p className="text-sm font-light text-gray-600 flex-1">Get unlimited voice and image generation</p>
                 <Button
                   onClick={handleUpgrade}
-                  className="bg-gray-900 text-white hover:bg-gray-800"
+                  className="bg-gray-900 hover:bg-gray-800 text-white font-light px-6 py-2 rounded-full transition-all duration-200 flex-shrink-0"
                 >
-                  Upgrade to Premium
+                  Upgrade
                 </Button>
-              )}
-            </>
-          ) : (
-            <Button
-              onClick={handleUpgrade}
-              className="bg-gray-900 text-white hover:bg-gray-800"
-            >
-              Subscribe Now
-            </Button>
-          )}
+              </div>
+            )}
+          </div>
         </div>
-      </div>
-
-      {/* Cancel Subscription Modal */}
-      <CancelSubscriptionModal
-        isOpen={showCancelModal}
-        onClose={() => setShowCancelModal(false)}
-        onSuccess={fetchBillingData}
-      />
+      )}
     </div>
   );
 };
