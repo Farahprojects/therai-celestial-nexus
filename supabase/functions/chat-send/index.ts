@@ -108,7 +108,9 @@ if (messages && Array.isArray(messages) && messages.length > 0) {
     }
   }
 
-  // Save all messages in order (user first, then assistant)
+  // ✅ OPTIMIZED: Batch insert both messages - message_number trigger ensures order
+  // The get_next_message_number() function uses pg_advisory_xact_lock to guarantee
+  // sequential message_number assignment, so order is guaranteed by the database
   const messagesToInsert = messages.map(msg => ({
     chat_id,
     role: msg.role,
@@ -124,7 +126,8 @@ if (messages && Array.isArray(messages) && messages.length > 0) {
   const { data: insertedMessages, error: dbError } = await supabase
     .from("messages")
     .insert(messagesToInsert)
-    .select("*");
+    .select("*")
+    .order("message_number", { ascending: true });
 
   if (dbError) {
     console.error(JSON.stringify({
@@ -138,7 +141,7 @@ if (messages && Array.isArray(messages) && messages.length > 0) {
   console.info(JSON.stringify({
     event: "chat_send_batch_insert_complete",
     request_id: requestId,
-    message_count: messagesToInsert.length,
+    message_count: insertedMessages.length,
     duration_ms: Date.now() - startTime
   }));
 
@@ -195,8 +198,8 @@ if (messages && Array.isArray(messages) && messages.length > 0) {
   }
 
   return json(200, {
-    message: `Saved ${messagesToInsert.length} messages`,
-    saved: insertedMessages || messagesToInsert
+    message: `Saved ${insertedMessages.length} messages`,
+    saved: insertedMessages
   });
 }
 

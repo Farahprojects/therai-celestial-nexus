@@ -675,19 +675,46 @@ Deno.serve(async (req: Request) => {
     const tasks: Promise<Response>[] = [];
 
     if (chattype === "voice") {
-      tasks.push(fetch(`${ENV.SUPABASE_URL}/functions/v1/chat-send`, {
+      // ✅ OPTIMIZED: Send user message first, then assistant
+      // User message completes first (gets message_number N), then assistant (gets N+1)
+      // Both are fire-and-forget for speed, but sequential sending ensures order
+      
+      // 1. User message first - fire-and-forget but starts first
+      const userMessagePromise = fetch(`${ENV.SUPABASE_URL}/functions/v1/chat-send`, {
         method: "POST",
         headers,
         body: JSON.stringify({
           chat_id,
+          text,
+          role: "user",
+          client_msg_id: userClientId,
           mode,
-          messages: [
-            { text, role: "user", client_msg_id: userClientId, mode, user_id, user_name },
-            { text: assistantText, role: "assistant", client_msg_id: assistantClientId, mode, user_id, user_name }
-          ],
+          user_id,
+          user_name,
           chattype
         })
-      }));
+      }).catch(() => { /* silent */ });
+
+      // 2. Assistant message second - starts after user message is initiated
+      // The message_number trigger ensures sequential assignment via lock
+      tasks.push(
+        userMessagePromise.then(() => 
+          fetch(`${ENV.SUPABASE_URL}/functions/v1/chat-send`, {
+            method: "POST",
+            headers,
+            body: JSON.stringify({
+              chat_id,
+              text: assistantText,
+              role: "assistant",
+              client_msg_id: assistantClientId,
+              mode,
+              user_id,
+              user_name,
+              chattype
+            })
+          })
+        )
+      );
     } else {
       tasks.push(fetch(`${ENV.SUPABASE_URL}/functions/v1/chat-send`, {
         method: "POST",
