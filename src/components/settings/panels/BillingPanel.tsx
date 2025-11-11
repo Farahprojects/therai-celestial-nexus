@@ -65,8 +65,6 @@ export const BillingPanel = () => {
   const handleManageSubscription = async () => {
     console.log('handleManageSubscription clicked');
     try {
-      toast.loading('Opening billing portal...');
-      
       const { data, error } = await supabase.functions.invoke('create-checkout-session', {
         body: { 
           return_url: window.location.origin + '/settings?tab=billing',
