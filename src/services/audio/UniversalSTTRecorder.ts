@@ -65,6 +65,9 @@ export class UniversalSTTRecorder {
   // VAD state
   private vadActive: boolean = false; // currently capturing a speech segment
 
+  // Mic pause state (tracks intentional pauses to suppress false zero-input warnings/recovery)
+  private isInputPaused: boolean = false;
+
   // PCM capture state for WAV-per-segment path
   private preRollSampleChunks: Float32Array[] = [];
   private preRollTotalSamples: number = 0;
@@ -231,6 +234,7 @@ export class UniversalSTTRecorder {
   // Pause mic input without tearing down the stream
   pauseInput(): void {
     if (!this.mediaStream) return;
+    this.isInputPaused = true;
     this.mediaStream.getAudioTracks().forEach(track => {
       track.enabled = false;
     });
@@ -239,6 +243,7 @@ export class UniversalSTTRecorder {
   // Resume mic input
   resumeInput(): void {
     if (!this.mediaStream) return;
+    this.isInputPaused = false;
     this.mediaStream.getAudioTracks().forEach(track => {
       track.enabled = true;
     });
@@ -372,6 +377,21 @@ export class UniversalSTTRecorder {
     const updateAnimation = () => {
       // Always sample analyser while the graph exists
       if (!this.analyser || !this.dataArray) return;
+
+      // If input is intentionally paused (e.g., during TTS playback), suppress zero-input warnings,
+      // VAD logic, and mic recovery attempts to avoid false transitions/log noise.
+      const tracks = this.mediaStream?.getAudioTracks() || [];
+      const allTracksDisabled = tracks.length > 0 && tracks.every(t => !t.enabled);
+      if (this.isInputPaused || allTracksDisabled) {
+        // Reset diagnostics so we don't trigger recovery on resume
+        zeroCheckCount = 0;
+        hasLoggedZeroWarning = false;
+        attemptedDeadInputRecovery = false;
+        // Keep UI level minimal while paused
+        this.options.onLevel?.(0);
+        this.animationFrame = requestAnimationFrame(updateAnimation);
+        return;
+      }
 
       // Get current audio data - create a fresh array to avoid type issues
       const tempArray = new Float32Array(this.analyser.fftSize);
