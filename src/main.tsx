@@ -4,6 +4,8 @@ import { createRoot } from 'react-dom/client';
 import { HelmetProvider } from 'react-helmet-async';
 import App from './App';
 import { initAuthManager } from './services/authManager';
+import { Capacitor } from '@capacitor/core';
+import { StatusBar, Style } from '@capacitor/status-bar';
 import './index.css';
 
 // Dev-only: suppress noisy Lovable editor console errors (CORS/504 polling)
@@ -14,6 +16,19 @@ import { cleanupOldStorage } from './utils/cleanupOldStorage';
 import './stores/initializeApp';
 // 🔥 Initialize memory cleanup handlers (development only)
 import { setupDevCleanup, logMemoryStats } from './utils/memoryCleanup';
+
+// Initialize StatusBar for native apps
+const initStatusBar = async () => {
+  if (Capacitor.isNativePlatform()) {
+    try {
+      await StatusBar.setStyle({ style: Style.Light });
+      await StatusBar.setBackgroundColor({ color: '#ffffff' });
+      await StatusBar.setOverlaysWebView({ overlay: false });
+    } catch (error) {
+      console.error('StatusBar initialization error:', error);
+    }
+  }
+};
 
 // Force deploy - 2025-06-29
 if (typeof window !== 'undefined') {
@@ -28,6 +43,8 @@ if (typeof window !== 'undefined') {
     // Log initial memory stats
     logMemoryStats();
   }
+  // Initialize StatusBar for native platforms
+  initStatusBar();
   // Initialize unified auth manager AFTER window is available
   // Ensures Capacitor bridge is ready before platform detection
   initAuthManager();

@@ -44,14 +44,16 @@ function App() {
       <Router>
         <AppProviders>
           <OnboardingGuard>
-            <Routes>
-              {/* Public routes - no auth required */}
-              <Route path="/join/:chatId" element={<JoinConversation />} />
-              <Route path="/folder/:folderId" element={<JoinFolder />} />
-              
-              {/* All other routes go through AuthedAppShell */}
-              <Route path="/*" element={<AuthedAppShell />} />
-            </Routes>
+            <div className="pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
+              <Routes>
+                {/* Public routes - no auth required */}
+                <Route path="/join/:chatId" element={<JoinConversation />} />
+                <Route path="/folder/:folderId" element={<JoinFolder />} />
+                
+                {/* All other routes go through AuthedAppShell */}
+                <Route path="/*" element={<AuthedAppShell />} />
+              </Routes>
+            </div>
           </OnboardingGuard>
         </AppProviders>
         <Toaster />

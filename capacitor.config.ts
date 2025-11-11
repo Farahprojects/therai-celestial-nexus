@@ -10,6 +10,11 @@ const config: CapacitorConfig = {
   plugins: {
     App: {
       launchUrl: 'therai://auth/callback'
+    },
+    StatusBar: {
+      style: 'Light',
+      backgroundColor: '#ffffff',
+      overlaysWebView: false
     }
   }
 };
