@@ -9,7 +9,6 @@
 
 import { getLLMHandler } from "../_shared/llmConfig.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-import { checkLimit, incrementUsage } from "../_shared/limitChecker.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -312,40 +311,59 @@ Deno.serve(async (req) => {
 
     // 🔒 PRE-TRANSCRIPTION CHECK: Block if user has exceeded voice limit
     if (authenticatedUserId && supabase) {
-      const limitCheck = await checkLimit(supabase, authenticatedUserId, 'voice_seconds', 0);
+      const { data: voicePreCheck, error: voicePreCheckError } = await supabase.rpc('check_voice_limit', {
+        p_user_id: authenticatedUserId,
+        p_requested_seconds: 0
+      });
+
+      if (voicePreCheckError) {
+        console.error(JSON.stringify({
+          event: "voice_limit_pre_check_failed",
+          user_id: authenticatedUserId,
+          error: voicePreCheckError.message
+        }));
+
+        return json(200, {
+          success: false,
+          code: "VOICE_LIMIT_CHECK_FAILED",
+          message: "Unable to verify voice usage right now. Please try again in a moment.",
+          transcript: ""
+        });
+      }
 
       console.info(JSON.stringify({
         event: "voice_limit_pre_check",
         user_id: authenticatedUserId,
-        allowed: limitCheck.allowed,
-        current_usage: limitCheck.current_usage,
-        remaining: limitCheck.remaining,
-        limit: limitCheck.limit,
-        is_unlimited: limitCheck.is_unlimited,
-        reason: limitCheck.reason
+        allowed: voicePreCheck?.allowed,
+        seconds_used: voicePreCheck?.seconds_used,
+        remaining: voicePreCheck?.remaining,
+        limit: voicePreCheck?.limit,
+        is_unlimited: voicePreCheck?.is_unlimited,
+        reason: voicePreCheck?.reason
       }));
 
-      if (!limitCheck.allowed) {
+      if (!voicePreCheck?.allowed) {
         console.warn(JSON.stringify({
           event: "usage_limit_exceeded_pre_transcription",
-          reason: limitCheck.reason,
+          reason: voicePreCheck?.reason,
           user_id: authenticatedUserId,
-          current_usage: limitCheck.current_usage,
-          limit: limitCheck.limit
+          seconds_used: voicePreCheck?.seconds_used,
+          limit: voicePreCheck?.limit
         }));
 
-        const limitMinutes = limitCheck.limit ? Math.floor(limitCheck.limit / 60) : 0;
-        const message = limitCheck.limit === 120 
-          ? "You've used your 2 minutes of free voice transcription. Subscribe to get 10 minutes/month with Growth or unlimited with Premium."
-          : `You've used your ${limitMinutes} minutes of voice for this month. Upgrade to Premium for unlimited voice features.`;
-        
+        const limitSeconds = typeof voicePreCheck?.limit === "number" ? voicePreCheck.limit : null;
+        const limitMinutes = limitSeconds ? Math.floor(limitSeconds / 60) : 0;
+        const message = limitSeconds
+          ? `You've used your ${limitMinutes} minutes of voice for this billing cycle. Upgrade to Premium for unlimited voice features.`
+          : "Voice limit exceeded for current billing cycle.";
+
         return json(200, {
           success: false,
-          code: "STT_LIMIT_EXCEEDED",
+          code: "VOICE_LIMIT_EXCEEDED",
           message,
-          current_usage: limitCheck.current_usage,
-          limit: limitCheck.limit,
-          remaining: limitCheck.remaining,
+          current_usage: voicePreCheck?.seconds_used ?? 0,
+          limit: voicePreCheck?.limit ?? null,
+          remaining: voicePreCheck?.remaining ?? 0,
           transcript: ""
         });
       }
@@ -387,50 +405,70 @@ Deno.serve(async (req) => {
         duration_seconds: durationSeconds
       }));
 
-      // ✅ NEW PRO WAY: Check limit one more time (defense in depth)
-      const postCheck = await checkLimit(supabase, authenticatedUserId, 'voice_seconds', durationSeconds);
+      const { data: voicePostCheck, error: voicePostCheckError } = await supabase.rpc('check_voice_limit', {
+        p_user_id: authenticatedUserId,
+        p_requested_seconds: durationSeconds
+      });
 
-      if (!postCheck.allowed) {
-        console.warn(JSON.stringify({
-          event: "usage_limit_exceeded_post_transcription",
-          reason: postCheck.reason,
+      if (voicePostCheckError) {
+        console.error(JSON.stringify({
+          event: "voice_limit_post_check_failed",
           user_id: authenticatedUserId,
-          current_usage: postCheck.current_usage,
-          requested_duration: durationSeconds,
-          limit: postCheck.limit
+          error: voicePostCheckError.message
         }));
 
-        const limitMinutes = postCheck.limit ? Math.floor(postCheck.limit / 60) : 0;
-        const message = postCheck.limit === 120 
-          ? "You've used your 2 minutes of free voice transcription. Subscribe to get 10 minutes/month with Growth or unlimited with Premium."
-          : `You've used your ${limitMinutes} minutes of voice for this month. Upgrade to Premium for unlimited voice features.`;
-        
         return json(200, {
           success: false,
-          code: "STT_LIMIT_EXCEEDED",
-          message,
-          current_usage: postCheck.current_usage,
-          limit: postCheck.limit,
-          remaining: postCheck.remaining,
+          code: "VOICE_LIMIT_CHECK_FAILED",
+          message: "Unable to verify updated voice usage. Please try again.",
           transcript: ""
         });
       }
 
-      // ✅ NEW PRO WAY: Increment usage directly (no edge function call)
+      if (!voicePostCheck?.allowed) {
+        console.warn(JSON.stringify({
+          event: "usage_limit_exceeded_post_transcription",
+          reason: voicePostCheck?.reason,
+          user_id: authenticatedUserId,
+          seconds_used: voicePostCheck?.seconds_used,
+          requested_duration: durationSeconds,
+          limit: voicePostCheck?.limit
+        }));
+
+        const limitSeconds = typeof voicePostCheck?.limit === "number" ? voicePostCheck.limit : null;
+        const limitMinutes = limitSeconds ? Math.floor(limitSeconds / 60) : 0;
+        const message = limitSeconds
+          ? `You've used your ${limitMinutes} minutes of voice for this billing cycle. Upgrade to Premium for unlimited voice features.`
+          : "Voice limit exceeded for current billing cycle.";
+
+        return json(200, {
+          success: false,
+          code: "VOICE_LIMIT_EXCEEDED",
+          message,
+          current_usage: voicePostCheck?.seconds_used ?? 0,
+          limit: voicePostCheck?.limit ?? null,
+          remaining: voicePostCheck?.remaining ?? 0,
+          transcript: ""
+        });
+      }
+
       console.info(JSON.stringify({
         event: "incrementing_voice_usage",
         user_id: authenticatedUserId,
         feature_type: "voice_seconds",
         amount: durationSeconds,
-        is_unlimited: postCheck.is_unlimited
+        is_unlimited: voicePostCheck?.is_unlimited
       }));
 
-      const incrementResult = await incrementUsage(supabase, authenticatedUserId, 'voice_seconds', durationSeconds);
+      const { error: incrementError } = await supabase.rpc('increment_voice_usage', {
+        p_user_id: authenticatedUserId,
+        p_seconds: durationSeconds
+      });
 
-      if (!incrementResult.success) {
+      if (incrementError) {
         console.error(JSON.stringify({
           event: "increment_failed",
-          reason: incrementResult.reason,
+          reason: incrementError.message,
           user_id: authenticatedUserId
         }));
       } else {

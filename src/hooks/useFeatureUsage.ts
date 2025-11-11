@@ -41,48 +41,73 @@ export function useFeatureUsage() {
       setLoading(true);
       setError(null);
 
-      // ✅ NEW PRO WAY: Use get_user_limits RPC (database-driven)
-      const { data, error: rpcError } = await supabase.rpc('get_user_limits', {
-        p_user_id: user.id
-      });
+      const [
+        { data: voiceData, error: voiceError },
+        { data: limitsData, error: limitsError },
+        { data: profileData, error: profileError }
+      ] = await Promise.all([
+        supabase.rpc('check_voice_limit', {
+          p_user_id: user.id,
+          p_requested_seconds: 0
+        }),
+        supabase.rpc('get_user_limits', {
+          p_user_id: user.id
+        }),
+        supabase
+          .from('profiles')
+          .select('subscription_active, subscription_status, subscription_plan')
+          .eq('id', user.id)
+          .single()
+      ]);
 
-      if (rpcError) {
-        console.error('[useFeatureUsage] Error fetching limits:', rpcError);
-        setError(rpcError.message || 'Failed to fetch usage data');
+      if (voiceError) {
+        console.error('[useFeatureUsage] Error fetching voice usage:', voiceError);
+        setError(voiceError.message || 'Failed to fetch voice usage');
         setUsage(null);
         return;
       }
 
-      // Transform new data structure to match old interface
-      const responseData = data as any;
-      const limits = responseData?.limits || {};
-      const usage = responseData?.usage || {};
+      if (limitsError) {
+        console.error('[useFeatureUsage] Error fetching limits:', limitsError);
+        setError(limitsError.message || 'Failed to fetch usage data');
+        setUsage(null);
+        return;
+      }
+
+      if (profileError) {
+        console.warn('[useFeatureUsage] Profile lookup failed:', profileError);
+      }
+
+      const limits = (limitsData as any)?.limits || {};
+      const usage = (limitsData as any)?.usage || {};
       const currentPeriod = new Date().toISOString().slice(0, 7);
 
-      // Get subscription info from profile
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('subscription_active, subscription_status, subscription_plan')
-        .eq('id', user.id)
-        .single();
+      const voiceIsUnlimited = voiceData?.is_unlimited === true || voiceData?.limit === null;
+      const voiceUsed = voiceData?.seconds_used ?? 0;
+      const voiceLimit = voiceIsUnlimited ? null : voiceData?.limit ?? null;
+      const voiceRemaining = voiceIsUnlimited
+        ? null
+        : voiceData?.remaining ?? Math.max(0, (voiceLimit ?? 0) - voiceUsed);
+
+      const insightLimit = (limits?.insights ?? null) as number | null;
+      const insightUsed = usage.insights_count || 0;
+      const insightRemaining = insightLimit === null
+        ? null
+        : Math.max(0, insightLimit - insightUsed);
 
       const transformedData: FeatureUsage = {
         period: currentPeriod,
-        subscription_active: profile?.subscription_active || false,
-        subscription_plan: limits.plan_id || 'free',
+        subscription_active: profileData?.subscription_active || false,
+        subscription_plan: profileData?.subscription_plan || limits.plan_id || 'free',
         voice_seconds: {
-          used: usage.voice_seconds || 0,
-          limit: limits.voice_seconds ?? null,
-          remaining: limits.voice_seconds === null 
-            ? null 
-            : Math.max(0, limits.voice_seconds - (usage.voice_seconds || 0))
+          used: voiceUsed,
+          limit: voiceLimit,
+          remaining: voiceRemaining
         },
         insights_count: {
-          used: usage.insights_count || 0,
-          limit: limits.insights ?? null,
-          remaining: limits.insights === null 
-            ? null 
-            : Math.max(0, limits.insights - (usage.insights_count || 0))
+          used: insightUsed,
+          limit: insightLimit,
+          remaining: insightRemaining
         }
       };
 

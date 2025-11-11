@@ -60,6 +60,37 @@ return json(200, { transcript });
 - Change limits in database without redeployment
 - Consistent error handling
 
+#### Voice Usage RPCs Under the Hood
+The helper in `_shared/limitChecker.ts` now proxies to the dedicated voice RPCs so everything stays in SQL:
+
+```typescript
+export async function checkLimit(supabase, userId, feature, amount) {
+  if (feature === 'voice_seconds') {
+    const { data, error } = await supabase.rpc('check_voice_limit', {
+      p_user_id: userId,
+      p_requested_seconds: amount,
+    });
+    if (error) throw error;
+    return data;
+  }
+  // ... existing feature_usage lookups
+}
+
+export async function incrementUsage(supabase, userId, feature, amount) {
+  if (feature === 'voice_seconds') {
+    const { error } = await supabase.rpc('increment_voice_usage', {
+      p_user_id: userId,
+      p_seconds: amount,
+    });
+    if (error) throw error;
+    return;
+  }
+  // ... existing feature_usage increments
+}
+```
+
+This keeps the edge function ergonomics identical while shifting the real work into the `voice_usage` table and its helpers.
+
 ---
 
 ## Adding New Feature: Together Mode @therai Limit

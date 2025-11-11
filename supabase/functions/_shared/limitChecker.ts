@@ -39,6 +39,31 @@ export async function checkLimit(
   requestedAmount: number = 1
 ): Promise<LimitCheckResult> {
   try {
+    if (featureType === 'voice_seconds') {
+      const { data, error } = await supabase.rpc('check_voice_limit', {
+        p_user_id: userId,
+        p_requested_seconds: requestedAmount
+      });
+
+      if (error) {
+        console.error('[limitChecker] Voice limit RPC error:', error);
+        return {
+          allowed: false,
+          reason: 'Failed to check voice limit',
+          error_code: 'RPC_ERROR'
+        };
+      }
+
+      return {
+        allowed: data?.allowed ?? false,
+        limit: data?.limit ?? null,
+        current_usage: data?.seconds_used ?? 0,
+        remaining: data?.is_unlimited ? null : data?.remaining ?? 0,
+        is_unlimited: data?.is_unlimited ?? false,
+        reason: data?.reason
+      };
+    }
+
     // Call centralized database function
     const { data, error } = await supabase.rpc('check_feature_limit', {
       p_user_id: userId,
@@ -124,9 +149,25 @@ export async function incrementUsage(
   amount: number
 ): Promise<{ success: boolean; reason?: string }> {
   try {
+    if (featureType === 'voice_seconds') {
+      const { error } = await supabase.rpc('increment_voice_usage', {
+        p_user_id: userId,
+        p_seconds: amount
+      });
+
+      if (error) {
+        console.error('[limitChecker] Failed to increment voice usage:', error);
+        return {
+          success: false,
+          reason: error.message
+        };
+      }
+
+      return { success: true };
+    }
+
     // Map feature type to RPC function
-    const rpcMap: Record<FeatureType, string> = {
-      'voice_seconds': 'increment_voice_seconds',
+    const rpcMap: Partial<Record<FeatureType, string>> = {
       'therai_calls': 'increment_therai_calls',
       'insights': 'increment_insights_count',
       'image_generation': 'increment_images_generated',
@@ -155,9 +196,7 @@ export async function incrementUsage(
     };
 
     // Add amount parameter with correct name
-    if (featureType === 'voice_seconds') {
-      rpcParams.p_seconds = amount;
-    } else if (featureType === 'therai_calls') {
+    if (featureType === 'therai_calls') {
       rpcParams.p_calls = amount;
     } else if (featureType === 'chat') {
       rpcParams.p_count = amount;
