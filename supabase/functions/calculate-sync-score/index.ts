@@ -21,9 +21,17 @@ interface MemeCaption {
   attribution?: string;
 }
 
+interface PersonData {
+  name: string;
+  gender: 'male' | 'female' | 'non-binary' | 'unknown';
+  birthData?: any;
+}
+
 interface MemeGeneration {
   caption: MemeCaption;
   imagePrompt: string;
+  personA: PersonData;
+  personB: PersonData;
 }
 
 interface MemeData {
@@ -182,7 +190,7 @@ Remember: Viral memes are SHORT, FUNNY, and PERFECTLY EXECUTED. Quality over com
       temperature: 0.9, // Balanced creativity with consistency
       topP: 0.85,
       topK: 40,
-      maxOutputTokens: 40960,
+      maxOutputTokens: 40096,
       responseMimeType: "application/json",
       thinkingConfig: { thinkingBudget: -1 }
     }
