@@ -148,10 +148,15 @@ BEGIN
   END IF;
 
   -- Fetch current usage (treat no-row as 0)
-  v_current_usage := COALESCE(
-    (SELECT seconds_used FROM public.voice_usage WHERE user_id = p_user_id LIMIT 1),
-    0
-  );
+  SELECT COALESCE(seconds_used, 0) INTO v_current_usage
+  FROM public.voice_usage
+  WHERE user_id = p_user_id;
+  
+  -- If no row exists, SELECT INTO leaves variable unchanged (already 0)
+  -- But to be explicit, we check FOUND
+  IF NOT FOUND THEN
+    v_current_usage := 0;
+  END IF;
 
   -- Evaluate allowance
   IF v_current_usage + p_requested_seconds <= v_limit THEN
