@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useSettingsModal } from '@/contexts/SettingsModalContext';
+import { cn } from '@/lib/utils';
 
 interface SubscriptionData {
   subscription_active: boolean;
@@ -26,6 +27,8 @@ export const BillingPanel = () => {
   const { closeSettings } = useSettingsModal();
   const [loading, setLoading] = useState(true);
   const [subscriptionData, setSubscriptionData] = useState<SubscriptionData | null>(null);
+  const [manageLoading, setManageLoading] = useState(false);
+  const [upgradeLoading, setUpgradeLoading] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -63,13 +66,13 @@ export const BillingPanel = () => {
   };
 
   const handleManageSubscription = async () => {
+    if (manageLoading) return;
     console.log('handleManageSubscription clicked');
     try {
-      const { data, error } = await supabase.functions.invoke('create-checkout-session', {
-        body: { 
-          return_url: window.location.origin + '/settings?tab=billing',
-          mode: 'customer_portal' 
-        }
+      setManageLoading(true);
+
+      const { data, error } = await supabase.functions.invoke('customer-portal', {
+        body: {}
       });
 
       console.log('Portal response:', { data, error });
@@ -79,20 +82,22 @@ export const BillingPanel = () => {
         throw error;
       }
 
-      if (data?.url) {
-        console.log('Redirecting to:', data.url);
-        window.location.href = data.url;
-      } else {
-        console.error('No URL in response:', data);
-        toast.error('No portal URL received');
+      if (!data?.url) {
+        throw new Error('No portal URL received');
       }
+
+      console.log('Redirecting to:', data.url);
+      window.location.href = data.url;
     } catch (error) {
       console.error('Error opening customer portal:', error);
       toast.error('Failed to open billing portal');
+      setManageLoading(false);
     }
   };
 
   const handleUpgrade = () => {
+    if (upgradeLoading) return;
+    setUpgradeLoading(true);
     closeSettings();
     window.location.href = '/subscription-paywall';
   };
@@ -128,7 +133,11 @@ export const BillingPanel = () => {
         {!isActive && (
           <Button
             onClick={handleUpgrade}
-            className="bg-gray-900 hover:bg-gray-800 text-white font-light px-6 py-2 rounded-full transition-all duration-200"
+            aria-pressed={upgradeLoading}
+            className={cn(
+              'bg-gray-900 hover:bg-gray-800 text-white font-light px-6 py-2 rounded-full transition-all duration-200',
+              upgradeLoading && 'translate-y-[2px] scale-[0.98] shadow-inner pointer-events-none cursor-wait'
+            )}
           >
             Upgrade
           </Button>
@@ -192,7 +201,11 @@ export const BillingPanel = () => {
               <p className="text-sm font-light text-gray-600 flex-1">Update payment method, view invoices, or cancel</p>
               <Button
                 onClick={handleManageSubscription}
-                className="bg-gray-900 hover:bg-gray-800 text-white font-light px-6 py-2 rounded-full transition-all duration-200 flex-shrink-0"
+                aria-pressed={manageLoading}
+                className={cn(
+                  'bg-gray-900 hover:bg-gray-800 text-white font-light px-6 py-2 rounded-full transition-all duration-200 flex-shrink-0',
+                  manageLoading && 'translate-y-[2px] scale-[0.98] shadow-inner pointer-events-none cursor-wait'
+                )}
               >
                 Manage
               </Button>
@@ -203,7 +216,11 @@ export const BillingPanel = () => {
                 <p className="text-sm font-light text-gray-600 flex-1">Get unlimited voice and image generation</p>
                 <Button
                   onClick={handleUpgrade}
-                  className="bg-gray-900 hover:bg-gray-800 text-white font-light px-6 py-2 rounded-full transition-all duration-200 flex-shrink-0"
+                  aria-pressed={upgradeLoading}
+                  className={cn(
+                    'bg-gray-900 hover:bg-gray-800 text-white font-light px-6 py-2 rounded-full transition-all duration-200 flex-shrink-0',
+                    upgradeLoading && 'translate-y-[2px] scale-[0.98] shadow-inner pointer-events-none cursor-wait'
+                  )}
                 >
                   Upgrade
                 </Button>
