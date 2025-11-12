@@ -180,7 +180,7 @@ Remember: Viral memes are SHORT, FUNNY, and PERFECTLY EXECUTED. Quality over com
       topK: 40,
       maxOutputTokens: 40096,
       responseMimeType: "application/json",
-      thinkingConfig: { thinkingBudget: 0 }
+      thinkingConfig: { thinkingBudget: -1 }
     }
   };
 
