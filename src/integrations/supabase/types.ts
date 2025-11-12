@@ -1177,6 +1177,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          ab_test_group: string | null
           created_at: string
           display_name: string | null
           email: string | null
@@ -1203,6 +1204,7 @@ export type Database = {
           verification_token: string | null
         }
         Insert: {
+          ab_test_group?: string | null
           created_at?: string
           display_name?: string | null
           email?: string | null
@@ -1229,6 +1231,7 @@ export type Database = {
           verification_token?: string | null
         }
         Update: {
+          ab_test_group?: string | null
           created_at?: string
           display_name?: string | null
           email?: string | null
@@ -2271,6 +2274,7 @@ export type Database = {
           conversation_count: number
         }[]
       }
+      assign_ab_test_group: { Args: never; Returns: string }
       bytea_to_text: { Args: { data: string }; Returns: string }
       check_and_increment_insights_count: {
         Args: {
