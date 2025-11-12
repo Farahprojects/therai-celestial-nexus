@@ -114,9 +114,7 @@ export const InsightsModal: React.FC<InsightsModalProps> = ({
                 <ArrowLeft className="w-5 h-5 text-gray-500" />
               </button>}
             <div>
-              <h2 className="text-2xl font-light text-gray-900">
-                Insights
-              </h2>
+              <h2 className="text-2xl font-light text-gray-900">Insights - Generate and discover pattens </h2>
               <p className="text-sm text-gray-500 mt-1">
             </p>
             </div>
