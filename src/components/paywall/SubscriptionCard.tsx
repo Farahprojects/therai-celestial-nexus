@@ -38,8 +38,11 @@ const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
     }).format(price);
   };
 
-  // Determine plan tier label (Plus, Growth, or Premium)
-  const getPlanTier = (planId: string): 'Plus' | 'Growth' | 'Premium' => {
+  // Determine plan tier label (Free, Plus, Growth, or Premium)
+  const getPlanTier = (planId: string): 'Free' | 'Plus' | 'Growth' | 'Premium' => {
+    if (planId === 'free' || planId.includes('free')) {
+      return 'Free';
+    }
     // Plus tier ($8/month)
     if (planId === '8_monthly' || planId.includes('plus')) {
       return 'Plus';
@@ -53,6 +56,13 @@ const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
   };
 
   const getPlanFeatures = (planId: string, planName: string) => {
+    const freeFeatures = [
+      '3 chats per day with your astro data',
+      'Core astro insights',
+      'History saved for 7 days',
+      'Upgrade anytime for more features'
+    ];
+    
     // Plus plan features ($8/month)
     const plusFeatures = [
       'Unlimited AI conversations',
@@ -81,6 +91,9 @@ const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
     ];
 
     // Check plan tier
+    if (planId === 'free' || planId.includes('free')) {
+      return freeFeatures;
+    }
     if (planId === '8_monthly' || planId.includes('plus')) {
       return plusFeatures;
     }
@@ -93,11 +106,19 @@ const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
 
   const getButtonText = (planId: string): string => {
     const tier = getPlanTier(planId);
+    if (tier === 'Free') {
+      return 'Stay Free';
+    }
     return `Get ${tier}`;
   };
 
   const planTier = getPlanTier(plan.id);
   const isPopular = plan.id === '25_monthly' || plan.id === 'subscription_professional' || plan.name.toLowerCase().includes('premium');
+  const isFreePlan = plan.id === 'free' || planTier === 'Free';
+  const isMonthlyPlan =
+    (plan.id && plan.id.includes('monthly')) ||
+    (plan.product_code && plan.product_code.includes('monthly')) ||
+    planTier !== 'Free';
 
   const handleCheckout = async () => {
     setIsProcessing(true);
@@ -148,10 +169,12 @@ const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
             {/* Price - Bigger */}
             <div className="space-y-1">
               <div className="text-4xl font-light text-gray-900">
-              {formatPrice(plan.unit_price_usd)}
+              {isFreePlan ? 'Free' : formatPrice(plan.unit_price_usd)}
               </div>
-              {plan.product_code === 'subscription' && (
-                <div className="text-sm font-light text-gray-500">per month</div>
+              {isMonthlyPlan && (
+                <div className={`text-sm font-light ${isFreePlan ? 'text-gray-400' : 'text-gray-500'}`}>
+                  {isFreePlan ? 'forever free' : 'per month'}
+                </div>
               )}
             </div>
           </div>
@@ -178,12 +201,16 @@ const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
             <Button
               onClick={(e) => {
                 e.stopPropagation();
+                if (isFreePlan) {
+                  toast.info('You can continue exploring Therai for free anytime.');
+                  return;
+                }
                 handleCheckout();
               }}
-              disabled={loading || isProcessing}
-              className="w-full bg-gray-900 hover:bg-gray-800 text-white font-light py-3 rounded-full text-base transition-all duration-200 shadow-sm hover:shadow-md disabled:opacity-50"
+              disabled={isFreePlan ? false : loading || isProcessing}
+              className={`w-full ${isFreePlan ? 'bg-gray-100 text-gray-500 border border-gray-200 cursor-default' : 'bg-gray-900 hover:bg-gray-800 text-white'} font-light py-3 rounded-full text-base transition-all duration-200 shadow-sm hover:shadow-md disabled:opacity-50`}
             >
-              {isProcessing ? 'Processing...' : getButtonText(plan.id)}
+              {isProcessing && !isFreePlan ? 'Processing...' : getButtonText(plan.id)}
             </Button>
           </motion.div>
 

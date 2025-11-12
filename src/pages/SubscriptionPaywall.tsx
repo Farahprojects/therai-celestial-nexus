@@ -133,8 +133,7 @@ const SubscriptionPaywall: React.FC = () => {
 
           // Ensure Plus plan card exists locally even if not returned from API
           const hasPlusPlan = filteredPlans.some(plan => plan.id === '8_monthly');
-          const shouldShowPlus =
-            userAbTestGroup !== 'growth_plan';
+          const shouldShowPlus = userAbTestGroup !== 'growth_plan';
 
           if (!hasPlusPlan && shouldShowPlus) {
             filteredPlans = [
@@ -148,6 +147,51 @@ const SubscriptionPaywall: React.FC = () => {
               ...filteredPlans
             ];
           }
+
+          // Ensure Premium plan card exists
+          const hasPremiumPlan = filteredPlans.some(plan => plan.id === '18_monthly');
+          if (!hasPremiumPlan) {
+            filteredPlans = [
+              ...filteredPlans,
+              {
+                id: '18_monthly',
+                name: 'Premium',
+                description: 'Unlimited everything for power users',
+                unit_price_usd: 18,
+                product_code: 'premium_monthly'
+              }
+            ];
+          }
+
+          // Ensure Free plan card exists
+          const hasFreePlan = filteredPlans.some(plan => plan.id === 'free');
+          if (!hasFreePlan) {
+            filteredPlans = [
+              {
+                id: 'free',
+                name: 'Free',
+                description: 'Get started with daily astro chats',
+                unit_price_usd: 0,
+                product_code: 'free_plan'
+              },
+              ...filteredPlans
+            ];
+          }
+
+          // Sort plans for consistent display
+          const planOrder =
+            userAbTestGroup === 'growth_plan'
+              ? ['free', '10_monthly', '18_monthly']
+              : ['free', '8_monthly', '18_monthly'];
+
+          const orderIndex = (planId: string) => {
+            const index = planOrder.indexOf(planId);
+            return index === -1 ? planOrder.length : index;
+          };
+
+          filteredPlans = filteredPlans
+            .filter((plan, index, self) => self.findIndex(p => p.id === plan.id) === index)
+            .sort((a, b) => orderIndex(a.id) - orderIndex(b.id));
 
           setPricingPlans(filteredPlans);
         }
