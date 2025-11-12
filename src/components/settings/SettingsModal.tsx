@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogClose, DialogTitle } from "@/components/ui
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { X, User, Bell, LifeBuoy, Settings as SettingsIcon, LogOut, Trash2, CreditCard, ArrowLeft, Users, Zap, Brain } from "lucide-react";
-import { useSettingsModal } from "@/contexts/SettingsModalContext";
+import { HIDDEN_SETTINGS_PANELS, useSettingsModal } from "@/contexts/SettingsModalContext";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { AccountSettingsPanel } from "./account/AccountSettingsPanel";
 import { NotificationsPanel } from "./panels/NotificationsPanel";
@@ -28,7 +28,7 @@ export const SettingsModal = () => {
   const [loggingOut, setLoggingOut] = useState(false);
   const isMobile = useIsMobile();
   const [showMobileMenu, setShowMobileMenu] = useState(true);
-  const hiddenPanels = import.meta.env.DEV ? [] : ["account", "notifications"];
+  const hiddenPanels = HIDDEN_SETTINGS_PANELS;
 
   // Fetch settings data when modal opens and user is signed in
   useEffect(() => {

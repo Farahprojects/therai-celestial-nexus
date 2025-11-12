@@ -15,7 +15,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
-import { useSettingsModal } from '@/contexts/SettingsModalContext';
+import { HIDDEN_SETTINGS_PANELS, useSettingsModal, type SettingsPanelType } from '@/contexts/SettingsModalContext';
 import { LogoutConfirmationDialog } from '@/components/ui/logout-confirmation-dialog';
 import { useAuthModal } from '@/contexts/AuthModalContext';
 import { AuthModal } from '@/components/auth/AuthModal';
@@ -111,9 +111,10 @@ const UnifiedNavigation = ({
     setShowLogoutDialog(false);
   };
 
-  const handleOpenSettings = (panel: string) => {
-    openSettings(panel as "general" | "account" | "profiles" | "memory" | "billing" | "notifications" | "delete" | "support");
+  const handleOpenSettings = (panel: SettingsPanelType) => {
+    openSettings(panel);
   };
+  const hiddenSettingsPanels = HIDDEN_SETTINGS_PANELS;
 
   // Mobile auth handlers
   const handleMobileLogin = () => {
@@ -337,10 +338,12 @@ const UnifiedNavigation = ({
                         <Settings className="mr-2 h-4 w-4" />
                         General
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleOpenSettings('account')}>
-                        <User className="mr-2 h-4 w-4" />
-                        Account Settings
-                      </DropdownMenuItem>
+                      {!hiddenSettingsPanels.includes('account') && (
+                        <DropdownMenuItem onClick={() => handleOpenSettings('account')}>
+                          <User className="mr-2 h-4 w-4" />
+                          Account Settings
+                        </DropdownMenuItem>
+                      )}
                       <DropdownMenuItem onClick={() => handleOpenSettings('profiles')}>
                         <Users className="mr-2 h-4 w-4" />
                         Profiles
@@ -353,10 +356,12 @@ const UnifiedNavigation = ({
                         <CreditCard className="mr-2 h-4 w-4" />
                         Billing
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleOpenSettings('notifications')}>
-                        <Bell className="mr-2 h-4 w-4" />
-                        Notifications
-                      </DropdownMenuItem>
+                      {!hiddenSettingsPanels.includes('notifications') && (
+                        <DropdownMenuItem onClick={() => handleOpenSettings('notifications')}>
+                          <Bell className="mr-2 h-4 w-4" />
+                          Notifications
+                        </DropdownMenuItem>
+                      )}
                       <DropdownMenuItem onClick={() => handleOpenSettings('support')}>
                         <LifeBuoy className="mr-2 h-4 w-4" />
                         Contact Support

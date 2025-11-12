@@ -10,8 +10,13 @@ import { ContactSupportPanel } from '@/components/settings/panels/ContactSupport
 import { DeleteAccountPanel } from '@/components/settings/panels/DeleteAccountPanel'
 import DisplayNamePanel from '@/components/settings/panels/DisplayNamePanel'
 import { VoiceSelectionPanel } from '@/components/settings/VoiceSelectionPanel'
+import { HIDDEN_SETTINGS_PANELS } from '@/contexts/SettingsModalContext'
 
 export default function SettingsPage() {
+  const hiddenPanels = HIDDEN_SETTINGS_PANELS
+  const showAccount = !hiddenPanels.includes('account')
+  const showNotifications = !hiddenPanels.includes('notifications')
+
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl">
       <div className="mb-8">
@@ -25,10 +30,12 @@ export default function SettingsPage() {
             <SettingsIcon className="h-4 w-4" />
             General
           </TabsTrigger>
-          <TabsTrigger value="account" className="flex items-center gap-2">
-            <User className="h-4 w-4" />
-            Account
-          </TabsTrigger>
+          {showAccount && (
+            <TabsTrigger value="account" className="flex items-center gap-2">
+              <User className="h-4 w-4" />
+              Account
+            </TabsTrigger>
+          )}
           <TabsTrigger value="profiles" className="flex items-center gap-2">
             <Users className="h-4 w-4" />
             Profiles
@@ -41,10 +48,12 @@ export default function SettingsPage() {
             <CreditCard className="h-4 w-4" />
             Billing
           </TabsTrigger>
-          <TabsTrigger value="notifications" className="flex items-center gap-2">
-            <Bell className="h-4 w-4" />
-            Notifications
-          </TabsTrigger>
+          {showNotifications && (
+            <TabsTrigger value="notifications" className="flex items-center gap-2">
+              <Bell className="h-4 w-4" />
+              Notifications
+            </TabsTrigger>
+          )}
           <TabsTrigger value="support" className="flex items-center gap-2">
             <LifeBuoy className="h-4 w-4" />
             Support
@@ -67,16 +76,18 @@ export default function SettingsPage() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="account">
-          <Card>
-            <CardHeader>
-              <CardTitle>Account Settings</CardTitle>
-            </CardHeader>
-            <CardContent className="p-0">
-              <AccountSettingsPanel />
-            </CardContent>
-          </Card>
-        </TabsContent>
+        {showAccount && (
+          <TabsContent value="account">
+            <Card>
+              <CardHeader>
+                <CardTitle>Account Settings</CardTitle>
+              </CardHeader>
+              <CardContent className="p-0">
+                <AccountSettingsPanel />
+              </CardContent>
+            </Card>
+          </TabsContent>
+        )}
 
         <TabsContent value="profiles">
           <Card>
@@ -111,16 +122,18 @@ export default function SettingsPage() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="notifications">
-          <Card>
-            <CardHeader>
-              <CardTitle>Notification Preferences</CardTitle>
-            </CardHeader>
-            <CardContent className="p-0">
-              <NotificationsPanel />
-            </CardContent>
-          </Card>
-        </TabsContent>
+        {showNotifications && (
+          <TabsContent value="notifications">
+            <Card>
+              <CardHeader>
+                <CardTitle>Notification Preferences</CardTitle>
+              </CardHeader>
+              <CardContent className="p-0">
+                <NotificationsPanel />
+              </CardContent>
+            </Card>
+          </TabsContent>
+        )}
 
         <TabsContent value="support">
           <Card>

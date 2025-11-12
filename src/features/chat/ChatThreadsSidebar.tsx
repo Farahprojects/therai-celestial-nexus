@@ -26,7 +26,7 @@ import { ExploreActions } from '@/components/chat/ExploreActions';
 import { useChatCreation } from '@/components/chat/ChatCreationProvider';
 import { FoldersList } from '@/components/folders/FoldersList';
 import { FolderModal } from '@/components/folders/FolderModal';
-import { useSettingsModal } from '@/contexts/SettingsModalContext';
+import { HIDDEN_SETTINGS_PANELS, useSettingsModal, type SettingsPanelType } from '@/contexts/SettingsModalContext';
 import { ConversationActionsMenuContent } from '@/components/chat/ConversationActionsMenu';
 import { ShareConversationModal } from '@/components/chat/ShareConversationModal';
 import { getConversation, updateConversationTitle } from '@/services/conversations';
@@ -142,6 +142,8 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
   // Auth / user
   const { isAuthenticated, user, signOut } = useAuth();
   const { openSettings } = useSettingsModal();
+  const hiddenSettingsPanels = HIDDEN_SETTINGS_PANELS;
+  const handleOpenSettings = (panel: SettingsPanelType) => openSettings(panel);
   const handleLegalTerms = () => {
     window.open('/legal', '_blank');
   };
@@ -558,7 +560,7 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
                 className="w-full justify-start p-0 h-auto rounded-none bg-transparent hover:bg-gray-100"
                 onClick={() => {
                   onCloseMobileSidebar?.();
-                  openSettings('general');
+                  handleOpenSettings('general');
                 }}
               >
                 <div className="flex items-center gap-3 px-3 py-2 w-full">
@@ -579,13 +581,17 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="min-w-48 rounded-xl border border-gray-200 shadow-lg p-1">
-                  <DropdownMenuItem onClick={() => openSettings('general')}>General</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => openSettings('account')}>Account Settings</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => openSettings('profiles')}>Profiles</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => openSettings('memory')}>Memory</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => openSettings('billing')}>Billing</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => openSettings('notifications')}>Notifications</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => openSettings('delete')}>Delete Account</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleOpenSettings('general')}>General</DropdownMenuItem>
+                  {!hiddenSettingsPanels.includes('account') && (
+                    <DropdownMenuItem onClick={() => handleOpenSettings('account')}>Account Settings</DropdownMenuItem>
+                  )}
+                  <DropdownMenuItem onClick={() => handleOpenSettings('profiles')}>Profiles</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleOpenSettings('memory')}>Memory</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleOpenSettings('billing')}>Billing</DropdownMenuItem>
+                  {!hiddenSettingsPanels.includes('notifications') && (
+                    <DropdownMenuItem onClick={() => handleOpenSettings('notifications')}>Notifications</DropdownMenuItem>
+                  )}
+                  <DropdownMenuItem onClick={() => handleOpenSettings('delete')}>Delete Account</DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={() => openSettings('support')}>Contact Support</DropdownMenuItem>
                   <DropdownMenuItem onClick={handleLegalTerms}>Legal & Terms</DropdownMenuItem>

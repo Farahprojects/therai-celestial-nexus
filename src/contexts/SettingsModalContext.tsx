@@ -3,11 +3,11 @@ import React, { createContext, useContext, useState } from "react";
 import { SettingsModal } from "@/components/settings/SettingsModal";
 
 
-type SettingsPanelType = "general" | "account" | "profiles" | "memory" | "notifications" | "delete" | "support" | "billing";
-const HIDDEN_PANELS: SettingsPanelType[] = import.meta.env.DEV ? [] : ["account", "notifications"];
+export type SettingsPanelType = "general" | "account" | "profiles" | "memory" | "notifications" | "delete" | "support" | "billing";
+export const HIDDEN_SETTINGS_PANELS: SettingsPanelType[] = import.meta.env.DEV ? [] : ["account", "notifications"];
 
 const normalizePanel = (panel: SettingsPanelType): SettingsPanelType =>
-  HIDDEN_PANELS.includes(panel) ? "general" : panel;
+  HIDDEN_SETTINGS_PANELS.includes(panel) ? "general" : panel;
 
 interface SettingsModalContextProps {
   isOpen: boolean;

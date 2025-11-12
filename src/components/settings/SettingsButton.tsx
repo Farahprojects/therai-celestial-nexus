@@ -2,10 +2,10 @@
 import React from 'react';
 import { Button, ButtonProps } from '@/components/ui/button';
 import { Settings } from 'lucide-react';
-import { useSettingsModal } from '@/contexts/SettingsModalContext';
+import { useSettingsModal, type SettingsPanelType } from '@/contexts/SettingsModalContext';
 
 interface SettingsButtonProps extends ButtonProps {
-  panel?: "general" | "account" | "notifications" | "delete" | "support" | "billing";
+  panel?: SettingsPanelType;
   showIcon?: boolean;
   label?: string;
 }
