@@ -70,16 +70,70 @@ function sanitizePlainText(input: string) {
 }
 
 /**
- * CRITICAL: Strict image generation detection
- * Only returns true if current message EXPLICITLY requests image generation
+ * Determines if a message explicitly requests image generation.
+ *
+ * PRODUCTION-GRADE FEATURES:
+ * - Strict detection (avoids accidental triggers)
+ * - Handles negations, polite/indirect phrasing, and shorthand
+ * - Ignores past/future or hypothetical references
+ * - Resistant to partial matches and ambiguous cases
+ * - Flexible for natural language variation
  */
 function messageExplicitlyRequestsImage(message: string): boolean {
-  const s = (message || "").toLowerCase();
-  const hasAction = /\b(show|send|give|make|create|generate|render|draw|produce)\b/.test(s);
-  const hasImageNoun = /\b(image|picture|pic|photo|illustration|art|visual)\b/.test(s);
-  const shorthand = /\b(img|imggen)\b/.test(s);
-  const negated = /\b(no|not|don't|do not|stop|without)\b.*\b(image|picture|photo|art|visual)\b/.test(s);
-  return ((hasAction && hasImageNoun) || shorthand) && !negated;
+  if (!message) return false;
+
+  const s = message.trim().toLowerCase();
+
+  // 1. Quick exclusions — short or irrelevant text
+  if (s.length < 4) return false;
+
+  // 2. Detect negations (e.g. "don't make an image", "no pictures please")
+  const negated = /\b(?:no|not|don't|do not|stop|without|avoid|never)\b[^.?!\n]*\b(?:image|picture|photo|art|visual|illustration|pic|img)\b/.test(
+    s
+  );
+  if (negated) return false;
+
+  // 3. Core action verbs indicating creation or generation intent
+  const actionPattern =
+    /\b(?:show|send|give|make|create|generate|render|draw|produce|display|build|output|visualize)\b/;
+
+  // 4. Nouns indicating imagery intent
+  const imageNounPattern =
+    /\b(?:image|picture|photo|illustration|art|visual|pic|graphic|drawing|painting)\b/;
+
+  // 5. Shorthand or explicit command keywords (for developers / internal use)
+  const shorthandPattern = /\b(?:img|imggen|renderimg|genimg)\b/;
+
+  // 6. Handle polite or implicit variants: "Could you make an image of", "I’d like to see a picture of"
+  const explicitRequest =
+    (actionPattern.test(s) && imageNounPattern.test(s)) ||
+    shorthandPattern.test(s) ||
+    /\b(?:see|show me|look at)\b[^.?!\n]*\b(?:image|picture|photo|art|visual|illustration|pic|img)\b/.test(
+      s
+    ) ||
+    /\b(?:please|could you|can you|may you|would you|i want|i'd like|i would like)\b[^.?!\n]*\b(?:image|picture|photo|visual|illustration|pic|img)\b/.test(
+      s
+    );
+
+  if (!explicitRequest) return false;
+
+  // 7. Exclude references to past/future actions (e.g. "you made an image", "don’t generate images anymore")
+  const pastOrHypothetical =
+    /\b(?:made|generated|created|was|were|had made|would make|should make|could make|used to make)\b[^.?!\n]*\b(?:image|picture|photo|art|visual|illustration|pic|img)\b/.test(
+      s
+    );
+  if (pastOrHypothetical) return false;
+
+  // 8. Guard against question context unrelated to generation
+  // e.g., “what image model do you use?” or “is the image feature available?”
+  const metaContext =
+    /\b(?:which|what|how|is|are|was|were|when|why|does|do|can|will|should)\b[^.?!\n]*\b(?:image|picture|photo|art|visual|illustration|pic|img)\b/.test(
+      s
+    );
+  if (metaContext && !actionPattern.test(s)) return false;
+
+  // ✅ 9. If it passes all the filters, treat it as an explicit image generation request
+  return true;
 }
 
 /* ------------------------------- System Prompt --------------------------- */
