@@ -34,7 +34,6 @@ export class UniversalSTTRecorder {
   private spectralFlatness: number = 1;
   private highPassFilter: BiquadFilterNode | null = null;
   private lowPassFilter: BiquadFilterNode | null = null;
-  private bandpassFilter: BiquadFilterNode | null = null;
   private adaptiveGain: GainNode | null = null;
   private scriptProcessor: ScriptProcessorNode | null = null;
   private silentGain: GainNode | null = null;
@@ -412,7 +411,6 @@ export class UniversalSTTRecorder {
     this.analyser = null;
     this.highPassFilter = null;
     this.lowPassFilter = null;
-    this.bandpassFilter = null;
 
     // Stop and release microphone
     if (this.mediaStream) {
