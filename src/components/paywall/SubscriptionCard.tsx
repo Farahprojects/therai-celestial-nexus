@@ -6,15 +6,17 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 
+type PlanInfo = {
+  id: string;
+  name: string;
+  description: string;
+  unit_price_usd: number;
+  product_code: string;
+  stripe_price_id?: string;
+};
+
 interface SubscriptionCardProps {
-  plan: {
-    id: string;
-    name: string;
-    description: string;
-    unit_price_usd: number;
-    product_code: string;
-    stripe_price_id?: string;
-  };
+  plan: PlanInfo;
   index: number;
   isSelected: boolean;
   onSelect: (planId: string) => void;
@@ -39,30 +41,51 @@ const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
   };
 
   // Determine plan tier label (Free, Plus, Growth, or Premium)
-  const getPlanTier = (planId: string, planName: string): 'Free' | 'Plus' | 'Growth' | 'Premium' => {
-    const normalizedName = planName.toLowerCase();
+  const getPlanTier = (planInfo: PlanInfo): 'Free' | 'Plus' | 'Growth' | 'Premium' => {
+    const normalizedId = planInfo.id.toLowerCase();
+    const normalizedName = (planInfo.name || '').toLowerCase();
+    const price = planInfo.unit_price_usd;
 
-    if (planId === 'free' || planId.includes('free') || normalizedName.includes('free')) {
+    if (
+      normalizedId === 'free' ||
+      normalizedId.includes('free') ||
+      normalizedName.includes('free') ||
+      price === 0
+    ) {
       return 'Free';
     }
     // Plus tier ($8/month)
-    if (planId === '8_monthly' || planId.includes('plus') || normalizedName.includes('plus')) {
+    if (
+      normalizedId === '8_monthly' ||
+      normalizedId.includes('plus') ||
+      normalizedName.includes('plus') ||
+      price === 8
+    ) {
       return 'Plus';
     }
     // Growth tier ($10/month)
-    if (planId === '10_monthly' || planId.includes('growth') || planId.includes('starter') || normalizedName.includes('growth')) {
+    if (
+      normalizedId === '10_monthly' ||
+      normalizedId.includes('growth') ||
+      normalizedId.includes('starter') ||
+      normalizedName.includes('growth') ||
+      price === 10
+    ) {
       return 'Growth';
     }
     // Premium tier ($18/month)
     return 'Premium';
   };
 
-  const getPlanFeatures = (planId: string, planName: string) => {
+  const getPlanFeatures = (planInfo: PlanInfo) => {
+    const planId = planInfo.id;
+    const planName = planInfo.name || '';
+
     const freeFeatures = [
       '3 chats per day with your astro data',
-      'Core astro insights',
-      'History saved for 7 days',
-      'Upgrade anytime for more features'
+      'Together Mode (2-person sessions)',
+      'Create and organize folders',
+      'Upgrade anytime for unlimited voice & images'
     ];
     
     // Plus plan features ($8/month)
@@ -106,15 +129,15 @@ const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
     return growthFeatures;
   };
 
-  const getButtonText = (planId: string): string => {
-    const tier = getPlanTier(planId);
+  const getButtonText = (planInfo: PlanInfo): string => {
+    const tier = getPlanTier(planInfo);
     if (tier === 'Free') {
       return 'Stay Free';
     }
     return `Get ${tier}`;
   };
 
-  const planTier = getPlanTier(plan.id, plan.name || '');
+  const planTier = getPlanTier(plan);
   const isPopular = plan.id === '25_monthly' || plan.id === 'subscription_professional' || plan.name.toLowerCase().includes('premium');
   const isFreePlan = plan.id === 'free' || planTier === 'Free';
   const isMonthlyPlan =
@@ -192,7 +215,7 @@ const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
           {/* Features - Bullet Points */}
           <div className="flex-grow">
             <ul className="space-y-3">
-              {getPlanFeatures(plan.id, plan.name).map((feature, featureIndex) => (
+              {getPlanFeatures(plan).map((feature, featureIndex) => (
                 <li key={featureIndex} className="flex items-start text-sm text-gray-600">
                   <div className="w-1.5 h-1.5 bg-gray-400 rounded-full mr-3 mt-1.5 flex-shrink-0"></div>
                   <span className="font-light">{feature}</span>
@@ -220,7 +243,7 @@ const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
               disabled={isFreePlan ? false : loading || isProcessing}
               className={`w-full ${isFreePlan ? 'bg-gray-100 text-gray-500 border border-gray-200 cursor-default' : 'bg-gray-900 hover:bg-gray-800 text-white'} font-light py-3 rounded-full text-base transition-all duration-200 shadow-sm hover:shadow-md disabled:opacity-50`}
             >
-              {isProcessing && !isFreePlan ? 'Processing...' : getButtonText(plan.id)}
+              {isProcessing && !isFreePlan ? 'Processing...' : getButtonText(plan)}
             </Button>
           </motion.div>
 

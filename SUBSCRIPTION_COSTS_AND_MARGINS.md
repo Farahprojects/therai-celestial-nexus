@@ -34,6 +34,12 @@ This document tracks the cost structure, pricing, and profit margins for all The
 - 2 minutes of voice transcription total
 - Primary purpose: Lead generation and conversion funnel
 
+**Included Features**:
+- 3 chats per day tied to personal astro data
+- Together Mode (2-person sessions) remains available
+- Folder creation and organization for saved insights
+- Upgrade messaging surfaced once limits are hit (voice, images, premium features)
+
 ---
 
 ### Plus Plan ($8/month) 💎 NEW

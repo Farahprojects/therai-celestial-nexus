@@ -37,18 +37,35 @@ const SubscriptionPaywall: React.FC = () => {
   
   const isCancelled = searchParams.get('subscription') === 'cancelled';
 
-  // Determine plan tier label (Plus, Growth, or Premium)
-  const getPlanTier = (planId: string): 'Plus' | 'Growth' | 'Premium' => {
-    if (planId === '8_monthly' || planId.includes('plus')) {
+  // Determine plan tier label (Free, Plus, Growth, or Premium)
+  const getPlanTier = (plan: PricingData): 'Free' | 'Plus' | 'Growth' | 'Premium' => {
+    const id = plan.id.toLowerCase();
+    const name = (plan.name || '').toLowerCase();
+    const price = plan.unit_price_usd;
+
+    if (id === 'free' || id.includes('free') || name.includes('free') || price === 0) {
+      return 'Free';
+    }
+    if (id === '8_monthly' || id.includes('plus') || name.includes('plus') || price === 8) {
       return 'Plus';
     }
-    if (planId === '10_monthly' || planId.includes('growth') || planId.includes('starter')) {
+    if (id === '10_monthly' || id.includes('growth') || id.includes('starter') || name.includes('growth') || price === 10) {
       return 'Growth';
     }
     return 'Premium';
   };
 
-  const getPlanFeatures = (planId: string, planName: string) => {
+  const getPlanFeatures = (plan: PricingData) => {
+    const planId = plan.id;
+    const planName = plan.name || '';
+
+    const freeFeatures = [
+      '3 chats per day with your astro data',
+      'Together Mode (2-person sessions)',
+      'Create and organize folders',
+      'Upgrade anytime for unlimited voice & images'
+    ];
+
     const plusFeatures = [
       'Unlimited AI conversations',
       'Together Mode (2-person sessions)',
@@ -73,6 +90,10 @@ const SubscriptionPaywall: React.FC = () => {
       'Early access to new features'
     ];
 
+    // Check plan tier
+    if (planId === 'free' || planId.includes('free')) {
+      return freeFeatures;
+    }
     if (planId === '8_monthly' || planId.includes('plus')) {
       return plusFeatures;
     }
@@ -83,8 +104,8 @@ const SubscriptionPaywall: React.FC = () => {
     return growthFeatures;
   };
 
-  const getButtonText = (planId: string): string => {
-    const tier = getPlanTier(planId);
+  const getButtonText = (plan: PricingData): string => {
+    const tier = getPlanTier(plan);
     return `Get ${tier}`;
   };
 
@@ -162,6 +183,25 @@ const SubscriptionPaywall: React.FC = () => {
             premiumPlan
           ];
 
+          const nameCounts = new Map<string, number>();
+          finalPlans.forEach(plan => {
+            if (!plan?.name) return;
+            const key = plan.name.toLowerCase();
+            nameCounts.set(key, (nameCounts.get(key) || 0) + 1);
+          });
+
+          const duplicates: string[] = [];
+          nameCounts.forEach((count, name) => {
+            if (count > 1) duplicates.push(name);
+          });
+
+          if (duplicates.length > 0) {
+            console.error('[SubscriptionPaywall] Duplicate plan names detected:', {
+              duplicates,
+              plans: finalPlans
+            });
+          }
+
           setPricingPlans(finalPlans);
         }
       } catch (error) {
@@ -186,6 +226,12 @@ const SubscriptionPaywall: React.FC = () => {
       setLoadingPlanId(null);
     }
   };
+
+  useEffect(() => {
+    if (!pricingPlans.length) return;
+
+    // duplicate detection removed now that tier detection is stable
+  }, [pricingPlans]);
 
   return (
     <div className="min-h-screen flex flex-col bg-white">
@@ -237,7 +283,7 @@ const SubscriptionPaywall: React.FC = () => {
                       <div className="space-y-3">
                         {/* Plan Tier Label (Growth/Premium) */}
                         <div className="text-2xl font-light text-gray-900">
-                          {getPlanTier(plan.id)}
+                          {getPlanTier(plan)}
                         </div>
 
                         {/* Price - Bigger */}
@@ -257,7 +303,7 @@ const SubscriptionPaywall: React.FC = () => {
                       {/* Features - Bullet Points */}
                       <div className="flex-grow">
                         <ul className="space-y-3">
-                          {getPlanFeatures(plan.id, plan.name).map((feature, featureIndex) => (
+                          {getPlanFeatures(plan).map((feature, featureIndex) => (
                             <li key={featureIndex} className="flex items-start text-sm text-gray-600">
                               <div className="w-1.5 h-1.5 bg-gray-400 rounded-full mr-3 mt-1.5 flex-shrink-0"></div>
                               {renderFeature(feature)}
@@ -278,7 +324,7 @@ const SubscriptionPaywall: React.FC = () => {
                           disabled={loadingPlanId === plan.id}
                           className="w-full bg-gray-900 hover:bg-gray-800 text-white font-light py-3 rounded-full text-base transition-all duration-200 shadow-sm hover:shadow-md disabled:opacity-50"
                         >
-                          {loadingPlanId === plan.id ? 'Processing...' : getButtonText(plan.id)}
+                          {loadingPlanId === plan.id ? 'Processing...' : getButtonText(plan)}
                         </Button>
                       </motion.div>
 
