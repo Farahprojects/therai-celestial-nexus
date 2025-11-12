@@ -28,6 +28,7 @@ export const SettingsModal = () => {
   const [loggingOut, setLoggingOut] = useState(false);
   const isMobile = useIsMobile();
   const [showMobileMenu, setShowMobileMenu] = useState(true);
+  const hiddenPanels = import.meta.env.DEV ? [] : ["account", "notifications"];
 
   // Fetch settings data when modal opens and user is signed in
   useEffect(() => {
@@ -95,7 +96,7 @@ export const SettingsModal = () => {
       { id: "notifications", label: "Notifications", icon: Bell },
     ] : []),
     { id: "support", label: "Contact Support", icon: LifeBuoy },
-  ];
+  ].filter((tab) => !hiddenPanels.includes(tab.id));
 
   const handleLegalTerms = () => {
     window.open('/legal', '_blank');
@@ -160,11 +161,15 @@ export const SettingsModal = () => {
           </div>
         </div>
       </TabsContent>
-      <TabsContent value="account"><AccountSettingsPanel /></TabsContent>
+      {!hiddenPanels.includes("account") && (
+        <TabsContent value="account"><AccountSettingsPanel /></TabsContent>
+      )}
       <TabsContent value="profiles"><ProfilesPanel /></TabsContent>
       <TabsContent value="memory"><MemoryPanel /></TabsContent>
       <TabsContent value="billing"><BillingPanel /></TabsContent>
-      <TabsContent value="notifications"><NotificationsPanel /></TabsContent>
+      {!hiddenPanels.includes("notifications") && (
+        <TabsContent value="notifications"><NotificationsPanel /></TabsContent>
+      )}
       <TabsContent value="support"><ContactSupportPanel /></TabsContent>
       <TabsContent value="delete"><DeleteAccountPanel /></TabsContent>
     </Tabs>

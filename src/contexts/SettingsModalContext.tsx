@@ -4,6 +4,10 @@ import { SettingsModal } from "@/components/settings/SettingsModal";
 
 
 type SettingsPanelType = "general" | "account" | "profiles" | "memory" | "notifications" | "delete" | "support" | "billing";
+const HIDDEN_PANELS: SettingsPanelType[] = import.meta.env.DEV ? [] : ["account", "notifications"];
+
+const normalizePanel = (panel: SettingsPanelType): SettingsPanelType =>
+  HIDDEN_PANELS.includes(panel) ? "general" : panel;
 
 interface SettingsModalContextProps {
   isOpen: boolean;
@@ -17,11 +21,17 @@ const SettingsModalContext = createContext<SettingsModalContextProps | undefined
 
 export const SettingsModalProvider = ({ children }: { children: React.ReactNode }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [activePanel, setActivePanel] = useState<SettingsPanelType>("general");
+  const [activePanel, setActivePanelState] = useState<SettingsPanelType>("general");
+
+  const setActivePanel = (panel: SettingsPanelType) => {
+    setActivePanelState(normalizePanel(panel));
+  };
 
   const openSettings = (panel?: SettingsPanelType) => {
     if (panel) {
       setActivePanel(panel);
+    } else {
+      setActivePanelState((current) => normalizePanel(current));
     }
     
     setIsOpen(true);
