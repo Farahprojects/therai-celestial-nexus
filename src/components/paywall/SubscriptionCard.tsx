@@ -39,16 +39,18 @@ const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
   };
 
   // Determine plan tier label (Free, Plus, Growth, or Premium)
-  const getPlanTier = (planId: string): 'Free' | 'Plus' | 'Growth' | 'Premium' => {
-    if (planId === 'free' || planId.includes('free')) {
+  const getPlanTier = (planId: string, planName: string): 'Free' | 'Plus' | 'Growth' | 'Premium' => {
+    const normalizedName = planName.toLowerCase();
+
+    if (planId === 'free' || planId.includes('free') || normalizedName.includes('free')) {
       return 'Free';
     }
     // Plus tier ($8/month)
-    if (planId === '8_monthly' || planId.includes('plus')) {
+    if (planId === '8_monthly' || planId.includes('plus') || normalizedName.includes('plus')) {
       return 'Plus';
     }
     // Growth tier ($10/month)
-    if (planId === '10_monthly' || planId.includes('growth') || planId.includes('starter')) {
+    if (planId === '10_monthly' || planId.includes('growth') || planId.includes('starter') || normalizedName.includes('growth')) {
       return 'Growth';
     }
     // Premium tier ($18/month)
@@ -112,7 +114,7 @@ const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
     return `Get ${tier}`;
   };
 
-  const planTier = getPlanTier(plan.id);
+  const planTier = getPlanTier(plan.id, plan.name || '');
   const isPopular = plan.id === '25_monthly' || plan.id === 'subscription_professional' || plan.name.toLowerCase().includes('premium');
   const isFreePlan = plan.id === 'free' || planTier === 'Free';
   const isMonthlyPlan =

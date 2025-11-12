@@ -129,44 +129,69 @@ const SubscriptionPaywall: React.FC = () => {
           const shouldShowPlus = userAbTestGroup !== 'growth_plan';
           const shouldShowGrowth = userAbTestGroup === 'growth_plan';
 
-          // Build final plan list
-          const finalPlans: any[] = [];
-
-          // 1. Always add Free plan
-          finalPlans.push(planMap.get('free') || {
+          // Define defaults to ensure consistent labels/descriptions
+          const freePlanDefaults = {
             id: 'free',
             name: 'Free',
             description: 'Get started with daily astro chats',
             unit_price_usd: 0,
             product_code: 'free_plan'
-          });
+          };
 
-          // 2. Add Plus OR Growth (never both)
-          if (shouldShowPlus) {
-            finalPlans.push(planMap.get('8_monthly') || {
-              id: '8_monthly',
-              name: 'Plus',
-              description: 'Essential features for daily practice',
-              unit_price_usd: 8,
-              product_code: 'plus_monthly'
-            });
-          } else if (shouldShowGrowth) {
-            finalPlans.push(planMap.get('10_monthly') || {
-              id: '10_monthly',
-              name: 'Growth',
-              description: 'Balanced features for regular use',
-              unit_price_usd: 10,
-              product_code: 'growth_monthly'
-            });
-          }
+          const plusPlanDefaults = {
+            id: '8_monthly',
+            name: 'Plus',
+            description: 'Essential features for daily practice',
+            unit_price_usd: 8,
+            product_code: 'plus_monthly'
+          };
 
-          // 3. Always add Premium plan
-          finalPlans.push(planMap.get('18_monthly') || {
+          const growthPlanDefaults = {
+            id: '10_monthly',
+            name: 'Growth',
+            description: 'Balanced features for regular use',
+            unit_price_usd: 10,
+            product_code: 'growth_monthly'
+          };
+
+          const premiumPlanDefaults = {
             id: '18_monthly',
             name: 'Premium',
             description: 'Unlimited everything for power users',
             unit_price_usd: 18,
             product_code: 'premium_monthly'
+          };
+
+          // Build final plan list in desired order
+          const finalPlans: any[] = [];
+
+          // 1. Always add Free plan
+          const freePlan = planMap.get('free');
+          finalPlans.push({
+            ...(freePlan || {}),
+            ...freePlanDefaults
+          });
+
+          // 2. Add Plus OR Growth (never both)
+          if (shouldShowPlus) {
+            const plusPlan = planMap.get('8_monthly');
+            finalPlans.push({
+              ...(plusPlan || {}),
+              ...plusPlanDefaults
+            });
+          } else if (shouldShowGrowth) {
+            const growthPlan = planMap.get('10_monthly');
+            finalPlans.push({
+              ...(growthPlan || {}),
+              ...growthPlanDefaults
+            });
+          }
+
+          // 3. Always add Premium plan
+          const premiumPlan = planMap.get('18_monthly');
+          finalPlans.push({
+            ...(premiumPlan || {}),
+            ...premiumPlanDefaults
           });
 
           setPricingPlans(finalPlans);
