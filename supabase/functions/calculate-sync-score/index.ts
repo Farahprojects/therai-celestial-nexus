@@ -8,10 +8,26 @@ const corsHeaders = {
   "Content-Type": "application/json",
 };
 
-// Initialize Supabase client at top level (reused across requests)
+// Environment & service clients initialised once per instance
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+const GOOGLE_API_KEY = Deno.env.get("GOOGLE-LLM-NEW");
+const GEMINI_MODEL = "gemini-2.5-flash";
+const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
+const GEMINI_HEADERS = GOOGLE_API_KEY
+  ? {
+      "Content-Type": "application/json",
+      "x-goog-api-key": GOOGLE_API_KEY,
+    }
+  : undefined;
+
+const IMAGE_GENERATION_URL = `${supabaseUrl}/functions/v1/image-generate`;
+
+if (!GOOGLE_API_KEY) {
+  console.error("Missing GOOGLE-LLM-NEW environment variable");
+}
 
 interface MemeCaption {
   format: 'top_bottom' | 'quote' | 'text_only';
@@ -106,10 +122,7 @@ async function generateMeme(
   personAName: string,
   personBName: string
 ): Promise<MemeGeneration> {
-  const GOOGLE_API_KEY = Deno.env.get("GOOGLE-LLM-NEW");
-  const GEMINI_MODEL = "gemini-2.5-flash";
-
-  if (!GOOGLE_API_KEY) {
+  if (!GEMINI_HEADERS) {
     throw new Error("Missing GOOGLE-LLM-NEW environment variable");
   }
 
@@ -185,13 +198,9 @@ Remember: Viral memes are SHORT, FUNNY, and PERFECTLY EXECUTED. Quality over com
 
   // Use retry logic for API call
   const data = await retryWithBackoff(async () => {
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
-    const resp = await fetch(geminiUrl, {
+    const resp = await fetch(GEMINI_URL, {
       method: "POST",
-      headers: { 
-        "Content-Type": "application/json", 
-        "x-goog-api-key": GOOGLE_API_KEY 
-      },
+      headers: GEMINI_HEADERS,
       body: JSON.stringify(requestBody)
     });
 
@@ -345,9 +354,7 @@ function generateMemeImageAsync(
   imagePrompt: string,
   memeData: MemeData
 ): void {
-  const imageGenUrl = `${supabaseUrl}/functions/v1/image-generate`;
-  
-  fetch(imageGenUrl, {
+  fetch(IMAGE_GENERATION_URL, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
