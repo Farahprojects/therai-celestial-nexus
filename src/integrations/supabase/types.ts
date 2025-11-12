@@ -2515,10 +2515,12 @@ export type Database = {
         Args: { curlopt: string; value: string }
         Returns: boolean
       }
-      increment_chat_messages: {
-        Args: { p_count: number; p_period: string; p_user_id: string }
-        Returns: undefined
-      }
+      increment_chat_messages:
+        | {
+            Args: { p_count: number; p_period: string; p_user_id: string }
+            Returns: undefined
+          }
+        | { Args: { p_count: number; p_user_id: string }; Returns: undefined }
       increment_feature_usage: {
         Args: {
           p_amount: number
@@ -2528,18 +2530,24 @@ export type Database = {
         }
         Returns: undefined
       }
-      increment_images_generated: {
-        Args: { p_count: number; p_period: string; p_user_id: string }
-        Returns: undefined
-      }
-      increment_insights_count: {
-        Args: { p_count: number; p_period: string; p_user_id: string }
-        Returns: undefined
-      }
-      increment_therai_calls: {
-        Args: { p_calls: number; p_period: string; p_user_id: string }
-        Returns: undefined
-      }
+      increment_images_generated:
+        | {
+            Args: { p_count: number; p_period: string; p_user_id: string }
+            Returns: undefined
+          }
+        | { Args: { p_count: number; p_user_id: string }; Returns: undefined }
+      increment_insights_count:
+        | { Args: { p_count: number; p_user_id: string }; Returns: undefined }
+        | {
+            Args: { p_count: number; p_period: string; p_user_id: string }
+            Returns: undefined
+          }
+      increment_therai_calls:
+        | { Args: { p_calls: number; p_user_id: string }; Returns: undefined }
+        | {
+            Args: { p_calls: number; p_period: string; p_user_id: string }
+            Returns: undefined
+          }
       increment_voice_seconds: {
         Args: { p_period: string; p_seconds: number; p_user_id: string }
         Returns: undefined
