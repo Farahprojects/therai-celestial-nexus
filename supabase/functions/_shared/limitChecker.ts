@@ -69,7 +69,7 @@ export async function checkLimit(
       p_user_id: userId,
       p_feature_type: featureType,
       p_requested_amount: requestedAmount,
-      p_period: null // Auto-detect period based on feature type
+      p_period: null // Ignored, kept for backward compatibility
     });
 
     if (error) {
@@ -183,25 +183,14 @@ export async function incrementUsage(
       };
     }
 
-    // Determine period based on feature type
-    const dailyFeatures = ['chat', 'therai_calls', 'image_generation'];
-    const currentPeriod = dailyFeatures.includes(featureType)
-      ? new Date().toISOString().slice(0, 10) // YYYY-MM-DD (daily)
-      : new Date().toISOString().slice(0, 7);  // YYYY-MM (monthly)
-
-    // Standard increment
+    // Build RPC parameters (no period needed - functions handle daily auto-reset)
     const rpcParams: Record<string, any> = {
-      p_user_id: userId,
-      p_period: currentPeriod
+      p_user_id: userId
     };
 
     // Add amount parameter with correct name
     if (featureType === 'therai_calls') {
       rpcParams.p_calls = amount;
-    } else if (featureType === 'chat') {
-      rpcParams.p_count = amount;
-    } else if (featureType === 'image_generation') {
-      rpcParams.p_count = amount;
     } else {
       rpcParams.p_count = amount;
     }
