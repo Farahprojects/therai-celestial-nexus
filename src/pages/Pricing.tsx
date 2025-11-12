@@ -114,83 +114,59 @@ const Pricing: React.FC = () => {
         if (error) {
           console.error('Error fetching pricing:', error);
         } else {
-          let filteredPlans = data || [];
+          // Start with clean slate - build exactly what we want to show
+          const planMap = new Map<string, any>();
           
-          // A/B Test Logic: Show either Plus OR Growth, never both
-          if (userAbTestGroup === 'plus_plan') {
-            // Show Plus plan, hide Growth plan
-            filteredPlans = filteredPlans.filter(plan => plan.id !== '10_monthly');
-          } else if (userAbTestGroup === 'growth_plan') {
-            // Show Growth plan, hide Plus plan
-            filteredPlans = filteredPlans.filter(plan => plan.id !== '8_monthly');
-          } else {
-            // No A/B test group assigned - default to Plus + Premium
-            filteredPlans = filteredPlans.filter(plan => plan.id !== '10_monthly');
-          }
+          // Add all fetched plans to map
+          (data || []).forEach(plan => {
+            planMap.set(plan.id, plan);
+          });
 
-          // Ensure Plus plan card exists locally even if not returned from API
-          const hasPlusPlan = filteredPlans.some(plan => plan.id === '8_monthly');
+          // Determine which paid plan to show based on A/B test
           const shouldShowPlus = userAbTestGroup !== 'growth_plan';
+          const shouldShowGrowth = userAbTestGroup === 'growth_plan';
 
-          if (!hasPlusPlan && shouldShowPlus) {
-            filteredPlans = [
-              {
-                id: '8_monthly',
-                name: 'Plus',
-                description: 'Essential features for daily practice',
-                unit_price_usd: 8,
-                product_code: 'plus_monthly'
-              },
-              ...filteredPlans
-            ];
+          // Build final plan list
+          const finalPlans: any[] = [];
+
+          // 1. Always add Free plan
+          finalPlans.push(planMap.get('free') || {
+            id: 'free',
+            name: 'Free',
+            description: 'Get started with daily astro chats',
+            unit_price_usd: 0,
+            product_code: 'free_plan'
+          });
+
+          // 2. Add Plus OR Growth (never both)
+          if (shouldShowPlus) {
+            finalPlans.push(planMap.get('8_monthly') || {
+              id: '8_monthly',
+              name: 'Plus',
+              description: 'Essential features for daily practice',
+              unit_price_usd: 8,
+              product_code: 'plus_monthly'
+            });
+          } else if (shouldShowGrowth) {
+            finalPlans.push(planMap.get('10_monthly') || {
+              id: '10_monthly',
+              name: 'Growth',
+              description: 'Balanced features for regular use',
+              unit_price_usd: 10,
+              product_code: 'growth_monthly'
+            });
           }
 
-          // Ensure Premium plan card exists
-          const hasPremiumPlan = filteredPlans.some(plan => plan.id === '18_monthly');
-          if (!hasPremiumPlan) {
-            filteredPlans = [
-              ...filteredPlans,
-              {
-                id: '18_monthly',
-                name: 'Premium',
-                description: 'Unlimited everything for power users',
-                unit_price_usd: 18,
-                product_code: 'premium_monthly'
-              }
-            ];
-          }
+          // 3. Always add Premium plan
+          finalPlans.push(planMap.get('18_monthly') || {
+            id: '18_monthly',
+            name: 'Premium',
+            description: 'Unlimited everything for power users',
+            unit_price_usd: 18,
+            product_code: 'premium_monthly'
+          });
 
-          // Ensure Free plan card exists
-          const hasFreePlan = filteredPlans.some(plan => plan.id === 'free');
-          if (!hasFreePlan) {
-            filteredPlans = [
-              {
-                id: 'free',
-                name: 'Free',
-                description: 'Get started with daily astro chats',
-                unit_price_usd: 0,
-                product_code: 'free_plan'
-              },
-              ...filteredPlans
-            ];
-          }
-
-          // Sort plans for consistent display
-          const planOrder =
-            userAbTestGroup === 'growth_plan'
-              ? ['free', '10_monthly', '18_monthly']
-              : ['free', '8_monthly', '18_monthly'];
-
-          const orderIndex = (planId: string) => {
-            const index = planOrder.indexOf(planId);
-            return index === -1 ? planOrder.length : index;
-          };
-
-          filteredPlans = filteredPlans
-            .filter((plan, index, self) => self.findIndex(p => p.id === plan.id) === index)
-            .sort((a, b) => orderIndex(a.id) - orderIndex(b.id));
-
-          setPricingPlans(filteredPlans);
+          setPricingPlans(finalPlans);
         }
       } catch (error) {
         console.error('Error fetching pricing:', error);

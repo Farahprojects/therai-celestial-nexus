@@ -168,12 +168,20 @@ const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
             
             {/* Price - Bigger */}
             <div className="space-y-1">
-              <div className="text-4xl font-light text-gray-900">
-              {isFreePlan ? 'Free' : formatPrice(plan.unit_price_usd)}
+              <div className="flex items-start gap-3">
+                <div className="text-4xl font-light text-gray-900">
+                  {isFreePlan ? '$0' : formatPrice(plan.unit_price_usd)}
+                </div>
+                {!isFreePlan && (
+                  <div className="flex flex-col leading-none text-xs font-light uppercase tracking-wide text-gray-500 pt-1">
+                    <span>USD /</span>
+                    <span>month</span>
+                  </div>
+                )}
               </div>
-              {isMonthlyPlan && (
-                <div className={`text-sm font-light ${isFreePlan ? 'text-gray-400' : 'text-gray-500'}`}>
-                  {isFreePlan ? 'forever free' : 'per month'}
+              {isFreePlan && (
+                <div className="text-sm font-light text-gray-500">
+                  forever free
                 </div>
               )}
             </div>
