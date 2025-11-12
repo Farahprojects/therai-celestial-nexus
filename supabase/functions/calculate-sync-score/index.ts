@@ -268,13 +268,13 @@ Remember: Viral memes are SHORT, FUNNY, and PERFECTLY EXECUTED. Quality over com
 // ============================================================================
 
 /**
- * Ensure placeholder message exists; fire-and-forget insert & broadcast
+ * Ensure placeholder message exists; insert synchronously, broadcast async
  */
-function ensurePlaceholderMessage(
+async function ensurePlaceholderMessage(
   chat_id: string,
   user_id: string,
   message_id?: string
-): { id: string; newlyCreated: boolean } {
+): Promise<{ id: string; newlyCreated: boolean }> {
   if (message_id) {
     console.log('[Message] Using provided message id:', message_id);
     return { id: message_id, newlyCreated: false };
@@ -295,23 +295,20 @@ function ensurePlaceholderMessage(
     },
   };
 
-  supabase
+  const { data, error } = await supabase
     .from('messages')
     .insert(placeholderPayload)
     .select()
-    .single()
-    .then(({ data, error }) => {
-      if (error) {
-        console.error('[Message] Failed to create placeholder:', error);
-        return;
-      }
-      if (data) {
-        broadcastMessage(user_id, chat_id, data);
-      }
-    })
-    .catch((error) => {
-      console.error('[Message] Placeholder insert error:', error);
-    });
+    .single();
+
+  if (error) {
+    console.error('[Message] Failed to create placeholder:', error);
+    throw new Error('Failed to create placeholder message');
+  }
+
+  if (data) {
+    broadcastMessage(user_id, chat_id, data);
+  }
 
   return { id: placeholderId, newlyCreated: true };
 }
@@ -527,7 +524,7 @@ Deno.serve(async (req) => {
     // ========================================================================
     // STEP 4: CREATE/GET PLACEHOLDER MESSAGE
     // ========================================================================
-    const placeholder = ensurePlaceholderMessage(
+    const placeholder = await ensurePlaceholderMessage(
       chat_id,
       userId,
       message_id
