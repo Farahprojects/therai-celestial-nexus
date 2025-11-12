@@ -141,8 +141,7 @@ export const InsightsModal: React.FC<InsightsModalProps> = ({
                 {/* Solo Reports */}
                 <div>
                   <h3 className="text-sm font-medium text-gray-700 mb-2 uppercase tracking-wide">
-                    Personal Reports
-                  </h3>
+              </h3>
                   <div className="space-y-2">
                     <ReportCard title="Personal" description="Deep dive into your personality, strengths, and life patterns based on your birth chart." icon={<User className="w-6 h-6" />} isDualPerson={false} onClick={() => handleReportClick('essence_personal', 'essence')} />
                     
