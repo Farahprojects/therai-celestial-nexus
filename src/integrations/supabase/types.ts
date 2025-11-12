@@ -679,11 +679,10 @@ export type Database = {
           id: string
           images_generated: number | null
           insights_count: number
-          period: string
+          last_reset_date: string
           therai_calls: number | null
           updated_at: string | null
           user_id: string
-          voice_seconds: number
         }
         Insert: {
           chat_messages?: number | null
@@ -691,11 +690,10 @@ export type Database = {
           id?: string
           images_generated?: number | null
           insights_count?: number
-          period: string
+          last_reset_date?: string
           therai_calls?: number | null
           updated_at?: string | null
           user_id: string
-          voice_seconds?: number
         }
         Update: {
           chat_messages?: number | null
@@ -703,11 +701,10 @@ export type Database = {
           id?: string
           images_generated?: number | null
           insights_count?: number
-          period?: string
+          last_reset_date?: string
           therai_calls?: number | null
           updated_at?: string | null
           user_id?: string
-          voice_seconds?: number
         }
         Relationships: []
       }
