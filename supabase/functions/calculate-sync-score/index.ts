@@ -8,26 +8,10 @@ const corsHeaders = {
   "Content-Type": "application/json",
 };
 
-// Environment & service clients initialised once per instance
+// Initialize Supabase client at top level (reused across requests)
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
-const GOOGLE_API_KEY = Deno.env.get("GOOGLE-LLM-NEW");
-const GEMINI_MODEL = "gemini-2.5-flash";
-const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
-const GEMINI_HEADERS = GOOGLE_API_KEY
-  ? {
-      "Content-Type": "application/json",
-      "x-goog-api-key": GOOGLE_API_KEY,
-    }
-  : undefined;
-
-const IMAGE_GENERATION_URL = `${supabaseUrl}/functions/v1/image-generate`;
-
-if (!GOOGLE_API_KEY) {
-  console.error("Missing GOOGLE-LLM-NEW environment variable");
-}
 
 interface MemeCaption {
   format: 'top_bottom' | 'quote' | 'text_only';
@@ -122,7 +106,10 @@ async function generateMeme(
   personAName: string,
   personBName: string
 ): Promise<MemeGeneration> {
-  if (!GEMINI_HEADERS) {
+  const GOOGLE_API_KEY = Deno.env.get("GOOGLE-LLM-NEW");
+  const GEMINI_MODEL = "gemini-2.5-flash";
+
+  if (!GOOGLE_API_KEY) {
     throw new Error("Missing GOOGLE-LLM-NEW environment variable");
   }
 
@@ -198,9 +185,13 @@ Remember: Viral memes are SHORT, FUNNY, and PERFECTLY EXECUTED. Quality over com
 
   // Use retry logic for API call
   const data = await retryWithBackoff(async () => {
-    const resp = await fetch(GEMINI_URL, {
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
+    const resp = await fetch(geminiUrl, {
       method: "POST",
-      headers: GEMINI_HEADERS,
+      headers: { 
+        "Content-Type": "application/json", 
+        "x-goog-api-key": GOOGLE_API_KEY 
+      },
       body: JSON.stringify(requestBody)
     });
 
@@ -268,79 +259,75 @@ Remember: Viral memes are SHORT, FUNNY, and PERFECTLY EXECUTED. Quality over com
 // ============================================================================
 
 /**
- * Ensure placeholder message exists; insert synchronously, broadcast async
+ * Get or create placeholder message for meme generation
  */
-async function ensurePlaceholderMessage(
+async function getOrCreatePlaceholderMessage(
   chat_id: string,
   user_id: string,
   message_id?: string
-): Promise<{ id: string; newlyCreated: boolean }> {
+): Promise<any> {
+  // Try to use existing placeholder if provided
   if (message_id) {
-    console.log('[Message] Using provided message id:', message_id);
-    return { id: message_id, newlyCreated: false };
+    const { data: existingMessage } = await supabase
+      .from('messages')
+      .select('*')
+      .eq('id', message_id)
+      .single();
+    
+    if (existingMessage) {
+      console.log('[Message] Using existing placeholder:', message_id);
+      return existingMessage;
+    }
   }
-
-  const placeholderId = crypto.randomUUID();
-  const placeholderPayload = {
-    id: placeholderId,
-    chat_id,
-    user_id,
-    role: 'assistant' as const,
-    text: '',
-    status: 'pending' as const,
-    meta: {
-      message_type: 'image',
-      sync_score: true,
-      status: 'generating',
-    },
-  };
-
-  const { data, error } = await supabase
+  
+  // Create new placeholder
+  console.log('[Message] Creating new placeholder');
+  const { data: newMessage, error: messageError } = await supabase
     .from('messages')
-    .insert(placeholderPayload)
+    .insert({
+      id: message_id || crypto.randomUUID(),
+      chat_id: chat_id,
+      user_id: user_id,
+      role: 'assistant',
+      text: '',
+      status: 'pending',
+      meta: {
+        message_type: 'image',
+        sync_score: true,
+        status: 'generating'
+      }
+    })
     .select()
     .single();
 
-  if (error) {
-    console.error('[Message] Failed to create placeholder:', error);
+  if (messageError) {
+    console.error('[Message] Failed to create placeholder:', messageError);
     throw new Error('Failed to create placeholder message');
   }
 
-  if (data) {
-    broadcastMessage(user_id, chat_id, data);
-  }
-
-  return { id: placeholderId, newlyCreated: true };
+  return newMessage;
 }
 
 /**
  * Broadcast message to user's realtime channel
  */
-function broadcastMessage(
+async function broadcastMessage(
   user_id: string,
   chat_id: string,
   message: any
-): void {
+): Promise<void> {
   try {
     const channelName = `user-realtime:${user_id}`;
-    supabase
-      .channel(channelName)
-      .send(
-        {
-          type: 'broadcast',
-          event: 'message-insert',
-          payload: { chat_id, message },
-        },
-        { httpSend: true },
-      )
-      .then(() => {
-        console.log('[Broadcast] Message sent to channel:', channelName);
-      })
-      .catch((error) => {
-        console.error('[Broadcast] Failed:', error);
-      });
+    await supabase.channel(channelName).send({
+      type: 'broadcast',
+      event: 'message-insert',
+      payload: { chat_id, message }
+    }, { httpSend: true });
+    
+    console.log('[Broadcast] Message sent to channel:', channelName);
   } catch (error) {
     console.error('[Broadcast] Failed:', error);
+    // Non-critical error, don't throw
   }
 }
 
@@ -358,7 +345,9 @@ function generateMemeImageAsync(
   imagePrompt: string,
   memeData: MemeData
 ): void {
-  fetch(IMAGE_GENERATION_URL, {
+  const imageGenUrl = `${supabaseUrl}/functions/v1/image-generate`;
+  
+  fetch(imageGenUrl, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -524,13 +513,16 @@ Deno.serve(async (req) => {
     // ========================================================================
     // STEP 4: CREATE/GET PLACEHOLDER MESSAGE
     // ========================================================================
-    const placeholder = await ensurePlaceholderMessage(
+    const targetMessage = await getOrCreatePlaceholderMessage(
       chat_id,
       userId,
       message_id
     );
 
-    const targetMessageId = placeholder.id;
+    // Broadcast placeholder if newly created
+    if (!message_id) {
+      await broadcastMessage(userId, chat_id, targetMessage);
+    }
 
     // ========================================================================
     // STEP 5: FIRE-AND-FORGET ASYNC TASKS
@@ -540,13 +532,15 @@ Deno.serve(async (req) => {
     storeMemeMetadataAsync(chat_id, memeData);
     
     // Generate image
-    generateMemeImageAsync(
-      chat_id,
-      userId,
-      targetMessageId,
-      memeGeneration.imagePrompt,
-      memeData
-    );
+    if (targetMessage) {
+      generateMemeImageAsync(
+        chat_id,
+        userId,
+        targetMessage.id,
+        memeGeneration.imagePrompt,
+        memeData
+      );
+    }
 
     // ========================================================================
     // STEP 6: RETURN IMMEDIATELY
