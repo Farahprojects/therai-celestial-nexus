@@ -72,8 +72,7 @@ export const ChatInput = () => {
         .maybeSingle()
         .then(({ data }) => {
           setConversationMode(data?.mode || 'chat');
-        })
-        .catch(() => {
+        }, () => {
           // Silently handle errors - conversation may not exist yet or have no messages
           setConversationMode('chat');
         });

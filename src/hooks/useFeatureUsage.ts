@@ -82,12 +82,14 @@ export function useFeatureUsage() {
       const usage = (limitsData as any)?.usage || {};
       const currentPeriod = new Date().toISOString().slice(0, 7);
 
-      const voiceIsUnlimited = voiceData?.is_unlimited === true || voiceData?.limit === null;
-      const voiceUsed = voiceData?.seconds_used ?? 0;
-      const voiceLimit = voiceIsUnlimited ? null : voiceData?.limit ?? null;
+      // Cast voiceData to any to safely access properties
+      const voiceDataTyped = voiceData as any;
+      const voiceIsUnlimited = voiceDataTyped?.is_unlimited === true || voiceDataTyped?.limit === null;
+      const voiceUsed = voiceDataTyped?.seconds_used ?? 0;
+      const voiceLimit = voiceIsUnlimited ? null : voiceDataTyped?.limit ?? null;
       const voiceRemaining = voiceIsUnlimited
         ? null
-        : voiceData?.remaining ?? Math.max(0, (voiceLimit ?? 0) - voiceUsed);
+        : voiceDataTyped?.remaining ?? Math.max(0, (voiceLimit ?? 0) - voiceUsed);
 
       const insightLimit = (limits?.insights ?? null) as number | null;
       const insightUsed = usage.insights_count || 0;

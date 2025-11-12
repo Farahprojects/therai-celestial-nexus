@@ -1,6 +1,8 @@
 // Simple Universal STT Recorder - no chunks, no rolling buffer, just record and stop
 
 import { STTLimitExceededError } from '@/services/voice/stt';
+import { Capacitor } from '@capacitor/core';
+import BluetoothAudio from '@/plugins/BluetoothAudio';
 
 export interface STTRecorderOptions {
   onTranscriptReady?: (transcript: string) => void;
