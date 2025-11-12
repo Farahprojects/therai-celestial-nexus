@@ -126,70 +126,38 @@ const Pricing: React.FC = () => {
           const shouldShowPlus = userAbTestGroup !== 'growth_plan';
           const shouldShowGrowth = userAbTestGroup === 'growth_plan';
 
-          // Define defaults to ensure consistent labels/descriptions
-          const freePlanDefaults = {
-            id: 'free',
-            name: 'Free',
-            description: 'Get started with daily astro chats',
-            unit_price_usd: 0,
-            product_code: 'free_plan'
-          };
-
-          const plusPlanDefaults = {
-            id: '8_monthly',
-            name: 'Plus',
-            description: 'Essential features for daily practice',
-            unit_price_usd: 8,
-            product_code: 'plus_monthly'
-          };
-
-          const growthPlanDefaults = {
-            id: '10_monthly',
-            name: 'Growth',
-            description: 'Balanced features for regular use',
-            unit_price_usd: 10,
-            product_code: 'growth_monthly'
-          };
-
-          const premiumPlanDefaults = {
-            id: '18_monthly',
-            name: 'Premium',
-            description: 'Unlimited everything for power users',
-            unit_price_usd: 18,
-            product_code: 'premium_monthly'
-          };
-
-          // Build final plan list in desired order
-          const finalPlans: any[] = [];
-
-          // 1. Always add Free plan
           const freePlan = planMap.get('free');
-          finalPlans.push({
-            ...(freePlan || {}),
-            ...freePlanDefaults
-          });
-
-          // 2. Add Plus OR Growth (never both)
-          if (shouldShowPlus) {
-            const plusPlan = planMap.get('8_monthly');
-            finalPlans.push({
-              ...(plusPlan || {}),
-              ...plusPlanDefaults
-            });
-          } else if (shouldShowGrowth) {
-            const growthPlan = planMap.get('10_monthly');
-            finalPlans.push({
-              ...(growthPlan || {}),
-              ...growthPlanDefaults
-            });
+          if (!freePlan) {
+            console.error('Missing free plan in price_list response');
+            throw new Error('Missing free plan');
           }
 
-          // 3. Always add Premium plan
+          let plusOrGrowthPlan: any | null = null;
+          if (shouldShowPlus) {
+            plusOrGrowthPlan = planMap.get('8_monthly');
+            if (!plusOrGrowthPlan) {
+              console.error('Missing plus plan in price_list response');
+              throw new Error('Missing plus plan');
+            }
+          } else if (shouldShowGrowth) {
+            plusOrGrowthPlan = planMap.get('10_monthly');
+            if (!plusOrGrowthPlan) {
+              console.error('Missing growth plan in price_list response');
+              throw new Error('Missing growth plan');
+            }
+          }
+
           const premiumPlan = planMap.get('18_monthly');
-          finalPlans.push({
-            ...(premiumPlan || {}),
-            ...premiumPlanDefaults
-          });
+          if (!premiumPlan) {
+            console.error('Missing premium plan in price_list response');
+            throw new Error('Missing premium plan');
+          }
+
+          const finalPlans = [
+            freePlan,
+            ...(plusOrGrowthPlan ? [plusOrGrowthPlan] : []),
+            premiumPlan
+          ];
 
           setPricingPlans(finalPlans);
         }
