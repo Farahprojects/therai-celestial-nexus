@@ -127,10 +127,28 @@ const SubscriptionPaywall: React.FC = () => {
             // Show Growth plan, hide Plus plan
             filteredPlans = filteredPlans.filter(plan => plan.id !== '8_monthly');
           } else {
-            // No A/B test group assigned - show Growth plan by default
-            filteredPlans = filteredPlans.filter(plan => plan.id !== '8_monthly');
+            // No A/B test group assigned - default to Plus + Premium
+            filteredPlans = filteredPlans.filter(plan => plan.id !== '10_monthly');
           }
-          
+
+          // Ensure Plus plan card exists locally even if not returned from API
+          const hasPlusPlan = filteredPlans.some(plan => plan.id === '8_monthly');
+          const shouldShowPlus =
+            userAbTestGroup !== 'growth_plan';
+
+          if (!hasPlusPlan && shouldShowPlus) {
+            filteredPlans = [
+              {
+                id: '8_monthly',
+                name: 'Plus',
+                description: 'Essential features for daily practice',
+                unit_price_usd: 8,
+                product_code: 'plus_monthly'
+              },
+              ...filteredPlans
+            ];
+          }
+
           setPricingPlans(filteredPlans);
         }
       } catch (error) {
