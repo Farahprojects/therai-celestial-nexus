@@ -38,17 +38,31 @@ const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
     }).format(price);
   };
 
-  // Determine plan tier label (Growth or Premium)
-  const getPlanTier = (planId: string): 'Growth' | 'Premium' => {
-    // Lower tier plans = Growth, Higher tier plans = Premium
+  // Determine plan tier label (Plus, Growth, or Premium)
+  const getPlanTier = (planId: string): 'Plus' | 'Growth' | 'Premium' => {
+    // Plus tier ($8/month)
+    if (planId === '8_monthly' || planId.includes('plus')) {
+      return 'Plus';
+    }
+    // Growth tier ($10/month)
     if (planId === '10_monthly' || planId.includes('growth') || planId.includes('starter')) {
       return 'Growth';
     }
-    return 'Premium'; // Default to Premium for higher tier plans
+    // Premium tier ($18/month)
+    return 'Premium';
   };
 
   const getPlanFeatures = (planId: string, planName: string) => {
-    // Default features based on plan tier
+    // Plus plan features ($8/month)
+    const plusFeatures = [
+      'Unlimited AI conversations',
+      'Together Mode (2-person sessions)',
+      'Premium HD Voice (5 min/month)',
+      'Image generation (1/day)',
+      'Unlimited folders & sharing'
+    ];
+    
+    // Growth plan features ($10/month)
     const growthFeatures = [
       'Unlimited AI conversations',
       'Together Mode (2-person sessions)',
@@ -57,6 +71,7 @@ const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
       'Unlimited folders & sharing'
     ];
     
+    // Premium plan features ($18/month)
     const premiumFeatures = [
       'Everything in Growth',
       'Unlimited voice conversations',
@@ -65,7 +80,10 @@ const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
       'Early access to new features'
     ];
 
-    // Check if it's a premium plan
+    // Check plan tier
+    if (planId === '8_monthly' || planId.includes('plus')) {
+      return plusFeatures;
+    }
     if (planId === '18_monthly' || planId === '25_monthly' || planId === 'subscription_professional' || planName.toLowerCase().includes('premium')) {
       return premiumFeatures;
     }

@@ -18,6 +18,7 @@ interface PricingData {
 const Pricing: React.FC = () => {
   const navigate = useNavigate();
   const [pricingPlans, setPricingPlans] = useState<PricingData[]>([]);
+  const [abTestGroup, setAbTestGroup] = useState<string | null>(null);
 
   const renderFeature = (feature: string) => {
     const isVoiceFeature = feature.toLowerCase().includes('voice');
@@ -33,8 +34,11 @@ const Pricing: React.FC = () => {
     );
   };
 
-  // Determine plan tier label (Growth or Premium)
-  const getPlanTier = (planId: string): 'Growth' | 'Premium' => {
+  // Determine plan tier label (Plus, Growth, or Premium)
+  const getPlanTier = (planId: string): 'Plus' | 'Growth' | 'Premium' => {
+    if (planId === '8_monthly' || planId.includes('plus')) {
+      return 'Plus';
+    }
     if (planId === '10_monthly' || planId.includes('growth') || planId.includes('starter')) {
       return 'Growth';
     }
@@ -42,6 +46,14 @@ const Pricing: React.FC = () => {
   };
 
   const getPlanFeatures = (planId: string, planName: string) => {
+    const plusFeatures = [
+      'Unlimited AI conversations',
+      'Together Mode (2-person sessions)',
+      'Premium HD Voice (5 min/month)',
+      'Image generation (1/day)',
+      'Unlimited folders & sharing'
+    ];
+    
     const growthFeatures = [
       'Unlimited AI conversations',
       'Together Mode (2-person sessions)',
@@ -58,6 +70,9 @@ const Pricing: React.FC = () => {
       'Early access to new features'
     ];
 
+    if (planId === '8_monthly' || planId.includes('plus')) {
+      return plusFeatures;
+    }
     if (planId === '18_monthly' || planId === '25_monthly' || planId === 'subscription_professional' || planName.toLowerCase().includes('premium')) {
       return premiumFeatures;
     }
@@ -70,10 +85,26 @@ const Pricing: React.FC = () => {
     return `Get ${tier}`;
   };
 
-  // Fetch all subscription plans
+  // Fetch all subscription plans with A/B test logic
   useEffect(() => {
     const fetchPricing = async () => {
       try {
+        // First, get user's A/B test group if authenticated
+        const { data: { user } } = await supabase.auth.getUser();
+        let userAbTestGroup = null;
+        
+        if (user) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('ab_test_group')
+            .eq('id', user.id)
+            .single();
+          
+          userAbTestGroup = profile?.ab_test_group;
+          setAbTestGroup(userAbTestGroup);
+        }
+
+        // Fetch all subscription plans
         const { data, error } = await supabase
           .from('price_list')
           .select('id, name, description, unit_price_usd, product_code')
@@ -83,7 +114,21 @@ const Pricing: React.FC = () => {
         if (error) {
           console.error('Error fetching pricing:', error);
         } else {
-          setPricingPlans(data || []);
+          let filteredPlans = data || [];
+          
+          // A/B Test Logic: Show either Plus OR Growth, never both
+          if (userAbTestGroup === 'plus_plan') {
+            // Show Plus plan, hide Growth plan
+            filteredPlans = filteredPlans.filter(plan => plan.id !== '10_monthly');
+          } else if (userAbTestGroup === 'growth_plan') {
+            // Show Growth plan, hide Plus plan
+            filteredPlans = filteredPlans.filter(plan => plan.id !== '8_monthly');
+          } else {
+            // No A/B test group assigned - show Growth plan by default
+            filteredPlans = filteredPlans.filter(plan => plan.id !== '8_monthly');
+          }
+          
+          setPricingPlans(filteredPlans);
         }
       } catch (error) {
         console.error('Error fetching pricing:', error);

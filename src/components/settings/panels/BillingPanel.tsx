@@ -114,6 +114,7 @@ export const BillingPanel = () => {
                   ['active', 'trialing'].includes(subscriptionData?.subscription_status || '');
 
   const getPlanName = (planId: string | null) => {
+    if (planId === '8_monthly') return 'Plus';
     if (planId === '10_monthly') return 'Growth';
     if (planId === '18_monthly' || planId === '25_monthly') return 'Premium';
     return planId || 'Free';
