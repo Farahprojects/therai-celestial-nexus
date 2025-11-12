@@ -5,12 +5,10 @@ import { AstroDataForm } from '@/components/chat/AstroDataForm';
 import { ReportFormData } from '@/types/public-report';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-
 interface InsightsModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
-
 interface ReportCardProps {
   title: string;
   description: string;
@@ -18,13 +16,14 @@ interface ReportCardProps {
   isDualPerson: boolean;
   onClick: () => void;
 }
-
-const ReportCard: React.FC<ReportCardProps> = ({ title, description, icon, isDualPerson, onClick }) => {
-  return (
-    <button
-      onClick={onClick}
-      className="w-full p-4 text-left bg-white border border-gray-200 rounded-xl hover:bg-gray-50 hover:border-gray-300 transition-all duration-200 group"
-    >
+const ReportCard: React.FC<ReportCardProps> = ({
+  title,
+  description,
+  icon,
+  isDualPerson,
+  onClick
+}) => {
+  return <button onClick={onClick} className="w-full p-4 text-left bg-white border border-gray-200 rounded-xl hover:bg-gray-50 hover:border-gray-300 transition-all duration-200 group">
       <div className="flex items-center gap-3">
         <div className="flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center">
           {icon}
@@ -34,16 +33,19 @@ const ReportCard: React.FC<ReportCardProps> = ({ title, description, icon, isDua
           <p className="text-xs text-gray-500 leading-snug">{description}</p>
         </div>
       </div>
-    </button>
-  );
+    </button>;
 };
-
-export const InsightsModal: React.FC<InsightsModalProps> = ({ isOpen, onClose }) => {
+export const InsightsModal: React.FC<InsightsModalProps> = ({
+  isOpen,
+  onClose
+}) => {
   const [showAstroForm, setShowAstroForm] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [selectedReportType, setSelectedReportType] = useState<string>('');
   const [selectedRequest, setSelectedRequest] = useState<string>('');
-  const { user } = useAuth();
+  const {
+    user
+  } = useAuth();
   const channelRef = useRef<any>(null);
 
   // Reset form state when modal closes
@@ -65,92 +67,68 @@ export const InsightsModal: React.FC<InsightsModalProps> = ({ isOpen, onClose })
       }
     };
   }, []);
-
   if (!isOpen) return null;
-
   const handleReportClick = (reportType: string, request: string) => {
     setSelectedReportType(reportType);
     setSelectedRequest(request);
     setShowAstroForm(true);
   };
-
   const handleFormSubmit = (data: ReportFormData) => {
     // Show success screen
     setShowAstroForm(false);
     setShowSuccess(true);
-    
+
     // Mount WebSocket listener for report completion
     if (user?.id) {
-      const channel = supabase
-        .channel('insight-completion')
-        .on(
-          'postgres_changes',
-          {
-            event: 'UPDATE',
-            schema: 'public',
-            table: 'insights',
-            filter: `user_id=eq.${user.id}`
-          },
-          (payload) => {
-            const insight = payload.new;
-            if (insight.is_ready === true) {
-              console.log('[InsightsModal] Report ready:', insight.id);
-              // Close success screen and modal
-              setShowSuccess(false);
-              onClose();
-              // Cleanup
-              if (channelRef.current) {
-                supabase.removeChannel(channelRef.current);
-                channelRef.current = null;
-              }
-            }
+      const channel = supabase.channel('insight-completion').on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'insights',
+        filter: `user_id=eq.${user.id}`
+      }, payload => {
+        const insight = payload.new;
+        if (insight.is_ready === true) {
+          console.log('[InsightsModal] Report ready:', insight.id);
+          // Close success screen and modal
+          setShowSuccess(false);
+          onClose();
+          // Cleanup
+          if (channelRef.current) {
+            supabase.removeChannel(channelRef.current);
+            channelRef.current = null;
           }
-        )
-        .subscribe();
-      
+        }
+      }).subscribe();
       channelRef.current = channel;
     }
   };
-
   const handleFormClose = () => {
     setShowAstroForm(false);
   };
-
-  return (
-    <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
+  return <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-100">
           <div className="flex items-center gap-3">
-            {showAstroForm && (
-              <button
-                onClick={() => setShowAstroForm(false)}
-                className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-              >
+            {showAstroForm && <button onClick={() => setShowAstroForm(false)} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
                 <ArrowLeft className="w-5 h-5 text-gray-500" />
-              </button>
-            )}
+              </button>}
             <div>
               <h2 className="text-2xl font-light text-gray-900">
                 Insights
               </h2>
               <p className="text-sm text-gray-500 mt-1">
-                Generate personalized astrological reports
-              </p>
+            </p>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-          >
+          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
             <X className="w-5 h-5 text-gray-500" />
           </button>
         </div>
 
         {/* Content */}
         <div className="p-6 overflow-y-auto max-h-[60vh]">
-          {showSuccess ? (
-            <div className="flex flex-col items-center justify-center py-12">
+          {showSuccess ? <div className="flex flex-col items-center justify-center py-12">
               <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
                 <svg className="w-8 h-8 text-gray-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -160,19 +138,7 @@ export const InsightsModal: React.FC<InsightsModalProps> = ({ isOpen, onClose })
               <p className="text-sm text-gray-600 text-center max-w-sm">
                 Your insight report is being generated. It will appear in your chat history soon.
               </p>
-            </div>
-          ) : showAstroForm ? (
-            <AstroDataForm
-              onClose={handleFormClose}
-              onSubmit={handleFormSubmit}
-              preselectedType={selectedRequest}
-              reportType={selectedReportType}
-              isProfileFlow={false}
-              variant="insights"
-              mode="insight"
-            />
-          ) : (
-            <>
+            </div> : showAstroForm ? <AstroDataForm onClose={handleFormClose} onSubmit={handleFormSubmit} preselectedType={selectedRequest} reportType={selectedReportType} isProfileFlow={false} variant="insights" mode="insight" /> : <>
               <div className="space-y-3">
                 {/* Solo Reports */}
                 <div>
@@ -180,29 +146,11 @@ export const InsightsModal: React.FC<InsightsModalProps> = ({ isOpen, onClose })
                     Personal Reports
                   </h3>
                   <div className="space-y-2">
-                    <ReportCard
-                      title="Personal"
-                      description="Deep dive into your personality, strengths, and life patterns based on your birth chart."
-                      icon={<User className="w-6 h-6" />}
-                      isDualPerson={false}
-                      onClick={() => handleReportClick('essence_personal', 'essence')}
-                    />
+                    <ReportCard title="Personal" description="Deep dive into your personality, strengths, and life patterns based on your birth chart." icon={<User className="w-6 h-6" />} isDualPerson={false} onClick={() => handleReportClick('essence_personal', 'essence')} />
                     
-                    <ReportCard
-                      title="Professional"
-                      description="Career guidance and professional development insights tailored to your astrological profile."
-                      icon={<Briefcase className="w-6 h-6" />}
-                      isDualPerson={false}
-                      onClick={() => handleReportClick('essence_professional', 'essence')}
-                    />
+                    <ReportCard title="Professional" description="Career guidance and professional development insights tailored to your astrological profile." icon={<Briefcase className="w-6 h-6" />} isDualPerson={false} onClick={() => handleReportClick('essence_professional', 'essence')} />
                     
-                    <ReportCard
-                      title="Relationship"
-                      description="Understanding your relationship patterns, love language, and romantic compatibility."
-                      icon={<Heart className="w-6 h-6" />}
-                      isDualPerson={false}
-                      onClick={() => handleReportClick('essence_relationship', 'essence')}
-                    />
+                    <ReportCard title="Relationship" description="Understanding your relationship patterns, love language, and romantic compatibility." icon={<Heart className="w-6 h-6" />} isDualPerson={false} onClick={() => handleReportClick('essence_relationship', 'essence')} />
                   </div>
                 </div>
 
@@ -212,28 +160,14 @@ export const InsightsModal: React.FC<InsightsModalProps> = ({ isOpen, onClose })
                     Comparative Reports
                   </h3>
                   <div className="space-y-2">
-                    <ReportCard
-                      title="Compatibility"
-                      description="Analyze romantic compatibility, communication styles, and relationship dynamics between two people."
-                      icon={<Users className="w-6 h-6" />}
-                      isDualPerson={true}
-                      onClick={() => handleReportClick('sync_personal', 'sync')}
-                    />
+                    <ReportCard title="Compatibility" description="Analyze romantic compatibility, communication styles, and relationship dynamics between two people." icon={<Users className="w-6 h-6" />} isDualPerson={true} onClick={() => handleReportClick('sync_personal', 'sync')} />
                     
-                    <ReportCard
-                      title="Co-working"
-                      description="Team dynamics, collaboration styles, and professional synergy between colleagues or partners."
-                      icon={<Users2 className="w-6 h-6" />}
-                      isDualPerson={true}
-                      onClick={() => handleReportClick('sync_professional', 'sync')}
-                    />
+                    <ReportCard title="Co-working" description="Team dynamics, collaboration styles, and professional synergy between colleagues or partners." icon={<Users2 className="w-6 h-6" />} isDualPerson={true} onClick={() => handleReportClick('sync_professional', 'sync')} />
                   </div>
                 </div>
               </div>
-            </>
-          )}
+            </>}
         </div>
       </div>
-    </div>
-  );
+    </div>;
 };
