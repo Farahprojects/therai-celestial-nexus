@@ -65,7 +65,7 @@ export const faqData: FAQItem[] = [
     id: 'gs-4',
     category: 'getting-started',
     question: 'What is voice conversation mode?',
-    answer: 'Voice conversation mode allows you to have spoken conversations with Therai. Click the speaker icon to activate it. The AI will respond with voice playback, creating a more natural, flowing conversation experience. This feature costs 2 credits per interaction vs 1 credit for text chat.',
+    answer: 'Voice conversation mode (currently in beta) allows you to have spoken conversations with Therai. Click the speaker icon to activate it. The AI will respond with voice playback, creating a more natural, flowing conversation experience. This feature costs 2 credits per interaction vs 1 credit for text chat.',
   },
   {
     id: 'gs-5',
@@ -135,13 +135,13 @@ export const faqData: FAQItem[] = [
     id: 'feat-3',
     category: 'features',
     question: 'How do I use voice conversation mode?',
-    answer: 'Click the speaker icon in the chat input area to activate voice conversation mode. Grant microphone permissions when prompted, then speak your message. Therai will respond with voice playback. To exit voice mode, click the speaker icon again.',
+    answer: 'Click the speaker icon in the chat input area to activate voice conversation mode (currently in beta). Grant microphone permissions when prompted, then speak your message. Therai will respond with voice playback. To exit voice mode, click the speaker icon again. Because it is a beta release, performance and UX may evolve as we gather feedback.',
   },
   {
     id: 'feat-4',
     category: 'features',
     question: 'Is voice conversation mode available on all plans?',
-    answer: 'Voice conversation mode is available on all paid plans. Growth plan ($10/month) includes 10 minutes of Premium HD Voice per month, while Premium plan ($18/month) includes unlimited voice conversations. Upgrade in Settings > Billing to access voice features.',
+    answer: 'Voice conversation mode is available on all paid plans while it remains in beta. Growth plan ($10/month) includes 10 minutes of Premium HD Voice per month, while Premium plan ($18/month) includes unlimited voice conversations. Upgrade in Settings > Billing to access voice features.',
   },
   {
     id: 'feat-5',
@@ -172,6 +172,12 @@ export const faqData: FAQItem[] = [
     category: 'features',
     question: 'Can I export my conversations?',
     answer: 'Currently, conversations can be shared via shareable links. Direct export functionality (PDF, text file) is on our roadmap. For now, you can copy conversation text manually or use the share link to access your conversations from any device.',
+  },
+  {
+    id: 'feat-10',
+    category: 'features',
+    question: 'How does meme creation work?',
+    answer: "Meme creation lets you generate astrology-based memes for two people. Start a new meme session, add both participants' birth data, and Therai will craft a playful visual that reflects their cosmic dynamics. Image generation is still evolving, so you may notice occasional spelling mistakes in the captions; future updates will smooth those out.",
   },
 
   // Troubleshooting

@@ -142,7 +142,9 @@ const Index = () => {
                   duration: 0.8
                 }} className="mt-6">
                   <p className="text-2xl md:text-3xl font-light text-gray-900 italic">
-                    e ≡ AΦ
+                    <Link to="/blog/the-resonance-principle" className="no-underline text-inherit">
+                      e ≡ AΦ
+                    </Link>
                   </p>
                 </motion.div>
               </motion.div>

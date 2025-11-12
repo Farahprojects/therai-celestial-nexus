@@ -19,6 +19,20 @@ const Pricing: React.FC = () => {
   const navigate = useNavigate();
   const [pricingPlans, setPricingPlans] = useState<PricingData[]>([]);
 
+  const renderFeature = (feature: string) => {
+    const isVoiceFeature = feature.toLowerCase().includes('voice');
+    return (
+      <span className="inline-flex items-center gap-2 font-light">
+        <span>{feature}</span>
+        {isVoiceFeature && (
+          <span className="inline-flex items-center px-2 py-0.5 text-[10px] uppercase tracking-wide text-gray-900 bg-gray-100 border border-gray-200 rounded-full">
+            Beta
+          </span>
+        )}
+      </span>
+    );
+  };
+
   // Determine plan tier label (Growth or Premium)
   const getPlanTier = (planId: string): 'Growth' | 'Premium' => {
     if (planId === '10_monthly' || planId.includes('growth') || planId.includes('starter')) {
@@ -170,7 +184,7 @@ const Pricing: React.FC = () => {
                           {getPlanFeatures(plan.id, plan.name).map((feature, featureIndex) => (
                             <li key={featureIndex} className="flex items-start text-sm text-gray-600">
                               <div className="w-1.5 h-1.5 bg-gray-400 rounded-full mr-3 mt-1.5 flex-shrink-0"></div>
-                              <span className="font-light">{feature}</span>
+                              {renderFeature(feature)}
                             </li>
                           ))}
                         </ul>
