@@ -151,7 +151,17 @@ Process (lightweight):
 Skim swissDataJson, extract the strongest, clearest relationship vibe and comedic angle.
 Write the caption first (<= 15 words). If longer, shorten before output.
 Then craft a matching visual metaphor, style, mood/lighting, and composition with high contrast and mobile-safe margins.
-Output format (strict JSON only, no extra text, no markdown):
+
+Output format:
+
+Escape only double quotes inside JSON strings ("), never escape single quotes/apostrophes.
+Use straight ASCII quotes only (no curly quotes).
+In the imagePrompt, do not add a backslash before apostrophes (write you're, not you're).
+The caption content must not include quotes.
+
+
+(strict JSON only, no extra text, no markdown):
+
 {
 "caption": "your perfectly-spelled, funny caption (<=15 words)",
 "imagePrompt": "full image generation prompt with visual metaphor, style tag, composition, mood/lighting, and exact overlay instructions: Top '{personAName} & {personBName}', Center '"CAPTION"' in a bold high-contrast text box, Bottom 'therai.co'. Include inferred labels for A and B as 'man', 'woman', or 'person' inside the scene instructions."
