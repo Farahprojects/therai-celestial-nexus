@@ -110,37 +110,6 @@ Deno.serve(async (req) => {
       return json(200, { message: "Not primary profile or user mismatch", skipped: true });
     }
 
-    // Rate limit: Only extract every 3-5 assistant messages
-    const { count: assistantCountResult, error: assistantCountError } = await supabase
-      .from("messages")
-      .select("id", { count: "exact", head: true })
-      .eq("chat_id", conversation_id)
-      .eq("role", "assistant");
-
-    if (assistantCountError) {
-      console.error("[extract-user-memory] Failed to count assistant messages", assistantCountError);
-      return json(500, { error: "Failed to count assistant messages" });
-    }
-
-    const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString();
-    const { count: recentExtractionsResult, error: recentExtractionsError } = await supabase
-      .from("user_memory")
-      .select("id", { count: "exact", head: true })
-      .eq("conversation_id", conversation_id)
-      .gte("created_at", tenMinutesAgo);
-
-    if (recentExtractionsError) {
-      console.error("[extract-user-memory] Failed to count recent extractions", recentExtractionsError);
-      return json(500, { error: "Failed to count recent extractions" });
-    }
-
-    const assistantMessageCount = assistantCountResult ?? 0;
-    const recentExtractionsCount = recentExtractionsResult ?? 0;
-
-    if (recentExtractionsCount > 0 && assistantMessageCount < 5) {
-      return json(200, { message: "Rate limited: too soon after last extraction", skipped: true });
-    }
-
     // Get the message and previous context (last 4 messages)
     const { data: messages } = await supabase
       .from("messages")
@@ -148,7 +117,7 @@ Deno.serve(async (req) => {
       .eq("chat_id", conversation_id)
       .eq("status", "complete")
       .order("created_at", { ascending: false })
-      .limit(5);
+      .limit(4);
 
     if (!messages || messages.length === 0) {
       return json(400, { error: "No messages found" });
