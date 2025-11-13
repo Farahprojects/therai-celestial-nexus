@@ -2,6 +2,31 @@ import { supabase } from '@/integrations/supabase/client';
 import { Conversation } from '@/core/types';
 
 /**
+ * Fetch user's primary profile ID for memory tracking
+ * Returns null if no primary profile exists
+ */
+export const getPrimaryProfileId = async (userId: string): Promise<string | null> => {
+  try {
+    const { data, error } = await supabase
+      .from('user_profile_list')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('is_primary', true)
+      .maybeSingle();
+
+    if (error) {
+      console.error('[Conversations] Error fetching primary profile:', error);
+      return null;
+    }
+
+    return data?.id || null;
+  } catch (error) {
+    console.error('[Conversations] Error fetching primary profile:', error);
+    return null;
+  }
+};
+
+/**
  * Create a new conversation with AI-generated title from first message
  */
 export const createConversationWithTitle = async (
@@ -39,15 +64,17 @@ export const createConversation = async (
     name?: string;
   }
 ): Promise<string> => {
-  // ✅ OPTIMIZATION: Removed sequential profile fetch - backend handles this if needed
-  // Passing null is fine - backend will associate with primary profile when required
+  // ✅ Fetch primary profile for memory tracking
+  const profileId = await getPrimaryProfileId(userId);
+  
+  console.log('[Conversations] Creating conversation with profile_id:', profileId);
   
   const { data, error } = await supabase.functions.invoke('conversation-manager?action=create_conversation', {
     body: {
       user_id: userId,
       title: title || 'New Chat',
       mode: mode,
-      profile_id: null, // Backend handles profile association
+      profile_id: profileId, // Pass profile_id for memory extraction
       ...(reportData?.report_data && {
         report_data: reportData.report_data,
         email: reportData.email,

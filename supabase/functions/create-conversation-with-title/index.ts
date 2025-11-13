@@ -125,10 +125,23 @@ Deno.serve(async (req: Request) => {
       auth: { persistSession: false },
     });
 
+    // ✅ Fetch primary profile for memory tracking
+    const { data: primaryProfile } = await admin
+      .from('user_profile_list')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('is_primary', true)
+      .maybeSingle();
+
+    const profileId = primaryProfile?.id || null;
+    console.log('[Title Gen] Primary profile ID for memory tracking:', profileId);
+
     const conversationData: any = {
       user_id: userId,
+      owner_user_id: userId,
       title,
       mode,
+      profile_id: profileId, // ✅ Include profile_id for memory extraction
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };

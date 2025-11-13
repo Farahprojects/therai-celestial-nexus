@@ -98,7 +98,14 @@ Deno.serve(async (req) => {
   try {
     const { conversation_id, message_id, user_id } = await req.json();
 
+    console.log("[extract-user-memory] Request received:", {
+      conversation_id,
+      message_id,
+      user_id
+    });
+
     if (!conversation_id || !message_id || !user_id) {
+      console.error("[extract-user-memory] Missing required fields");
       return json(400, { error: "Missing required fields" });
     }
 
@@ -109,8 +116,15 @@ Deno.serve(async (req) => {
       .eq("id", message_id)
       .single();
 
-    if (msgErr || !msg) return json(400, { error: "Message not found" });
+    if (msgErr || !msg) {
+      console.error("[extract-user-memory] Message not found:", msgErr);
+      return json(400, { error: "Message not found" });
+    }
     if (msg.role !== "assistant" || msg.status !== "complete") {
+      console.log("[extract-user-memory] Message not eligible:", {
+        role: msg.role,
+        status: msg.status
+      });
       return json(200, { message: "Not an eligible assistant message", skipped: true });
     }
 
@@ -124,6 +138,7 @@ Deno.serve(async (req) => {
       .maybeSingle();
 
     if (existing) {
+      console.log("[extract-user-memory] Memory already extracted for message:", message_id);
       return json(200, { message: "Already extracted", skipped: true });
     }
 
@@ -134,9 +149,35 @@ Deno.serve(async (req) => {
       .eq("id", conversation_id)
       .single();
 
-    if (convErr || !conv) return json(400, { error: "Conversation not found" });
-    if (!conv.profile_id) return json(200, { message: "No profile selected", skipped: true });
-    if (conv.user_id !== user_id) return json(403, { error: "User mismatch for conversation" });
+    console.log("[extract-user-memory] Conversation lookup:", {
+      conversation_id,
+      profile_id: conv?.profile_id,
+      mode: conv?.mode,
+      found: !!conv,
+      error: convErr?.message
+    });
+
+    if (convErr || !conv) {
+      console.error("[extract-user-memory] Conversation not found:", convErr);
+      return json(400, { error: "Conversation not found" });
+    }
+    
+    if (!conv.profile_id) {
+      console.warn("[extract-user-memory] No profile_id on conversation - memory extraction skipped", {
+        conversation_id,
+        mode: conv.mode,
+        user_id: conv.user_id
+      });
+      return json(200, { message: "No profile selected", skipped: true });
+    }
+    
+    if (conv.user_id !== user_id) {
+      console.error("[extract-user-memory] User mismatch:", {
+        conv_user_id: conv.user_id,
+        request_user_id: user_id
+      });
+      return json(403, { error: "User mismatch for conversation" });
+    }
 
     const { data: profile, error: profileErr } = await supabase
       .from("user_profile_list")
@@ -144,10 +185,33 @@ Deno.serve(async (req) => {
       .eq("id", conv.profile_id)
       .single();
 
-    if (profileErr || !profile) return json(400, { error: "Profile not found" });
+    console.log("[extract-user-memory] Profile lookup:", {
+      profile_id: conv.profile_id,
+      found: !!profile,
+      is_primary: profile?.is_primary,
+      error: profileErr?.message
+    });
+
+    if (profileErr || !profile) {
+      console.error("[extract-user-memory] Profile not found:", profileErr);
+      return json(400, { error: "Profile not found" });
+    }
+    
     if (!profile.is_primary || profile.user_id !== user_id) {
+      console.log("[extract-user-memory] Profile not eligible:", {
+        is_primary: profile.is_primary,
+        profile_user_id: profile.user_id,
+        request_user_id: user_id
+      });
       return json(200, { message: "Not primary profile or user mismatch", skipped: true });
     }
+
+    console.log("[extract-user-memory] All checks passed - starting extraction", {
+      conversation_id,
+      message_id,
+      profile_id: conv.profile_id,
+      mode: conv.mode
+    });
 
     // Build a small context window up to the assistant message
     const { data: windowMsgs, error: windowErr } = await supabase
@@ -369,6 +433,18 @@ Deno.serve(async (req) => {
 
     const insertRes = await supabase.from("user_memory").insert([memoryRow]);
     if (insertRes.error) throw insertRes.error;
+    
+    console.log("[extract-user-memory] Memory saved successfully:", {
+      message_id,
+      conversation_id,
+      profile_id: conv.profile_id,
+      canonical_hash: canonicalHash,
+      type: mem.type,
+      confidence: mem.confidence,
+      value_score: mem.value_score,
+      memory_text: mem.text
+    });
+    
     debugLog("memory-saved", {
       message_id,
       conversation_id,

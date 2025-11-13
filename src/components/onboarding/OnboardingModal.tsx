@@ -207,6 +207,17 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
       // 5. translator-edge skips messages table (profile_mode)
       // Note: Folder creation is handled in AstroDataForm.tsx in parallel with profile creation
 
+      // ✅ Fetch primary profile for memory tracking
+      const { data: primaryProfile } = await supabase
+        .from('user_profile_list')
+        .select('id')
+        .eq('user_id', profileUserId)
+        .eq('is_primary', true)
+        .maybeSingle();
+
+      const primaryProfileId = primaryProfile?.id || null;
+      console.log('[OnboardingModal] Primary profile ID for memory tracking:', primaryProfileId);
+
       // Create a separate chat for onboarding starter questions
       const { data: starterConversation, error: starterError } = await supabase.functions.invoke(
         'conversation-manager?action=create_conversation',
@@ -215,6 +226,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
             user_id: profileUserId,
             title: 'Chat',
             mode: 'chat',
+            profile_id: primaryProfileId, // ✅ Pass profile_id for memory extraction
           }
         }
       );
