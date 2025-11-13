@@ -169,26 +169,14 @@ export const AstroDataForm: React.FC<AstroDataFormProps> = ({
     if (isProfileFlow) {
       setIsProcessing(true);
       try {
-        // Step 1: Create profile (existing flow)
+        // Only create profile - OnboardingModal handles conversation creation and navigation
         await onSubmit({ ...data, request: 'essence' });
+        console.log('[AstroDataForm] Profile created successfully in profile flow');
         
-        // Step 2: Create folder
-        const folder = await createFolder(user.id, 'My folder');
-        console.log('[AstroDataForm] Folder created:', folder.id);
-        
-        // Step 3: Create a new chat conversation
-        const conversationId = await createConversationService(user.id, 'chat', 'New Chat');
-        console.log('[AstroDataForm] Conversation created:', conversationId);
-        
-        // Step 4: Move conversation to folder
-        await moveConversationToFolder(conversationId, folder.id);
-        console.log('[AstroDataForm] Conversation moved to folder');
-        
-        // Store chat ID for onboarding flow
-        localStorage.setItem('onboarding_chat_id', conversationId);
-        
-        // Navigate to the new chat with ?new=true flag
-        navigate(`/c/${conversationId}?new=true`, { replace: true });
+        // OnboardingModal will handle:
+        // - Creating starter conversation
+        // - Storing onboarding_chat_id
+        // - Navigation to chat or subscription
         
       } catch (error) {
         console.error('[AstroDataForm] Profile submission error:', error);
