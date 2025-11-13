@@ -337,9 +337,9 @@ const ChatContainerContent: React.FC = () => {
       localStorage.removeItem('onboarding_chat_id');
       
       // Refresh conversations list to show the new chat/folder in UI
-      const { fetchConversations } = useChatStore.getState();
-      if (fetchConversations) {
-        fetchConversations().catch(err => 
+      const { loadThreads } = useChatStore.getState();
+      if (user?.id) {
+        loadThreads(user.id).catch(err =>
           console.error('[ChatContainer] Failed to refresh conversations:', err)
         );
       }

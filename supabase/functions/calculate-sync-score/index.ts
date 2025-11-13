@@ -13,6 +13,10 @@ const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+const GOOGLE_API_KEY = Deno.env.get("GOOGLE-LLM-NEW")!;
+const GEMINI_MODEL = "gemini-2.5-flash";
+const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
+
 interface MemeCaption {
   format: 'top_bottom' | 'quote' | 'text_only';
   topText?: string;
@@ -106,9 +110,6 @@ async function generateMeme(
   personAName: string,
   personBName: string
 ): Promise<MemeGeneration> {
-  const GOOGLE_API_KEY = Deno.env.get("GOOGLE-LLM-NEW");
-  const GEMINI_MODEL = "gemini-2.5-flash";
-
   if (!GOOGLE_API_KEY) {
     throw new Error("Missing GOOGLE-LLM-NEW environment variable");
   }
@@ -185,8 +186,7 @@ Remember: Viral memes are SHORT, FUNNY, and PERFECTLY EXECUTED. Quality over com
 
   // Use retry logic for API call
   const data = await retryWithBackoff(async () => {
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
-    const resp = await fetch(geminiUrl, {
+    const resp = await fetch(GEMINI_API_URL, {
       method: "POST",
       headers: { 
         "Content-Type": "application/json", 
@@ -511,18 +511,20 @@ Deno.serve(async (req) => {
     console.log('[SyncScore] ✓ Meme generated');
 
     // ========================================================================
-    // STEP 4: CREATE/GET PLACEHOLDER MESSAGE
+    // STEP 4: CREATE PLACEHOLDER MESSAGE (FIRE-AND-FORGET)
     // ========================================================================
-    const targetMessage = await getOrCreatePlaceholderMessage(
-      chat_id,
-      userId,
-      message_id
-    );
+    let targetMessageId = message_id || crypto.randomUUID();
 
-    // Broadcast placeholder if newly created
-    if (!message_id) {
-      await broadcastMessage(userId, chat_id, targetMessage);
-    }
+    // Fire-and-forget: Create placeholder and broadcast
+    getOrCreatePlaceholderMessage(chat_id, userId, targetMessageId)
+      .then((msg) => {
+        if (!message_id) {
+          return broadcastMessage(userId, chat_id, msg);
+        }
+      })
+      .catch((error) => {
+        console.error('[Message] Background creation failed:', error);
+      });
 
     // ========================================================================
     // STEP 5: FIRE-AND-FORGET ASYNC TASKS
@@ -531,16 +533,14 @@ Deno.serve(async (req) => {
     // Store meme metadata
     storeMemeMetadataAsync(chat_id, memeData);
     
-    // Generate image
-    if (targetMessage) {
-      generateMemeImageAsync(
-        chat_id,
-        userId,
-        targetMessage.id,
-        memeGeneration.imagePrompt,
-        memeData
-      );
-    }
+    // Generate image (always use targetMessageId)
+    generateMemeImageAsync(
+      chat_id,
+      userId,
+      targetMessageId,
+      memeGeneration.imagePrompt,
+      memeData
+    );
 
     // ========================================================================
     // STEP 6: RETURN IMMEDIATELY
