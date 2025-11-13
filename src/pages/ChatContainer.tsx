@@ -33,30 +33,35 @@ const ChatContainerContent: React.FC = () => {
   // Single responsibility: Initialize chat when threadId changes
   useChatInitialization();
   
-  // Check for onboarding flow - show starter questions if ?new=true AND has_seen_subscription_page is true
+  // Check for onboarding flow - show starter questions if ?new=true AND modal has closed
   useEffect(() => {
     const checkAndShowStarter = async () => {
       const isNew = searchParams.get('new') === 'true';
       const onboardingChatId = localStorage.getItem('onboarding_chat_id');
+      const modalClosed = sessionStorage.getItem('onboarding_modal_closed') === 'true';
       
       if (isNew && chat_id && onboardingChatId === chat_id && user) {
-        // Check if user has seen subscription page
+        // Check if user has seen subscription page (DB) AND modal has closed (frontend flag)
         const { data: profile } = await supabase
           .from('profiles')
           .select('has_seen_subscription_page')
           .eq('id', user.id)
           .maybeSingle();
         
-        if (profile?.has_seen_subscription_page) {
-          console.log('[ChatContainer] Onboarding flow detected, showing starter questions');
+        if (profile?.has_seen_subscription_page && modalClosed) {
+          console.log('[ChatContainer] Onboarding flow complete, showing starter questions');
           setShowStarterQuestions(true);
           
-          // Remove ?new from URL
+          // Clean up flags
           const newSearchParams = new URLSearchParams(searchParams);
           newSearchParams.delete('new');
           setSearchParams(newSearchParams, { replace: true });
+          sessionStorage.removeItem('onboarding_modal_closed');
         } else {
-          console.log('[ChatContainer] Waiting for subscription page to be seen');
+          console.log('[ChatContainer] Waiting for onboarding modal to close', {
+            has_seen_subscription_page: profile?.has_seen_subscription_page,
+            modal_closed_flag: modalClosed
+          });
         }
       }
     };

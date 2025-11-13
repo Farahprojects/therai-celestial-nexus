@@ -261,6 +261,9 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
 
       if (error) throw error;
 
+      // Set frontend flag to indicate modal is closing (for UI orchestration)
+      sessionStorage.setItem('onboarding_modal_closed', 'true');
+
       onComplete();
 
       // Navigate to chat with starter questions if appropriate
@@ -285,7 +288,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-sm p-4">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/20 backdrop-blur-sm p-4">
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}

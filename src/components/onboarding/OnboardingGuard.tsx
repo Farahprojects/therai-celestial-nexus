@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { OnboardingModal } from './OnboardingModal';
@@ -58,15 +59,17 @@ export const OnboardingGuard: React.FC<OnboardingGuardProps> = ({ children }) =>
 
   return (
     <>
-      {needsOnboarding && (
-        <OnboardingModal
-          isOpen={showModal}
-          onComplete={() => {
-            setNeedsOnboarding(false);
-            setShowModal(false);
-          }}
-        />
-      )}
+      <AnimatePresence>
+        {needsOnboarding && showModal && (
+          <OnboardingModal
+            isOpen={showModal}
+            onComplete={() => {
+              setNeedsOnboarding(false);
+              setShowModal(false);
+            }}
+          />
+        )}
+      </AnimatePresence>
       {children}
     </>
   );

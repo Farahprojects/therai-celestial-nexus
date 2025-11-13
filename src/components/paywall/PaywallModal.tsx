@@ -89,7 +89,7 @@ const PaywallModal: React.FC<PaywallModalProps> = ({ isOpen, onClose, onSuccess 
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 bg-white z-50 flex flex-col"
+          className="fixed inset-0 bg-white z-[60] flex flex-col"
         >
           {/* Header */}
           <header className="w-full py-4 flex justify-end items-center px-6">
