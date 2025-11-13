@@ -300,3 +300,4 @@ The optimization makes user messages feel **instant** by eliminating the DB inse
 
 Combined with the image generation optimization, the app now feels significantly snappier across all interaction types. 🚀
 
+

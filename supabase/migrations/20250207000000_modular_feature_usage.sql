@@ -81,3 +81,4 @@ GRANT EXECUTE ON FUNCTION increment_insights_count(UUID, INTEGER, TEXT) TO servi
 
 
 
+

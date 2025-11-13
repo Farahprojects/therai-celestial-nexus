@@ -117,10 +117,3 @@ Or on failure:
 1. **Run the migration**: `supabase/migrations/20250207000001_pro_level_feature_usage.sql`
 2. **Deploy updated functions**: standard-report-three, standard-report-four
 3. **Test**: Verify limits are enforced correctly
-
-
-
-
-
-
-

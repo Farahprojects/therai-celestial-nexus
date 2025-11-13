@@ -30,10 +30,3 @@ SET
   body_text = 'Subscription Cancelled\n\nYour Therai subscription has been cancelled. We''re sorry to see you go.\n\nCancelled: {{cancellation_date}}\nAccess Until: {{access_until}}\n\nYour subscription access will remain active until {{access_until}}. After this date, you will lose access to premium features.\n\nWe''d love to hear your feedback. Is there anything we could have done better?\nShare feedback: https://therai.co/support\n\nThis is an automated cancellation confirmation. Please do not reply directly to this email.\n\n© 2025 Therai. All rights reserved.',
   updated_at = now()
 WHERE template_type = 'subscription_cancelled';
-
-
-
-
-
-
-

@@ -114,9 +114,3 @@ npm run build
 ```
 
 This single reference replaces the previous `SEO_SETUP_SUMMARY.md`, `SEO_DEPLOYMENT_CHECKLIST.md`, and `SEO_PRODUCTION_READY.md`. Keep it updated as the SEO surface evolves.
-
-
-
-
-
-

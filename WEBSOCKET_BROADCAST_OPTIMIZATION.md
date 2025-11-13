@@ -60,9 +60,3 @@
 | Messages policies | 4 (UNION) | 3 (EXISTS) | 50–70 % faster |
 | Broadcast payload | ~2 KB | ~1.4 KB | ~30 % smaller |
 | Client-visible latency | 2–3 s | 0.3–0.7 s | 80–85 % faster |
-
-
-
-
-
-

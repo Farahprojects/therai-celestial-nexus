@@ -207,3 +207,4 @@ Potential further improvements:
 4. **Thumbnail generation** - Create low-res preview first, full-res after
 5. **Batch operations** - Group multiple non-critical DB writes
 
+
