@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { getFolderConversations, getUserFolders, getSharedFolder, moveConversationToFolder } from '@/services/folders';
-import { Plus, MoreHorizontal } from 'lucide-react';
+import { Plus, MoreHorizontal, Folder } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useChatStore } from '@/core/store';
 import { Button } from '@/components/ui/button';
@@ -275,19 +275,24 @@ export const FolderView: React.FC<FolderViewProps> = ({ folderId, onChatClick })
   return (
     <div className="h-full flex flex-col bg-white">
       {/* Folder Name and Add Button - Below Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-        <div className="text-lg font-light text-gray-900">{folderName}</div>
-        {user && (
-          <Button
-            variant="outline"
-            size="sm"
-            className="rounded-full font-light"
-            disabled
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Add
-          </Button>
-        )}
+      <div className="px-6 py-4">
+        <div className="w-full max-w-2xl mx-auto flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3 text-lg font-light text-gray-900">
+            <Folder className="w-5 h-5 text-gray-900" />
+            <span>{folderName}</span>
+          </div>
+          {user && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="rounded-full font-light"
+              disabled
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Add
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Conversations List */}
@@ -299,47 +304,49 @@ export const FolderView: React.FC<FolderViewProps> = ({ folderId, onChatClick })
             </div>
           </div>
         ) : (
-          <div className="px-4 py-2">
-            {conversations.map((conversation) => (
-              <div
-                key={conversation.id}
-                className="flex items-center py-2 px-0 border-b border-gray-100 hover:bg-gray-50 transition-colors group last:border-b-0"
-              >
-                <div 
-                  className="flex-1 min-w-0 cursor-pointer"
-                  onClick={() => handleChatClick(conversation)}
+          <div className="px-6 py-4">
+            <div className="w-full max-w-2xl mx-auto flex flex-col space-y-2">
+              {conversations.map((conversation) => (
+                <div
+                  key={conversation.id}
+                  className="flex items-center justify-between gap-4 py-3 px-4 rounded-2xl hover:bg-gray-50 transition-colors group"
                 >
-                  <div className="text-sm font-light text-gray-900 truncate">
-                    {conversation.title || 'New Chat'}
+                  <div 
+                    className="flex-1 min-w-0 cursor-pointer"
+                    onClick={() => handleChatClick(conversation)}
+                  >
+                    <div className="text-sm font-light text-gray-900 truncate">
+                      {conversation.title || 'New Chat'}
+                    </div>
                   </div>
+                  
+                  {/* Three dots menu */}
+                  {user && (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button 
+                          className="p-1 hover:bg-gray-200 rounded transition-colors"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <MoreHorizontal className="w-4 h-4 text-gray-600" />
+                        </button>
+                      </DropdownMenuTrigger>
+                      <ConversationActionsMenuContent
+                        conversationId={conversation.id}
+                        currentTitle={conversation.title || ''}
+                        onEdit={handleEditChat}
+                        onDelete={handleDeleteChat}
+                        onMoveToFolder={handleMoveToFolder}
+                        onCreateFolder={handleCreateFolderAndMove}
+                        folders={folders}
+                        currentFolderId={folderId}
+                        align="end"
+                      />
+                    </DropdownMenu>
+                  )}
                 </div>
-                
-                {/* Three dots menu */}
-                {user && (
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <button 
-                        className="p-1 hover:bg-gray-200 rounded transition-colors"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <MoreHorizontal className="w-4 h-4 text-gray-600" />
-                      </button>
-                    </DropdownMenuTrigger>
-                    <ConversationActionsMenuContent
-                      conversationId={conversation.id}
-                      currentTitle={conversation.title || ''}
-                      onEdit={handleEditChat}
-                      onDelete={handleDeleteChat}
-                      onMoveToFolder={handleMoveToFolder}
-                      onCreateFolder={handleCreateFolderAndMove}
-                      folders={folders}
-                      currentFolderId={folderId}
-                      align="end"
-                    />
-                  </DropdownMenu>
-                )}
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         )}
       </div>
