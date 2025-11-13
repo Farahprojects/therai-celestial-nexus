@@ -1191,6 +1191,7 @@ export type Database = {
           last_seen_at: string | null
           last_share_reward_date: string | null
           metadata: Json | null
+          onboarding_modal_closed: boolean | null
           stripe_customer_id: string | null
           stripe_subscription_id: string | null
           subscription_active: boolean | null
@@ -1218,6 +1219,7 @@ export type Database = {
           last_seen_at?: string | null
           last_share_reward_date?: string | null
           metadata?: Json | null
+          onboarding_modal_closed?: boolean | null
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
           subscription_active?: boolean | null
@@ -1245,6 +1247,7 @@ export type Database = {
           last_seen_at?: string | null
           last_share_reward_date?: string | null
           metadata?: Json | null
+          onboarding_modal_closed?: boolean | null
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
           subscription_active?: boolean | null
