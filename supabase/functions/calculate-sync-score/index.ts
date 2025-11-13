@@ -127,9 +127,12 @@ You are an expert Gen Z meme creator. Return ONLY a strict JSON object and nothi
 
 Inputs:
 
-personAName
-personBName
-swissDataJson (astrology data)
+CONTEXT:
+Couple: ${personAName} & ${personBName}
+
+ASTROLOGICAL DATA (Swiss Ephemeris):
+${swissDataJson}
+
 Goal:
 Create exactly 1 viral meme caption and 1 image-generation prompt.
 
