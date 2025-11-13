@@ -220,10 +220,19 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
 
       if (starterError) {
         console.error('Error creating starter conversation:', starterError);
-      } else if (starterConversation?.chat_id) {
+        toast.error('Failed to create conversation. Please try again.');
+        return; // Don't proceed if we can't create the conversation
+      } else if (starterConversation?.success && starterConversation?.data?.id) {
         // Store chat_id for use after subscription flow
-        setOnboardingChatId(starterConversation.chat_id);
-        localStorage.setItem('onboarding_chat_id', starterConversation.chat_id);
+        const chatId = starterConversation.data.id;
+        setOnboardingChatId(chatId);
+        localStorage.setItem('onboarding_chat_id', chatId);
+        console.log('[OnboardingModal] Starter conversation created:', chatId);
+      } else {
+        // Edge function returned but with success: false
+        console.error('Starter conversation creation failed:', starterConversation);
+        toast.error('Failed to create conversation. Please try again.');
+        return; // Don't proceed if conversation creation failed
       }
 
       toast.success('Profile created successfully!');
@@ -272,28 +281,40 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
 
   const handleSubscribe = async () => {
     if (!onboardingChatId) {
+      console.error('[OnboardingModal] No onboardingChatId - cannot proceed');
       toast.error('Something went wrong. Please try again.');
       return;
     }
     
-    // Set flags first
-    await markOnboardingComplete();
-    
-    // Navigate to subscription page with return URL to chat
-    navigate(`/subscription-paywall?returnTo=/c/${onboardingChatId}?new=true`);
+    try {
+      // Set flags first
+      await markOnboardingComplete();
+      
+      // Navigate to subscription page with return URL to chat
+      navigate(`/subscription-paywall?returnTo=/c/${onboardingChatId}?new=true`);
+    } catch (error) {
+      console.error('[OnboardingModal] Error in handleSubscribe:', error);
+      // Don't show toast here - markOnboardingComplete already shows one
+    }
   };
 
   const handleSkipSubscription = async () => {
     if (!onboardingChatId) {
+      console.error('[OnboardingModal] No onboardingChatId - cannot proceed');
       toast.error('Something went wrong. Please try again.');
       return;
     }
     
-    // Set flags first
-    await markOnboardingComplete();
-    
-    // Navigate to chat with ?new=true - this triggers starter questions
-    navigate(`/c/${onboardingChatId}?new=true`);
+    try {
+      // Set flags first
+      await markOnboardingComplete();
+      
+      // Navigate to chat with ?new=true - this triggers starter questions
+      navigate(`/c/${onboardingChatId}?new=true`);
+    } catch (error) {
+      console.error('[OnboardingModal] Error in handleSkipSubscription:', error);
+      // Don't show toast here - markOnboardingComplete already shows one
+    }
   };
 
   return (
