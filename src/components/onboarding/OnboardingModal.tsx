@@ -237,7 +237,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
   };
 
   // Step 3: Subscription (or skip)
-  const markOnboardingComplete = async (shouldNavigateToChat: boolean = false) => {
+  const markOnboardingComplete = async () => {
     try {
       if (!user?.id) {
         toast.error('Please sign in again');
@@ -262,27 +262,38 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
 
       if (error) throw error;
 
+      // Close the modal
       onComplete();
-
-      // Navigate to chat with starter questions if appropriate
-      if (shouldNavigateToChat && onboardingChatId) {
-        navigate(`/c/${onboardingChatId}?new=true`);
-      }
     } catch (error) {
       console.error('Error marking onboarding complete:', error);
       toast.error('Something went wrong. Please try again.');
     }
   };
 
-  const handleSubscribe = () => {
-    // Don't navigate to chat yet - user will see subscription page first
-    markOnboardingComplete(false);
-    navigate('/subscription-paywall');
+  const handleSubscribe = async () => {
+    if (!onboardingChatId) {
+      toast.error('Something went wrong. Please try again.');
+      return;
+    }
+    
+    // Set flags first
+    await markOnboardingComplete();
+    
+    // Navigate to subscription page with return URL to chat
+    navigate(`/subscription-paywall?returnTo=/c/${onboardingChatId}?new=true`);
   };
 
-  const handleSkipSubscription = () => {
-    // Navigate directly to chat with starter questions
-    markOnboardingComplete(true);
+  const handleSkipSubscription = async () => {
+    if (!onboardingChatId) {
+      toast.error('Something went wrong. Please try again.');
+      return;
+    }
+    
+    // Set flags first
+    await markOnboardingComplete();
+    
+    // Navigate to chat with ?new=true - this triggers starter questions
+    navigate(`/c/${onboardingChatId}?new=true`);
   };
 
   return (
