@@ -149,7 +149,7 @@ Deno.serve(async (req) => {
       .lte("created_at", msg.created_at)
       .eq("status", "complete")
       .order("created_at", { ascending: false })
-      .limit(8);
+      .limit(4);
 
     if (windowErr || !windowMsgs || windowMsgs.length === 0) {
       return json(400, { error: "No messages found for context" });
@@ -216,15 +216,15 @@ Deno.serve(async (req) => {
       return json(200, { message: "Rejected: low content value", skipped: true });
     }
 
-    if ((mem.confidence ?? 0) < 0.82) {
+    if ((mem.confidence ?? 0) < 0.7) {
       return json(200, { message: "Rejected: low confidence", skipped: true });
     }
 
-    if ((mem.value_score ?? 0) < 0.72) {
+    if ((mem.value_score ?? 0) < 0.6) {
       return json(200, { message: "Rejected: low value", skipped: true });
     }
 
-    if (mem.time_horizon === "ephemeral") {
+    if (mem.time_horizon === "ephemeral" && (mem.value_score ?? 0) <= 0.85) {
       return json(200, { message: "Rejected: ephemeral", skipped: true });
     }
 
