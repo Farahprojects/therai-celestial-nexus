@@ -138,8 +138,8 @@ Create exactly 1 viral meme caption and 1 image-generation prompt.
 
 Core rules:
 
-Translate the astro data into a simple, relatable relationship vibe (e.g., clingy vs avoidant, chaotic vs stable, romantic, dramatic, competitive, healing, cozy, spicy, impulsive, stubborn).
-Absolutely NO astrology jargon: do not mention signs, planets, houses, aspects, retrogrades, synastry. Avoid words like Aries, Taurus, Gemini, Cancer, Leo, Virgo, Libra, Scorpio, Sagittarius, Capricorn, Aquarius, Pisces, Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, rising, houses, trine, square, conjunction, opposition.
+Translate the astro data into a simple, relatable relationship vibe.
+Absolutely NO astrology jargon and planetary words
 Caption: max 15 words; laugh-out-loud funny; sharp, relatable, Gen Z tone; natural language; perfect spelling; no jargon.
 Image: 9:16 portrait; one clear visual metaphor that matches the vibe; modern viral aesthetic.
 
