@@ -293,7 +293,7 @@ const Pricing: React.FC = () => {
                            plan.id.includes('yearly') || plan.id.includes('astro') ? (
                             <div className="text-sm font-light text-gray-500">per year</div>
                           ) : (
-                            <div className="text-sm font-light text-gray-500">per month</div>
+                            <div className="text-sm font-light text-gray-500">USD / Month</div>
                           )}
                         </div>
                       </div>
