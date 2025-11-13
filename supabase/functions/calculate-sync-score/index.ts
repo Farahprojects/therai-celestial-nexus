@@ -122,54 +122,38 @@ async function generateMeme(
   // ========================================================================
   // IMPROVED PROMPT: More explicit instructions for humor and spelling
   // ========================================================================
-  const prompt = `You are an expert meme creator. Your memes go VIRAL because they're:
-- Laugh-out-loud funny with sharp wit
-- Emotionally relatable and surprisingly accurate
-- Written: Gen Z Tone
+  const prompt = `
+You are an expert Gen Z meme creator. Return ONLY a strict JSON object and nothing else.
 
-CONTEXT:
-Couple: ${personAName} & ${personBName}
+Inputs:
 
-ASTROLOGICAL DATA (Swiss Ephemeris):
-${swissDataJson}
+personAName
+personBName
+swissDataJson (astrology data)
+Goal:
+Create exactly 1 viral meme caption and 1 image-generation prompt.
 
-YOUR TASK (complete ALL steps):
+Core rules:
 
-STEP 1: ANALYZE THE DATA
-Look for the most striking patterns in the synastry that is viral meme worthy:
-- Strong aspects (conjunctions, oppositions, trines, squares)
-- Dominant planetary energies
-- Sign and house placements
-- Overall relationship dynamic (harmonious/challenging/intense)
+Translate the astro data into a simple, relatable relationship vibe (e.g., clingy vs avoidant, chaotic vs stable, romantic, dramatic, competitive, healing, cozy, spicy, impulsive, stubborn).
+Absolutely NO astrology jargon: do not mention signs, planets, houses, aspects, retrogrades, synastry. Avoid words like Aries, Taurus, Gemini, Cancer, Leo, Virgo, Libra, Scorpio, Sagittarius, Capricorn, Aquarius, Pisces, Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, rising, houses, trine, square, conjunction, opposition.
+Caption: max 15 words; laugh-out-loud funny; sharp, relatable, Gen Z tone; natural language; perfect spelling; no jargon.
+Image: 9:16 portrait; one clear visual metaphor that matches the vibe; modern viral aesthetic.
 
-STEP 2: CREATE A VIRAL MEME CAPTION
-Requirements:
-✓ Maximum 15 words (concise = punchier)
-✓ Make it FUNNY - use irony, exaggeration, or unexpected twists
-✓ Natural language - avoid astro jargon unless it's the punchline
+Pick one style tag: “Polaroid photography”, “Y2K digital art”, “cinematic film still”, “retro vaporwave” (or a similar single style).
+Text overlays: Top: "{personAName} & {personBName}" (clean sans-serif) Center: "CAPTION" wrapped in double quotes inside a bold, high-contrast text box (mobile-legible, safe margins) Bottom: "therai.co" (small, subtle)
+Gender labels: Infer likely "man" or "woman" for each name. If confidence is low, use "person". Include these labels as small in-scene labels within the image instructions (e.g., “label A: man”, “label B: woman”). Do not ask the user.
+Process (lightweight):
 
-STEP 3: CREATE IMAGE GENERATION PROMPT
-Requirements:
-✓ 9:16 vertical format (portrait/story mode)
-✓ Viral aesthetic: clean, modern, eye-catching
-✓ Style references: use "in the style of [aesthetic]" for consistency
-  Examples: "Polaroid photography", "Y2K digital art", "cinematic film still", "retro vaporwave"
-✓ Clear visual metaphor for the astrological dynamic
-✓ Specify mood/lighting that matches the energy
-✓ CRITICAL: Center caption to be wrapped in commars 
-✓ Include text overlay instructions:
-  - Top overlay: "${personAName} & ${personBName}" (clean sans-serif font)
-  - Center overlay: [your meme caption with text box overlay] (bold, high contrast)
-  - Bottom overlay: "therai.co" (small, subtle)
-
-
-
-
-OUTPUT FORMAT (strict JSON, no markdown):
+Skim swissDataJson, extract the strongest, clearest relationship vibe and comedic angle.
+Write the caption first (<= 15 words). If longer, shorten before output.
+Then craft a matching visual metaphor, style, mood/lighting, and composition with high contrast and mobile-safe margins.
+Output format (strict JSON only, no extra text, no markdown):
 {
-  "caption": "your hilarious, perfectly-spelled caption here" with text box overlay,
-  "imagePrompt": "detailed image generation prompt with style, composition, text overlays, and aesthetic specifications, Include lable man or women based of names "
+"caption": "your perfectly-spelled, funny caption (<=15 words)",
+"imagePrompt": "full image generation prompt with visual metaphor, style tag, composition, mood/lighting, and exact overlay instructions: Top '{personAName} & {personBName}', Center '"CAPTION"' in a bold high-contrast text box, Bottom 'therai.co'. Include inferred labels for A and B as 'man', 'woman', or 'person' inside the scene instructions."
 }
+
 
 Remember: Viral memes are SHORT, FUNNY, and PERFECTLY EXECUTED. Quality over complexity.`;
 
