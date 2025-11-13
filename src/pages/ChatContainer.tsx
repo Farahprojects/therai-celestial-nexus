@@ -34,11 +34,14 @@ const ChatContainerContent: React.FC = () => {
   useChatInitialization();
   
   // Check for onboarding flow - show starter questions if ?new=true AND both flags are true
+  // IMPORTANT: Only show after chat_id is set to prevent ChatInput fallback from creating duplicate conversation
   useEffect(() => {
     const checkAndShowStarter = async () => {
       const isNew = searchParams.get('new') === 'true';
       const onboardingChatId = localStorage.getItem('onboarding_chat_id');
       
+      // CRITICAL: Wait for chat_id to be set before showing starter questions
+      // This ensures ChatInput doesn't hit its fallback path and create a duplicate conversation
       if (isNew && chat_id && onboardingChatId === chat_id && user) {
         // Check if user has seen subscription page AND onboarding modal has fully closed
         const { data: profile } = await supabase
@@ -48,7 +51,7 @@ const ChatContainerContent: React.FC = () => {
           .maybeSingle();
         
         if (profile?.has_seen_subscription_page && profile?.onboarding_modal_closed) {
-          console.log('[ChatContainer] Onboarding flow complete, showing starter questions');
+          console.log('[ChatContainer] Chat initialized, onboarding complete, showing starter questions', { chat_id });
           setShowStarterQuestions(true);
           
           // Remove ?new from URL
