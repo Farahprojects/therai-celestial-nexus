@@ -168,7 +168,7 @@ Requirements:
 OUTPUT FORMAT (strict JSON, no markdown):
 {
   "caption": "your hilarious, perfectly-spelled caption here" with text box overlay,
-  "imagePrompt": "detailed image generation prompt with style, composition, text overlays, and aesthetic specifications"
+  "imagePrompt": "detailed image generation prompt with style, composition, text overlays, and aesthetic specifications, Include lable man or women based of names "
 }
 
 Remember: Viral memes are SHORT, FUNNY, and PERFECTLY EXECUTED. Quality over complexity.`;
