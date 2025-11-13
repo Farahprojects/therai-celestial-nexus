@@ -23,6 +23,14 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
   auth: { persistSession: false }
 });
 
+const debugLog = (event, payload = {}) => {
+  try {
+    console.log(`[extract-user-memory] ${event}`, payload);
+  } catch (_) {
+    // Swallow logging errors to avoid breaking execution
+  }
+};
+
 const json = (status, data) =>
   new Response(JSON.stringify(data), {
     status,
@@ -197,40 +205,56 @@ Deno.serve(async (req) => {
     const parsed = safeJson(responseText) || { decision: "skip" };
 
     if (parsed.decision !== "save" || !parsed.memory) {
+      debugLog("skip-model-decision", { message_id, conversation_id });
       return json(200, { message: "No valuable memory this turn", count: 0 });
     }
 
     const mem = sanitizeMemory(parsed.memory);
+    debugLog("candidate-evaluated", {
+      message_id,
+      conversation_id,
+      type: mem.type,
+      confidence: mem.confidence,
+      value_score: mem.value_score,
+      time_horizon: mem.time_horizon
+    });
 
     // Hard filters: only store if high-value & safe
     if (!isAllowedType(mem.type)) {
+      debugLog("reject-unsupported-type", { message_id, type: mem.type });
       return json(200, { message: "Rejected: unsupported type", skipped: true });
     }
 
     if (!passesSafety(mem.text)) {
+      debugLog("reject-safety", { message_id });
       return json(200, { message: "Rejected: safety/PII/medical/financial", skipped: true });
     }
 
     // Minimum quality thresholds
     if (!mem.text || mem.text.length < 10 || mem.text.length > 300) {
+      debugLog("reject-length", { message_id, length: mem.text?.length ?? 0 });
       return json(200, { message: "Rejected: low content value", skipped: true });
     }
 
     if ((mem.confidence ?? 0) < 0.7) {
+      debugLog("reject-confidence", { message_id, confidence: mem.confidence });
       return json(200, { message: "Rejected: low confidence", skipped: true });
     }
 
     if ((mem.value_score ?? 0) < 0.6) {
+      debugLog("reject-value", { message_id, value_score: mem.value_score });
       return json(200, { message: "Rejected: low value", skipped: true });
     }
 
     if (mem.time_horizon === "ephemeral" && (mem.value_score ?? 0) <= 0.85) {
+      debugLog("reject-ephemeral", { message_id, value_score: mem.value_score });
       return json(200, { message: "Rejected: ephemeral", skipped: true });
     }
 
     // Dedup: canonical hash + fuzzy text similarity fallback
     const canonical = canonicalize(mem.text);
     const canonicalHash = await sha256Hex(canonical);
+    debugLog("dedup-check-start", { message_id, canonical_hash: canonicalHash });
 
     // First try hash-based match if column exists
     let duplicateHandled = false;
@@ -258,9 +282,15 @@ Deno.serve(async (req) => {
 
         duplicateHandled = true;
         usedHashDedup = true;
+        debugLog("duplicate-hash", {
+          message_id,
+          existing_id: existingByHash.id,
+          canonical_hash: canonicalHash
+        });
       }
     } catch (_) {
       // Column may not exist; fall through to fuzzy dedup
+      debugLog("hash-dedup-error", { message_id });
     }
 
     if (!duplicateHandled) {
@@ -288,6 +318,12 @@ Deno.serve(async (req) => {
               })
               .eq("id", ex.id);
             duplicateHandled = true;
+            debugLog("duplicate-fuzzy", {
+              message_id,
+              existing_id: ex.id,
+              similarity: Number(sim.toFixed(3)),
+              canonical_hash: canonicalHash
+            });
             break;
           }
         }
@@ -333,6 +369,14 @@ Deno.serve(async (req) => {
 
     const insertRes = await supabase.from("user_memory").insert([memoryRow]);
     if (insertRes.error) throw insertRes.error;
+    debugLog("memory-saved", {
+      message_id,
+      conversation_id,
+      canonical_hash: canonicalHash,
+      type: mem.type,
+      confidence: mem.confidence,
+      value_score: mem.value_score
+    });
 
     return json(200, { message: "Memory saved", count: 1, duplicates: 0 });
   } catch (e) {
