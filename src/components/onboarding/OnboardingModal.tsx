@@ -250,6 +250,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
       const onboardingUpdate: Database['public']['Tables']['profiles']['Update'] = {
         has_profile_setup: true,
         has_seen_subscription_page: true, // KEY FLAG: Set after subscription step
+        onboarding_modal_closed: true, // KEY FLAG: Set when modal is closing
       };
 
       const idColumn: keyof ProfileRow = 'id';
@@ -260,9 +261,6 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
         .eq(idColumn, userProfileId);
 
       if (error) throw error;
-
-      // Set frontend flag to indicate modal is closing (for UI orchestration)
-      sessionStorage.setItem('onboarding_modal_closed', 'true');
 
       onComplete();
 

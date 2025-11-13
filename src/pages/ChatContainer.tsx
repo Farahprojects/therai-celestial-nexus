@@ -33,34 +33,32 @@ const ChatContainerContent: React.FC = () => {
   // Single responsibility: Initialize chat when threadId changes
   useChatInitialization();
   
-  // Check for onboarding flow - show starter questions if ?new=true AND modal has closed
+  // Check for onboarding flow - show starter questions if ?new=true AND both flags are true
   useEffect(() => {
     const checkAndShowStarter = async () => {
       const isNew = searchParams.get('new') === 'true';
       const onboardingChatId = localStorage.getItem('onboarding_chat_id');
-      const modalClosed = sessionStorage.getItem('onboarding_modal_closed') === 'true';
       
       if (isNew && chat_id && onboardingChatId === chat_id && user) {
-        // Check if user has seen subscription page (DB) AND modal has closed (frontend flag)
+        // Check if user has seen subscription page AND onboarding modal has fully closed
         const { data: profile } = await supabase
           .from('profiles')
-          .select('has_seen_subscription_page')
+          .select('has_seen_subscription_page, onboarding_modal_closed')
           .eq('id', user.id)
           .maybeSingle();
         
-        if (profile?.has_seen_subscription_page && modalClosed) {
+        if (profile?.has_seen_subscription_page && profile?.onboarding_modal_closed) {
           console.log('[ChatContainer] Onboarding flow complete, showing starter questions');
           setShowStarterQuestions(true);
           
-          // Clean up flags
+          // Remove ?new from URL
           const newSearchParams = new URLSearchParams(searchParams);
           newSearchParams.delete('new');
           setSearchParams(newSearchParams, { replace: true });
-          sessionStorage.removeItem('onboarding_modal_closed');
         } else {
           console.log('[ChatContainer] Waiting for onboarding modal to close', {
             has_seen_subscription_page: profile?.has_seen_subscription_page,
-            modal_closed_flag: modalClosed
+            onboarding_modal_closed: profile?.onboarding_modal_closed
           });
         }
       }
