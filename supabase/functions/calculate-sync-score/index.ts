@@ -159,7 +159,7 @@ Requirements:
 ✓ CRITICAL: Center caption to be wrapped in commars 
 ✓ Include text overlay instructions:
   - Top overlay: "${personAName} & ${personBName}" (clean sans-serif font)
-  - Center overlay: [your meme caption in commers] (bold, high contrast)
+  - Center overlay: [your meme caption with text box overlay] (bold, high contrast)
   - Bottom overlay: "therai.co" (small, subtle)
 
 
@@ -167,7 +167,7 @@ Requirements:
 
 OUTPUT FORMAT (strict JSON, no markdown):
 {
-  "caption": "your hilarious, perfectly-spelled caption here",
+  "caption": "your hilarious, perfectly-spelled caption here" with text box overlay,
   "imagePrompt": "detailed image generation prompt with style, composition, text overlays, and aesthetic specifications"
 }
 
