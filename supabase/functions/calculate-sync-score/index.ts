@@ -216,7 +216,18 @@ Remember: Viral memes are SHORT, FUNNY, and PERFECTLY EXECUTED. Quality over com
   // Parse and validate JSON
   let parsed: { caption: string; imagePrompt: string };
   try {
-    parsed = JSON.parse(responseText);
+    const repaired = responseText
+      .trim()
+      // strip code fences if any
+      .replace(/^(?:json)?\s*|\s*$/g, '')
+      // fix invalid escape of apostrophes
+      .replace(/\\'/g, "'")
+      // normalize curly quotes to ASCII (sometimes models use them)
+      .replace(/[“”]/g, '"')
+      .replace(/[‘’]/g, "'")
+      // remove trailing commas before } or ]
+      .replace(/,\s*([}\]])/g, '$1');
+    parsed = JSON.parse(repaired);
   } catch (parseError) {
     console.error('[Meme] JSON parse error:', parseError);
     console.error('[Meme] Response:', responseText.substring(0, 500));
