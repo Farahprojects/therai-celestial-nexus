@@ -346,20 +346,25 @@ function generateMemeImageAsync(
   memeData: MemeData
 ): void {
   const imageGenUrl = `${supabaseUrl}/functions/v1/image-generate`;
-  
+
+  const payload = {
+    chat_id,
+    prompt: imagePrompt,
+    user_id,
+    mode: 'sync',
+    image_id: message_id,
+  };
+
+  console.log('[ImageGen] Final payload:', JSON.stringify(payload));
+  console.log('[ImageGen] Meme metadata:', JSON.stringify(memeData));
+
   fetch(imageGenUrl, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${supabaseServiceKey}`,
     },
-    body: JSON.stringify({
-      chat_id,
-      prompt: imagePrompt,
-      user_id,
-      mode: 'sync',
-      image_id: message_id,
-    }),
+    body: JSON.stringify(payload),
   })
     .then(async (response) => {
       if (!response.ok) {
