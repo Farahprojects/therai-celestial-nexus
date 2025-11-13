@@ -336,6 +336,14 @@ const ChatContainerContent: React.FC = () => {
       // Clear onboarding chat ID from localStorage
       localStorage.removeItem('onboarding_chat_id');
       
+      // Refresh conversations list to show the new chat/folder in UI
+      const { fetchConversations } = useChatStore.getState();
+      if (fetchConversations) {
+        fetchConversations().catch(err => 
+          console.error('[ChatContainer] Failed to refresh conversations:', err)
+        );
+      }
+      
       console.log('[ChatContainer] Starter question sent successfully');
     } catch (error) {
       console.error('[ChatContainer] Error sending starter question:', error);
