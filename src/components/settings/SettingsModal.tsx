@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogClose, DialogTitle } from "@/components/ui
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { X, User, Bell, LifeBuoy, Settings as SettingsIcon, LogOut, Trash2, CreditCard, ArrowLeft, Users, Zap, Brain } from "lucide-react";
-import { HIDDEN_SETTINGS_PANELS, useSettingsModal } from "@/contexts/SettingsModalContext";
+import { HIDDEN_SETTINGS_PANELS, SettingsPanelType, useSettingsModal } from "@/contexts/SettingsModalContext";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { AccountSettingsPanel } from "./account/AccountSettingsPanel";
 import { NotificationsPanel } from "./panels/NotificationsPanel";
@@ -96,7 +96,7 @@ export const SettingsModal = () => {
       { id: "notifications", label: "Notifications", icon: Bell },
     ] : []),
     { id: "support", label: "Contact Support", icon: LifeBuoy },
-  ].filter((tab) => !hiddenPanels.includes(tab.id));
+  ].filter((tab) => !hiddenPanels.includes(tab.id as SettingsPanelType));
 
   const handleLegalTerms = () => {
     window.open('/legal', '_blank');
