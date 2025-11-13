@@ -164,7 +164,7 @@ const { data, error } = await admin
     id,
     user_id: userId,
     owner_user_id: userId,
-    title: isProfileMode ? 'Profile' : (title || 'New Conversation'),
+    title: isProfileMode ? 'Profile' : (title || 'Chat'),
     mode: isProfileMode ? 'profile' : mode,
     profile_id: profile_id || null,
     meta,
@@ -317,7 +317,7 @@ const { data, error } = await admin
     id,
     user_id: userId,
     owner_user_id: userId,
-    title: title || 'New Conversation',
+    title: title || 'Chat',
     mode,
     meta,
   })

@@ -213,7 +213,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
         {
           body: {
             user_id: profileUserId,
-            title: 'New Conversation',
+            title: 'Chat',
             mode: 'chat',
           }
         }
