@@ -5,6 +5,7 @@ import Login from './pages/Login';
 import Signup from './pages/Signup';
 import Auth from './pages/auth/Auth';
 import { AuthGuard } from './components/auth/AuthGuard';
+import { StrictAuthGuard } from './components/auth/StrictAuthGuard';
 import { PublicOnlyGuard } from './components/auth/PublicOnlyGuard';
 import Contact from './pages/Contact';
 import About from './pages/About';
@@ -60,8 +61,8 @@ const AuthedAppShell: React.FC = () => {
       <Route path="/auth/email" element={<Auth />} />
       
       {/* Payment/subscription routes */}
-      <Route path="/subscription" element={<SubscriptionPaywall />} />
-      <Route path="/subscription-paywall" element={<SubscriptionPaywall />} />
+      <Route path="/subscription" element={<StrictAuthGuard><SubscriptionPaywall /></StrictAuthGuard>} />
+      <Route path="/subscription-paywall" element={<StrictAuthGuard><SubscriptionPaywall /></StrictAuthGuard>} />
       <Route path="/success" element={<SubscriptionSuccess />} />
       <Route path="/cancel" element={<SubscriptionPaywall />} />
       <Route path="/stripe" element={<EmbeddedCheckout />} />
