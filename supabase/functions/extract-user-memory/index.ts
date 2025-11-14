@@ -162,15 +162,6 @@ Deno.serve(async (req) => {
       return json(400, { error: "Conversation not found" });
     }
     
-    if (!conv.profile_id) {
-      console.warn("[extract-user-memory] No profile_id on conversation - memory extraction skipped", {
-        conversation_id,
-        mode: conv.mode,
-        user_id: conv.user_id
-      });
-      return json(200, { message: "No profile selected", skipped: true });
-    }
-    
     if (conv.user_id !== user_id) {
       console.error("[extract-user-memory] User mismatch:", {
         conv_user_id: conv.user_id,
@@ -179,37 +170,62 @@ Deno.serve(async (req) => {
       return json(403, { error: "User mismatch for conversation" });
     }
 
-    const { data: profile, error: profileErr } = await supabase
-      .from("user_profile_list")
-      .select("id, is_primary, user_id")
-      .eq("id", conv.profile_id)
-      .single();
+    // If no profile_id, lookup user's primary profile
+    let profileId = conv.profile_id;
 
-    console.log("[extract-user-memory] Profile lookup:", {
-      profile_id: conv.profile_id,
-      found: !!profile,
-      is_primary: profile?.is_primary,
-      error: profileErr?.message
-    });
-
-    if (profileErr || !profile) {
-      console.error("[extract-user-memory] Profile not found:", profileErr);
-      return json(400, { error: "Profile not found" });
+    if (!profileId) {
+      console.log("[extract-user-memory] No profile_id on conversation - looking up primary profile");
+      
+      const { data: primaryProfile } = await supabase
+        .from("user_profile_list")
+        .select("id")
+        .eq("user_id", user_id)
+        .eq("is_primary", true)
+        .maybeSingle();
+      
+      if (!primaryProfile) {
+        console.log("[extract-user-memory] No primary profile found for user - skipping extraction");
+        return json(200, { message: "No primary profile", skipped: true });
+      }
+      
+      profileId = primaryProfile.id;
+      console.log("[extract-user-memory] Using primary profile:", profileId);
     }
-    
-    if (!profile.is_primary || profile.user_id !== user_id) {
-      console.log("[extract-user-memory] Profile not eligible:", {
-        is_primary: profile.is_primary,
-        profile_user_id: profile.user_id,
-        request_user_id: user_id
+
+    // Validate profile ownership (only if profile was already on conversation)
+    if (conv.profile_id) {
+      const { data: profile, error: profileErr } = await supabase
+        .from("user_profile_list")
+        .select("id, is_primary, user_id")
+        .eq("id", profileId)
+        .single();
+
+      console.log("[extract-user-memory] Profile validation:", {
+        profile_id: profileId,
+        found: !!profile,
+        is_primary: profile?.is_primary,
+        error: profileErr?.message
       });
-      return json(200, { message: "Not primary profile or user mismatch", skipped: true });
+
+      if (profileErr || !profile) {
+        console.error("[extract-user-memory] Profile not found:", profileErr);
+        return json(400, { error: "Profile not found" });
+      }
+      
+      if (!profile.is_primary || profile.user_id !== user_id) {
+        console.log("[extract-user-memory] Profile not eligible:", {
+          is_primary: profile.is_primary,
+          profile_user_id: profile.user_id,
+          request_user_id: user_id
+        });
+        return json(200, { message: "Not primary profile or user mismatch", skipped: true });
+      }
     }
 
     console.log("[extract-user-memory] All checks passed - starting extraction", {
       conversation_id,
       message_id,
-      profile_id: conv.profile_id,
+      profile_id: profileId,
       mode: conv.mode
     });
 
@@ -412,7 +428,7 @@ Deno.serve(async (req) => {
     // Insert a single memory
     const memoryRow = {
       user_id,
-      profile_id: conv.profile_id,
+      profile_id: profileId,
       conversation_id,
       source_message_id: message_id,
       memory_text: mem.text,
@@ -437,7 +453,7 @@ Deno.serve(async (req) => {
     console.log("[extract-user-memory] Memory saved successfully:", {
       message_id,
       conversation_id,
-      profile_id: conv.profile_id,
+      profile_id: profileId,
       canonical_hash: canonicalHash,
       type: mem.type,
       confidence: mem.confidence,
