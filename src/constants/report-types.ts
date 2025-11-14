@@ -97,21 +97,21 @@ export const astroRequestCategories = [
     title: 'Compatibility',
     description: 'Explore dynamics and shared potential',
     icon: Users,
-    request: 'sync',
+    request: 'synastry',
   },
 ];
 
 // 🧠 Canonical map: request → reportType
 export const requestToReportTypeMap: Record<string, string> = {
   essence: 'essence',
-  sync: 'sync',
+  synastry: 'sync',
   // Add others here if needed later (e.g., positions → astro-positions)
 };
 
 // Optional reverse map if needed
 export const reportTypeToRequestMap: Record<string, string> = {
   essence: 'essence',
-  sync: 'sync',
+  sync: 'synastry',
 };
 
 /**

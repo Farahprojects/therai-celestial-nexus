@@ -12,6 +12,7 @@ import { useMode } from '@/contexts/ModeContext';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { getSwissChartDisplayName } from '@/constants/swissEndpoints';
 import { getAstroTitle, getInsightTitle } from '@/utils/reportTitles';
+import { astroRequestCategories } from '@/constants/report-types';
 
 // Custom hooks
 import { useAstroConversation } from '@/hooks/useAstroConversation';
@@ -59,6 +60,12 @@ const DEFAULT_FORM_VALUES: ReportFormData = {
   reportType: null,
 };
 
+const resolveAstroRequest = (type?: string | null): string => {
+  if (!type) return '';
+  const matchedCategory = astroRequestCategories.find(category => category.value === type);
+  return matchedCategory?.request ?? type;
+};
+
 export const AstroDataForm: React.FC<AstroDataFormProps> = ({
   onClose,
   onSubmit,
@@ -98,8 +105,9 @@ export const AstroDataForm: React.FC<AstroDataFormProps> = ({
   const shouldDisableAnimations = isProfileFlow;
 
   // Form setup
+  const initialRequest = resolveAstroRequest(preselectedType);
   const form = useForm<ReportFormData>({
-    defaultValues: { ...DEFAULT_FORM_VALUES, request: preselectedType || '', reportType },
+    defaultValues: { ...DEFAULT_FORM_VALUES, request: initialRequest, reportType },
   });
 
   const { register, handleSubmit, setValue, setError, watch, formState: { errors } } = form;
@@ -112,10 +120,17 @@ export const AstroDataForm: React.FC<AstroDataFormProps> = ({
     }
   }, [defaultName, setValue, formValues.name]);
 
+  useEffect(() => {
+    if (preselectedType) {
+      setSelectedAstroType(preselectedType);
+      setValue('request', resolveAstroRequest(preselectedType));
+    }
+  }, [preselectedType, setValue]);
+
   // Handlers
   const handleAstroTypeSelect = (type: string) => {
     setSelectedAstroType(type);
-    setValue('request', type);
+    setValue('request', resolveAstroRequest(type));
     setValue('reportType', null);
     setCurrentStep('details');
   };

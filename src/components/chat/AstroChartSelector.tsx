@@ -14,7 +14,7 @@ const chartTypes: ChartType[] = [
     icon: <User className="w-5 h-5" />,
   },
   {
-    id: 'sync', // Maps to /sync endpoint (Compatibility)
+    id: 'sync', // Maps to /synastry endpoint (Compatibility request)
     name: 'Compatibility',
     icon: <Users className="w-5 h-5" />,
   },
