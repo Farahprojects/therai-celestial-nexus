@@ -1,5 +1,7 @@
--- ============================================================================
 -- INTELLIGENT MEMORY BUFFER SYSTEM
+-- Ensure required extensions
+CREATE EXTENSION IF NOT EXISTS pg_net WITH SCHEMA net;
+
 -- Three-tier memory architecture: buffer -> cache -> long-term
 -- ============================================================================
 
@@ -187,14 +189,42 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 -- ============================================================================
 CREATE OR REPLACE FUNCTION update_buffer_pending_count()
 RETURNS TRIGGER AS $$
+DECLARE
+  new_count INT;
+  conv_user_id UUID;
 BEGIN
   IF TG_OP = 'INSERT' AND NEW.status = 'pending' THEN
-    -- Increment pending count
+    -- Increment pending count and capture the updated value
     UPDATE conversation_activity
     SET 
       pending_buffer_count = pending_buffer_count + 1,
       updated_at = NOW()
-    WHERE conversation_id = NEW.conversation_id;
+    WHERE conversation_id = NEW.conversation_id
+    RETURNING pending_buffer_count, user_id
+    INTO new_count, conv_user_id;
+
+    -- Auto-trigger processing when threshold reached
+    IF new_count >= 5 THEN
+      PERFORM net.http_post(
+        'https://wrvqqvqvwqmfdqvqmaar.supabase.co/functions/v1/process-memory-buffer',
+        jsonb_build_object(
+          'Content-Type', 'application/json',
+          'Authorization', 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndydnFxdnF2d3FtZmRxdnFtYWFyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU1ODA0NjIsImV4cCI6MjA2MTE1NjQ2Mn0.u9P-SY4kSo7e16I29TXXSOJou5tErfYuldrr_CITWX0'
+        ),
+        jsonb_build_object(
+          'conversation_id', NEW.conversation_id,
+          'user_id', conv_user_id,
+          'trigger_reason', 'count_threshold'
+        )::text
+      );
+
+      UPDATE conversation_activity
+      SET buffer_processing_scheduled = true
+      WHERE conversation_id = NEW.conversation_id;
+
+      RAISE LOG '[update_buffer_pending_count] Auto-triggered processing for conversation % (count: %)', NEW.conversation_id, new_count;
+    END IF;
+
   ELSIF TG_OP = 'UPDATE' AND OLD.status = 'pending' AND NEW.status != 'pending' THEN
     -- Decrement pending count when status changes from pending
     UPDATE conversation_activity
