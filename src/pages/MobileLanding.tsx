@@ -158,7 +158,7 @@ const MobileLanding: React.FC<Props> = ({
       </AnimatePresence>
       
       {/* Hero Section - Same as desktop */}
-      <section className="relative flex-1 flex items-center justify-center bg-white overflow-hidden px-4 pt-28 pb-16">
+      <section className="relative flex-1 flex items-center justify-center bg-white overflow-visible px-4 pt-28 pb-16">
         <div className="relative z-10 w-full text-center">
           <motion.div initial={{
           opacity: 0,
@@ -172,8 +172,8 @@ const MobileLanding: React.FC<Props> = ({
       }}>
             <h1 className="text-[2.65rem] sm:text-[3.25rem] font-light text-gray-900 leading-tight mb-6 flex items-center justify-center gap-x-2 sm:gap-x-3 whitespace-nowrap tracking-tight">
               <span>Know</span>
-              <span className="italic font-light flex items-center justify-center gap-x-2 sm:gap-x-3">
-                <span>Your</span>
+              <span className="italic font-light flex items-center justify-center">
+                <span>{'Your '}</span>
                 <AnimatePresence mode="wait">
                   <motion.span key={currentWordIndex} initial={{
                   opacity: 0,
@@ -186,9 +186,10 @@ const MobileLanding: React.FC<Props> = ({
                   rotateX: -90
                 }} transition={{
                   duration: 0.3
-                }} className="inline-block text-center w-20 sm:w-24 overflow-visible transform-gpu" style={{
+                }} className="inline-block text-center overflow-visible transform-gpu" style={{
                   willChange: 'transform',
-                  backfaceVisibility: 'hidden'
+                  backfaceVisibility: 'hidden',
+                  paddingRight: '0.15em'
                 }}>
                     {rotatingWords[currentWordIndex]}
                   </motion.span>
@@ -217,7 +218,9 @@ const MobileLanding: React.FC<Props> = ({
         duration: 0.8
       }}>
               <p className="text-3xl font-light text-gray-900 italic">
-                e ≡ AΦ
+                <Link to="/blog/the-resonance-principle" className="no-underline text-inherit">
+                  e ≡ AΦ
+                </Link>
               </p>
             </motion.div>
           </motion.div>
