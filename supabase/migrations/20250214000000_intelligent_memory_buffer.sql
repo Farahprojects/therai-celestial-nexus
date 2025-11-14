@@ -1,10 +1,12 @@
--- Intelligent Memory Buffer System
+-- ============================================================================
+-- INTELLIGENT MEMORY BUFFER SYSTEM
 -- Three-tier memory architecture: buffer -> cache -> long-term
+-- ============================================================================
 
 -- 1. Short-term observation buffer (ephemeral, awaiting context)
 CREATE TABLE IF NOT EXISTS user_memory_buffer (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL, -- References profiles.id implicitly
+  user_id UUID NOT NULL, -- References profiles.id (no FK to avoid auth.users)
   profile_id UUID NOT NULL REFERENCES user_profile_list(id) ON DELETE CASCADE,
   conversation_id UUID NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
   source_message_id UUID NOT NULL REFERENCES messages(id) ON DELETE CASCADE,
@@ -19,7 +21,7 @@ CREATE TABLE IF NOT EXISTS user_memory_buffer (
   time_horizon TEXT DEFAULT 'seasonal' CHECK (time_horizon IN ('enduring', 'seasonal', 'ephemeral')),
   
   -- Context tracking
-  turns_observed INT DEFAULT 1, -- How many turns we've been watching this observation
+  turns_observed INT DEFAULT 1,
   last_seen_at TIMESTAMPTZ DEFAULT NOW(),
   first_seen_at TIMESTAMPTZ DEFAULT NOW(),
   
@@ -36,16 +38,30 @@ CREATE TABLE IF NOT EXISTS user_memory_buffer (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Enable RLS
+ALTER TABLE user_memory_buffer ENABLE ROW LEVEL SECURITY;
+
+-- RLS Policies
+CREATE POLICY "Users can view own memory buffers"
+  ON user_memory_buffer FOR SELECT
+  USING (user_id = auth.uid());
+
+CREATE POLICY "Service role can manage memory buffers"
+  ON user_memory_buffer FOR ALL
+  USING (auth.role() = 'service_role');
+
 -- Indexes for efficient querying
 CREATE INDEX idx_memory_buffer_user_pending ON user_memory_buffer(user_id, status) WHERE status = 'pending';
 CREATE INDEX idx_memory_buffer_conversation ON user_memory_buffer(conversation_id, status);
 CREATE INDEX idx_memory_buffer_last_seen ON user_memory_buffer(last_seen_at) WHERE status = 'pending';
 CREATE INDEX idx_memory_buffer_profile ON user_memory_buffer(profile_id, user_id);
 
+-- ============================================================================
 -- 2. Conversation activity tracking (for inactivity detection)
+-- ============================================================================
 CREATE TABLE IF NOT EXISTS conversation_activity (
   conversation_id UUID PRIMARY KEY REFERENCES conversations(id) ON DELETE CASCADE,
-  user_id UUID NOT NULL, -- References profiles.id implicitly
+  user_id UUID NOT NULL, -- References profiles.id (no FK to avoid auth.users)
   
   last_user_message_at TIMESTAMPTZ,
   last_assistant_message_at TIMESTAMPTZ,
@@ -63,65 +79,69 @@ CREATE TABLE IF NOT EXISTS conversation_activity (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Enable RLS
+ALTER TABLE conversation_activity ENABLE ROW LEVEL SECURITY;
+
+-- RLS Policies
+CREATE POLICY "Users can view own conversation activity"
+  ON conversation_activity FOR SELECT
+  USING (user_id = auth.uid());
+
+CREATE POLICY "Service role can manage conversation activity"
+  ON conversation_activity FOR ALL
+  USING (auth.role() = 'service_role');
+
 CREATE INDEX idx_conversation_activity_last_activity ON conversation_activity(last_activity_at);
 CREATE INDEX idx_conversation_activity_pending_buffer ON conversation_activity(pending_buffer_count) WHERE pending_buffer_count > 0;
 
+-- ============================================================================
 -- 3. Update user_memory table to track promotion from buffer
+-- ============================================================================
 ALTER TABLE user_memory 
-  ADD COLUMN IF NOT EXISTS promoted_from_buffer_id UUID REFERENCES user_memory_buffer(id),
+  ADD COLUMN IF NOT EXISTS promoted_from_buffer_id UUID REFERENCES user_memory_buffer(id) ON DELETE SET NULL,
   ADD COLUMN IF NOT EXISTS memory_tier TEXT DEFAULT 'long_term' CHECK (memory_tier IN ('long_term', 'medium_term'));
 
 CREATE INDEX IF NOT EXISTS idx_user_memory_tier ON user_memory(user_id, memory_tier);
 
--- 4. Function to update conversation activity (optimized for high volume)
+-- ============================================================================
+-- 4. Function to update conversation activity
+-- ============================================================================
 CREATE OR REPLACE FUNCTION update_conversation_activity()
 RETURNS TRIGGER AS $$
 DECLARE
-  v_user_id UUID;
+  conv_user_id UUID;
 BEGIN
-  -- Only track completed messages, skip archived/incomplete
-  IF NEW.status != 'complete' THEN
-    RETURN NEW;
+  -- Only track completed messages
+  IF NEW.status = 'complete' THEN
+    -- Get user_id once (avoid repeated subquery)
+    SELECT user_id INTO conv_user_id FROM conversations WHERE id = NEW.chat_id;
+    
+    INSERT INTO conversation_activity (
+      conversation_id,
+      user_id,
+      last_user_message_at,
+      last_assistant_message_at,
+      last_activity_at
+    ) VALUES (
+      NEW.chat_id,
+      COALESCE(NEW.user_id, conv_user_id),
+      CASE WHEN NEW.role = 'user' THEN NEW.created_at ELSE NULL END,
+      CASE WHEN NEW.role = 'assistant' THEN NEW.created_at ELSE NULL END,
+      NEW.created_at
+    )
+    ON CONFLICT (conversation_id) DO UPDATE SET
+      last_user_message_at = CASE 
+        WHEN NEW.role = 'user' THEN NEW.created_at 
+        ELSE conversation_activity.last_user_message_at 
+      END,
+      last_assistant_message_at = CASE 
+        WHEN NEW.role = 'assistant' THEN NEW.created_at 
+        ELSE conversation_activity.last_assistant_message_at 
+      END,
+      last_activity_at = NEW.created_at,
+      updated_at = NOW(),
+      buffer_processing_scheduled = false;
   END IF;
-
-  -- Get user_id directly from message (avoid subquery when possible)
-  v_user_id := NEW.user_id;
-  
-  -- If user_id is NULL, fetch from conversation (lightweight, cached)
-  IF v_user_id IS NULL THEN
-    SELECT user_id INTO v_user_id FROM conversations WHERE id = NEW.chat_id LIMIT 1;
-    -- If still NULL, skip tracking
-    IF v_user_id IS NULL THEN
-      RETURN NEW;
-    END IF;
-  END IF;
-
-  -- Upsert activity record (no subquery in UPDATE clause)
-  INSERT INTO conversation_activity (
-    conversation_id,
-    user_id,
-    last_user_message_at,
-    last_assistant_message_at,
-    last_activity_at
-  ) VALUES (
-    NEW.chat_id,
-    v_user_id,
-    CASE WHEN NEW.role = 'user' THEN NEW.created_at ELSE NULL END,
-    CASE WHEN NEW.role = 'assistant' THEN NEW.created_at ELSE NULL END,
-    NEW.created_at
-  )
-  ON CONFLICT (conversation_id) DO UPDATE SET
-    last_user_message_at = CASE 
-      WHEN NEW.role = 'user' THEN NEW.created_at 
-      ELSE conversation_activity.last_user_message_at 
-    END,
-    last_assistant_message_at = CASE 
-      WHEN NEW.role = 'assistant' THEN NEW.created_at 
-      ELSE conversation_activity.last_assistant_message_at 
-    END,
-    last_activity_at = NEW.created_at,
-    updated_at = NOW(),
-    buffer_processing_scheduled = false; -- Reset scheduling flag on new activity
   
   RETURN NEW;
 END;
@@ -134,7 +154,9 @@ CREATE TRIGGER track_conversation_activity
   FOR EACH ROW
   EXECUTE FUNCTION update_conversation_activity();
 
+-- ============================================================================
 -- 5. Function to get conversations with pending buffers needing processing
+-- ============================================================================
 CREATE OR REPLACE FUNCTION get_conversations_needing_buffer_processing(
   inactivity_minutes INT DEFAULT 10
 )
@@ -158,28 +180,28 @@ BEGIN
     AND (NOW() - ca.last_activity_at) >= INTERVAL '1 minute' * inactivity_minutes
   ORDER BY ca.last_activity_at ASC;
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- 6. Function to update buffer pending count (with row locking to prevent race conditions)
+-- ============================================================================
+-- 6. Function to update buffer pending count
+-- ============================================================================
 CREATE OR REPLACE FUNCTION update_buffer_pending_count()
 RETURNS TRIGGER AS $$
 BEGIN
   IF TG_OP = 'INSERT' AND NEW.status = 'pending' THEN
-    -- Increment pending count with row lock to prevent race conditions
+    -- Increment pending count
     UPDATE conversation_activity
     SET 
       pending_buffer_count = pending_buffer_count + 1,
       updated_at = NOW()
-    WHERE conversation_id = NEW.conversation_id
-    FOR UPDATE; -- Lock row to prevent concurrent updates
+    WHERE conversation_id = NEW.conversation_id;
   ELSIF TG_OP = 'UPDATE' AND OLD.status = 'pending' AND NEW.status != 'pending' THEN
     -- Decrement pending count when status changes from pending
     UPDATE conversation_activity
     SET 
       pending_buffer_count = GREATEST(0, pending_buffer_count - 1),
       updated_at = NOW()
-    WHERE conversation_id = NEW.conversation_id
-    FOR UPDATE; -- Lock row to prevent concurrent updates
+    WHERE conversation_id = NEW.conversation_id;
   END IF;
   
   RETURN NEW;
@@ -193,20 +215,11 @@ CREATE TRIGGER track_buffer_pending_count
   FOR EACH ROW
   EXECUTE FUNCTION update_buffer_pending_count();
 
--- 7. Optional: Add FK constraint for user_id if profiles table exists
--- Note: Only add if you have a profiles table with proper structure
--- ALTER TABLE user_memory_buffer 
---   ADD CONSTRAINT fk_user_memory_buffer_user 
---   FOREIGN KEY (user_id) REFERENCES profiles(id) ON DELETE CASCADE;
-
--- ALTER TABLE conversation_activity
---   ADD CONSTRAINT fk_conversation_activity_user
---   FOREIGN KEY (user_id) REFERENCES profiles(id) ON DELETE CASCADE;
-
--- 8. Add comments for documentation
+-- ============================================================================
+-- 7. Documentation
+-- ============================================================================
 COMMENT ON TABLE user_memory_buffer IS 'Short-term buffer for memory observations awaiting context validation';
 COMMENT ON TABLE conversation_activity IS 'Tracks conversation activity for intelligent buffer processing';
 COMMENT ON COLUMN user_memory_buffer.turns_observed IS 'Number of conversation turns this observation has been tracked';
 COMMENT ON COLUMN user_memory_buffer.status IS 'pending: awaiting validation, confirmed: ready for commit, contradicted: discard, superseded: replaced by better observation, merged: combined with another';
 COMMENT ON COLUMN conversation_activity.buffer_processing_scheduled IS 'Flag to prevent duplicate processing triggers';
-
