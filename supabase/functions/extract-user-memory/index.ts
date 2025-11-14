@@ -320,167 +320,68 @@ Deno.serve(async (req) => {
       return json(200, { message: "Rejected: safety/PII/medical/financial", skipped: true });
     }
 
-    // Minimum quality thresholds
+    // Minimum quality thresholds (lower than before - buffer processor will validate)
     if (!mem.text || mem.text.length < 10 || mem.text.length > 300) {
       debugLog("reject-length", { message_id, length: mem.text?.length ?? 0 });
       return json(200, { message: "Rejected: low content value", skipped: true });
     }
 
-    if ((mem.confidence ?? 0) < 0.7) {
+    if ((mem.confidence ?? 0) < 0.5) {
       debugLog("reject-confidence", { message_id, confidence: mem.confidence });
-      return json(200, { message: "Rejected: low confidence", skipped: true });
+      return json(200, { message: "Rejected: very low confidence", skipped: true });
     }
 
-    if ((mem.value_score ?? 0) < 0.6) {
+    if ((mem.value_score ?? 0) < 0.5) {
       debugLog("reject-value", { message_id, value_score: mem.value_score });
-      return json(200, { message: "Rejected: low value", skipped: true });
+      return json(200, { message: "Rejected: very low value", skipped: true });
     }
 
-    if (mem.time_horizon === "ephemeral" && (mem.value_score ?? 0) <= 0.85) {
-      debugLog("reject-ephemeral", { message_id, value_score: mem.value_score });
-      return json(200, { message: "Rejected: ephemeral", skipped: true });
-    }
-
-    // Dedup: canonical hash + fuzzy text similarity fallback
-    const canonical = canonicalize(mem.text);
-    const canonicalHash = await sha256Hex(canonical);
-    debugLog("dedup-check-start", { message_id, canonical_hash: canonicalHash });
-
-    // First try hash-based match if column exists
-    let duplicateHandled = false;
-    let usedHashDedup = false;
-
-    try {
-      const { data: existingByHash, error: hashErr } = await supabase
-        .from("user_memory")
-        .select("id, memory_text, reference_count")
-        .eq("user_id", user_id)
-        .eq("profile_id", conv.profile_id)
-        .eq("is_active", true)
-        .eq("canonical_hash", canonicalHash)
-        .limit(1)
-        .maybeSingle();
-
-      if (!hashErr && existingByHash) {
-        await supabase
-          .from("user_memory")
-          .update({
-            reference_count: (existingByHash.reference_count ?? 0) + 1,
-            last_referenced_at: new Date().toISOString()
-          })
-          .eq("id", existingByHash.id);
-
-        duplicateHandled = true;
-        usedHashDedup = true;
-        debugLog("duplicate-hash", {
-          message_id,
-          existing_id: existingByHash.id,
-          canonical_hash: canonicalHash
-        });
-      }
-    } catch (_) {
-      // Column may not exist; fall through to fuzzy dedup
-      debugLog("hash-dedup-error", { message_id });
-    }
-
-    if (!duplicateHandled) {
-      // Fuzzy dedup on recent memories (Jaccard similarity)
-      const { data: recentMemories } = await supabase
-        .from("user_memory")
-        .select("id, memory_text, reference_count")
-        .eq("user_id", user_id)
-        .eq("profile_id", conv.profile_id)
-        .eq("is_active", true)
-        .order("created_at", { ascending: false })
-        .limit(200);
-
-      if (recentMemories && recentMemories.length > 0) {
-        const SIM_THRESHOLD = 0.7;
-        const normalizedNew = canonical; // Already normalized
-        for (const ex of recentMemories) {
-          const sim = jaccardSimilarity(normalizedNew, canonicalize(ex.memory_text));
-          if (sim >= SIM_THRESHOLD) {
-            await supabase
-              .from("user_memory")
-              .update({
-                reference_count: (ex.reference_count ?? 0) + 1,
-                last_referenced_at: new Date().toISOString()
-              })
-              .eq("id", ex.id);
-            duplicateHandled = true;
-            debugLog("duplicate-fuzzy", {
-              message_id,
-              existing_id: ex.id,
-              similarity: Number(sim.toFixed(3)),
-              canonical_hash: canonicalHash
-            });
-            break;
-          }
-        }
-      }
-    }
-
-    if (duplicateHandled) {
-      // Mark this message as processed to ensure one-per-turn idempotency
-      await markSourceSeen(conversation_id, message_id, {
-        user_id,
-        profile_id: conv.profile_id,
-        origin_mode: conv.mode
-      });
-
-      return json(200, {
-        message: usedHashDedup ? "Duplicate (hash) -> reference_count++" : "Duplicate (fuzzy) -> reference_count++",
-        count: 0,
-        duplicates: 1
-      });
-    }
-
-    // Insert a single memory
-    const memoryRow = {
+    // ✨ NEW: Write to buffer instead of direct commit
+    // Deduplication and validation will be handled by intelligent buffer processor
+    const bufferRow = {
       user_id,
       profile_id: profileId,
       conversation_id,
       source_message_id: message_id,
-      memory_text: mem.text,
-      memory_type: mem.type,
+      observation_text: mem.text,
+      observation_type: mem.type,
       confidence_score: clamp(mem.confidence ?? 0.85, 0, 1),
-      origin_mode: conv.mode,
-      reference_count: 1,
-      canonical_hash: canonicalHash, // If column exists, it's used; otherwise ignored
-      memory_metadata: {
-        time_horizon: mem.time_horizon,
-        value_score: clamp(mem.value_score ?? 0.75, 0, 1),
+      value_score: clamp(mem.value_score ?? 0.75, 0, 1),
+      time_horizon: mem.time_horizon,
+      status: "pending",
+      turns_observed: 1,
+      first_seen_at: new Date().toISOString(),
+      last_seen_at: new Date().toISOString(),
+      extraction_metadata: {
         rationale: mem.rationale?.slice(0, 300) ?? null,
         extractor: "gemini",
-        extractor_model: GEMINI_MODEL
-      },
-      created_at: new Date().toISOString()
+        extractor_model: GEMINI_MODEL,
+        extracted_at: new Date().toISOString()
+      }
     };
 
-    const insertRes = await supabase.from("user_memory").insert([memoryRow]);
+    const insertRes = await supabase.from("user_memory_buffer").insert([bufferRow]);
     if (insertRes.error) throw insertRes.error;
     
-    console.log("[extract-user-memory] Memory saved successfully:", {
+    console.log("[extract-user-memory] Observation buffered (awaiting validation):", {
       message_id,
       conversation_id,
       profile_id: profileId,
-      canonical_hash: canonicalHash,
       type: mem.type,
       confidence: mem.confidence,
       value_score: mem.value_score,
-      memory_text: mem.text
+      observation_text: mem.text
     });
     
-    debugLog("memory-saved", {
+    debugLog("observation-buffered", {
       message_id,
       conversation_id,
-      canonical_hash: canonicalHash,
       type: mem.type,
       confidence: mem.confidence,
       value_score: mem.value_score
     });
 
-    return json(200, { message: "Memory saved", count: 1, duplicates: 0 });
+    return json(200, { message: "Observation buffered for validation", count: 1, buffered: true });
   } catch (e) {
     console.error("[extract-user-memory] Error:", e);
     return json(500, { error: e.message ?? "Unknown error" });

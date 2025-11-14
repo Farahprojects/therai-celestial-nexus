@@ -611,6 +611,7 @@ if (role === "user") {
   }
 }
 
+// ✨ Intelligent Memory System: Buffer + Inactivity Processing
 // Trigger memory extraction if needed (fire-and-forget)
 // Optimized with sampling to reduce edge function invocations by 70-80%
 // Only runs for assistant messages (insertedMessage will be null for user messages in fire-and-forget path)
@@ -668,6 +669,7 @@ if (role === "assistant" && insertedMessage?.id) {
         message_id: insertedMessage.id
       }));
 
+      // Extract observation to buffer (not direct commit)
       fetch(`${SUPABASE_URL}/functions/v1/extract-user-memory`, {
         method: "POST",
         headers: {
@@ -682,8 +684,68 @@ if (role === "assistant" && insertedMessage?.id) {
           error: err instanceof Error ? err.message : String(err)
         }));
       });
+
+      // ✨ NEW: Check if buffer should be processed due to inactivity
+      // This runs independently after extraction to catch inactivity windows
+      checkAndProcessInactiveBuffers(chat_id, user_id, requestId);
     }
   });
+}
+
+// ✨ NEW: Inactivity-based buffer processing
+// Checks if conversation has been inactive for threshold period and processes pending buffers
+async function checkAndProcessInactiveBuffers(chat_id: string, user_id: string | null, requestId: string) {
+  try {
+    // Query conversations that need buffer processing (10+ min inactive with pending items)
+    const { data: needsProcessing } = await supabase
+      .rpc('get_conversations_needing_buffer_processing', { inactivity_minutes: 10 })
+      .eq('conversation_id', chat_id)
+      .maybeSingle();
+
+    if (!needsProcessing || !needsProcessing.pending_count) {
+      console.info(JSON.stringify({
+        event: "buffer_processing_not_needed",
+        request_id: requestId,
+        conversation_id: chat_id,
+        reason: !needsProcessing ? "no_activity_record" : "no_pending_items"
+      }));
+      return;
+    }
+
+    console.info(JSON.stringify({
+      event: "buffer_processing_triggered_by_inactivity",
+      request_id: requestId,
+      conversation_id: chat_id,
+      pending_count: needsProcessing.pending_count,
+      minutes_since_activity: needsProcessing.minutes_since_activity
+    }));
+
+    // Trigger buffer processing (fire-and-forget)
+    fetch(`${SUPABASE_URL}/functions/v1/process-memory-buffer`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`
+      },
+      body: JSON.stringify({
+        conversation_id: chat_id,
+        user_id: user_id,
+        force: false
+      })
+    }).catch(err => {
+      console.error(JSON.stringify({
+        event: "buffer_processing_trigger_failed",
+        request_id: requestId,
+        error: err instanceof Error ? err.message : String(err)
+      }));
+    });
+  } catch (err) {
+    console.error(JSON.stringify({
+      event: "buffer_inactivity_check_failed",
+      request_id: requestId,
+      error: err instanceof Error ? err.message : String(err)
+    }));
+  }
 }
 
 // Return immediately (no await, both operations already non-blocking)
