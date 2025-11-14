@@ -60,6 +60,9 @@ Prefer enduring or seasonal memories. Avoid ephemeral logistics (e.g., "tomorrow
 Do not store medical diagnoses, financial hardship claims, exact addresses, phone numbers, emails, or government IDs.
 Focus on energy patterns, emotional tendencies, motivations, goals, relationship dynamics, recurring cycles, and significant life facts.
 If content is unclear, speculative, or only about the AI, skip.
+Do NOT attempt to fill all memory types. Do NOT extract one memory per label.
+From this entire conversation window, return only ONE memory total — the single most valuable observation — even if multiple categories appear relevant.
+Ignore the instinct to create separate memories for different labels.
 If multiple candidates exist, choose the single best one by value_score.
 If nothing is clearly useful, return decision=skip.
 
