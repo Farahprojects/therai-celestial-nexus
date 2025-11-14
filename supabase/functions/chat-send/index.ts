@@ -1,5 +1,5 @@
-// @ts-nocheck - Deno runtime, types checked at deployment
-// Simplified, production-ready version
+// -@ts-nocheck - Deno runtime, types checked at deployment
+// -Simplified, production-ready version
 // - Uses Deno.serve (no std/http dependency)
 // - Validates input and fails fast on missing env vars
 // - Single path for saving messages (role inferred)
