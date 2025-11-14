@@ -644,20 +644,13 @@ if (role === "assistant" && insertedMessage?.id) {
       return;
     }
 
-    // Sampling strategy: 20-30% of messages, weighted by conversation turn
-    // Higher probability for later turns (more context = better memories)
-    const baseRate = 0.20; // 20% base sampling rate
-    const turnBonus = Math.min(0.10, (messageCount / 100) * 0.10); // +10% max for mature conversations
-    const samplingRate = baseRate + turnBonus;
-    
-    const shouldExtract = Math.random() < samplingRate;
-    
+    // Always extract once heuristics above pass
+    const shouldExtract = true;
+
     console.info(JSON.stringify({
-      event: "memory_extraction_sampling_decision",
+      event: "memory_extraction_ready",
       request_id: requestId,
-      message_count: messageCount,
-      sampling_rate: samplingRate,
-      will_extract: shouldExtract
+      message_count: messageCount
     }));
 
     if (shouldExtract) {
