@@ -264,7 +264,7 @@ const Pricing: React.FC = () => {
           </div>
 
           {/* Pricing Cards */}
-          <div className="flex justify-center gap-8 max-w-6xl mx-auto">
+          <div className="flex flex-col lg:flex-row justify-center gap-8 max-w-6xl mx-auto">
               {pricingPlans.map((plan, index) => (
                 <motion.div
                   key={plan.id}
