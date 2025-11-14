@@ -170,6 +170,16 @@ Deno.serve(async (req) => {
       return json(403, { error: "User mismatch for conversation" });
     }
 
+    // Only extract memories for 'chat' mode conversations
+    // Other modes (astro, swiss, profile, together, etc.) are not about the user
+    if (conv.mode !== 'chat') {
+      console.log("[extract-user-memory] Skipping extraction - not chat mode", {
+        conversation_id,
+        mode: conv.mode
+      });
+      return json(200, { message: "Not chat mode", skipped: true });
+    }
+
     // If no profile_id, lookup user's primary profile
     let profileId = conv.profile_id;
 
