@@ -1,18 +1,24 @@
 import React, { useEffect, useState } from 'react';
-import { getFolderConversations, getUserFolders, getSharedFolder, moveConversationToFolder } from '@/services/folders';
-import { Plus, MoreHorizontal, Folder } from 'lucide-react';
+import { getFolderConversations, getUserFolders, getSharedFolder, moveConversationToFolder, getFolderWithProfile } from '@/services/folders';
+import { MoreHorizontal, Folder, HelpCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useChatStore } from '@/core/store';
-import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
-import { updateConversationTitle } from '@/services/conversations';
+import { updateConversationTitle, createConversation } from '@/services/conversations';
 import {
   DropdownMenu,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { ConversationActionsMenuContent } from '@/components/chat/ConversationActionsMenu';
 import { FolderModal } from './FolderModal';
+import { FolderAddMenu } from './FolderAddMenu';
+import { FolderExportMenu } from './FolderExportMenu';
+import { JournalEntryModal } from './JournalEntryModal';
+import { DocumentUploadModal } from './DocumentUploadModal';
+import { FolderProfileSetup } from './FolderProfileSetup';
+import { InsightsModal } from '@/components/insights/InsightsModal';
 import { createFolder } from '@/services/folders';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 interface FolderViewProps {
   folderId: string;
@@ -29,6 +35,7 @@ interface Conversation {
 export const FolderView: React.FC<FolderViewProps> = ({ folderId, onChatClick }) => {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [folderName, setFolderName] = useState<string>('');
+  const [folderProfileId, setFolderProfileId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showEditDialog, setShowEditDialog] = useState(false);
@@ -40,6 +47,13 @@ export const FolderView: React.FC<FolderViewProps> = ({ folderId, onChatClick })
   const [folders, setFolders] = useState<Array<{ id: string; name: string }>>([]);
   const [showFolderModal, setShowFolderModal] = useState(false);
   const [conversationToMoveToNewFolder, setConversationToMoveToNewFolder] = useState<string | null>(null);
+  
+  // New modal states
+  const [showJournalModal, setShowJournalModal] = useState(false);
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [showInsightsModal, setShowInsightsModal] = useState(false);
+  const [showHelpDialog, setShowHelpDialog] = useState(false);
+  
   const navigate = useNavigate();
   const { user } = useAuth();
   const { setViewMode, startConversation, threads, removeThread, clearChat } = useChatStore();
@@ -53,14 +67,16 @@ export const FolderView: React.FC<FolderViewProps> = ({ folderId, onChatClick })
         // Try to load folder - works for authenticated users
         if (user?.id) {
           try {
-            const [userFolders, conversationsData] = await Promise.all([
+            const [folderWithProfile, userFolders, conversationsData] = await Promise.all([
+              getFolderWithProfile(folderId),
               getUserFolders(user.id),
               getFolderConversations(folderId)
             ]);
 
             const folder = userFolders.find(f => f.id === folderId);
             if (folder) {
-              setFolderName(folder.name);
+              setFolderName(folderWithProfile.folder.name);
+              setFolderProfileId(folderWithProfile.folder.profile_id || null);
               setConversations(conversationsData);
               setIsLoading(false);
               
@@ -81,6 +97,7 @@ export const FolderView: React.FC<FolderViewProps> = ({ folderId, onChatClick })
           if (sharedFolder.is_public) {
             const conversationsData = await getFolderConversations(folderId);
             setFolderName(sharedFolder.name);
+            setFolderProfileId(sharedFolder.profile_id || null);
             setConversations(conversationsData);
             setIsLoading(false);
             return;
@@ -256,6 +273,35 @@ export const FolderView: React.FC<FolderViewProps> = ({ folderId, onChatClick })
     setShowFolderModal(true);
   };
 
+  // New handler functions
+  const handleNewChat = async () => {
+    if (!user?.id) return;
+    
+    try {
+      const newChatId = await createConversation(user.id, 'chat', 'New Chat');
+      
+      // Move the conversation to this folder
+      await moveConversationToFolder(newChatId, folderId);
+      
+      // Navigate to the new chat
+      setViewMode('chat');
+      startConversation(newChatId);
+      onChatClick(newChatId);
+    } catch (error) {
+      console.error('[FolderView] Failed to create new chat:', error);
+    }
+  };
+
+  const handleProfileLinked = async () => {
+    // Reload folder data to get the updated profile_id
+    try {
+      const folderWithProfile = await getFolderWithProfile(folderId);
+      setFolderProfileId(folderWithProfile.folder.profile_id || null);
+    } catch (error) {
+      console.error('[FolderView] Failed to reload folder profile:', error);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="h-full flex items-center justify-center">
@@ -274,7 +320,7 @@ export const FolderView: React.FC<FolderViewProps> = ({ folderId, onChatClick })
 
   return (
     <div className="h-full flex flex-col bg-white">
-      {/* Folder Name and Add Button - Below Header */}
+      {/* Folder Name and Action Buttons */}
       <div className="px-6 py-4">
         <div className="w-full max-w-2xl mx-auto flex items-center justify-between gap-4">
           <div className="flex items-center gap-3 text-lg font-light text-gray-900">
@@ -282,18 +328,41 @@ export const FolderView: React.FC<FolderViewProps> = ({ folderId, onChatClick })
             <span>{folderName}</span>
           </div>
           {user && (
-            <Button
-              variant="outline"
-              size="sm"
-              className="rounded-full font-light"
-              disabled
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Add
-            </Button>
+            <div className="flex items-center gap-2">
+              {/* Help Icon */}
+              <button
+                onClick={() => setShowHelpDialog(true)}
+                className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                title="Help"
+              >
+                <HelpCircle className="w-4 h-4 text-gray-500" />
+              </button>
+              
+              {/* Export Menu */}
+              <FolderExportMenu folderId={folderId} folderName={folderName} />
+              
+              {/* Add Menu */}
+              <FolderAddMenu
+                onJournalClick={() => setShowJournalModal(true)}
+                onInsightsClick={() => setShowInsightsModal(true)}
+                onUploadClick={() => setShowUploadModal(true)}
+                onNewChatClick={handleNewChat}
+              />
+            </div>
           )}
         </div>
       </div>
+
+      {/* Profile Setup Banner (shown when no profile is linked) */}
+      {user && !folderProfileId && (
+        <div className="px-6">
+          <FolderProfileSetup
+            folderId={folderId}
+            folderName={folderName}
+            onProfileLinked={handleProfileLinked}
+          />
+        </div>
+      )}
 
       {/* Conversations List */}
       <div className="flex-1 overflow-y-auto">
@@ -436,6 +505,67 @@ export const FolderView: React.FC<FolderViewProps> = ({ folderId, onChatClick })
           editingFolder={null}
         />
       )}
+
+      {/* Journal Entry Modal */}
+      {user && (
+        <JournalEntryModal
+          isOpen={showJournalModal}
+          onClose={() => setShowJournalModal(false)}
+          folderId={folderId}
+          userId={user.id}
+        />
+      )}
+
+      {/* Document Upload Modal */}
+      {user && (
+        <DocumentUploadModal
+          isOpen={showUploadModal}
+          onClose={() => setShowUploadModal(false)}
+          folderId={folderId}
+          userId={user.id}
+        />
+      )}
+
+      {/* Insights Modal */}
+      <InsightsModal
+        isOpen={showInsightsModal}
+        onClose={() => setShowInsightsModal(false)}
+      />
+
+      {/* Help Dialog */}
+      <Dialog open={showHelpDialog} onOpenChange={setShowHelpDialog}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="font-light">Folder Features</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4 text-sm font-light text-gray-700">
+            <div>
+              <h4 className="font-normal text-gray-900 mb-1">Journal Entries</h4>
+              <p>Quick notes and reflections saved to this folder. Use the mic button for voice-to-text.</p>
+            </div>
+            <div>
+              <h4 className="font-normal text-gray-900 mb-1">Generate Insights</h4>
+              <p>AI analysis of all content in this folder including chats, journals, and documents.</p>
+            </div>
+            <div>
+              <h4 className="font-normal text-gray-900 mb-1">Upload Documents</h4>
+              <p>Add PDF, DOCX, TXT, MD, or CSV files to analyze alongside your conversations.</p>
+            </div>
+            <div>
+              <h4 className="font-normal text-gray-900 mb-1">New Chat</h4>
+              <p>Start a conversation that's automatically organized in this folder.</p>
+            </div>
+            <div>
+              <h4 className="font-normal text-gray-900 mb-1">Export Data</h4>
+              <p>Download your journals, chats, or all folder content as JSON files.</p>
+            </div>
+            <div>
+              <h4 className="font-normal text-gray-900 mb-1">Folder Profile</h4>
+              <p>Link an astro profile to enable personalized insights for this folder's content.</p>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

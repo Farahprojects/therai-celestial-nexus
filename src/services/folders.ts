@@ -310,3 +310,70 @@ export async function isFolderParticipant(folderId: string, userId: string): Pro
   return isParticipant;
 }
 
+/**
+ * Update folder's linked profile
+ */
+export async function updateFolderProfile(folderId: string, profileId: string | null): Promise<void> {
+  const { error } = await supabase
+    .from('chat_folders')
+    .update({ profile_id: profileId })
+    .eq('id', folderId);
+
+  if (error) {
+    console.error('[folders] Failed to update folder profile:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get folder with its linked profile data
+ */
+export async function getFolderWithProfile(folderId: string): Promise<{
+  folder: ChatFolder;
+  profile: any | null;
+}> {
+  const { data: folder, error: folderError } = await supabase
+    .from('chat_folders')
+    .select('*')
+    .eq('id', folderId)
+    .single();
+
+  if (folderError) {
+    console.error('[folders] Failed to fetch folder:', folderError);
+    throw folderError;
+  }
+
+  let profile = null;
+  if (folder.profile_id) {
+    const { data: profileData, error: profileError } = await supabase
+      .from('user_profile_list')
+      .select('*')
+      .eq('id', folder.profile_id)
+      .single();
+
+    if (!profileError && profileData) {
+      profile = profileData;
+    }
+  }
+
+  return { folder, profile };
+}
+
+/**
+ * Get folder's profile ID
+ */
+export async function getFolderProfileId(folderId: string): Promise<string | null> {
+  const { data, error } = await supabase
+    .from('chat_folders')
+    .select('profile_id')
+    .eq('id', folderId)
+    .single();
+
+  if (error) {
+    console.error('[folders] Failed to fetch folder profile ID:', error);
+    return null;
+  }
+
+  return data?.profile_id || null;
+}
+
