@@ -173,7 +173,7 @@ const MobileLanding: React.FC<Props> = ({
             <h1 className="text-[2.65rem] sm:text-[3.25rem] font-light text-gray-900 leading-tight mb-6 flex items-center justify-center gap-x-2 sm:gap-x-3 whitespace-nowrap tracking-tight">
               <span>Know</span>
               <span className="italic font-light flex items-center justify-center">
-                <span>{'Your '}</span>
+                <span>Your</span>
                 <AnimatePresence mode="wait">
                   <motion.span key={currentWordIndex} initial={{
                   opacity: 0,
@@ -189,8 +189,10 @@ const MobileLanding: React.FC<Props> = ({
                 }} className="inline-block text-center overflow-visible transform-gpu" style={{
                   willChange: 'transform',
                   backfaceVisibility: 'hidden',
-                  paddingRight: '0.15em'
+                  paddingRight: '0.15em',
+                  minWidth: '4.5ch'
                 }}>
+                    {'\u00A0'}
                     {rotatingWords[currentWordIndex]}
                   </motion.span>
                 </AnimatePresence>
