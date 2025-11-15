@@ -71,7 +71,7 @@ interface SidebarFolder {
   id: string;
   name: string;
   chatsCount: number;
-  chats: Array<{ id: string; title: string }>
+  chats: Array<{ id: string; title: string; mode?: string | null }>;
 }
 
 /** Consolidated folder loader with minimal branching **/
@@ -91,7 +91,11 @@ const useFolders = (userId?: string, currentFolderId?: string) => {
             id: f.id,
             name: f.name,
             chatsCount: conversations.length,
-            chats: conversations.map((c: any) => ({ id: c.id, title: c.title || 'New Chat' }))
+            chats: conversations.map((c: any) => ({
+              id: c.id,
+              title: c.title || 'New Chat',
+              mode: c.mode,
+            })),
           } as SidebarFolder;
         }));
         list.push(...withChats);
@@ -107,7 +111,11 @@ const useFolders = (userId?: string, currentFolderId?: string) => {
               id: shared.id,
               name: shared.name,
               chatsCount: conversations.length,
-              chats: conversations.map((c: any) => ({ id: c.id, title: c.title || 'New Chat' }))
+              chats: conversations.map((c: any) => ({
+                id: c.id,
+                title: c.title || 'New Chat',
+                mode: c.mode,
+              })),
             });
           }
         } catch { /* non-blocking */ }

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Folder, ChevronRight, ChevronDown, MessageCircle, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
+import { Folder, ChevronRight, ChevronDown, MessageCircle, Sparkles, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -16,6 +16,7 @@ interface FolderItem {
   chats: Array<{
     id: string;
     title: string;
+    mode?: string | null;
   }>;
 }
 
@@ -159,6 +160,8 @@ export const FoldersList: React.FC<FoldersListProps> = ({
                 {folder.chats.map((chat) => {
                   const isActive = chat.id === activeChatId;
                   
+                  const isInsight = chat.mode === 'insight';
+                  const ChatIcon = isInsight ? Sparkles : MessageCircle;
                   return (
                     <div
                       key={chat.id}
@@ -173,7 +176,7 @@ export const FoldersList: React.FC<FoldersListProps> = ({
                           className="flex-1 min-w-0 cursor-pointer flex items-center gap-2"
                           onClick={() => handleChatClick(folder.id, chat.id)}
                         >
-                          <MessageCircle className="w-3.5 h-3.5 text-gray-500" />
+                          <ChatIcon className="w-3.5 h-3.5 text-gray-500" />
                           <span className="text-sm font-medium text-gray-900 truncate">{chat.title}</span>
                         </div>
                         
