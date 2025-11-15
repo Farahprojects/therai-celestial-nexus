@@ -13,6 +13,7 @@ interface UseUniversalMicOptions {
   onError?: (error: Error) => void;
   silenceThreshold?: number;
   silenceDuration?: number;
+  chat_id?: string; // optional chat_id (e.g., for journal entries using folder_id)
 }
 
 export const useUniversalMic = (options: UseUniversalMicOptions = {}) => {
@@ -59,6 +60,7 @@ export const useUniversalMic = (options: UseUniversalMicOptions = {}) => {
       }
 
       recorderRef.current = new UniversalSTTRecorder({
+        chat_id: options.chat_id, // Pass through chat_id if provided
         onTranscriptReady: (transcript) => {
           
           // 1. First: Turn off browser mic (dispose recorder)

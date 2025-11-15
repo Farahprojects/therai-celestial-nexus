@@ -33,6 +33,7 @@ export interface STTRecorderOptions {
   mode?: string; // e.g., 'chat' or 'astro'
   user_id?: string; // user ID for message attribution
   user_name?: string; // user name for message attribution
+  chat_id?: string; // optional chat_id (e.g., for journal entries using folder_id)
 
   // Diagnostics
   debug?: boolean; // reduce logs in production (default: false)
@@ -726,7 +727,9 @@ export class UniversalSTTRecorder {
       const sttModule = await import('@/services/voice/stt');
       const storeModule = await import('@/core/store');
       const { sttService } = sttModule;
-      const { chat_id } = storeModule.useChatStore.getState();
+      
+      // Use provided chat_id from options, or fall back to store
+      const chat_id = this.options.chat_id || storeModule.useChatStore.getState().chat_id;
 
       if (!chat_id) {
         throw new Error('No chat_id available for STT');

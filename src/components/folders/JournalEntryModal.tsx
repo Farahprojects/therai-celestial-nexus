@@ -31,7 +31,8 @@ export const JournalEntryModal: React.FC<JournalEntryModalProps> = ({
     startRecording,
     stopRecording,
   } = useUniversalMic({
-    onTranscriptionComplete: (transcription) => {
+    chat_id: folderId, // Use folder_id as chat_id for STT
+    onTranscriptReady: (transcription) => {
       // Append transcription to existing text
       setText(prev => prev ? `${prev} ${transcription}` : transcription);
     },
