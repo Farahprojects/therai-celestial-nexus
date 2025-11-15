@@ -51,7 +51,7 @@ export async function uploadDocument(
     throw new Error(error.message || 'Failed to upload document');
   }
 
-  return data;
+  return data as FolderDocument;
 }
 
 /**
@@ -69,7 +69,7 @@ export async function getDocuments(folderId: string): Promise<FolderDocument[]> 
     throw new Error(error.message || 'Failed to fetch documents');
   }
 
-  return data || [];
+  return (data || []) as FolderDocument[];
 }
 
 /**
@@ -87,7 +87,7 @@ export async function getDocument(documentId: string): Promise<FolderDocument | 
     return null;
   }
 
-  return data;
+  return data as FolderDocument;
 }
 
 /**
@@ -114,7 +114,7 @@ export async function updateDocument(
     throw new Error(error.message || 'Failed to update document');
   }
 
-  return data;
+  return data as FolderDocument;
 }
 
 /**
