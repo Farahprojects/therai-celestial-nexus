@@ -44,6 +44,8 @@ export interface ReportFormData {
   // Chat-related fields
   chat_id?: string;
   guest_report_id?: string;
+  // Profile linking
+  profile_id?: string;
 }
 
 export interface ReportTypeOption {

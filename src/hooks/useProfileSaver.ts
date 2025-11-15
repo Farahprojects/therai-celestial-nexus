@@ -18,26 +18,26 @@ export const useProfileSaver = () => {
   const { user } = useAuth();
   const [isSaving, setIsSaving] = useState(false);
 
-  const saveProfile = async (data: ProfileData): Promise<boolean> => {
+  const saveProfile = async (data: ProfileData): Promise<{ success: boolean; profileId: string | null }> => {
     if (!user) {
       toast.error('Please sign in to save profiles');
-      return false;
+      return { success: false, profileId: null };
     }
 
     // Validate required fields
     if (!data.name || !data.birthDate || !data.birthTime || !data.birthLocation) {
       toast.error('Please fill in all required fields before saving');
-      return false;
+      return { success: false, profileId: null };
     }
 
     if (!data.birthLatitude || !data.birthLongitude) {
       toast.error('Please select a valid location from the dropdown');
-      return false;
+      return { success: false, profileId: null };
     }
 
     setIsSaving(true);
     try {
-      const { error } = await supabase
+      const { data: profileData, error } = await supabase
         .from('user_profile_list')
         .insert({
           user_id: user.id,
@@ -49,20 +49,22 @@ export const useProfileSaver = () => {
           birth_latitude: data.birthLatitude,
           birth_longitude: data.birthLongitude,
           birth_place_id: data.birthPlaceId || null,
-        });
+        })
+        .select('id')
+        .single();
 
       if (error) {
         console.error('[useProfileSaver] Failed to save profile:', error);
         toast.error('Failed to save profile');
-        return false;
+        return { success: false, profileId: null };
       }
 
       toast.success('Profile saved successfully');
-      return true;
+      return { success: true, profileId: profileData.id };
     } catch (err) {
       console.error('[useProfileSaver] Error saving profile:', err);
       toast.error('Failed to save profile');
-      return false;
+      return { success: false, profileId: null };
     } finally {
       setIsSaving(false);
     }

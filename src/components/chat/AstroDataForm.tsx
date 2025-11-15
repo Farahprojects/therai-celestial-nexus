@@ -138,8 +138,8 @@ export const AstroDataForm: React.FC<AstroDataFormProps> = ({
   const handleDetailsFormSubmit = async () => {
     if (!validatePrimaryPerson(formValues, setError)) return;
 
-    // Save profile if checkbox is checked
-    if (saveToProfile && user) {
+    // Save profile if checkbox is checked (for regular flow)
+    if (saveToProfile && user && !isProfileFlow) {
       await saveProfile({
         name: formValues.name,
         birthDate: formValues.birthDate,
@@ -180,18 +180,34 @@ export const AstroDataForm: React.FC<AstroDataFormProps> = ({
   const handleFormSubmission = async (data: ReportFormData) => {
     if (!user) return;
     
-    // Profile mode: skip conversation creation, just return the data
+    // Profile mode: save profile and link to folder
     if (isProfileFlow) {
       setIsProcessing(true);
       try {
-        // Only create profile - OnboardingModal handles conversation creation and navigation
-        await onSubmit({ ...data, request: 'essence' });
+        // Profile flow - always save profile and link to folder
+        const result = await saveProfile({
+          name: data.name,
+          birthDate: data.birthDate,
+          birthTime: data.birthTime,
+          birthLocation: data.birthLocation,
+          birthLatitude: data.birthLatitude,
+          birthLongitude: data.birthLongitude,
+          birthPlaceId: data.birthPlaceId,
+          profileName: data.name,
+        });
+        
+        if (!result.success) {
+          setIsProcessing(false);
+          return;
+        }
+        
+        // Attach profile_id to form data before calling onSubmit
+        await onSubmit({ ...data, request: 'essence', profile_id: result.profileId! });
         console.log('[AstroDataForm] Profile created successfully in profile flow');
         
-        // OnboardingModal will handle:
-        // - Creating starter conversation
-        // - Storing onboarding_chat_id
-        // - Navigation to chat or subscription
+        // FolderProfileSetup will handle:
+        // - Linking profile to folder via updateFolderProfile
+        // - Calling onProfileLinked callback
         
       } catch (error) {
         console.error('[AstroDataForm] Profile submission error:', error);

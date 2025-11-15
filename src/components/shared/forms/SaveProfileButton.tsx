@@ -28,12 +28,12 @@ export const SaveProfileButton: React.FC<SaveProfileButtonProps> = ({ profileDat
   const { saveProfile, isSaving } = useProfileSaver();
 
   const handleSave = async () => {
-    const success = await saveProfile({
+    const result = await saveProfile({
       ...profileData,
       profileName: profileName.trim(),
     });
 
-    if (success) {
+    if (result.success) {
       setProfileName('');
       setOpen(false);
     }

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { getFolderConversations, getUserFolders, getSharedFolder, moveConversationToFolder, getFolderWithProfile } from '@/services/folders';
+import { getJournalEntries } from '@/services/journal';
 import { MoreHorizontal, Folder, HelpCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useChatStore } from '@/core/store';
@@ -34,6 +35,7 @@ interface Conversation {
 
 export const FolderView: React.FC<FolderViewProps> = ({ folderId, onChatClick }) => {
   const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [journals, setJournals] = useState<any[]>([]);
   const [folderName, setFolderName] = useState<string>('');
   const [folderProfileId, setFolderProfileId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -67,10 +69,11 @@ export const FolderView: React.FC<FolderViewProps> = ({ folderId, onChatClick })
         // Try to load folder - works for authenticated users
         if (user?.id) {
           try {
-            const [folderWithProfile, userFolders, conversationsData] = await Promise.all([
+            const [folderWithProfile, userFolders, conversationsData, journalsData] = await Promise.all([
               getFolderWithProfile(folderId),
               getUserFolders(user.id),
-              getFolderConversations(folderId)
+              getFolderConversations(folderId),
+              getJournalEntries(folderId)
             ]);
 
             const folder = userFolders.find(f => f.id === folderId);
@@ -78,6 +81,7 @@ export const FolderView: React.FC<FolderViewProps> = ({ folderId, onChatClick })
               setFolderName(folderWithProfile.folder.name);
               setFolderProfileId(folderWithProfile.folder.profile_id || null);
               setConversations(conversationsData);
+              setJournals(journalsData);
               setIsLoading(false);
               
               // Also load all folders for move to folder menu
@@ -361,6 +365,30 @@ export const FolderView: React.FC<FolderViewProps> = ({ folderId, onChatClick })
             folderName={folderName}
             onProfileLinked={handleProfileLinked}
           />
+        </div>
+      )}
+
+      {/* Journal Entries Section */}
+      {journals.length > 0 && (
+        <div className="px-6 py-4 border-b border-gray-100">
+          <div className="w-full max-w-2xl mx-auto">
+            <h3 className="text-sm font-normal text-gray-700 mb-3">Journal Entries</h3>
+            <div className="flex flex-col space-y-2">
+              {journals.map((journal) => (
+                <div
+                  key={journal.id}
+                  className="p-4 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors"
+                >
+                  <p className="text-sm font-light text-gray-900 mb-1">
+                    {journal.entry_text}
+                  </p>
+                  <p className="text-xs font-light text-gray-500">
+                    {new Date(journal.created_at).toLocaleDateString()}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       )}
 
