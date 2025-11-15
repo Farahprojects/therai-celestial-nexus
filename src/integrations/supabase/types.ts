@@ -12,31 +12,6 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "13.0.5"
   }
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
   public: {
     Tables: {
       admin_logs: {
@@ -301,6 +276,7 @@ export type Database = {
       chat_folders: {
         Row: {
           created_at: string | null
+          has_profile_setup: boolean | null
           id: string
           is_public: boolean | null
           name: string
@@ -310,6 +286,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
+          has_profile_setup?: boolean | null
           id?: string
           is_public?: boolean | null
           name: string
@@ -319,6 +296,7 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
+          has_profile_setup?: boolean | null
           id?: string
           is_public?: boolean | null
           name?: string
@@ -881,6 +859,7 @@ export type Database = {
         Row: {
           completed_at: string | null
           created_at: string | null
+          folder_id: string | null
           id: string
           is_ready: boolean | null
           metadata: Json | null
@@ -892,6 +871,7 @@ export type Database = {
         Insert: {
           completed_at?: string | null
           created_at?: string | null
+          folder_id?: string | null
           id?: string
           is_ready?: boolean | null
           metadata?: Json | null
@@ -903,6 +883,7 @@ export type Database = {
         Update: {
           completed_at?: string | null
           created_at?: string | null
+          folder_id?: string | null
           id?: string
           is_ready?: boolean | null
           metadata?: Json | null
@@ -911,7 +892,15 @@ export type Database = {
           updated_at?: string | null
           user_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "insights_folder_id_fkey"
+            columns: ["folder_id"]
+            isOneToOne: false
+            referencedRelation: "chat_folders"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       ip_allowlist: {
         Row: {
@@ -3075,9 +3064,6 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {
       memory_type: ["fact", "emotion", "goal", "pattern", "relationship"],

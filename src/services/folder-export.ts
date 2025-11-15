@@ -41,7 +41,17 @@ export async function exportJournals(folderId: string, folderName: string): Prom
  */
 export async function exportChats(folderId: string, folderName: string): Promise<void> {
   try {
-    const conversations = await getFolderConversations(folderId);
+    // Fetch conversations directly with all needed fields
+    const { data: conversations } = await supabase
+      .from('conversations')
+      .select('id, title, mode, created_at, updated_at')
+      .eq('folder_id', folderId)
+      .neq('mode', 'profile')
+      .order('updated_at', { ascending: false });
+    
+    if (!conversations) {
+      throw new Error('No conversations found');
+    }
     
     // Fetch messages for each conversation
     const conversationsWithMessages = await Promise.all(
@@ -60,7 +70,7 @@ export async function exportChats(folderId: string, folderName: string): Promise
           updatedAt: conv.updated_at,
           messages: messages?.map(m => ({
             role: m.role,
-            content: m.content,
+            content: m.text,
             createdAt: m.created_at,
           })) || [],
         };
@@ -88,8 +98,19 @@ export async function exportAll(folderId: string, folderName: string): Promise<v
     // Get journals
     const journals = await getJournalEntries(folderId);
     
+    // Fetch conversations directly with all needed fields
+    const { data: conversations } = await supabase
+      .from('conversations')
+      .select('id, title, mode, created_at, updated_at')
+      .eq('folder_id', folderId)
+      .neq('mode', 'profile')
+      .order('updated_at', { ascending: false });
+    
+    if (!conversations) {
+      throw new Error('No conversations found');
+    }
+    
     // Get conversations with messages
-    const conversations = await getFolderConversations(folderId);
     const conversationsWithMessages = await Promise.all(
       conversations.map(async (conv) => {
         const { data: messages } = await supabase
@@ -106,7 +127,7 @@ export async function exportAll(folderId: string, folderName: string): Promise<v
           updatedAt: conv.updated_at,
           messages: messages?.map(m => ({
             role: m.role,
-            content: m.content,
+            content: m.text,
             createdAt: m.created_at,
           })) || [],
         };
