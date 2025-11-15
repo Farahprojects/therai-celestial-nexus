@@ -38,6 +38,7 @@ export const FolderView: React.FC<FolderViewProps> = ({ folderId, onChatClick })
   const [journals, setJournals] = useState<JournalEntry[]>([]);
   const [folderName, setFolderName] = useState<string>('');
   const [folderProfileId, setFolderProfileId] = useState<string | null>(null);
+  const [hasProfileSetup, setHasProfileSetup] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showEditDialog, setShowEditDialog] = useState(false);
@@ -80,6 +81,7 @@ export const FolderView: React.FC<FolderViewProps> = ({ folderId, onChatClick })
             if (folder) {
               setFolderName(folderWithProfile.folder.name);
               setFolderProfileId(folderWithProfile.folder.profile_id || null);
+              setHasProfileSetup(folderWithProfile.folder.has_profile_setup || false);
               setConversations(conversationsData);
               setJournals(journalsData);
               setIsLoading(false);
@@ -102,6 +104,7 @@ export const FolderView: React.FC<FolderViewProps> = ({ folderId, onChatClick })
             const conversationsData = await getFolderConversations(folderId);
             setFolderName(sharedFolder.name);
             setFolderProfileId(sharedFolder.profile_id || null);
+            setHasProfileSetup(sharedFolder.has_profile_setup || false);
             setConversations(conversationsData);
             setIsLoading(false);
             return;
@@ -305,6 +308,7 @@ export const FolderView: React.FC<FolderViewProps> = ({ folderId, onChatClick })
     try {
       const folderWithProfile = await getFolderWithProfile(folderId);
       setFolderProfileId(folderWithProfile.folder.profile_id || null);
+      setHasProfileSetup(folderWithProfile.folder.has_profile_setup || false);
     } catch (error) {
       console.error('[FolderView] Failed to reload folder profile:', error);
     }
@@ -362,7 +366,7 @@ export const FolderView: React.FC<FolderViewProps> = ({ folderId, onChatClick })
       </div>
 
       {/* Profile Setup Banner (shown when no profile is linked) */}
-      {user && !folderProfileId && (
+      {user && !hasProfileSetup && (
         <div className="px-6">
           <FolderProfileSetup
             folderId={folderId}

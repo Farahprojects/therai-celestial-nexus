@@ -9,6 +9,7 @@ export interface ChatFolder {
   updated_at: string;
   is_public?: boolean;
   profile_id?: string | null;
+  has_profile_setup?: boolean;
 }
 
 /**
@@ -317,7 +318,10 @@ export async function isFolderParticipant(folderId: string, userId: string): Pro
 export async function updateFolderProfile(folderId: string, profileId: string | null): Promise<void> {
   const { error } = await supabase
     .from('chat_folders')
-    .update({ profile_id: profileId })
+    .update({
+      profile_id: profileId,
+      has_profile_setup: profileId !== null,
+    })
     .eq('id', folderId);
 
   if (error) {
