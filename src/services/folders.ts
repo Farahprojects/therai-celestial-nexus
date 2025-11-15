@@ -8,6 +8,7 @@ export interface ChatFolder {
   created_at: string;
   updated_at: string;
   is_public?: boolean;
+  profile_id?: string | null;
 }
 
 /**
@@ -343,12 +344,15 @@ export async function getFolderWithProfile(folderId: string): Promise<{
     throw folderError;
   }
 
+  // Cast to ChatFolder to ensure profile_id is recognized
+  const folderData = folder as ChatFolder;
+
   let profile = null;
-  if (folder.profile_id) {
+  if (folderData.profile_id) {
     const { data: profileData, error: profileError } = await supabase
       .from('user_profile_list')
       .select('*')
-      .eq('id', folder.profile_id)
+      .eq('id', folderData.profile_id)
       .single();
 
     if (!profileError && profileData) {
@@ -356,7 +360,7 @@ export async function getFolderWithProfile(folderId: string): Promise<{
     }
   }
 
-  return { folder, profile };
+  return { folder: folderData, profile };
 }
 
 /**
