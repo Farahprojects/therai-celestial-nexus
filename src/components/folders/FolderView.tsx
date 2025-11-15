@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { getFolderConversations, getUserFolders, getSharedFolder, moveConversationToFolder, getFolderWithProfile } from '@/services/folders';
 import { getJournalEntries, JournalEntry } from '@/services/journal';
-import { MoreHorizontal, Folder, HelpCircle } from 'lucide-react';
+import { MoreHorizontal, Folder, HelpCircle, Sparkles } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useChatStore } from '@/core/store';
 import { useAuth } from '@/contexts/AuthContext';
@@ -484,9 +484,12 @@ export const FolderView: React.FC<FolderViewProps> = ({ folderId, onChatClick })
                   className="flex items-center justify-between gap-4 py-3 px-4 rounded-2xl hover:bg-gray-50 transition-colors group"
                 >
                   <div 
-                    className="flex-1 min-w-0 cursor-pointer"
+                    className="flex-1 min-w-0 cursor-pointer flex items-center gap-2"
                     onClick={() => handleChatClick(conversation)}
                   >
+                    {conversation.mode === 'insight' && (
+                      <Sparkles className="w-4 h-4 text-gray-500 flex-shrink-0" />
+                    )}
                     <div className="text-sm font-light text-gray-900 truncate">
                       {conversation.title || 'New Chat'}
                     </div>
