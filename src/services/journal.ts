@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 export interface JournalEntry {
   id: string;
   client_id: string;
-  coach_id: string;
+  user_id: string;
   folder_id: string | null;
   title: string | null;
   entry_text: string;
@@ -27,7 +27,7 @@ export async function createJournalEntry(
     .from('journal_entries')
     .insert({
       client_id: userId,
-      coach_id: userId, // For folder-based entries, user is both client and coach
+      user_id: userId,
       folder_id: folderId,
       entry_text: entryText,
       title: title || null,

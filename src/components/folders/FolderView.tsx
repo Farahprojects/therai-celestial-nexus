@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { getFolderConversations, getUserFolders, getSharedFolder, moveConversationToFolder, getFolderWithProfile } from '@/services/folders';
-import { getJournalEntries } from '@/services/journal';
+import { getJournalEntries, JournalEntry } from '@/services/journal';
 import { MoreHorizontal, Folder, HelpCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useChatStore } from '@/core/store';
@@ -35,7 +35,7 @@ interface Conversation {
 
 export const FolderView: React.FC<FolderViewProps> = ({ folderId, onChatClick }) => {
   const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [journals, setJournals] = useState<any[]>([]);
+  const [journals, setJournals] = useState<JournalEntry[]>([]);
   const [folderName, setFolderName] = useState<string>('');
   const [folderProfileId, setFolderProfileId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -275,6 +275,10 @@ export const FolderView: React.FC<FolderViewProps> = ({ folderId, onChatClick })
   const handleCreateFolderAndMove = (conversationId: string) => {
     setConversationToMoveToNewFolder(conversationId);
     setShowFolderModal(true);
+  };
+
+  const handleJournalSaved = (entry: JournalEntry) => {
+    setJournals((prev) => [entry, ...prev]);
   };
 
   // New handler functions
@@ -541,6 +545,7 @@ export const FolderView: React.FC<FolderViewProps> = ({ folderId, onChatClick })
           onClose={() => setShowJournalModal(false)}
           folderId={folderId}
           userId={user.id}
+          onEntrySaved={handleJournalSaved}
         />
       )}
 

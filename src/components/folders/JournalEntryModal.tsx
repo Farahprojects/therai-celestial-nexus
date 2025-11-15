@@ -4,7 +4,7 @@ import TextareaAutosize from 'react-textarea-autosize';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { useUniversalMic } from '@/hooks/microphone/useUniversalMic';
-import { createJournalEntry } from '@/services/journal';
+import { createJournalEntry, JournalEntry } from '@/services/journal';
 import { toast } from 'sonner';
 
 interface JournalEntryModalProps {
@@ -12,6 +12,7 @@ interface JournalEntryModalProps {
   onClose: () => void;
   folderId: string;
   userId: string;
+  onEntrySaved?: (entry: JournalEntry) => void;
 }
 
 export const JournalEntryModal: React.FC<JournalEntryModalProps> = ({
@@ -19,6 +20,7 @@ export const JournalEntryModal: React.FC<JournalEntryModalProps> = ({
   onClose,
   folderId,
   userId,
+  onEntrySaved,
 }) => {
   const [text, setText] = useState('');
   const [title, setTitle] = useState('');
@@ -73,7 +75,8 @@ export const JournalEntryModal: React.FC<JournalEntryModalProps> = ({
 
     setIsSaving(true);
     try {
-      await createJournalEntry(userId, folderId, text.trim(), title.trim() || undefined);
+      const newEntry = await createJournalEntry(userId, folderId, text.trim(), title.trim() || undefined);
+      onEntrySaved?.(newEntry);
       toast.success('Journal entry saved');
       onClose();
     } catch (error) {
