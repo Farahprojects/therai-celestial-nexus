@@ -400,18 +400,55 @@ export const FolderView: React.FC<FolderViewProps> = ({ folderId, onChatClick })
         </div>
       )}
 
-      {/* Conversations List */}
+      {/* Content List (Insights, Journals, Conversations) */}
       <div className="flex-1 overflow-y-auto">
-        {conversations.length === 0 ? (
+        {conversations.length === 0 && insights.length === 0 ? (
           <div className="flex items-center justify-center h-full">
             <div className="text-gray-400 font-light text-center">
-              <p>No conversations in this folder</p>
+              <p>No content in this folder yet</p>
+              <p className="text-sm mt-2">Use the Add button to get started</p>
             </div>
           </div>
         ) : (
           <div className="px-6 py-4">
-            <div className="w-full max-w-2xl mx-auto flex flex-col space-y-2">
-              {conversations.map((conversation) => (
+            <div className="w-full max-w-2xl mx-auto flex flex-col space-y-4">
+              
+              {/* Insights Section */}
+              {insights.length > 0 && (
+                <div className="space-y-2">
+                  <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wide px-4">Insights</h3>
+                  {insights.map((insight) => (
+                    <div
+                      key={insight.id}
+                      className="flex items-center justify-between gap-4 py-3 px-4 rounded-2xl bg-purple-50 hover:bg-purple-100 transition-colors group cursor-pointer"
+                      onClick={() => {
+                        // Navigate to insight conversation
+                        setViewMode('chat');
+                        startConversation(insight.id);
+                        onChatClick(insight.id);
+                      }}
+                    >
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                        <Sparkles className="w-5 h-5 text-purple-600 flex-shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-light text-gray-900 truncate">
+                            {insight.report_type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            {new Date(insight.created_at || '').toLocaleDateString()}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Conversations Section */}
+              {conversations.length > 0 && (
+                <div className="space-y-2">
+                  {insights.length > 0 && <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wide px-4">Conversations</h3>}
+                  {conversations.map((conversation) => (
                 <div
                   key={conversation.id}
                   className="flex items-center justify-between gap-4 py-3 px-4 rounded-2xl hover:bg-gray-50 transition-colors group"
@@ -450,7 +487,9 @@ export const FolderView: React.FC<FolderViewProps> = ({ folderId, onChatClick })
                     </DropdownMenu>
                   )}
                 </div>
-              ))}
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         )}
