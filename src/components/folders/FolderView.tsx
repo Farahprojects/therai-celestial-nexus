@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { getFolderConversations, getUserFolders, getSharedFolder, moveConversationToFolder, getFolderWithProfile } from '@/services/folders';
 import { getJournalEntries, JournalEntry } from '@/services/journal';
 import { MoreHorizontal, Folder, HelpCircle } from 'lucide-react';
@@ -19,6 +19,7 @@ import { DocumentUploadModal } from './DocumentUploadModal';
 import { FolderProfileSetup } from './FolderProfileSetup';
 import { InsightsModal } from '@/components/insights/InsightsModal';
 import { createFolder } from '@/services/folders';
+import { supabase } from '@/integrations/supabase/client';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 interface FolderViewProps {
@@ -195,7 +196,6 @@ export const FolderView: React.FC<FolderViewProps> = ({ folderId, onChatClick })
 
     try {
       // Delete messages
-      const { supabase } = await import('@/integrations/supabase/client');
       await supabase
         .from('messages')
         .delete()
@@ -286,6 +286,72 @@ export const FolderView: React.FC<FolderViewProps> = ({ folderId, onChatClick })
   const handleJournalSaved = (entry: JournalEntry) => {
     setJournals((prev) => [entry, ...prev]);
   };
+
+  const upsertConversation = useCallback((record: any) => {
+    if (!record?.id) return;
+    const normalized: Conversation = {
+      id: record.id,
+      title: record.title || 'New Chat',
+      updated_at: record.updated_at || new Date().toISOString(),
+      mode: record.mode,
+    };
+
+    setConversations((prev) => {
+      const filtered = prev.filter((c) => c.id !== normalized.id);
+      const next = [...filtered, normalized].sort(
+        (a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+      );
+      return next;
+    });
+  }, []);
+
+  const removeConversationById = useCallback((id: string) => {
+    setConversations((prev) => prev.filter((c) => c.id !== id));
+  }, []);
+
+  useEffect(() => {
+    const channel = supabase
+      .channel(`folder-conversations-${folderId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'conversations',
+          filter: `folder_id=eq.${folderId}`,
+        },
+        (payload) => upsertConversation(payload.new)
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'conversations',
+          filter: `folder_id=eq.${folderId}`,
+        },
+        (payload) => upsertConversation(payload.new)
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'DELETE',
+          schema: 'public',
+          table: 'conversations',
+          filter: `folder_id=eq.${folderId}`,
+        },
+        (payload) => {
+          if (payload.old?.id) {
+            removeConversationById(payload.old.id);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [folderId, upsertConversation, removeConversationById]);
 
   // New handler functions
   const handleNewChat = async () => {

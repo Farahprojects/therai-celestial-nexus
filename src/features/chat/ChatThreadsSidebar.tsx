@@ -181,6 +181,12 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
   const [confirmDeleteFor, setConfirmDeleteFor] = useState<string | null>(null);
   const [shouldCollapseFolders, setShouldCollapseFolders] = useState(false);
   const [shareConversationId, setShareConversationId] = useState<string | null>(null);
+  const [folderPendingDelete, setFolderPendingDelete] = useState<string | null>(null);
+  const [isDeletingFolder, setIsDeletingFolder] = useState(false);
+
+  const folderDeleteTarget = folderPendingDelete
+    ? folders.find((f) => f.id === folderPendingDelete)
+    : null;
 
   /** Load folders on mount and when user/folder changes */
   useEffect(() => { load(); }, [load]);
@@ -372,9 +378,28 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
     }
   };
 
-  const handleDeleteFolder = async (id: string) => {
-    if (!user?.id) return;
-    try { await deleteFolder(id); await load(); } catch (e) { console.error(e); }
+  const requestDeleteFolder = (id: string) => {
+    setFolderPendingDelete(id);
+  };
+
+  const handleDeleteFolder = async () => {
+    if (!user?.id || !folderPendingDelete) return;
+    setIsDeletingFolder(true);
+    try {
+      await deleteFolder(folderPendingDelete);
+      await load();
+
+      if (selectedFolderId === folderPendingDelete || folderId === folderPendingDelete) {
+        setViewMode('chat');
+        navigate('/therai', { replace: true });
+      }
+
+      setFolderPendingDelete(null);
+    } catch (e) {
+      console.error('[ChatThreadsSidebar] Failed to delete folder:', e);
+    } finally {
+      setIsDeletingFolder(false);
+    }
   };
 
   /** Small derived label from first user message (fallback) **/
@@ -464,7 +489,7 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
                   }}
                   onChatClick={(folderId, chatId) => switchToChat(chatId, folderId)}
                   onEditFolder={isAuthenticated ? (id, name) => { setEditingFolder({ id, name }); setShowFolderModal(true); } : undefined}
-                  onDeleteFolder={isAuthenticated ? handleDeleteFolder : undefined}
+                  onDeleteFolder={isAuthenticated ? requestDeleteFolder : undefined}
                   onEditChat={isAuthenticated ? (id, current) => { setEditTitleFor(id); setEditTitle(current || ''); } : undefined}
                   onDeleteChat={isAuthenticated ? (id) => setConfirmDeleteFor(id) : undefined}
                   onMoveToFolder={isAuthenticated ? handleMoveToFolder : undefined}
@@ -644,6 +669,32 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
           <DialogFooter className="flex justify-between">
             <Button variant="outline" onClick={() => setConfirmDeleteFor(null)} className="rounded-full">Cancel</Button>
             <Button variant="destructive" onClick={() => confirmDeleteFor && deleteChat(confirmDeleteFor)} className="rounded-full">Delete</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete folder confirmation */}
+      <Dialog open={!!folderPendingDelete} onOpenChange={(open) => {
+        if (!open) {
+          setFolderPendingDelete(null);
+        }
+      }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="font-light">Delete folder</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-gray-600">
+            {folderDeleteTarget
+              ? `Remove "${folderDeleteTarget.name}"? Chats stay in your history.`
+              : 'Remove this folder? Chats stay in your history.'}
+          </p>
+          <DialogFooter className="flex justify-between">
+            <Button variant="outline" onClick={() => setFolderPendingDelete(null)} disabled={isDeletingFolder} className="rounded-full">
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleDeleteFolder} disabled={isDeletingFolder} className="rounded-full">
+              {isDeletingFolder ? 'Deleting...' : 'Delete'}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
