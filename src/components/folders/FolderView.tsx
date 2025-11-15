@@ -567,6 +567,8 @@ export const FolderView: React.FC<FolderViewProps> = ({ folderId, onChatClick })
       <InsightsModal
         isOpen={showInsightsModal}
         onClose={() => setShowInsightsModal(false)}
+        folderId={folderId}
+        folderProfileId={folderProfileId}
       />
 
       {/* Help Dialog */}

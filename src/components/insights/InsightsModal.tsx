@@ -8,6 +8,8 @@ import { supabase } from '@/integrations/supabase/client';
 interface InsightsModalProps {
   isOpen: boolean;
   onClose: () => void;
+  folderId?: string;
+  folderProfileId?: string | null;
 }
 interface ReportCardProps {
   title: string;
@@ -37,12 +39,15 @@ const ReportCard: React.FC<ReportCardProps> = ({
 };
 export const InsightsModal: React.FC<InsightsModalProps> = ({
   isOpen,
-  onClose
+  onClose,
+  folderId,
+  folderProfileId
 }) => {
   const [showAstroForm, setShowAstroForm] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [selectedReportType, setSelectedReportType] = useState<string>('');
   const [selectedRequest, setSelectedRequest] = useState<string>('');
+  const [isDualPerson, setIsDualPerson] = useState(false);
   const {
     user
   } = useAuth();
@@ -68,10 +73,46 @@ export const InsightsModal: React.FC<InsightsModalProps> = ({
     };
   }, []);
   if (!isOpen) return null;
-  const handleReportClick = (reportType: string, request: string) => {
+  const handleReportClick = (reportType: string, request: string, isDual: boolean) => {
     setSelectedReportType(reportType);
     setSelectedRequest(request);
-    setShowAstroForm(true);
+    setIsDualPerson(isDual);
+    
+    // If in folder context and single-person insight
+    if (folderId && !isDual) {
+      if (folderProfileId) {
+        // Has profile - generate immediately
+        handleDirectGeneration(reportType, request);
+      } else {
+        // No profile - show message
+        alert('Please set up a folder profile first to generate insights.');
+        onClose();
+      }
+    } else {
+      // Show form (for compatibility or if no folder context)
+      setShowAstroForm(true);
+    }
+  };
+  
+  const handleDirectGeneration = async (reportType: string, request: string) => {
+    // Generate insight directly using folder's profile
+    // This will be implemented to call the generate-insights edge function
+    console.log('[InsightsModal] Generating insight with folder profile:', {
+      folderId,
+      folderProfileId,
+      reportType,
+      request
+    });
+    
+    // Show success immediately
+    setShowSuccess(true);
+    
+    // TODO: Call edge function to generate insight
+    // For now, just show success and close after delay
+    setTimeout(() => {
+      setShowSuccess(false);
+      onClose();
+    }, 2000);
   };
   const handleFormSubmit = (data: ReportFormData) => {
     // Show success screen
@@ -142,11 +183,11 @@ export const InsightsModal: React.FC<InsightsModalProps> = ({
                 <div>
                   <h3 className="text-sm font-medium text-gray-700 mb-2 uppercase tracking-wide">SINGLE INSIGHT </h3>
                   <div className="space-y-2">
-                    <ReportCard title="Personal" description="Deep dive into your personality, strengths, and life patterns based on your birth chart." icon={<User className="w-6 h-6" />} isDualPerson={false} onClick={() => handleReportClick('essence_personal', 'essence')} />
+                    <ReportCard title="Personal" description="Deep dive into your personality, strengths, and life patterns based on your birth chart." icon={<User className="w-6 h-6" />} isDualPerson={false} onClick={() => handleReportClick('essence_personal', 'essence', false)} />
                     
-                    <ReportCard title="Professional" description="Career guidance and professional development insights tailored to your astrological profile." icon={<Briefcase className="w-6 h-6" />} isDualPerson={false} onClick={() => handleReportClick('essence_professional', 'essence')} />
+                    <ReportCard title="Professional" description="Career guidance and professional development insights tailored to your astrological profile." icon={<Briefcase className="w-6 h-6" />} isDualPerson={false} onClick={() => handleReportClick('essence_professional', 'essence', false)} />
                     
-                    <ReportCard title="Relationship" description="Understanding your relationship patterns, love language, and romantic compatibility." icon={<Heart className="w-6 h-6" />} isDualPerson={false} onClick={() => handleReportClick('essence_relationship', 'essence')} />
+                    <ReportCard title="Relationship" description="Understanding your relationship patterns, love language, and romantic compatibility." icon={<Heart className="w-6 h-6" />} isDualPerson={false} onClick={() => handleReportClick('essence_relationship', 'essence', false)} />
                   </div>
                 </div>
 
@@ -154,9 +195,9 @@ export const InsightsModal: React.FC<InsightsModalProps> = ({
                 <div className="pt-2">
                   <h3 className="text-sm font-medium text-gray-700 mb-2 uppercase tracking-wide">COMPATIBILITY INSIGHT </h3>
                   <div className="space-y-2">
-                    <ReportCard title="Compatibility" description="Analyze romantic compatibility, communication styles, and relationship dynamics between two people." icon={<Users className="w-6 h-6" />} isDualPerson={true} onClick={() => handleReportClick('sync_personal', 'sync')} />
+                    <ReportCard title="Compatibility" description="Analyze romantic compatibility, communication styles, and relationship dynamics between two people." icon={<Users className="w-6 h-6" />} isDualPerson={true} onClick={() => handleReportClick('sync_personal', 'sync', true)} />
                     
-                    <ReportCard title="Co-working" description="Team dynamics, collaboration styles, and professional synergy between colleagues or partners." icon={<Users2 className="w-6 h-6" />} isDualPerson={true} onClick={() => handleReportClick('sync_professional', 'sync')} />
+                    <ReportCard title="Co-working" description="Team dynamics, collaboration styles, and professional synergy between colleagues or partners." icon={<Users2 className="w-6 h-6" />} isDualPerson={true} onClick={() => handleReportClick('sync_professional', 'sync', true)} />
                   </div>
                 </div>
               </div>
