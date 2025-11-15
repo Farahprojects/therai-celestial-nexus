@@ -69,15 +69,12 @@ export const getAstroTitle = (
  * @returns Formatted title
  */
 export const getInsightTitle = (
-  primaryName: string, 
+  _primaryName: string,
   reportType: string,
-  secondaryName?: string
+  _secondaryName?: string
 ): string => {
   const typeName = getInsightTypeName(reportType);
-  
-  if (secondaryName) {
-    return `${primaryName} & ${secondaryName} - ${typeName}`;
-  }
-  return `${primaryName} - ${typeName}`;
+
+  return typeName;
 };
 
