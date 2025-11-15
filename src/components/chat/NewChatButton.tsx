@@ -1,5 +1,5 @@
 import React from 'react';
-import { SquarePen, Sparkles, MessageCircle, Orbit, Blend } from 'lucide-react';
+import { SquarePen, MessageCircle, Blend } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,8 +17,6 @@ export const NewChatButton: React.FC<NewChatButtonProps> = ({ className = "" }) 
   const {
     startChat,
     startTogetherMode,
-    openAstroFlow,
-    openInsightsFlow,
   } = useChatCreation();
 
   return (
@@ -40,26 +38,6 @@ export const NewChatButton: React.FC<NewChatButtonProps> = ({ className = "" }) 
             </div>
           </DropdownMenuItem>
           <DropdownMenuSeparator />
-          <DropdownMenuItem
-            onClick={openAstroFlow}
-            className="cursor-pointer"
-          >
-            <div className="flex items-center gap-2">
-              <Orbit className="w-4 h-4" />
-              <span>Astro</span>
-            </div>
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            onClick={openInsightsFlow}
-            className="cursor-pointer"
-          >
-            <div className="flex items-center justify-between w-full gap-2">
-              <div className="flex items-center gap-2">
-                <Sparkles className="w-4 h-4" />
-                <span>Generate Insight</span>
-              </div>
-            </div>
-          </DropdownMenuItem>
           <DropdownMenuItem
             onClick={() => { void startTogetherMode(); }}
             className="cursor-pointer"
