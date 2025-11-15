@@ -38,6 +38,7 @@ export const FolderView: React.FC<FolderViewProps> = ({ folderId, onChatClick })
   const [journals, setJournals] = useState<JournalEntry[]>([]);
   const [folderName, setFolderName] = useState<string>('');
   const [folderProfileId, setFolderProfileId] = useState<string | null>(null);
+  const [folderProfile, setFolderProfile] = useState<any | null>(null);
   const [hasProfileSetup, setHasProfileSetup] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -65,6 +66,7 @@ export const FolderView: React.FC<FolderViewProps> = ({ folderId, onChatClick })
     const loadFolderData = async () => {
       setIsLoading(true);
       setError(null);
+      setFolderProfile(null);
       
       try {
         // Try to load folder - works for authenticated users
@@ -82,6 +84,7 @@ export const FolderView: React.FC<FolderViewProps> = ({ folderId, onChatClick })
               setFolderName(folderWithProfile.folder.name);
               setFolderProfileId(folderWithProfile.folder.profile_id || null);
               setHasProfileSetup(folderWithProfile.folder.has_profile_setup || false);
+              setFolderProfile(folderWithProfile.profile || null);
               setConversations(conversationsData);
               setJournals(journalsData);
               setIsLoading(false);
@@ -309,6 +312,7 @@ export const FolderView: React.FC<FolderViewProps> = ({ folderId, onChatClick })
       const folderWithProfile = await getFolderWithProfile(folderId);
       setFolderProfileId(folderWithProfile.folder.profile_id || null);
       setHasProfileSetup(folderWithProfile.folder.has_profile_setup || false);
+      setFolderProfile(folderWithProfile.profile || null);
     } catch (error) {
       console.error('[FolderView] Failed to reload folder profile:', error);
     }
@@ -567,6 +571,8 @@ export const FolderView: React.FC<FolderViewProps> = ({ folderId, onChatClick })
       <InsightsModal
         isOpen={showInsightsModal}
         onClose={() => setShowInsightsModal(false)}
+        folderId={folderId}
+        profileData={folderProfile}
       />
 
       {/* Help Dialog */}

@@ -8,6 +8,8 @@ import { supabase } from '@/integrations/supabase/client';
 interface InsightsModalProps {
   isOpen: boolean;
   onClose: () => void;
+  folderId?: string;
+  profileData?: any | null;
 }
 interface ReportCardProps {
   title: string;
@@ -37,7 +39,9 @@ const ReportCard: React.FC<ReportCardProps> = ({
 };
 export const InsightsModal: React.FC<InsightsModalProps> = ({
   isOpen,
-  onClose
+  onClose,
+  folderId,
+  profileData
 }) => {
   const [showAstroForm, setShowAstroForm] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
@@ -68,11 +72,94 @@ export const InsightsModal: React.FC<InsightsModalProps> = ({
     };
   }, []);
   if (!isOpen) return null;
-  const handleReportClick = (reportType: string, request: string) => {
+  const handleReportClick = async (reportType: string, request: string, isDualPerson: boolean) => {
     setSelectedReportType(reportType);
     setSelectedRequest(request);
+
+    // If single-person report AND profile exists, skip form and trigger report directly
+    if (!isDualPerson && profileData && user) {
+      console.log('[InsightsModal] Using folder profile, creating insight report directly', {
+        folderId,
+        profileId: profileData.id,
+      });
+
+      try {
+        // Import necessary hooks/utilities
+        const { getInsightTitle } = await import('@/utils/reportTitles');
+        
+        // Build report payload using the same logic as AstroDataForm
+        const reportData = {
+          request: request,
+          reportType: reportType,
+          person_a: {
+            birth_date: profileData.birth_date,
+            birth_time: profileData.birth_time,
+            location: profileData.birth_location,
+            latitude: profileData.birth_latitude,
+            longitude: profileData.birth_longitude,
+            name: profileData.name,
+          }
+        };
+
+        // Create title using same logic as AstroDataForm
+        const title = getInsightTitle(profileData.name, reportType, undefined);
+
+        // Import conversation creation
+        const { createConversation } = await import('@/services/conversations');
+        
+        // Create conversation with insight mode (same as AstroDataForm does)
+        const conversationId = await createConversation(
+          user.id,
+          'insight',
+          title,
+          {
+            reportType: reportType,
+            report_data: reportData,
+            email: user.email || '',
+            name: profileData.name
+          }
+        );
+
+        console.log('[InsightsModal] Insight conversation created:', conversationId);
+
+        // Show success screen and set up listener
+        setShowAstroForm(false);
+        setShowSuccess(true);
+
+        // Mount WebSocket listener for report completion
+        const channel = supabase.channel('insight-completion').on('postgres_changes', {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'insights',
+          filter: `user_id=eq.${user.id}`
+        }, payload => {
+          const insight = payload.new;
+          if (insight.is_ready === true) {
+            console.log('[InsightsModal] Report ready:', insight.id);
+            // Close success screen and modal
+            setShowSuccess(false);
+            onClose();
+            // Cleanup
+            if (channelRef.current) {
+              supabase.removeChannel(channelRef.current);
+              channelRef.current = null;
+            }
+          }
+        }).subscribe();
+        channelRef.current = channel;
+
+      } catch (error) {
+        console.error('[InsightsModal] Failed to create insight report:', error);
+        // Fall back to showing the form
+        setShowAstroForm(true);
+      }
+      return;
+    }
+
+    // Otherwise show the form (dual-person or no profile)
     setShowAstroForm(true);
   };
+  
   const handleFormSubmit = (data: ReportFormData) => {
     // Show success screen
     setShowAstroForm(false);
@@ -142,11 +229,11 @@ export const InsightsModal: React.FC<InsightsModalProps> = ({
                 <div>
                   <h3 className="text-sm font-medium text-gray-700 mb-2 uppercase tracking-wide">SINGLE INSIGHT </h3>
                   <div className="space-y-2">
-                    <ReportCard title="Personal" description="Deep dive into your personality, strengths, and life patterns based on your birth chart." icon={<User className="w-6 h-6" />} isDualPerson={false} onClick={() => handleReportClick('essence_personal', 'essence')} />
+                    <ReportCard title="Personal" description="Deep dive into your personality, strengths, and life patterns based on your birth chart." icon={<User className="w-6 h-6" />} isDualPerson={false} onClick={() => handleReportClick('essence_personal', 'essence', false)} />
                     
-                    <ReportCard title="Professional" description="Career guidance and professional development insights tailored to your astrological profile." icon={<Briefcase className="w-6 h-6" />} isDualPerson={false} onClick={() => handleReportClick('essence_professional', 'essence')} />
+                    <ReportCard title="Professional" description="Career guidance and professional development insights tailored to your astrological profile." icon={<Briefcase className="w-6 h-6" />} isDualPerson={false} onClick={() => handleReportClick('essence_professional', 'essence', false)} />
                     
-                    <ReportCard title="Relationship" description="Understanding your relationship patterns, love language, and romantic compatibility." icon={<Heart className="w-6 h-6" />} isDualPerson={false} onClick={() => handleReportClick('essence_relationship', 'essence')} />
+                    <ReportCard title="Relationship" description="Understanding your relationship patterns, love language, and romantic compatibility." icon={<Heart className="w-6 h-6" />} isDualPerson={false} onClick={() => handleReportClick('essence_relationship', 'essence', false)} />
                   </div>
                 </div>
 
@@ -154,9 +241,9 @@ export const InsightsModal: React.FC<InsightsModalProps> = ({
                 <div className="pt-2">
                   <h3 className="text-sm font-medium text-gray-700 mb-2 uppercase tracking-wide">COMPATIBILITY INSIGHT </h3>
                   <div className="space-y-2">
-                    <ReportCard title="Compatibility" description="Analyze romantic compatibility, communication styles, and relationship dynamics between two people." icon={<Users className="w-6 h-6" />} isDualPerson={true} onClick={() => handleReportClick('sync_personal', 'sync')} />
+                    <ReportCard title="Compatibility" description="Analyze romantic compatibility, communication styles, and relationship dynamics between two people." icon={<Users className="w-6 h-6" />} isDualPerson={true} onClick={() => handleReportClick('sync_personal', 'sync', true)} />
                     
-                    <ReportCard title="Co-working" description="Team dynamics, collaboration styles, and professional synergy between colleagues or partners." icon={<Users2 className="w-6 h-6" />} isDualPerson={true} onClick={() => handleReportClick('sync_professional', 'sync')} />
+                    <ReportCard title="Co-working" description="Team dynamics, collaboration styles, and professional synergy between colleagues or partners." icon={<Users2 className="w-6 h-6" />} isDualPerson={true} onClick={() => handleReportClick('sync_professional', 'sync', true)} />
                   </div>
                 </div>
               </div>
