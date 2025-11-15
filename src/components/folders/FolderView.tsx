@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { getFolderConversations, getUserFolders, getSharedFolder, moveConversationToFolder, getFolderWithProfile } from '@/services/folders';
 import { getJournalEntries, JournalEntry } from '@/services/journal';
-import { MoreHorizontal, Folder, HelpCircle } from 'lucide-react';
+import { getFolderInsights, FolderInsight } from '@/services/insights-folder';
+import { MoreHorizontal, Folder, HelpCircle, Sparkles } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useChatStore } from '@/core/store';
 import { useAuth } from '@/contexts/AuthContext';
@@ -36,6 +37,7 @@ interface Conversation {
 export const FolderView: React.FC<FolderViewProps> = ({ folderId, onChatClick }) => {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [journals, setJournals] = useState<JournalEntry[]>([]);
+  const [insights, setInsights] = useState<FolderInsight[]>([]);
   const [folderName, setFolderName] = useState<string>('');
   const [folderProfileId, setFolderProfileId] = useState<string | null>(null);
   const [hasProfileSetup, setHasProfileSetup] = useState<boolean>(false);
@@ -70,11 +72,12 @@ export const FolderView: React.FC<FolderViewProps> = ({ folderId, onChatClick })
         // Try to load folder - works for authenticated users
         if (user?.id) {
           try {
-            const [folderWithProfile, userFolders, conversationsData, journalsData] = await Promise.all([
+            const [folderWithProfile, userFolders, conversationsData, journalsData, insightsData] = await Promise.all([
               getFolderWithProfile(folderId),
               getUserFolders(user.id),
               getFolderConversations(folderId),
-              getJournalEntries(folderId)
+              getJournalEntries(folderId),
+              getFolderInsights(folderId).catch(() => []) // Fail gracefully if insights not ready
             ]);
 
             const folder = userFolders.find(f => f.id === folderId);
@@ -84,6 +87,7 @@ export const FolderView: React.FC<FolderViewProps> = ({ folderId, onChatClick })
               setHasProfileSetup(folderWithProfile.folder.has_profile_setup || false);
               setConversations(conversationsData);
               setJournals(journalsData);
+              setInsights(insightsData);
               setIsLoading(false);
               
               // Also load all folders for move to folder menu
