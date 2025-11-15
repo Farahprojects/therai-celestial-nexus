@@ -10,8 +10,28 @@ const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiO
 
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: {
-    storage: localStorage,
+    storage: typeof window !== 'undefined' ? localStorage : undefined,
     persistSession: true,
     autoRefreshToken: true,
   }
+});
+
+// Always provide an Authorization header for Edge Functions.
+// - Default to the anon key when no user session exists (password reset, email verification, etc.)
+// - Switch to the user's access token as soon as we have a session so RLS keeps working.
+const setFunctionsAuth = (token?: string | null) => {
+  const fallback = SUPABASE_PUBLISHABLE_KEY;
+  supabase.functions.setAuth(token || fallback);
+};
+
+// Initialize with the currently cached session (if any)
+supabase.auth.getSession().then(({ data }) => {
+  setFunctionsAuth(data.session?.access_token);
+}).catch(() => {
+  setFunctionsAuth(undefined);
+});
+
+// React to auth state changes so Functions always carry the right JWT
+supabase.auth.onAuthStateChange((_event, session) => {
+  setFunctionsAuth(session?.access_token);
 });

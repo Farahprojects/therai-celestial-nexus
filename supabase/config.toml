@@ -1,1 +1,7 @@
 project_id = "wrvqqvqvwqmfdqvqmaar"
+
+[functions.verify-token]
+verify_jwt = false
+
+[functions.update-password]
+verify_jwt = false
