@@ -117,7 +117,8 @@ export const InsightsModal: React.FC<InsightsModalProps> = ({
             report_data: reportData,
             email: user.email || '',
             name: profileData.name
-          }
+          },
+          folderId
         );
 
         console.log('[InsightsModal] Insight conversation created:', conversationId);

@@ -62,7 +62,8 @@ export const createConversation = async (
     report_data?: any;
     email?: string;
     name?: string;
-  }
+  },
+  folderId?: string
 ): Promise<string> => {
   // ✅ Fetch primary profile for memory tracking
   const profileId = await getPrimaryProfileId(userId);
@@ -75,10 +76,12 @@ export const createConversation = async (
       title: title || 'New Chat',
       mode: mode,
       profile_id: profileId, // Pass profile_id for memory extraction
+      folder_id: folderId,
       ...(reportData?.report_data && {
         report_data: reportData.report_data,
         email: reportData.email,
-        name: reportData.name
+        name: reportData.name,
+        reportType: reportData.reportType,
       })
     }
   });

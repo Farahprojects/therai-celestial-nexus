@@ -13,6 +13,8 @@ report_data?: Record<string, unknown>;
 email?: string;
 name?: string;
 profile_mode?: boolean;
+folder_id?: string;
+profile_id?: string;
 };
 
 type HandlerCtx = {
@@ -122,7 +124,7 @@ async update_conversation_profile({ admin, body, userId }: HandlerCtx) {
 
 // Create a new conversation
 async create_conversation({ req, admin, body, userId }: HandlerCtx) {
-const { title, mode, report_data, email, name, profile_mode, profile_id } = body;
+const { title, mode, report_data, email, name, profile_mode, profile_id, folder_id } = body;
 if (!mode) return errorJson('mode is required for conversation creation');
 
 // Check if profile_mode flag is present
@@ -167,6 +169,7 @@ const { data, error } = await admin
     title: isProfileMode ? 'Profile' : (title || 'Chat'),
     mode: isProfileMode ? 'profile' : mode,
     profile_id: profile_id || null,
+    folder_id: folder_id || null,
     meta,
   })
   .select()
