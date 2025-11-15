@@ -29,6 +29,7 @@ import { FolderModal } from '@/components/folders/FolderModal';
 import { HIDDEN_SETTINGS_PANELS, useSettingsModal, type SettingsPanelType } from '@/contexts/SettingsModalContext';
 import { ConversationActionsMenuContent } from '@/components/chat/ConversationActionsMenu';
 import { ShareConversationModal } from '@/components/chat/ShareConversationModal';
+import { ShareFolderModal } from '@/components/folders/ShareFolderModal';
 import { getConversation, updateConversationTitle } from '@/services/conversations';
 import { getUserFolders, createFolder, updateFolderName, deleteFolder, getFolderConversations, getSharedFolder, moveConversationToFolder } from '@/services/folders';
 import { supabase } from '@/integrations/supabase/client';
@@ -189,6 +190,7 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
   const [confirmDeleteFor, setConfirmDeleteFor] = useState<string | null>(null);
   const [shouldCollapseFolders, setShouldCollapseFolders] = useState(false);
   const [shareConversationId, setShareConversationId] = useState<string | null>(null);
+  const [shareFolderId, setShareFolderId] = useState<string | null>(null);
   const [folderPendingDelete, setFolderPendingDelete] = useState<string | null>(null);
   const [isDeletingFolder, setIsDeletingFolder] = useState(false);
 
@@ -518,6 +520,8 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
                   onDeleteChat={isAuthenticated ? (id) => setConfirmDeleteFor(id) : undefined}
                   onMoveToFolder={isAuthenticated ? handleMoveToFolder : undefined}
                   onCreateFolder={isAuthenticated ? (id) => { setConversationToMoveToNewFolder(id); setShowFolderModal(true); } : undefined}
+                  onShareChat={isAuthenticated ? (id) => setShareConversationId(id) : undefined}
+                  onShareFolder={isAuthenticated ? (id) => setShareFolderId(id) : undefined}
                   allFolders={folders.map(f => ({ id: f.id, name: f.name }))}
                   activeChatId={chat_id}
                   activeFolderId={selectedFolderId}
@@ -728,6 +732,12 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
         <ShareConversationModal
           conversationId={shareConversationId}
           onClose={() => setShareConversationId(null)}
+        />
+      )}
+      {shareFolderId && (
+        <ShareFolderModal
+          folderId={shareFolderId}
+          onClose={() => setShareFolderId(null)}
         />
       )}
     </div>

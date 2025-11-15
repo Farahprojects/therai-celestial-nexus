@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Folder, ChevronRight, ChevronDown, MessageCircle, Sparkles, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
+import { Folder, ChevronRight, ChevronDown, MessageCircle, Sparkles, MoreHorizontal, Pencil, Trash2, Share2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -30,6 +30,8 @@ interface FoldersListProps {
   onDeleteChat?: (conversationId: string) => void;
   onMoveToFolder?: (conversationId: string, folderId: string | null) => void;
   onCreateFolder?: (conversationId: string) => void;
+  onShareChat?: (conversationId: string) => void;
+  onShareFolder?: (folderId: string) => void;
   allFolders?: Array<{ id: string; name: string }>;
   activeChatId?: string;
   initiallyExpandedFolders?: Set<string>;
@@ -47,6 +49,8 @@ export const FoldersList: React.FC<FoldersListProps> = ({
   onDeleteChat,
   onMoveToFolder,
   onCreateFolder,
+  onShareChat,
+  onShareFolder,
   allFolders = [],
   activeChatId,
   initiallyExpandedFolders,
@@ -125,8 +129,8 @@ export const FoldersList: React.FC<FoldersListProps> = ({
                 <span className="flex-1 text-left">{folder.name}</span>
               </button>
 
-              {/* Folder Actions Menu - only show for authenticated users */}
-              {(onEditFolder || onDeleteFolder) && (
+              {/* Folder Actions Menu - only show when actions exist */}
+              {(onShareFolder || onEditFolder || onDeleteFolder) && (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <button className="opacity-0 group-hover:opacity-100 p-1 hover:bg-gray-200 rounded transition-all">
@@ -134,6 +138,12 @@ export const FoldersList: React.FC<FoldersListProps> = ({
                     </button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-48">
+                    {onShareFolder && (
+                      <DropdownMenuItem onClick={() => onShareFolder(folder.id)}>
+                        <Share2 className="w-4 h-4 mr-2" />
+                        Share
+                      </DropdownMenuItem>
+                    )}
                     {onEditFolder && (
                       <DropdownMenuItem onClick={() => onEditFolder(folder.id, folder.name)}>
                         <Pencil className="w-4 h-4 mr-2" />
@@ -193,6 +203,7 @@ export const FoldersList: React.FC<FoldersListProps> = ({
                               currentTitle={chat.title}
                               onEdit={onEditChat}
                               onDelete={onDeleteChat}
+                              onShare={onShareChat}
                               onMoveToFolder={onMoveToFolder}
                               onCreateFolder={onCreateFolder}
                               folders={allFolders}

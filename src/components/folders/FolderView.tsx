@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { getFolderConversations, getUserFolders, getSharedFolder, moveConversationToFolder, getFolderWithProfile } from '@/services/folders';
 import { getJournalEntries, JournalEntry } from '@/services/journal';
-import { MoreHorizontal, Folder, HelpCircle, Sparkles } from 'lucide-react';
+import { MoreHorizontal, Folder, HelpCircle, Sparkles, Share2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useChatStore } from '@/core/store';
 import { useAuth } from '@/contexts/AuthContext';
@@ -21,6 +21,8 @@ import { InsightsModal } from '@/components/insights/InsightsModal';
 import { createFolder } from '@/services/folders';
 import { supabase } from '@/integrations/supabase/client';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { ShareConversationModal } from '@/components/chat/ShareConversationModal';
+import { ShareFolderModal } from '@/components/folders/ShareFolderModal';
 
 interface FolderViewProps {
   folderId: string;
@@ -52,6 +54,8 @@ export const FolderView: React.FC<FolderViewProps> = ({ folderId, onChatClick })
   const [folders, setFolders] = useState<Array<{ id: string; name: string }>>([]);
   const [showFolderModal, setShowFolderModal] = useState(false);
   const [conversationToMoveToNewFolder, setConversationToMoveToNewFolder] = useState<string | null>(null);
+  const [shareConversationId, setShareConversationId] = useState<string | null>(null);
+  const [showFolderShareModal, setShowFolderShareModal] = useState(false);
   
   // New modal states
   const [showJournalModal, setShowJournalModal] = useState(false);
@@ -408,6 +412,13 @@ export const FolderView: React.FC<FolderViewProps> = ({ folderId, onChatClick })
           </div>
           {user && (
             <div className="flex items-center gap-2">
+              <button
+                onClick={() => setShowFolderShareModal(true)}
+                className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                title="Share folder"
+              >
+                <Share2 className="w-4 h-4 text-gray-500" />
+              </button>
               {/* Help Icon */}
               <button
                 onClick={() => setShowHelpDialog(true)}
@@ -511,6 +522,7 @@ export const FolderView: React.FC<FolderViewProps> = ({ folderId, onChatClick })
                         currentTitle={conversation.title || ''}
                         onEdit={handleEditChat}
                         onDelete={handleDeleteChat}
+                        onShare={(id) => setShareConversationId(id)}
                         onMoveToFolder={handleMoveToFolder}
                         onCreateFolder={handleCreateFolderAndMove}
                         folders={folders}
@@ -568,6 +580,22 @@ export const FolderView: React.FC<FolderViewProps> = ({ folderId, onChatClick })
             </div>
           </div>
         </div>
+      )}
+
+      {/* Share Conversation Modal */}
+      {shareConversationId && (
+        <ShareConversationModal
+          conversationId={shareConversationId}
+          onClose={() => setShareConversationId(null)}
+        />
+      )}
+
+      {/* Share Folder Modal */}
+      {showFolderShareModal && (
+        <ShareFolderModal
+          folderId={folderId}
+          onClose={() => setShowFolderShareModal(false)}
+        />
       )}
 
       {/* Delete Confirmation Dialog */}

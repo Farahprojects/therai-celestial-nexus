@@ -5,6 +5,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { ConversationActionsMenuContent } from './ConversationActionsMenu';
+import { ShareConversationModal } from './ShareConversationModal';
 import { useChatStore } from '@/core/store';
 import { updateConversationTitle } from '@/services/conversations';
 import { supabase } from '@/integrations/supabase/client';
@@ -41,6 +42,7 @@ export const ChatMenuButton: React.FC<ChatMenuButtonProps> = ({
   const [folders, setFolders] = useState<Array<{ id: string; name: string }>>([]);
   const [showFolderModal, setShowFolderModal] = useState(false);
   const [conversationToMoveToNewFolder, setConversationToMoveToNewFolder] = useState<string | null>(null);
+  const [shareConversationId, setShareConversationId] = useState<string | null>(null);
 
   // Get current conversation title and folder
   const currentConversation = threads.find(t => t.id === chat_id);
@@ -194,6 +196,7 @@ export const ChatMenuButton: React.FC<ChatMenuButtonProps> = ({
           currentTitle={currentTitle}
           onEdit={handleEdit}
           onDelete={handleDelete}
+          onShare={(id) => setShareConversationId(id)}
           onMoveToFolder={handleMoveToFolder}
           onCreateFolder={handleCreateFolderAndMove}
           folders={folders}
@@ -277,6 +280,13 @@ export const ChatMenuButton: React.FC<ChatMenuButtonProps> = ({
         onCreateFolder={handleCreateFolder}
         editingFolder={null}
       />
+
+      {shareConversationId && (
+        <ShareConversationModal
+          conversationId={shareConversationId}
+          onClose={() => setShareConversationId(null)}
+        />
+      )}
     </>
   );
 };
