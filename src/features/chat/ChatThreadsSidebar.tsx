@@ -332,6 +332,22 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
           await supabase.from('translator_logs').delete().eq('chat_id', conversationId);
         }
 
+        // Optimistically remove from folders list
+        setFolders((prev) =>
+          prev.map((folder) => {
+            if (!folder.chats.some((chat) => chat.id === conversationId)) return folder;
+            const updatedChats = folder.chats.filter((chat) => chat.id !== conversationId);
+            return {
+              ...folder,
+              chats: updatedChats,
+              chatsCount: Math.max(0, folder.chatsCount - 1),
+            };
+          })
+        );
+
+        // Reload folders to ensure consistency
+        await load();
+
         const cur = useChatStore.getState();
         useChatStore.setState({ threads: cur.threads.filter(t => t.id !== conversationId) });
         if (cur.chat_id === conversationId) cur.clearChat();
