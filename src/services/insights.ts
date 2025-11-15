@@ -6,7 +6,6 @@ export interface GenerateInsightRequest {
   coachId: string;
   insightType: string;
   title: string;
-  folderId?: string;
   clientData: {
     fullName: string;
     goals?: string;
@@ -35,7 +34,6 @@ export const insightsService = {
     coachId: string;
     insightType: string;
     title: string;
-    folderId?: string;
     clientData: {
       fullName: string;
       goals?: string;
@@ -109,7 +107,6 @@ export const insightsService = {
         coachId: request.coachId,
         insightType: request.insightType,
         title: request.title,
-        folderId: request.folderId,
         clientData: {
           fullName: request.clientData.fullName,
           goals: request.clientData.goals,

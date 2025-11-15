@@ -1,14 +1,19 @@
 
 
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SUPABASE_SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+const GOOGLE_API_KEY = Deno.env.get("GOOGLE_API_KEY") ?? "";
+
 const MAX_API_RETRIES = 3;
 const INITIAL_RETRY_DELAY_MS = 1000;
 const RETRY_BACKOFF_FACTOR = 2;
+const API_TIMEOUT_MS = 90000;
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+const GOOGLE_MODEL = "gemini-2.5-flash-preview-04-17";
+const GOOGLE_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${GOOGLE_MODEL}:generateContent`;
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
@@ -80,6 +85,25 @@ async function retryWithBackoff<T>(
   throw new Error(`${logPrefix} Retry logic error for ${operationName}`);
 }
 
+async function getInsightPrompt(insightType: string, requestId: string): Promise<string> {
+  const fetchPrompt = async () => {
+    const { data, error } = await supabase
+      .from("insight_prompts")
+      .select("prompt_text")
+      .eq("name", insightType)
+      .eq("is_active", true)
+      .maybeSingle();
+
+    if (error || !data?.prompt_text) {
+      throw new Error(`Insight prompt not found for ${insightType}`);
+    }
+    
+    return data.prompt_text;
+  };
+
+  return await retryWithBackoff(fetchPrompt, `[${requestId}]`, 2, 500, 2, "prompt fetch");
+}
+
 async function getInsightPrice(requestId: string): Promise<number> {
   const fetchPrice = async () => {
     const { data, error } = await supabase
@@ -101,6 +125,140 @@ async function getInsightPrice(requestId: string): Promise<number> {
     console.error(`[${requestId}] Price fetch failed, using fallback:`, err);
     return 7.50;
   }
+}
+
+async function generateInsight(systemPrompt: string, clientData: any, requestId: string): Promise<string> {
+  // Build user message sections dynamically based on available data
+  const sections: string[] = [];
+  
+  // Always include client name and goals
+  sections.push(`Client Name: ${clientData.fullName}`);
+  sections.push(`Goals:\n${clientData.goals || 'No specific goals listed'}`);
+
+  // Add journal entries if available
+  if (clientData.journalText) {
+    sections.push(`Journal Entries:\n${clientData.journalText}`);
+  }
+
+  // Add report texts if available
+  if (clientData.previousReportTexts) {
+    sections.push(`Previous Reports:\n${clientData.previousReportTexts}`);
+  }
+
+  // Add astrological data if available
+  if (clientData.previousAstroDataText) {
+    sections.push(`Previous Astrological Data:\n${clientData.previousAstroDataText}`);
+  }
+
+  const userMessage = sections.join('\n\n');
+
+  console.log(`[${requestId}] User message sections included:`, {
+    hasJournalText: !!clientData.journalText,
+    hasReportTexts: !!clientData.previousReportTexts,
+    hasAstroData: !!clientData.previousAstroDataText,
+    sectionsCount: sections.length
+  });
+
+  const apiUrl = `${GOOGLE_ENDPOINT}?key=${GOOGLE_API_KEY}`;
+
+  const requestBody = {
+    contents: [
+      {
+        role: "user",
+        parts: [
+          { text: systemPrompt },
+          { text: userMessage }
+        ]
+      }
+    ],
+    generationConfig: {
+      temperature: 0.3,
+      topK: 40,
+      topP: 0.95,
+      maxOutputTokens: 8192,
+    }
+  };
+
+  const callGeminiApi = async () => {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
+
+    let response;
+    try {
+        response = await fetch(apiUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(requestBody),
+            signal: controller.signal,
+        });
+    } catch (fetchError) {
+        clearTimeout(timeoutId);
+        if (fetchError instanceof Error && fetchError.name === 'AbortError') {
+            throw new Error(`Gemini API timeout (${API_TIMEOUT_MS}ms)`);
+        }
+        throw fetchError;
+    }
+    
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`[${requestId}] Gemini API error: ${response.status} - ${errorText}`);
+      const error = new Error(`Gemini API error: ${response.status} - ${errorText}`);
+      if (response.status === 400 || response.status === 404 || response.status === 401 || response.status === 403) {
+        throw Object.assign(error, { skipRetry: true });
+      }
+      throw error;
+    }
+
+    const data = await response.json();
+
+    if (!data.candidates?.[0]?.content?.parts?.[0]?.text) {
+      throw new Error("Malformed response from Gemini API");
+    }
+
+    return data.candidates[0].content.parts[0].text;
+  };
+
+  try {
+    return await retryWithBackoff(callGeminiApi, `[${requestId}]`, MAX_API_RETRIES, INITIAL_RETRY_DELAY_MS, RETRY_BACKOFF_FACTOR, "Gemini API call");
+  } catch (err) {
+    console.error(`[${requestId}] Gemini API failed after retries:`, err);
+    if ((err as any).skipRetry) {
+        throw new Error(`Permanent Gemini API error: ${err instanceof Error ? err.message : String(err)}`);
+    }
+    throw err;
+  }
+}
+
+async function saveInsightEntry(
+  clientId: string,
+  coachId: string,
+  title: string,
+  content: string,
+  type: string,
+  confidenceScore: number,
+  requestId: string
+): Promise<string> {
+  const { data, error } = await supabase
+    .from("insight_entries")
+    .insert({
+      client_id: clientId,
+      coach_id: coachId,
+      title: title,
+      content: content,
+      type: type,
+      confidence_score: confidenceScore
+    })
+    .select('id')
+    .single();
+
+  if (error) {
+    console.error(`[${requestId}] Save insight error:`, error);
+    throw new Error(`Failed to save insight: ${error.message}`);
+  }
+
+  return data.id;
 }
 
 Deno.serve(async (req) => {
@@ -185,66 +343,20 @@ Deno.serve(async (req) => {
       hasAstroData: !!clientData.previousAstroDataText
     });
 
-    const insightId = crypto.randomUUID();
+    // Fetch prompt and generate insight
+    const systemPrompt = await getInsightPrompt(insightType, requestId);
+    const insightContent = await generateInsight(systemPrompt, clientData, requestId);
 
-    // Extract journal text for chartData payload
-    const journalText = clientData.journalText || 'No journal entries available.';
-
-    // Initialize insight record (tracks status + folder linkage)
-    const { error: insertError } = await supabase
-      .from('insights')
-      .insert({
-        id: insightId,
-        user_id: coachId,
-        report_type: insightType,
-        status: 'processing',
-        is_ready: false,
-        folder_id: payload.folderId ?? null,
-        metadata: {
-          title,
-          clientId,
-          coachId,
-          source: 'generate-insights-edge'
-        }
-      });
-
-    if (insertError) {
-      console.error(`[${requestId}] Failed to initialize insight record:`, insertError);
-      throw new Error('Failed to initialize insight tracking record');
-    }
-
-    const chartData = {
+    // Save insight entry
+    const insightId = await saveInsightEntry(
       clientId,
       coachId,
       title,
+      insightContent,
       insightType,
-      folderId: payload.folderId ?? null,
-      clientData: {
-        fullName: clientData.fullName,
-        goals: clientData.goals,
-        journalText,
-        previousReportTexts: clientData.previousReportTexts,
-        previousAstroDataText: clientData.previousAstroDataText
-      }
-    };
-
-    const orchestratorPayload = {
-      endpoint: 'insight',
-      report_type: insightType,
-      chat_id: insightId,
-      user_id: coachId,
-      chartData,
-      mode: 'insight'
-    };
-
-    const { data: orchestratorData, error: orchestratorError } = await supabase.functions.invoke('report-orchestrator', {
-      body: orchestratorPayload
-    });
-
-    if (orchestratorError) {
-      console.error(`[${requestId}] Report-orchestrator error:`, orchestratorError);
-      throw new Error(orchestratorError.message || 'Failed to schedule insight generation');
-    }
+      85,
+      requestId
+    );
 
     // Record API usage
     try {
@@ -255,7 +367,7 @@ Deno.serve(async (req) => {
         _endpoint: 'generate-insights',
         _cost_usd: costUsd,
         _request_params: { insightType, clientId },
-        _response_status: 202,
+        _response_status: 200,
         _processing_time_ms: Date.now() - startTime
       });
 
@@ -266,12 +378,11 @@ Deno.serve(async (req) => {
       console.error(`[${requestId}] API usage recording error:`, usageErr);
     }
 
-    console.log(`[${requestId}] Insight generation scheduled via report-orchestrator in ${Date.now() - startTime}ms`);
+    console.log(`[${requestId}] Insight generated successfully in ${Date.now() - startTime}ms`);
     return jsonResponse({
       success: true,
-      insightId,
-      status: 'processing',
-      orchestrator: orchestratorData,
+      insightId: insightId,
+      content: insightContent,
       requestId
     }, {}, requestId);
 

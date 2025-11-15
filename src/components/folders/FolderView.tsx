@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { getFolderConversations, getUserFolders, getSharedFolder, moveConversationToFolder, getFolderWithProfile } from '@/services/folders';
 import { getJournalEntries, JournalEntry } from '@/services/journal';
-import { getFolderInsights, FolderInsight } from '@/services/insights-folder';
-import { MoreHorizontal, Folder, HelpCircle, Sparkles } from 'lucide-react';
+import { MoreHorizontal, Folder, HelpCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useChatStore } from '@/core/store';
 import { useAuth } from '@/contexts/AuthContext';
@@ -37,7 +36,6 @@ interface Conversation {
 export const FolderView: React.FC<FolderViewProps> = ({ folderId, onChatClick }) => {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [journals, setJournals] = useState<JournalEntry[]>([]);
-  const [insights, setInsights] = useState<FolderInsight[]>([]);
   const [folderName, setFolderName] = useState<string>('');
   const [folderProfileId, setFolderProfileId] = useState<string | null>(null);
   const [hasProfileSetup, setHasProfileSetup] = useState<boolean>(false);
@@ -72,12 +70,11 @@ export const FolderView: React.FC<FolderViewProps> = ({ folderId, onChatClick })
         // Try to load folder - works for authenticated users
         if (user?.id) {
           try {
-            const [folderWithProfile, userFolders, conversationsData, journalsData, insightsData] = await Promise.all([
+            const [folderWithProfile, userFolders, conversationsData, journalsData] = await Promise.all([
               getFolderWithProfile(folderId),
               getUserFolders(user.id),
               getFolderConversations(folderId),
-              getJournalEntries(folderId),
-              getFolderInsights(folderId).catch(() => []) // Fail gracefully if insights not ready
+              getJournalEntries(folderId)
             ]);
 
             const folder = userFolders.find(f => f.id === folderId);
@@ -87,7 +84,6 @@ export const FolderView: React.FC<FolderViewProps> = ({ folderId, onChatClick })
               setHasProfileSetup(folderWithProfile.folder.has_profile_setup || false);
               setConversations(conversationsData);
               setJournals(journalsData);
-              setInsights(insightsData);
               setIsLoading(false);
               
               // Also load all folders for move to folder menu
@@ -404,55 +400,18 @@ export const FolderView: React.FC<FolderViewProps> = ({ folderId, onChatClick })
         </div>
       )}
 
-      {/* Content List (Insights, Journals, Conversations) */}
+      {/* Conversations List */}
       <div className="flex-1 overflow-y-auto">
-        {conversations.length === 0 && insights.length === 0 ? (
+        {conversations.length === 0 ? (
           <div className="flex items-center justify-center h-full">
             <div className="text-gray-400 font-light text-center">
-              <p>No content in this folder yet</p>
-              <p className="text-sm mt-2">Use the Add button to get started</p>
+              <p>No conversations in this folder</p>
             </div>
           </div>
         ) : (
           <div className="px-6 py-4">
-            <div className="w-full max-w-2xl mx-auto flex flex-col space-y-4">
-              
-              {/* Insights Section */}
-              {insights.length > 0 && (
-                <div className="space-y-2">
-                  <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wide px-4">Insights</h3>
-                  {insights.map((insight) => (
-                    <div
-                      key={insight.id}
-                      className="flex items-center justify-between gap-4 py-3 px-4 rounded-2xl bg-purple-50 hover:bg-purple-100 transition-colors group cursor-pointer"
-                      onClick={() => {
-                        // Navigate to insight conversation
-                        setViewMode('chat');
-                        startConversation(insight.id);
-                        onChatClick(insight.id);
-                      }}
-                    >
-                      <div className="flex items-center gap-3 flex-1 min-w-0">
-                        <Sparkles className="w-5 h-5 text-purple-600 flex-shrink-0" />
-                        <div className="flex-1 min-w-0">
-                          <div className="text-sm font-light text-gray-900 truncate">
-                            {insight.report_type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                          </div>
-                          <div className="text-xs text-gray-500">
-                            {new Date(insight.created_at || '').toLocaleDateString()}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Conversations Section */}
-              {conversations.length > 0 && (
-                <div className="space-y-2">
-                  {insights.length > 0 && <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wide px-4">Conversations</h3>}
-                  {conversations.map((conversation) => (
+            <div className="w-full max-w-2xl mx-auto flex flex-col space-y-2">
+              {conversations.map((conversation) => (
                 <div
                   key={conversation.id}
                   className="flex items-center justify-between gap-4 py-3 px-4 rounded-2xl hover:bg-gray-50 transition-colors group"
@@ -491,9 +450,7 @@ export const FolderView: React.FC<FolderViewProps> = ({ folderId, onChatClick })
                     </DropdownMenu>
                   )}
                 </div>
-                  ))}
-                </div>
-              )}
+              ))}
             </div>
           </div>
         )}
@@ -610,8 +567,6 @@ export const FolderView: React.FC<FolderViewProps> = ({ folderId, onChatClick })
       <InsightsModal
         isOpen={showInsightsModal}
         onClose={() => setShowInsightsModal(false)}
-        folderId={folderId}
-        folderProfileId={folderProfileId}
       />
 
       {/* Help Dialog */}
