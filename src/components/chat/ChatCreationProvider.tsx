@@ -34,7 +34,15 @@ export const useChatCreation = (): ChatCreationContextValue => {
   return ctx;
 };
 
-export const ChatCreationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+interface ChatCreationProviderProps {
+  children: React.ReactNode;
+  onConversationReady?: () => void;
+}
+
+export const ChatCreationProvider: React.FC<ChatCreationProviderProps> = ({
+  children,
+  onConversationReady,
+}) => {
   const { user } = useAuth();
   const { isSubscriptionActive } = useSubscription();
   const billingMode = getBillingMode();
@@ -88,10 +96,14 @@ export const ChatCreationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       const { startConversation } = useChatStore.getState();
       startConversation(newChatId);
 
+      const { setViewMode } = useChatStore.getState();
+      setViewMode('chat', null);
+
       const { chatController } = await import('@/features/chat/ChatController');
       await chatController.switchToChat(newChatId);
 
       navigate(`/c/${newChatId}`, { replace: true });
+      onConversationReady?.();
     } catch (error) {
       console.error('[ChatCreationProvider] Failed to create conversation:', error);
     }
@@ -192,6 +204,7 @@ export const ChatCreationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       setShowSyncScoreModal(false);
       setIsSyncScoreGenerating(false);
       navigate(`/c/${newChatId}`, { replace: true });
+      onConversationReady?.();
 
       // Prepare the data payload for initiate-auth-report
       const personA = {
@@ -288,6 +301,7 @@ export const ChatCreationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         setShowAstroModal(false);
         setSelectedChartType(null);
         navigate(`/c/${newChatId}`, { replace: true });
+        onConversationReady?.();
       } catch (error) {
         console.error('[ChatCreationProvider] Failed to open astro conversation:', error);
       }

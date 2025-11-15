@@ -16,7 +16,7 @@ export const ChatSidebarControls: React.FC<ChatSidebarControlsProps> = ({
   conversationType = 'chat' // Default to chat
 }) => {
   return (
-    <ChatCreationProvider>
+    <ChatCreationProvider onConversationReady={onCloseMobileSidebar}>
       <div className="w-full h-full flex flex-col">
         {/* Logo at the top */}
         <div className="px-4 py-4">

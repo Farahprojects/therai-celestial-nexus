@@ -273,6 +273,19 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
     return (p?.role === 'member') || (p?.role === 'owner' && thread?.has_other_participants);
   };
 
+  const closeSidebar = useCallback(() => {
+    onCloseMobileSidebar?.();
+  }, [onCloseMobileSidebar]);
+
+  const handleSidebarNewChat = useCallback(async () => {
+    setShouldCollapseFolders(true);
+    try {
+      await startChat();
+    } finally {
+      closeSidebar();
+    }
+  }, [closeSidebar, startChat]);
+
   /** Actions **/
   const switchToChat = async (conversationId: string, folderId?: string) => {
     setShowImageGallery(false); // Close image gallery when switching chats
@@ -300,7 +313,7 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
       await chatController.switchToChat(conversationId);
     } catch {/* ignore socket handoff errors to avoid blocking nav */}
     navigate(`/c/${conversationId}`, { replace: true });
-    onCloseMobileSidebar?.();
+    closeSidebar();
   };
 
   const saveTitle = async () => {
@@ -459,21 +472,28 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
                 <Button
                   variant="ghost"
                   className="w-full justify-start gap-2 px-3 py-1 text-sm font-light"
-                  onClick={() => { 
-                    setShouldCollapseFolders(true); // Collapse folders when creating new chat
-                    void startChat(); 
-                  }}
+                  onClick={() => { void handleSidebarNewChat(); }}
                 >
                   <SquarePen className="w-4 h-4" />
                   New Chat
                 </Button>
-                <Button variant="ghost" className="w-full justify-start gap-2 px-3 py-1 text-sm font-light" onClick={() => setShowSearchModal(true)}>
+                <Button
+                  variant="ghost"
+                  className="w-full justify-start gap-2 px-3 py-1 text-sm font-light"
+                  onClick={() => {
+                    setShowSearchModal(true);
+                    closeSidebar();
+                  }}
+                >
                   <Search className="w-4 h-4" /> Search Chat
                 </Button>
                 <Button 
                   variant="ghost" 
                   className="w-full justify-start gap-2 px-3 py-1 text-sm font-light" 
-                  onClick={() => setShowImageGallery(true)}
+                  onClick={() => {
+                    setShowImageGallery(true);
+                    closeSidebar();
+                  }}
                   data-image-gallery-button
                 >
                   <Image className="w-4 h-4" /> Images
