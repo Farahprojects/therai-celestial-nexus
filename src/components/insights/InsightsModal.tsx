@@ -10,6 +10,7 @@ interface InsightsModalProps {
   onClose: () => void;
   folderId?: string;
   profileData?: any | null;
+  onReportReady?: (insightId: string) => void;
 }
 interface ReportCardProps {
   title: string;
@@ -41,7 +42,8 @@ export const InsightsModal: React.FC<InsightsModalProps> = ({
   isOpen,
   onClose,
   folderId,
-  profileData
+  profileData,
+  onReportReady,
 }) => {
   const [showAstroForm, setShowAstroForm] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
@@ -180,6 +182,7 @@ export const InsightsModal: React.FC<InsightsModalProps> = ({
           // Close success screen and modal
           setShowSuccess(false);
           onClose();
+          onReportReady?.(insight.id);
           // Cleanup
           if (channelRef.current) {
             supabase.removeChannel(channelRef.current);

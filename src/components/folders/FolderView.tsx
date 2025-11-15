@@ -63,77 +63,74 @@ export const FolderView: React.FC<FolderViewProps> = ({ folderId, onChatClick })
   const { user } = useAuth();
   const { setViewMode, startConversation, threads, removeThread, clearChat } = useChatStore();
 
-  useEffect(() => {
-    const loadFolderData = async () => {
-      setIsLoading(true);
-      setError(null);
-      setFolderProfile(null);
-      
-      try {
-        // Try to load folder - works for authenticated users
-        if (user?.id) {
-          try {
-            const [folderWithProfile, userFolders, conversationsData, journalsData] = await Promise.all([
-              getFolderWithProfile(folderId),
-              getUserFolders(user.id),
-              getFolderConversations(folderId),
-              getJournalEntries(folderId)
-            ]);
+  const loadFolderData = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    setFolderProfile(null);
+    
+    try {
+      // Try to load folder - works for authenticated users
+      if (user?.id) {
+        try {
+          const [folderWithProfile, userFolders, conversationsData, journalsData] = await Promise.all([
+            getFolderWithProfile(folderId),
+            getUserFolders(user.id),
+            getFolderConversations(folderId),
+            getJournalEntries(folderId)
+          ]);
 
-            const folder = userFolders.find(f => f.id === folderId);
-            if (folder) {
-              setFolderName(folderWithProfile.folder.name);
-              setFolderProfileId(folderWithProfile.folder.profile_id || null);
-              setHasProfileSetup(folderWithProfile.folder.has_profile_setup || false);
-              setFolderProfile(folderWithProfile.profile || null);
-              setConversations(conversationsData);
-              setJournals(journalsData);
-              setIsLoading(false);
-              
-              // Also load all folders for move to folder menu
-              setFolders(userFolders.map(f => ({ id: f.id, name: f.name })));
-              return;
-            }
-          } catch (err) {
-            console.error('[FolderView] Failed to load from user folders:', err);
-            // Fall through to try as shared folder
-          }
-        }
-
-        // Try loading as shared/public folder (for non-owners or unauthenticated)
-        const sharedFolder = await getSharedFolder(folderId);
-        if (sharedFolder) {
-          // If folder is public, anyone can view it
-          if (sharedFolder.is_public) {
-            const conversationsData = await getFolderConversations(folderId);
-            setFolderName(sharedFolder.name);
-            setFolderProfileId(sharedFolder.profile_id || null);
-            setHasProfileSetup(sharedFolder.has_profile_setup || false);
+          const folder = userFolders.find(f => f.id === folderId);
+          if (folder) {
+            setFolderName(folderWithProfile.folder.name);
+            setFolderProfileId(folderWithProfile.folder.profile_id || null);
+            setHasProfileSetup(folderWithProfile.folder.has_profile_setup || false);
+            setFolderProfile(folderWithProfile.profile || null);
             setConversations(conversationsData);
-            setIsLoading(false);
+            setJournals(journalsData);
+            
+            // Also load all folders for move to folder menu
+            setFolders(userFolders.map(f => ({ id: f.id, name: f.name })));
             return;
           }
-          
-          // Private folder - requires authentication
-          if (!user?.id) {
-            setError('Please sign in to view this folder');
-            setIsLoading(false);
-            return;
-          }
+        } catch (err) {
+          console.error('[FolderView] Failed to load from user folders:', err);
+          // Fall through to try as shared folder
         }
-
-        // If we get here, folder not found or not accessible
-        setError('Folder not found or not accessible');
-      } catch (err) {
-        console.error('[FolderView] Failed to load folder data:', err);
-        setError('Failed to load folder');
-      } finally {
-        setIsLoading(false);
       }
-    };
 
-    loadFolderData();
+      // Try loading as shared/public folder (for non-owners or unauthenticated)
+      const sharedFolder = await getSharedFolder(folderId);
+      if (sharedFolder) {
+        // If folder is public, anyone can view it
+        if (sharedFolder.is_public) {
+          const conversationsData = await getFolderConversations(folderId);
+          setFolderName(sharedFolder.name);
+          setFolderProfileId(sharedFolder.profile_id || null);
+          setHasProfileSetup(sharedFolder.has_profile_setup || false);
+          setConversations(conversationsData);
+          return;
+        }
+        
+        // Private folder - requires authentication
+        if (!user?.id) {
+          setError('Please sign in to view this folder');
+          return;
+        }
+      }
+
+      // If we get here, folder not found or not accessible
+      setError('Folder not found or not accessible');
+    } catch (err) {
+      console.error('[FolderView] Failed to load folder data:', err);
+      setError('Failed to load folder');
+    } finally {
+      setIsLoading(false);
+    }
   }, [folderId, user?.id]);
+
+  useEffect(() => {
+    loadFolderData();
+  }, [loadFolderData]);
 
   const handleChatClick = (conversation: Conversation) => {
     // Switch to chat view
@@ -639,6 +636,7 @@ export const FolderView: React.FC<FolderViewProps> = ({ folderId, onChatClick })
         onClose={() => setShowInsightsModal(false)}
         folderId={folderId}
         profileData={folderProfile}
+        onReportReady={loadFolderData}
       />
 
       {/* Help Dialog */}
