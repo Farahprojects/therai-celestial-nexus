@@ -15,9 +15,6 @@ CREATE TABLE user_memory_weekly_summaries (
   created_at TIMESTAMPTZ DEFAULT NOW(),
   UNIQUE(user_id, profile_id, year, week_number)
 );
-
 CREATE INDEX idx_weekly_summaries_user 
 ON user_memory_weekly_summaries(user_id, year DESC, week_number DESC);
-
 COMMENT ON TABLE user_memory_weekly_summaries IS 'Weekly energy summaries synthesized from 4-turn conversation summaries';
-

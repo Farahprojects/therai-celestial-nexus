@@ -9,7 +9,6 @@ CREATE TABLE IF NOT EXISTS feature_usage (
   updated_at TIMESTAMPTZ DEFAULT NOW(),
   UNIQUE(user_id, feature_type, period)
 );
-
 -- Add index for fast lookups (only if feature_type column exists)
 -- This migration was superseded by 20250207000000_modular_feature_usage.sql
 -- Commenting out to avoid conflicts
@@ -18,7 +17,6 @@ CREATE TABLE IF NOT EXISTS feature_usage (
 
 -- Enable RLS
 ALTER TABLE feature_usage ENABLE ROW LEVEL SECURITY;
-
 -- RLS Policies: Users can only see their own usage
 DO $$ 
 BEGIN
@@ -33,7 +31,6 @@ BEGIN
       USING (auth.uid() = user_id);
   END IF;
 END $$;
-
 -- Atomic increment function for concurrent usage tracking
 CREATE OR REPLACE FUNCTION increment_feature_usage(
   p_user_id UUID,
@@ -50,8 +47,6 @@ BEGIN
     updated_at = NOW();
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
-
 -- Grant execute permission on the function
 GRANT EXECUTE ON FUNCTION increment_feature_usage(UUID, TEXT, INTEGER, TEXT) TO authenticated;
 GRANT EXECUTE ON FUNCTION increment_feature_usage(UUID, TEXT, INTEGER, TEXT) TO service_role;
-

@@ -20,7 +20,6 @@ BEGIN
     ALTER PUBLICATION supabase_realtime DROP TABLE messages;
   END IF;
 END $$;
-
 -- Keep realtime for conversations if you want to re-enable it later
 -- For now, conversation updates are handled via broadcast as well
 -- Uncomment the block below to also disable conversations realtime:
@@ -40,7 +39,5 @@ END $$;
 
 -- Add comment for future reference
 COMMENT ON TABLE messages IS 'Messages table - realtime disabled, using broadcast events via unified channel for WebSocket optimization';
-
 -- This migration is safe to rollback - just re-add the tables to publication:
--- To rollback: ALTER PUBLICATION supabase_realtime ADD TABLE messages;
-
+-- To rollback: ALTER PUBLICATION supabase_realtime ADD TABLE messages;;

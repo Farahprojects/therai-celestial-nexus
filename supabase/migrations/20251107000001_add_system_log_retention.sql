@@ -24,7 +24,6 @@ EXCEPTION
     RAISE WARNING 'Error cleaning edge_function_logs: %', SQLERRM;
 END;
 $FUNC$;
-
 -- 2. Create function to clean old webhook events (for reconciliation only)
 CREATE OR REPLACE FUNCTION clean_old_webhook_events()
 RETURNS void
@@ -44,7 +43,6 @@ EXCEPTION
     RAISE WARNING 'Error cleaning stripe_webhook_events: %', SQLERRM;
 END;
 $FUNC$;
-
 -- 3. Schedule daily cleanup jobs using pg_cron (if extension is available)
 DO $CRON$
 BEGIN
@@ -70,8 +68,6 @@ EXCEPTION
     RAISE WARNING 'Error scheduling cron jobs: %', SQLERRM;
 END;
 $CRON$;
-
 -- Comments
 COMMENT ON FUNCTION clean_edge_function_logs() IS 'Deletes edge function logs older than 7 days to prevent table bloat';
 COMMENT ON FUNCTION clean_old_webhook_events() IS 'Deletes Stripe webhook events older than 90 days (reconciliation period)';
-

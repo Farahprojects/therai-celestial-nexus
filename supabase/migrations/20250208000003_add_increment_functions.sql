@@ -19,7 +19,6 @@ BEGIN
     updated_at = NOW();
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
-
 -- Atomic check-and-increment for @therai calls
 CREATE OR REPLACE FUNCTION check_and_increment_therai_calls(
   p_user_id UUID,
@@ -89,12 +88,9 @@ BEGIN
   );
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
-
 -- Grant permissions
 GRANT EXECUTE ON FUNCTION increment_therai_calls TO authenticated, service_role;
 GRANT EXECUTE ON FUNCTION check_and_increment_therai_calls TO authenticated, service_role;
-
 -- Add helpful comments
 COMMENT ON FUNCTION increment_therai_calls IS 'Increment @therai call count for Together Mode feature tracking';
 COMMENT ON FUNCTION check_and_increment_therai_calls IS 'Atomically check limit and increment @therai calls in single transaction';
-

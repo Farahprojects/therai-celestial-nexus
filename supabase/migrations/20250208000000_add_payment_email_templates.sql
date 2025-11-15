@@ -130,4 +130,3 @@ ON CONFLICT (template_type) DO UPDATE SET
   body_html = EXCLUDED.body_html,
   body_text = EXCLUDED.body_text,
   updated_at = now();
-

@@ -18,25 +18,19 @@ CREATE TABLE user_memory (
   is_active BOOLEAN DEFAULT true,
   deleted_at TIMESTAMPTZ
 );
-
 -- Performance indexes
 CREATE INDEX idx_user_memory_user_profile_active 
 ON user_memory(user_id, profile_id, is_active, last_referenced_at DESC) 
 WHERE is_active = true;
-
 CREATE INDEX idx_user_memory_created ON user_memory(created_at DESC);
-
 CREATE INDEX idx_user_memory_reference 
 ON user_memory(reference_count DESC, last_referenced_at DESC);
-
 -- Full-text search for keyword search in Settings
 CREATE INDEX user_memory_fts 
 ON user_memory USING gin (to_tsvector('english', coalesce(memory_text,'')));
-
 -- Comments
 COMMENT ON TABLE user_memory IS 'Stores individual memories extracted from profile-based conversations';
 COMMENT ON COLUMN user_memory.source_message_id IS 'Links to the message that created this memory for traceability';
 COMMENT ON COLUMN user_memory.turn_index IS 'Conversation turn number when memory was created';
 COMMENT ON COLUMN user_memory.origin_mode IS 'Conversation mode: chat|astro|profile|together|swiss';
 COMMENT ON COLUMN user_memory.deleted_at IS 'Soft delete timestamp for GDPR compliance';
-

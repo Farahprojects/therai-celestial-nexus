@@ -57,14 +57,12 @@ BEGIN
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
-
 -- Create trigger to auto-share conversations when folder is shared
 DROP TRIGGER IF EXISTS trg_share_folder_conversations ON public.chat_folders;
 CREATE TRIGGER trg_share_folder_conversations
   AFTER INSERT OR UPDATE OF is_public, share_mode ON public.chat_folders
   FOR EACH ROW
   EXECUTE FUNCTION public.handle_share_folder_conversations();
-
 -- Also handle when a conversation is added to a shared folder
 CREATE OR REPLACE FUNCTION public.handle_conversation_added_to_shared_folder()
 RETURNS TRIGGER AS $$
@@ -103,11 +101,9 @@ BEGIN
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
-
 -- Create trigger for when conversations are added/updated with folder_id
 DROP TRIGGER IF EXISTS trg_conversation_folder_share ON public.conversations;
 CREATE TRIGGER trg_conversation_folder_share
   AFTER INSERT OR UPDATE OF folder_id ON public.conversations
   FOR EACH ROW
   EXECUTE FUNCTION public.handle_conversation_added_to_shared_folder();
-

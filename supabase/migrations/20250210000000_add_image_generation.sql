@@ -2,7 +2,6 @@
 INSERT INTO storage.buckets (id, name, public) 
 VALUES ('generated-images', 'generated-images', false)
 ON CONFLICT (id) DO NOTHING;
-
 -- RLS: Users can only insert their own images (CORRECTED: use string_to_array)
 DO $$ 
 BEGIN
@@ -21,7 +20,6 @@ BEGIN
     );
   END IF;
 END $$;
-
 -- RLS: Users can only view their own images
 DO $$ 
 BEGIN
@@ -40,7 +38,6 @@ BEGIN
     );
   END IF;
 END $$;
-
 -- RLS: Users can delete their own images
 DO $$ 
 BEGIN
@@ -59,7 +56,6 @@ BEGIN
     );
   END IF;
 END $$;
-
 -- CRITICAL: Service role policy for edge function uploads
 DO $$ 
 BEGIN
@@ -76,4 +72,3 @@ BEGIN
     WITH CHECK (bucket_id = 'generated-images');
   END IF;
 END $$;
-

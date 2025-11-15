@@ -3,7 +3,6 @@
 
 -- Update the authenticated SELECT policy for conversations
 DROP POLICY IF EXISTS "usr_sel" ON public.conversations;
-
 CREATE POLICY "usr_sel"
   ON public.conversations
   AS PERMISSIVE
@@ -27,4 +26,3 @@ CREATE POLICY "usr_sel"
       AND chat_folders.is_public = true
     )
   );
-

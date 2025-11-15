@@ -5,7 +5,6 @@
 -- Step 1: Change the reference_id column type from uuid to text
 ALTER TABLE credit_transactions 
 ALTER COLUMN reference_id TYPE text USING reference_id::text;
-
 -- Step 2: Update the add_credits function to accept text for reference_id
 CREATE OR REPLACE FUNCTION public.add_credits(
   _user_id uuid, 
@@ -49,4 +48,3 @@ BEGIN
   RETURN true;
 END;
 $function$;
-

@@ -18,14 +18,11 @@ CREATE TABLE IF NOT EXISTS feature_usage (
   
   UNIQUE(user_id, period)
 );
-
 -- Index for fast lookups
 CREATE INDEX IF NOT EXISTS idx_feature_usage_user_period 
 ON feature_usage(user_id, period);
-
 -- Enable RLS
 ALTER TABLE feature_usage ENABLE ROW LEVEL SECURITY;
-
 -- RLS Policy: Users can only view their own usage
 DO $$ 
 BEGIN
@@ -40,7 +37,6 @@ BEGIN
       USING (auth.uid() = user_id);
   END IF;
 END $$;
-
 -- Increment voice seconds atomically
 CREATE OR REPLACE FUNCTION increment_voice_seconds(
   p_user_id UUID,
@@ -56,7 +52,6 @@ BEGIN
     updated_at = NOW();
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
-
 -- Increment insights count atomically
 CREATE OR REPLACE FUNCTION increment_insights_count(
   p_user_id UUID,
@@ -72,13 +67,8 @@ BEGIN
     updated_at = NOW();
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
-
 -- Grant execute permissions
 GRANT EXECUTE ON FUNCTION increment_voice_seconds(UUID, INTEGER, TEXT) TO authenticated;
 GRANT EXECUTE ON FUNCTION increment_voice_seconds(UUID, INTEGER, TEXT) TO service_role;
 GRANT EXECUTE ON FUNCTION increment_insights_count(UUID, INTEGER, TEXT) TO authenticated;
 GRANT EXECUTE ON FUNCTION increment_insights_count(UUID, INTEGER, TEXT) TO service_role;
-
-
-
-

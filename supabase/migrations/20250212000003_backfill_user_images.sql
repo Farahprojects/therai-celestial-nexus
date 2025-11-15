@@ -21,7 +21,6 @@ WHERE m.meta->>'message_type' = 'image'
     WHERE ui.message_id = m.id
   )
 ON CONFLICT DO NOTHING;
-
 -- Also backfill from image_generation_log for images that might not have messages
 INSERT INTO user_images (user_id, chat_id, image_url, model, created_at)
 SELECT DISTINCT ON (igl.id)
@@ -39,6 +38,4 @@ WHERE igl.image_url IS NOT NULL
     AND ABS(EXTRACT(EPOCH FROM (ui.created_at - igl.created_at))) < 60 -- Within 60 seconds
   )
 ON CONFLICT DO NOTHING;
-
 COMMENT ON TABLE user_images IS 'Backfilled from messages and image_generation_log - all user images now persist even after chat deletion';
-

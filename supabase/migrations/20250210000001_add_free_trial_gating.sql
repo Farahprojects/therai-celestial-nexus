@@ -6,12 +6,10 @@
 -- 1. Add trial tracking to profiles
 ALTER TABLE profiles 
 ADD COLUMN IF NOT EXISTS trial_end_date TIMESTAMPTZ;
-
 -- Set trial_end_date for existing users (7 days from account creation)
 UPDATE profiles 
 SET trial_end_date = created_at + INTERVAL '7 days'
 WHERE trial_end_date IS NULL;
-
 -- 2. Update check_feature_limit to respect trial period
 CREATE OR REPLACE FUNCTION check_feature_limit(
   p_user_id UUID,
@@ -152,7 +150,6 @@ BEGIN
   );
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
-
 -- 3. Create trigger to set trial_end_date for new users
 CREATE OR REPLACE FUNCTION set_trial_end_date()
 RETURNS TRIGGER AS $$
@@ -163,13 +160,11 @@ BEGIN
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
-
 DROP TRIGGER IF EXISTS set_trial_end_date_trigger ON profiles;
 CREATE TRIGGER set_trial_end_date_trigger
   BEFORE INSERT ON profiles
   FOR EACH ROW
   EXECUTE FUNCTION set_trial_end_date();
-
 -- 4. Helper function to check if user is in trial
 CREATE OR REPLACE FUNCTION is_user_in_trial(p_user_id UUID)
 RETURNS BOOLEAN AS $$
@@ -187,9 +182,7 @@ BEGIN
     AND NOW() <= v_trial_end_date;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
-
 GRANT EXECUTE ON FUNCTION is_user_in_trial TO authenticated, anon, service_role;
-
 -- 5. Update plan_limits to reflect free plan has NO features after trial
 -- (During trial, free users can use features; after trial, only Together Mode)
 UPDATE plan_limits 
@@ -199,6 +192,4 @@ SET
   therai_calls_limit = 0,
   insights_limit = 0
 WHERE plan_id = 'free';
-
 COMMENT ON COLUMN profiles.trial_end_date IS '1-week free trial end date. After this, free users can only access Together Mode (no AI features).';
-

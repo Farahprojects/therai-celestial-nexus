@@ -5,12 +5,10 @@
 -- 1. Add archived_at column to messages table (if not exists)
 ALTER TABLE messages 
 ADD COLUMN IF NOT EXISTS archived_at TIMESTAMPTZ;
-
 -- 2. Create index on archived_at for archival queries
 CREATE INDEX IF NOT EXISTS idx_messages_archived 
 ON messages(archived_at) 
 WHERE archived_at IS NOT NULL;
-
 -- 3. Create function to archive old messages
 CREATE OR REPLACE FUNCTION archive_old_messages()
 RETURNS TABLE(
@@ -75,7 +73,6 @@ BEGIN
   RETURN QUERY SELECT v_archived_count, v_conversation_count;
 END;
 $$;
-
 -- 4. Create function to permanently delete archived messages (optional, run manually)
 CREATE OR REPLACE FUNCTION hard_delete_archived_messages(months_old INTEGER DEFAULT 12)
 RETURNS INTEGER
@@ -96,7 +93,6 @@ BEGIN
   RETURN v_deleted_count;
 END;
 $$;
-
 -- 5. Schedule monthly archival job using pg_cron
 DO $ARCHIVE$
 BEGIN
@@ -115,7 +111,6 @@ EXCEPTION
     RAISE WARNING 'Error scheduling cron job: %', SQLERRM;
 END;
 $ARCHIVE$;
-
 -- 6. Create view to monitor archival statistics
 CREATE OR REPLACE VIEW message_archival_stats AS
 SELECT 
@@ -125,14 +120,11 @@ SELECT
   MIN(archived_at) as oldest_archive_date,
   MAX(archived_at) as latest_archive_date
 FROM messages;
-
 -- Comments
 COMMENT ON FUNCTION archive_old_messages() IS 'Archives messages older than 6 months from inactive conversations, keeping last 100 messages per conversation';
 COMMENT ON FUNCTION hard_delete_archived_messages(INTEGER) IS 'Permanently deletes archived messages older than specified months (default 12). Run manually only when needed.';
 COMMENT ON VIEW message_archival_stats IS 'Statistics on message archival for monitoring database growth';
-
 -- Usage examples:
 -- Manual run: SELECT * FROM archive_old_messages();
 -- Check stats: SELECT * FROM message_archival_stats;
--- Hard delete (careful!): SELECT hard_delete_archived_messages(12);
-
+-- Hard delete (careful!): SELECT hard_delete_archived_messages(12);;

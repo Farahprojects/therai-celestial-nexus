@@ -5,23 +5,15 @@ The folder page has been transformed into a comprehensive productivity workspace
 
 ## What Was Implemented
 
-### Database Changes (3 migrations)
+### Database Changes (handled upstream)
 
-1. **`20250215000000_add_profile_to_folders.sql`**
-   - Added `profile_id` column to `chat_folders` table
-   - Links folders to user profiles for astro-related activities
-   - Includes index for faster lookups
+The Supabase project already contains the canonical migrations for:
 
-2. **`20250215000001_add_folder_to_journal_entries.sql`**
-   - Added `folder_id` column to `journal_entries` table
-   - Updated RLS policies for folder-based access
-   - Enables organization of journal entries by folder
+- Linking `chat_folders` to user profiles via `profile_id`
+- Associating `journal_entries` with folders via `folder_id` plus updated RLS
+- Creating the `folder_documents` table with all metadata, storage paths, and RLS policies
 
-3. **`20250215000002_create_folder_documents.sql`**
-   - Created new `folder_documents` table
-   - Supports PDF, DOCX, TXT, MD, CSV formats
-   - Includes file metadata, storage paths, and extracted text content
-   - Full RLS policies for secure access
+Because Supabase is the source of truth, we removed the duplicate local SQL files and now rely entirely on the remote migration history for these structures.
 
 ### Service Layer (4 new/updated files)
 
@@ -226,10 +218,7 @@ While the implementation is complete, future improvements could include:
 
 ## Files Created/Modified
 
-**New Files (10):**
-- `supabase/migrations/20250215000000_add_profile_to_folders.sql`
-- `supabase/migrations/20250215000001_add_folder_to_journal_entries.sql`
-- `supabase/migrations/20250215000002_create_folder_documents.sql`
+**New Files (8):**
 - `src/services/journal.ts`
 - `src/services/folder-documents.ts`
 - `src/services/folder-export.ts`

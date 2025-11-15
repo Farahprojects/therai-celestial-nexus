@@ -35,10 +35,8 @@ CREATE TABLE IF NOT EXISTS plan_limits (
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
-
 -- Index for fast lookups
 CREATE INDEX idx_plan_limits_plan_id ON plan_limits(plan_id) WHERE is_active = true;
-
 -- 2. Insert Initial Plan Configurations
 INSERT INTO plan_limits (plan_id, plan_name, voice_seconds_limit, image_generation_daily_limit, therai_calls_limit, insights_limit, has_priority_support, has_early_access, display_order) VALUES
   -- Free tier (for reference)
@@ -57,27 +55,22 @@ ON CONFLICT (plan_id) DO UPDATE SET
   has_priority_support = EXCLUDED.has_priority_support,
   has_early_access = EXCLUDED.has_early_access,
   updated_at = NOW();
-
 -- 3. Enable RLS
 ALTER TABLE plan_limits ENABLE ROW LEVEL SECURITY;
-
 -- Public read access (anyone can see plan limits)
 CREATE POLICY "Plan limits are publicly readable"
   ON plan_limits FOR SELECT
   USING (is_active = true);
-
 -- Only admins can modify
 CREATE POLICY "Only admins can modify plan limits"
   ON plan_limits FOR ALL
   USING (auth.jwt() ->> 'email' IN (
     SELECT email FROM profiles WHERE subscription_plan = 'admin'
   ));
-
 -- 4. Enhanced Feature Usage Table
 -- Extend existing feature_usage to track all feature types
 ALTER TABLE feature_usage ADD COLUMN IF NOT EXISTS therai_calls INTEGER DEFAULT 0;
 ALTER TABLE feature_usage ADD COLUMN IF NOT EXISTS insights_count INTEGER DEFAULT 0;
-
 -- 5. Centralized Limit Check Function
 -- Single function to check any feature limit for any user
 CREATE OR REPLACE FUNCTION check_feature_limit(
@@ -197,7 +190,6 @@ BEGIN
   );
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
-
 -- 6. Helper function to get all limits for a user (useful for UI)
 CREATE OR REPLACE FUNCTION get_user_limits(p_user_id UUID)
 RETURNS JSONB AS $$
@@ -253,13 +245,10 @@ BEGIN
   );
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
-
 -- Grant execute permissions
 GRANT EXECUTE ON FUNCTION check_feature_limit TO authenticated, anon, service_role;
 GRANT EXECUTE ON FUNCTION get_user_limits TO authenticated, anon, service_role;
-
 -- 7. Add helpful comments
 COMMENT ON TABLE plan_limits IS 'Single source of truth for subscription plan limits. Change limits here without redeploying code.';
 COMMENT ON FUNCTION check_feature_limit IS 'Centralized function to check any feature limit for any user. Returns allowed status with usage details.';
 COMMENT ON FUNCTION get_user_limits IS 'Get all limits and current usage for a user. Useful for displaying in UI.';
-

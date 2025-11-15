@@ -20,26 +20,21 @@ CREATE TABLE IF NOT EXISTS public.chat_folder_participants (
   joined_at timestamp with time zone NOT NULL DEFAULT now(),
   PRIMARY KEY (folder_id, user_id)
 );
-
 -- Create indexes for performance
 CREATE INDEX IF NOT EXISTS idx_chat_folder_participants_folder_id 
   ON public.chat_folder_participants(folder_id);
 CREATE INDEX IF NOT EXISTS idx_chat_folder_participants_user_id 
   ON public.chat_folder_participants(user_id);
-
 -- Enable RLS
 ALTER TABLE public.chat_folder_participants ENABLE ROW LEVEL SECURITY;
-
 -- ============================================================================
 -- STEP 2: Add is_public flag to chat_folders (mirrors conversations.is_public)
 -- ============================================================================
 -- Already exists in schema, just ensure it's there
 ALTER TABLE public.chat_folders
 ADD COLUMN IF NOT EXISTS is_public boolean DEFAULT false;
-
 CREATE INDEX IF NOT EXISTS idx_chat_folders_is_public 
   ON public.chat_folders(is_public) WHERE is_public = true;
-
 -- ============================================================================
 -- STEP 3: Simple RLS Policies - ZERO RECURSION RISK
 -- ============================================================================
@@ -61,7 +56,6 @@ USING (
   OR is_public = true   -- Public folder
   -- NO participant check here - breaks recursion
 );
-
 -- Public (unauthenticated) users can view truly public folders
 DROP POLICY IF EXISTS "Public can view public folders" ON public.chat_folders;
 CREATE POLICY "Public can view public folders"
@@ -69,7 +63,6 @@ ON public.chat_folders
 FOR SELECT
 TO public
 USING (is_public = true);
-
 -- Users can manage their own folders
 DROP POLICY IF EXISTS "Users can manage own folders" ON public.chat_folders;
 CREATE POLICY "Users can manage own folders"
@@ -78,7 +71,6 @@ FOR ALL
 TO authenticated
 USING (user_id = auth.uid())
 WITH CHECK (user_id = auth.uid());
-
 -- FOLDER PARTICIPANTS: Users can only see their own participant records
 -- This prevents recursion and maintains privacy
 DROP POLICY IF EXISTS "Users can view folder participants" ON public.chat_folder_participants;
@@ -86,7 +78,8 @@ CREATE POLICY "Users can view folder participants"
 ON public.chat_folder_participants
 FOR SELECT
 TO authenticated
-USING (user_id = auth.uid());  -- Only see your own participation
+USING (user_id = auth.uid());
+-- Only see your own participation
 
 -- Users can join folders (insert themselves)
 DROP POLICY IF EXISTS "Users can join folders" ON public.chat_folder_participants;
@@ -95,7 +88,6 @@ ON public.chat_folder_participants
 FOR INSERT
 TO authenticated
 WITH CHECK (user_id = auth.uid());
-
 -- Users can only leave folders (delete their own participation)
 -- Owner removal of participants must be done via application code
 DROP POLICY IF EXISTS "Users can leave folders" ON public.chat_folder_participants;
@@ -103,7 +95,8 @@ CREATE POLICY "Users can leave folders"
 ON public.chat_folder_participants
 FOR DELETE
 TO authenticated
-USING (user_id = auth.uid());  -- Only delete your own participation
+USING (user_id = auth.uid());
+-- Only delete your own participation
 
 -- Users can only update their own participant records
 -- Owner management of other participants must be done via application code with service role
@@ -114,8 +107,6 @@ FOR UPDATE
 TO authenticated
 USING (user_id = auth.uid())
 WITH CHECK (user_id = auth.uid());
-
-
 -- ============================================================================
 -- STEP 4: Update CONVERSATIONS RLS to inherit folder access
 -- ============================================================================
@@ -149,7 +140,6 @@ USING (
     AND is_public = true
   )
 );
-
 -- Public (unauthenticated) users can view public conversations or conversations in public folders
 DROP POLICY IF EXISTS "public_sel" ON public.conversations;
 CREATE POLICY "public_sel"
@@ -165,7 +155,6 @@ USING (
     AND is_public = true
   )
 );
-
 -- ============================================================================
 -- STEP 5: Update MESSAGES RLS to match conversation access
 -- ============================================================================
@@ -203,7 +192,6 @@ USING (
     )
   )
 );
-
 DROP POLICY IF EXISTS "public_sel" ON public.messages;
 CREATE POLICY "public_sel"
 ON public.messages
@@ -224,7 +212,6 @@ USING (
     )
   )
 );
-
 -- ============================================================================
 -- SUMMARY
 -- ============================================================================
@@ -234,5 +221,4 @@ USING (
 -- ✅ Permission inheritance: folder participant → see all chats in folder
 -- ✅ No circular dependencies (participants policy uses USING (true))
 -- ✅ No triggers or cascades
--- ✅ Clean and simple
-
+-- ✅ Clean and simple;

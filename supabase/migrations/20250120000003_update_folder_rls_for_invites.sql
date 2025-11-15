@@ -3,12 +3,10 @@
 
 -- Drop the public folder access policy
 DROP POLICY IF EXISTS "Public can view shared folders" ON public.chat_folders;
-
 -- Update authenticated users policy to allow viewing:
 -- 1. Their own folders
 -- 2. Folders where they are a participant (is_public = true means shared via invite link)
 DROP POLICY IF EXISTS "Users can view their own folders" ON public.chat_folders;
-
 CREATE POLICY "Users can view their own folders"
 ON public.chat_folders
 FOR SELECT
@@ -26,17 +24,14 @@ USING (
     )
   )
 );
-
 -- Keep the update policy for owners to manage sharing
 DROP POLICY IF EXISTS "Owners can update folder sharing" ON public.chat_folders;
-
 CREATE POLICY "Owners can update folder sharing"
 ON public.chat_folders
 FOR UPDATE
 TO authenticated
 USING (auth.uid() = user_id)
 WITH CHECK (auth.uid() = user_id);
-
 -- Function to automatically add owner as participant when folder is shared
 CREATE OR REPLACE FUNCTION public.handle_shared_folder_participant()
 RETURNS TRIGGER AS $$
@@ -52,11 +47,9 @@ BEGIN
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
-
 -- Create trigger to auto-add owner as participant when sharing
 DROP TRIGGER IF EXISTS trg_handle_shared_folder ON public.chat_folders;
 CREATE TRIGGER trg_handle_shared_folder
   AFTER INSERT OR UPDATE OF is_public ON public.chat_folders
   FOR EACH ROW
   EXECUTE FUNCTION public.handle_shared_folder_participant();
-

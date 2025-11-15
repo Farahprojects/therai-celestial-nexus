@@ -82,7 +82,6 @@ EXCEPTION
     );
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
-
 -- Atomic check-and-increment for insights count
 CREATE OR REPLACE FUNCTION check_and_increment_insights_count(
   p_user_id UUID,
@@ -162,7 +161,6 @@ EXCEPTION
     );
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
-
 -- Keep the simple increment functions for backward compatibility
 -- (These are used when we're just incrementing without checking limits)
 
@@ -171,7 +169,6 @@ GRANT EXECUTE ON FUNCTION check_and_increment_voice_seconds(UUID, INTEGER, TEXT,
 GRANT EXECUTE ON FUNCTION check_and_increment_voice_seconds(UUID, INTEGER, TEXT, INTEGER) TO service_role;
 GRANT EXECUTE ON FUNCTION check_and_increment_insights_count(UUID, INTEGER, TEXT, INTEGER) TO authenticated;
 GRANT EXECUTE ON FUNCTION check_and_increment_insights_count(UUID, INTEGER, TEXT, INTEGER) TO service_role;
-
 -- Add comments for documentation
 COMMENT ON FUNCTION check_and_increment_voice_seconds IS 'Atomically checks limit and increments voice seconds. Returns JSONB with success status and usage details.';
 COMMENT ON FUNCTION check_and_increment_insights_count IS 'Atomically checks limit and increments insights count. Returns JSONB with success status and usage details.';

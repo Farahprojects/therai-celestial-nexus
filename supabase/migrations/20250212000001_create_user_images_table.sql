@@ -14,15 +14,12 @@ CREATE TABLE IF NOT EXISTS user_images (
   size text, -- Image size (e.g., '1024x1024')
   created_at timestamptz NOT NULL DEFAULT now()
 );
-
 -- Indexes for fast queries
 CREATE INDEX IF NOT EXISTS idx_user_images_user_id ON user_images(user_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_user_images_chat_id ON user_images(chat_id) WHERE chat_id IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_user_images_message_id ON user_images(message_id) WHERE message_id IS NOT NULL;
-
 -- Enable RLS
 ALTER TABLE user_images ENABLE ROW LEVEL SECURITY;
-
 -- RLS: Users can only view their own images
 DROP POLICY IF EXISTS "Users can view own images" ON user_images;
 CREATE POLICY "Users can view own images"
@@ -30,7 +27,6 @@ CREATE POLICY "Users can view own images"
   FOR SELECT
   TO authenticated
   USING (auth.uid() = user_id);
-
 -- RLS: Service role can insert/update/delete (for edge functions)
 DROP POLICY IF EXISTS "Service role full access to user images" ON user_images;
 CREATE POLICY "Service role full access to user images"
@@ -39,7 +35,6 @@ CREATE POLICY "Service role full access to user images"
   TO service_role
   USING (true)
   WITH CHECK (true);
-
 -- RLS: Users can delete their own images (for cleanup)
 DROP POLICY IF EXISTS "Users can delete own images" ON user_images;
 CREATE POLICY "Users can delete own images"
@@ -47,8 +42,6 @@ CREATE POLICY "Users can delete own images"
   FOR DELETE
   TO authenticated
   USING (auth.uid() = user_id);
-
 COMMENT ON TABLE user_images IS 'Persistent image gallery for users - images remain even when chats/messages are deleted';
 COMMENT ON COLUMN user_images.chat_id IS 'Nullable - chat may be deleted but image persists';
 COMMENT ON COLUMN user_images.message_id IS 'Nullable - message may be deleted but image persists';
-

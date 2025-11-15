@@ -143,6 +143,4 @@ BEGIN
   );
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
-
 COMMENT ON FUNCTION check_feature_limit IS 'Check feature limits with auto-creation of feature_usage rows. No more missing row errors!';
-

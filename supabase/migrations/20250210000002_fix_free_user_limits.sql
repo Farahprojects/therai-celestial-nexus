@@ -9,7 +9,6 @@
 -- 1. Add chat_messages_daily_limit column
 ALTER TABLE plan_limits 
 ADD COLUMN IF NOT EXISTS chat_messages_daily_limit INTEGER;
-
 -- 2. Update free plan limits
 UPDATE plan_limits 
 SET 
@@ -18,17 +17,14 @@ SET
   therai_calls_limit = 3,               -- 3 @therai calls per day
   chat_messages_daily_limit = 3         -- 3 chat messages per day
 WHERE plan_id = 'free';
-
 -- 3. Set unlimited for paid plans
 UPDATE plan_limits 
 SET 
   chat_messages_daily_limit = NULL      -- Unlimited chat messages
 WHERE plan_id IN ('10_monthly', '18_monthly');
-
 -- 4. Add chat_messages column to feature_usage
 ALTER TABLE feature_usage 
 ADD COLUMN IF NOT EXISTS chat_messages INTEGER DEFAULT 0;
-
 -- 5. Update check_feature_limit to handle chat_messages (daily limit)
 CREATE OR REPLACE FUNCTION check_feature_limit(
   p_user_id UUID,
@@ -170,7 +166,6 @@ BEGIN
   );
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
-
 -- 6. Create increment function for chat messages
 CREATE OR REPLACE FUNCTION increment_chat_messages(
   p_user_id UUID,
@@ -186,9 +181,7 @@ BEGIN
     updated_at = NOW();
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
-
 GRANT EXECUTE ON FUNCTION increment_chat_messages TO authenticated, anon, service_role;
-
 -- 7. Update @therai increment to use daily period for free users
 CREATE OR REPLACE FUNCTION increment_therai_calls(
   p_user_id UUID,
@@ -204,6 +197,4 @@ BEGIN
     updated_at = NOW();
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
-
 COMMENT ON COLUMN plan_limits.chat_messages_daily_limit IS 'Daily limit for chat messages. NULL = unlimited. Free users: 3/day.';
-

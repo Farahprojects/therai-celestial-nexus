@@ -16,10 +16,7 @@ CREATE TABLE user_memory_monthly_summaries (
   created_at TIMESTAMPTZ DEFAULT NOW(),
   UNIQUE(user_id, profile_id, year, month)
 );
-
 CREATE INDEX idx_monthly_summaries_user 
 ON user_memory_monthly_summaries(user_id, year DESC, month DESC);
-
 COMMENT ON TABLE user_memory_monthly_summaries IS 'Monthly summaries synthesized from weekly summaries for long-term pattern tracking';
 COMMENT ON COLUMN user_memory_monthly_summaries.weekly_summaries_used IS 'Number of weekly summaries used to generate this monthly summary';
-

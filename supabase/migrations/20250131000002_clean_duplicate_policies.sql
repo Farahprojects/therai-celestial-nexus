@@ -14,7 +14,6 @@ DROP POLICY IF EXISTS "Users can leave folders" ON public.chat_folder_participan
 DROP POLICY IF EXISTS "Users can leave folders or owners remove" ON public.chat_folder_participants;
 DROP POLICY IF EXISTS "Users can update own participant" ON public.chat_folder_participants;
 DROP POLICY IF EXISTS "Users can view folder participants" ON public.chat_folder_participants;
-
 -- Drop ALL chat_folders policies
 DROP POLICY IF EXISTS "Public can view public folders" ON public.chat_folders;
 DROP POLICY IF EXISTS "Public can view shared folders" ON public.chat_folders;
@@ -26,7 +25,6 @@ DROP POLICY IF EXISTS "Users can update their own folders" ON public.chat_folder
 DROP POLICY IF EXISTS "Users can view folders" ON public.chat_folders;
 DROP POLICY IF EXISTS "Users can view their own folders" ON public.chat_folders;
 DROP POLICY IF EXISTS "Owners can update folder sharing" ON public.chat_folders;
-
 -- ============================================================================
 -- STEP 2: Create ONLY the correct, non-recursive policies
 -- ============================================================================
@@ -44,14 +42,12 @@ USING (
   OR is_public = true   -- Public folder
   -- NO participant check - breaks recursion
 );
-
 -- Unauthenticated users can view public folders
 CREATE POLICY "Public can view public folders"
 ON public.chat_folders
 FOR SELECT
 TO public
 USING (is_public = true);
-
 -- Users can manage (INSERT/UPDATE/DELETE) their own folders
 CREATE POLICY "Users can manage own folders"
 ON public.chat_folders
@@ -59,7 +55,6 @@ FOR ALL
 TO authenticated
 USING (user_id = auth.uid())
 WITH CHECK (user_id = auth.uid());
-
 -- CHAT_FOLDER_PARTICIPANTS: Simple, self-contained policies (NO recursion)
 -- ============================================================================
 
@@ -68,7 +63,8 @@ CREATE POLICY "Users can view folder participants"
 ON public.chat_folder_participants
 FOR SELECT
 TO authenticated
-USING (user_id = auth.uid());  -- Only see your own participation
+USING (user_id = auth.uid());
+-- Only see your own participation
 
 -- Users can join folders (insert themselves)
 CREATE POLICY "Users can join folders"
@@ -76,13 +72,13 @@ ON public.chat_folder_participants
 FOR INSERT
 TO authenticated
 WITH CHECK (user_id = auth.uid());
-
 -- Users can only leave folders (delete their own participation)
 CREATE POLICY "Users can leave folders"
 ON public.chat_folder_participants
 FOR DELETE
 TO authenticated
-USING (user_id = auth.uid());  -- Only delete your own participation
+USING (user_id = auth.uid());
+-- Only delete your own participation
 
 -- Users can only update their own participant records
 CREATE POLICY "Users can update own participant"
@@ -91,7 +87,6 @@ FOR UPDATE
 TO authenticated
 USING (user_id = auth.uid())
 WITH CHECK (user_id = auth.uid());
-
 -- ============================================================================
 -- VERIFICATION: Check policies are correct
 -- ============================================================================
@@ -111,5 +106,4 @@ WITH CHECK (user_id = auth.uid());
 -- 2. "Users can leave folders"
 -- 3. "Users can update own participant"
 -- 4. "Users can view folder participants"
--- ============================================================================
-
+-- ============================================================================;
