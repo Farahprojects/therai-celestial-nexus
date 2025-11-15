@@ -640,6 +640,15 @@ export const FolderView: React.FC<FolderViewProps> = ({ folderId, onChatClick })
         folderId={folderId}
         profileData={folderProfile}
         onReportReady={loadFolderData}
+        onReportCreated={(conversation) => {
+          if (!conversation?.id) return;
+          upsertConversation({
+            id: conversation.id,
+            title: conversation.title || 'Insights',
+            updated_at: new Date().toISOString(),
+            mode: conversation.mode || 'insight',
+          });
+        }}
       />
 
       {/* Help Dialog */}

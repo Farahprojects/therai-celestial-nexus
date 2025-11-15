@@ -5,12 +5,14 @@ import { AstroDataForm } from '@/components/chat/AstroDataForm';
 import { ReportFormData } from '@/types/public-report';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { getInsightTitle } from '@/utils/reportTitles';
 interface InsightsModalProps {
   isOpen: boolean;
   onClose: () => void;
   folderId?: string;
   profileData?: any | null;
   onReportReady?: (insightId: string) => void;
+  onReportCreated?: (conversation: { id: string; title: string; mode?: string | null; reportType?: string }) => void;
 }
 interface ReportCardProps {
   title: string;
@@ -44,6 +46,7 @@ export const InsightsModal: React.FC<InsightsModalProps> = ({
   folderId,
   profileData,
   onReportReady,
+  onReportCreated,
 }) => {
   const [showAstroForm, setShowAstroForm] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
@@ -125,6 +128,13 @@ export const InsightsModal: React.FC<InsightsModalProps> = ({
 
         console.log('[InsightsModal] Insight conversation created:', conversationId);
 
+        onReportCreated?.({
+          id: conversationId,
+          title,
+          mode: 'insight',
+          reportType,
+        });
+
         // Show success screen and set up listener
         setShowAstroForm(false);
         setShowSuccess(true);
@@ -163,7 +173,17 @@ export const InsightsModal: React.FC<InsightsModalProps> = ({
     setShowAstroForm(true);
   };
   
-  const handleFormSubmit = (data: ReportFormData) => {
+  const handleFormSubmit = (data: ReportFormData & { chat_id?: string }) => {
+    if (data.chat_id && selectedReportType) {
+      const fallbackTitle = getInsightTitle(data.name || '', selectedReportType, data.secondPersonName);
+      onReportCreated?.({
+        id: data.chat_id,
+        title: fallbackTitle,
+        mode: 'insight',
+        reportType: selectedReportType,
+      });
+    }
+
     // Show success screen
     setShowAstroForm(false);
     setShowSuccess(true);
