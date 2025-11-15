@@ -12,6 +12,31 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "13.0.5"
   }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
       admin_logs: {
@@ -279,6 +304,7 @@ export type Database = {
           id: string
           is_public: boolean | null
           name: string
+          profile_id: string | null
           updated_at: string | null
           user_id: string
         }
@@ -287,6 +313,7 @@ export type Database = {
           id?: string
           is_public?: boolean | null
           name: string
+          profile_id?: string | null
           updated_at?: string | null
           user_id: string
         }
@@ -295,10 +322,69 @@ export type Database = {
           id?: string
           is_public?: boolean | null
           name?: string
+          profile_id?: string | null
           updated_at?: string | null
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "chat_folders_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "user_profile_list"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      conversation_activity: {
+        Row: {
+          buffer_processing_scheduled: boolean | null
+          conversation_id: string
+          created_at: string | null
+          inactivity_threshold_minutes: number | null
+          last_activity_at: string | null
+          last_assistant_message_at: string | null
+          last_buffer_processed_at: string | null
+          last_user_message_at: string | null
+          pending_buffer_count: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          buffer_processing_scheduled?: boolean | null
+          conversation_id: string
+          created_at?: string | null
+          inactivity_threshold_minutes?: number | null
+          last_activity_at?: string | null
+          last_assistant_message_at?: string | null
+          last_buffer_processed_at?: string | null
+          last_user_message_at?: string | null
+          pending_buffer_count?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          buffer_processing_scheduled?: boolean | null
+          conversation_id?: string
+          created_at?: string | null
+          inactivity_threshold_minutes?: number | null
+          last_activity_at?: string | null
+          last_assistant_message_at?: string | null
+          last_buffer_processed_at?: string | null
+          last_user_message_at?: string | null
+          pending_buffer_count?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversation_activity_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: true
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       conversation_caches: {
         Row: {
@@ -708,6 +794,65 @@ export type Database = {
         }
         Relationships: []
       }
+      folder_documents: {
+        Row: {
+          content_text: string | null
+          created_at: string
+          error_message: string | null
+          file_extension: string
+          file_name: string
+          file_path: string | null
+          file_size: number
+          file_type: string
+          folder_id: string
+          id: string
+          metadata: Json | null
+          updated_at: string
+          upload_status: string
+          user_id: string
+        }
+        Insert: {
+          content_text?: string | null
+          created_at?: string
+          error_message?: string | null
+          file_extension: string
+          file_name: string
+          file_path?: string | null
+          file_size: number
+          file_type: string
+          folder_id: string
+          id?: string
+          metadata?: Json | null
+          updated_at?: string
+          upload_status?: string
+          user_id: string
+        }
+        Update: {
+          content_text?: string | null
+          created_at?: string
+          error_message?: string | null
+          file_extension?: string
+          file_name?: string
+          file_path?: string | null
+          file_size?: number
+          file_type?: string
+          folder_id?: string
+          id?: string
+          metadata?: Json | null
+          updated_at?: string
+          upload_status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "folder_documents_folder_id_fkey"
+            columns: ["folder_id"]
+            isOneToOne: false
+            referencedRelation: "chat_folders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       geo_cache: {
         Row: {
           lat: number
@@ -798,38 +943,49 @@ export type Database = {
       journal_entries: {
         Row: {
           client_id: string
-          coach_id: string
           created_at: string
           entry_text: string
+          folder_id: string | null
           id: string
           linked_report_id: string | null
           tags: string[] | null
           title: string | null
           updated_at: string
+          user_id: string
         }
         Insert: {
           client_id: string
-          coach_id: string
           created_at?: string
           entry_text: string
+          folder_id?: string | null
           id?: string
           linked_report_id?: string | null
           tags?: string[] | null
           title?: string | null
           updated_at?: string
+          user_id: string
         }
         Update: {
           client_id?: string
-          coach_id?: string
           created_at?: string
           entry_text?: string
+          folder_id?: string | null
           id?: string
           linked_report_id?: string | null
           tags?: string[] | null
           title?: string | null
           updated_at?: string
+          user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "journal_entries_folder_id_fkey"
+            columns: ["folder_id"]
+            isOneToOne: false
+            referencedRelation: "chat_folders"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       landing_page_config: {
         Row: {
@@ -1893,9 +2049,11 @@ export type Database = {
           last_referenced_at: string | null
           memory_metadata: Json | null
           memory_text: string
+          memory_tier: string | null
           memory_type: Database["public"]["Enums"]["memory_type"]
           origin_mode: string | null
           profile_id: string
+          promoted_from_buffer_id: string | null
           reference_count: number | null
           source_message_id: string | null
           turn_index: number | null
@@ -1913,9 +2071,11 @@ export type Database = {
           last_referenced_at?: string | null
           memory_metadata?: Json | null
           memory_text: string
+          memory_tier?: string | null
           memory_type: Database["public"]["Enums"]["memory_type"]
           origin_mode?: string | null
           profile_id: string
+          promoted_from_buffer_id?: string | null
           reference_count?: number | null
           source_message_id?: string | null
           turn_index?: number | null
@@ -1933,9 +2093,11 @@ export type Database = {
           last_referenced_at?: string | null
           memory_metadata?: Json | null
           memory_text?: string
+          memory_tier?: string | null
           memory_type?: Database["public"]["Enums"]["memory_type"]
           origin_mode?: string | null
           profile_id?: string
+          promoted_from_buffer_id?: string | null
           reference_count?: number | null
           source_message_id?: string | null
           turn_index?: number | null
@@ -1957,7 +2119,99 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "user_memory_promoted_from_buffer_id_fkey"
+            columns: ["promoted_from_buffer_id"]
+            isOneToOne: false
+            referencedRelation: "user_memory_buffer"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "user_memory_source_message_id_fkey"
+            columns: ["source_message_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_memory_buffer: {
+        Row: {
+          confidence_score: number | null
+          conversation_id: string
+          created_at: string | null
+          extraction_metadata: Json | null
+          first_seen_at: string | null
+          id: string
+          last_seen_at: string | null
+          observation_text: string
+          observation_type: string
+          profile_id: string
+          related_buffer_ids: string[] | null
+          source_message_id: string
+          status: string | null
+          time_horizon: string | null
+          turns_observed: number | null
+          updated_at: string | null
+          user_id: string
+          value_score: number | null
+        }
+        Insert: {
+          confidence_score?: number | null
+          conversation_id: string
+          created_at?: string | null
+          extraction_metadata?: Json | null
+          first_seen_at?: string | null
+          id?: string
+          last_seen_at?: string | null
+          observation_text: string
+          observation_type: string
+          profile_id: string
+          related_buffer_ids?: string[] | null
+          source_message_id: string
+          status?: string | null
+          time_horizon?: string | null
+          turns_observed?: number | null
+          updated_at?: string | null
+          user_id: string
+          value_score?: number | null
+        }
+        Update: {
+          confidence_score?: number | null
+          conversation_id?: string
+          created_at?: string | null
+          extraction_metadata?: Json | null
+          first_seen_at?: string | null
+          id?: string
+          last_seen_at?: string | null
+          observation_text?: string
+          observation_type?: string
+          profile_id?: string
+          related_buffer_ids?: string[] | null
+          source_message_id?: string
+          status?: string | null
+          time_horizon?: string | null
+          turns_observed?: number | null
+          updated_at?: string | null
+          user_id?: string
+          value_score?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_memory_buffer_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_memory_buffer_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "user_profile_list"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_memory_buffer_source_message_id_fkey"
             columns: ["source_message_id"]
             isOneToOne: false
             referencedRelation: "messages"
@@ -2367,6 +2621,15 @@ export type Database = {
         }[]
       }
       get_config: { Args: { config_key: string }; Returns: string }
+      get_conversations_needing_buffer_processing: {
+        Args: { inactivity_minutes?: number }
+        Returns: {
+          conversation_id: string
+          minutes_since_activity: number
+          pending_count: number
+          user_id: string
+        }[]
+      }
       get_current_billing_cycle: {
         Args: { p_user_id: string }
         Returns: {
@@ -2565,10 +2828,65 @@ export type Database = {
       }
       is_user_in_trial: { Args: { p_user_id: string }; Returns: boolean }
       is_user_verified: { Args: { _user_id?: string }; Returns: boolean }
+      list_folder_journals: {
+        Args: { p_folder_id: string; p_limit?: number; p_offset?: number }
+        Returns: {
+          client_id: string
+          created_at: string
+          entry_text: string
+          folder_id: string
+          folder_name: string
+          id: string
+          tags: string[]
+          title: string
+          updated_at: string
+          user_id: string
+        }[]
+      }
       mark_profile_verified: { Args: { user_id?: string }; Returns: boolean }
+      recent_user_documents: {
+        Args: { p_limit?: number; p_offset?: number }
+        Returns: {
+          created_at: string
+          file_extension: string
+          file_name: string
+          file_path: string
+          file_size: number
+          file_type: string
+          folder_id: string
+          folder_name: string
+          id: string
+          upload_status: string
+          user_id: string
+        }[]
+      }
       rpc_notify_orchestrator: {
         Args: { guest_report_id: string }
         Returns: undefined
+      }
+      search_folder_documents: {
+        Args: {
+          p_folder_id: string
+          p_limit?: number
+          p_offset?: number
+          p_q?: string
+        }
+        Returns: {
+          created_at: string
+          error_message: string
+          file_extension: string
+          file_name: string
+          file_path: string
+          file_size: number
+          file_type: string
+          folder_id: string
+          folder_name: string
+          id: string
+          metadata: Json
+          updated_at: string
+          upload_status: string
+          user_id: string
+        }[]
       }
       send_notification_email: {
         Args: {
@@ -2757,6 +3075,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
       memory_type: ["fact", "emotion", "goal", "pattern", "relationship"],
