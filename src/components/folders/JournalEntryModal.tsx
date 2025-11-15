@@ -29,11 +29,13 @@ export const JournalEntryModal: React.FC<JournalEntryModalProps> = ({
 
   const {
     isRecording,
-    isMicProcessing,
+    isProcessing,
     startRecording,
     stopRecording,
   } = useUniversalMic({
     chat_id: folderId, // Use folder_id as chat_id for STT
+    chattype: 'text',
+    mode: 'chat',
     onTranscriptReady: (transcription) => {
       // Append transcription to existing text
       setText(prev => prev ? `${prev} ${transcription}` : transcription);
@@ -94,7 +96,7 @@ export const JournalEntryModal: React.FC<JournalEntryModalProps> = ({
   };
 
   const getMicButtonContent = () => {
-    if (isMicProcessing) {
+    if (isProcessing) {
       return <Loader2 size={18} className="animate-spin" />;
     }
     return <Mic size={18} className={isRecording ? 'text-red-500' : ''} />;
@@ -145,7 +147,7 @@ export const JournalEntryModal: React.FC<JournalEntryModalProps> = ({
             {/* Mic Button */}
             <button
               onClick={handleMicClick}
-              disabled={isMicProcessing || isSaving}
+            disabled={isProcessing || isSaving}
               className={`absolute right-3 bottom-3 w-8 h-8 flex items-center justify-center rounded-full transition-all ${
                 isRecording 
                   ? 'bg-red-50 text-red-500 hover:bg-red-100' 

@@ -14,6 +14,9 @@ interface UseUniversalMicOptions {
   silenceThreshold?: number;
   silenceDuration?: number;
   chat_id?: string; // optional chat_id (e.g., for journal entries using folder_id)
+  chattype?: string;
+  chatType?: string; // alias for compatibility
+  mode?: string;
 }
 
 export const useUniversalMic = (options: UseUniversalMicOptions = {}) => {
@@ -40,6 +43,8 @@ export const useUniversalMic = (options: UseUniversalMicOptions = {}) => {
     if (isRecording || isProcessing) return false;
 
     try {
+      const resolvedMode = options.mode ?? mode ?? 'chat';
+      const resolvedChatType = options.chattype ?? options.chatType ?? 'text';
 
       // Check secure context
       if (!window.isSecureContext && location.hostname !== 'localhost') {
@@ -61,6 +66,7 @@ export const useUniversalMic = (options: UseUniversalMicOptions = {}) => {
 
       recorderRef.current = new UniversalSTTRecorder({
         chat_id: options.chat_id, // Pass through chat_id if provided
+        chattype: resolvedChatType,
         onTranscriptReady: (transcript) => {
           
           // 1. First: Turn off browser mic (dispose recorder)
@@ -127,7 +133,7 @@ export const useUniversalMic = (options: UseUniversalMicOptions = {}) => {
         silenceHangover: 600, // 600ms silence detection (slight hang)
         user_id: user?.id, // Add user_id for message attribution
         user_name: displayName || 'User', // Add user_name for message attribution
-        mode: mode, // Add mode for message context
+        mode: resolvedMode, // Add mode for message context (defaults to chat)
       });
 
       await recorderRef.current.start();
