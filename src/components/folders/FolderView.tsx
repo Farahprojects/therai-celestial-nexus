@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { getFolderConversations, getUserFolders, getSharedFolder, moveConversationToFolder, getFolderWithProfile } from '@/services/folders';
-import { getJournalEntries, JournalEntry } from '@/services/journal';
+import { getJournalEntries, JournalEntry, updateJournalEntry, deleteJournalEntry } from '@/services/journal';
 import { MoreHorizontal, Folder, HelpCircle, Sparkles, Share2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useChatStore } from '@/core/store';
@@ -9,6 +9,7 @@ import { updateConversationTitle, createConversation } from '@/services/conversa
 import {
   DropdownMenu,
   DropdownMenuTrigger,
+  DropdownMenuContent,
 } from '@/components/ui/dropdown-menu';
 import { ConversationActionsMenuContent } from '@/components/chat/ConversationActionsMenu';
 import { FolderModal } from './FolderModal';
@@ -62,6 +63,14 @@ export const FolderView: React.FC<FolderViewProps> = ({ folderId, onChatClick })
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [showInsightsModal, setShowInsightsModal] = useState(false);
   const [showHelpDialog, setShowHelpDialog] = useState(false);
+  // Journal edit/delete states
+  const [showEditJournalDialog, setShowEditJournalDialog] = useState(false);
+  const [editingJournal, setEditingJournal] = useState<JournalEntry | null>(null);
+  const [editJournalTitle, setEditJournalTitle] = useState('');
+  const [editJournalText, setEditJournalText] = useState('');
+  const [isSavingJournal, setIsSavingJournal] = useState(false);
+  const [showDeleteJournalDialog, setShowDeleteJournalDialog] = useState(false);
+  const [deletingJournalId, setDeletingJournalId] = useState<string | null>(null);
   
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -288,6 +297,50 @@ export const FolderView: React.FC<FolderViewProps> = ({ folderId, onChatClick })
     setJournals((prev) => [entry, ...prev]);
   };
 
+  // Journal handlers
+  const handleOpenEditJournal = (journal: JournalEntry) => {
+    setEditingJournal(journal);
+    setEditJournalTitle(journal.title || '');
+    setEditJournalText(journal.entry_text || '');
+    setShowEditJournalDialog(true);
+  };
+
+  const handleSaveJournalEdit = async () => {
+    if (!editingJournal) return;
+    if (!editJournalText.trim() && !editJournalTitle.trim()) return;
+    setIsSavingJournal(true);
+    try {
+      const updated = await updateJournalEntry(editingJournal.id, {
+        title: editJournalTitle.trim() || undefined,
+        entry_text: editJournalText.trim() || undefined,
+      });
+      setJournals((prev) => prev.map((j) => (j.id === updated.id ? updated : j)));
+      setShowEditJournalDialog(false);
+      setEditingJournal(null);
+    } catch (err) {
+      console.error('[FolderView] Failed to update journal entry:', err);
+    } finally {
+      setIsSavingJournal(false);
+    }
+  };
+
+  const handleRequestDeleteJournal = (journalId: string) => {
+    setDeletingJournalId(journalId);
+    setShowDeleteJournalDialog(true);
+  };
+
+  const handleConfirmDeleteJournal = async () => {
+    if (!deletingJournalId) return;
+    try {
+      await deleteJournalEntry(deletingJournalId);
+      setJournals((prev) => prev.filter((j) => j.id !== deletingJournalId));
+      setShowDeleteJournalDialog(false);
+      setDeletingJournalId(null);
+    } catch (err) {
+      console.error('[FolderView] Failed to delete journal entry:', err);
+    }
+  };
+
   const upsertConversation = useCallback((record: any) => {
     if (!record?.id) return;
     const normalized: Conversation = {
@@ -456,21 +509,57 @@ export const FolderView: React.FC<FolderViewProps> = ({ folderId, onChatClick })
 
       {/* Journal Entries Section */}
       {journals.length > 0 && (
-        <div className="px-6 py-4 border-b border-gray-100">
+        <div className="px-6 py-4">
           <div className="w-full max-w-2xl mx-auto">
             <h3 className="text-sm font-normal text-gray-700 mb-3">Journal Entries</h3>
             <div className="flex flex-col space-y-2">
               {journals.map((journal) => (
-                <div
-                  key={journal.id}
-                  className="p-4 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors"
-                >
-                  <p className="text-sm font-light text-gray-900 mb-1">
-                    {journal.entry_text}
-                  </p>
-                  <p className="text-xs font-light text-gray-500">
-                    {new Date(journal.created_at).toLocaleDateString()}
-                  </p>
+                <div key={journal.id} className="py-2">
+                  <div className="flex items-start gap-3">
+                    <div className="flex-1">
+                      {!!journal.title && (
+                        <p className="text-sm font-light text-gray-900 mb-1">
+                          {journal.title}
+                        </p>
+                      )}
+                      <p className="text-sm font-light text-gray-900 mb-1">
+                        {journal.entry_text}
+                      </p>
+                      <p className="text-xs font-light text-gray-500">
+                        {new Date(journal.created_at).toLocaleDateString()}
+                      </p>
+                    </div>
+                    {user && (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <button
+                            className="p-1 hover:bg-gray-100 rounded transition-colors"
+                            aria-label="Journal actions"
+                          >
+                            <MoreHorizontal className="w-4 h-4 text-gray-600" />
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-40">
+                          <button
+                            className="w-full text-left"
+                            onClick={() => handleOpenEditJournal(journal)}
+                          >
+                            <div className="px-2 py-1.5 text-sm hover:bg-gray-100 rounded">
+                              Edit
+                            </div>
+                          </button>
+                          <button
+                            className="w-full text-left"
+                            onClick={() => handleRequestDeleteJournal(journal.id)}
+                          >
+                            <div className="px-2 py-1.5 text-sm text-red-600 hover:bg-gray-100 rounded">
+                              Delete
+                            </div>
+                          </button>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
@@ -621,6 +710,79 @@ export const FolderView: React.FC<FolderViewProps> = ({ folderId, onChatClick })
                 className="px-4 py-2 bg-red-600 text-white rounded-full hover:bg-red-700 transition-colors disabled:opacity-50"
               >
                 {isDeleting ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Journal Dialog */}
+      {showEditJournalDialog && (
+        <div className="fixed inset-0 flex items-center justify-center z-50 p-6 bg-black/10 backdrop-blur-sm">
+          <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-lg">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">Edit Journal Entry</h3>
+            <div className="space-y-3">
+              <input
+                type="text"
+                value={editJournalTitle}
+                onChange={(e) => setEditJournalTitle(e.target.value)}
+                placeholder="Title (optional)"
+                disabled={isSavingJournal}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900"
+              />
+              <textarea
+                value={editJournalText}
+                onChange={(e) => setEditJournalText(e.target.value)}
+                placeholder="Edit your entry..."
+                disabled={isSavingJournal}
+                rows={6}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900"
+              />
+            </div>
+            <div className="flex justify-end gap-2 mt-4">
+              <button
+                onClick={() => {
+                  setShowEditJournalDialog(false);
+                  setEditingJournal(null);
+                }}
+                disabled={isSavingJournal}
+                className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveJournalEdit}
+                disabled={isSavingJournal}
+                className="px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-50"
+              >
+                {isSavingJournal ? 'Saving...' : 'Save'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Journal Confirmation Dialog */}
+      {showDeleteJournalDialog && (
+        <div className="fixed inset-0 flex items-center justify-center z-50 p-6 bg-black/10 backdrop-blur-sm">
+          <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-md">
+            <h3 className="text-lg font-medium text-gray-900 mb-2">Delete Journal Entry</h3>
+            <p className="text-gray-600 mb-4">Are you sure you want to delete this journal entry? This action cannot be undone.</p>
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => {
+                  setShowDeleteJournalDialog(false);
+                  setDeletingJournalId(null);
+                }}
+                className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-full transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmDeleteJournal}
+                className="px-4 py-2 bg-red-600 text-white rounded-full hover:bg-red-700 transition-colors"
+              >
+                Delete
               </button>
             </div>
           </div>
