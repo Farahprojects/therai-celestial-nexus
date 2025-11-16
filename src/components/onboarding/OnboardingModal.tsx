@@ -9,7 +9,7 @@ import { ReportFormData } from '@/types/public-report';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import type { Database, Tables, TablesUpdate } from '@/integrations/supabase/types';
-import { createFolder, moveConversationToFolder } from '@/services/folders';
+import { createFolder, moveConversationToFolder, updateFolderProfile } from '@/services/folders';
 type ProfileRow = Tables<'profiles'>;
 type UserProfileRow = Tables<'user_profile_list'>;
 
@@ -246,6 +246,12 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
         try {
           const folder = await createFolder(user.id, 'My Chats');
           console.log('[OnboardingModal] Folder created:', folder.id);
+          
+          // Link folder to primary profile so insights use saved data
+          if (primaryProfileId) {
+            await updateFolderProfile(folder.id, primaryProfileId);
+            console.log('[OnboardingModal] Folder linked to primary profile:', primaryProfileId);
+          }
           
           await moveConversationToFolder(chatId, folder.id);
           console.log('[OnboardingModal] Conversation moved to folder');
