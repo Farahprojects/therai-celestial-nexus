@@ -6,6 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useSettingsModal } from '@/contexts/SettingsModalContext';
 import { cn } from '@/lib/utils';
+import { CancelSubscriptionModal } from '@/components/billing/CancelSubscriptionModal';
 
 interface SubscriptionData {
   subscription_active: boolean;
@@ -29,6 +30,7 @@ export const BillingPanel = () => {
   const [subscriptionData, setSubscriptionData] = useState<SubscriptionData | null>(null);
   const [manageLoading, setManageLoading] = useState(false);
   const [upgradeLoading, setUpgradeLoading] = useState(false);
+  const [showCancelModal, setShowCancelModal] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -199,7 +201,7 @@ export const BillingPanel = () => {
           {/* Action Buttons - Stacked with aligned buttons */}
           <div className="space-y-4">
             <div className="flex items-center justify-between gap-4">
-              <p className="text-sm font-light text-gray-600 flex-1">Update payment method, view invoices, or cancel</p>
+              <p className="text-sm font-light text-gray-600 flex-1">Update payment method or view invoices</p>
               <Button
                 onClick={handleManageSubscription}
                 aria-pressed={manageLoading}
@@ -227,8 +229,31 @@ export const BillingPanel = () => {
                 </Button>
               </div>
             )}
+            
+            <div className="flex items-center justify-between gap-4">
+              <p className="text-sm font-light text-gray-600 flex-1">Cancel your subscription</p>
+              <Button
+                onClick={() => setShowCancelModal(true)}
+                className="bg-gray-900 hover:bg-gray-800 text-white font-light px-6 py-2 rounded-full transition-all duration-200 flex-shrink-0"
+              >
+                Cancel
+              </Button>
+            </div>
           </div>
         </div>
+      )}
+
+      {/* Cancel Subscription Modal */}
+      {isActive && (
+        <CancelSubscriptionModal
+          isOpen={showCancelModal}
+          onClose={() => setShowCancelModal(false)}
+          onSuccess={() => {
+            fetchBillingData();
+            toast.success('Subscription cancelled');
+          }}
+          currentPeriodEnd={subscriptionData?.subscription_next_charge}
+        />
       )}
     </div>
   );
