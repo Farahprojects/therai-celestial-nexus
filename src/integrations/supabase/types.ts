@@ -2455,6 +2455,60 @@ export type Database = {
         }
         Relationships: []
       }
+      web_leads: {
+        Row: {
+          company: string | null
+          created_at: string
+          email: string
+          id: string
+          lead_type: string
+          message: string | null
+          name: string | null
+          newsletter_opt_in: boolean | null
+          page_path: string | null
+          phone: string | null
+          role: string | null
+          source: string | null
+          status: string | null
+          utm_campaign: string | null
+          utm_medium: string | null
+        }
+        Insert: {
+          company?: string | null
+          created_at?: string
+          email: string
+          id?: string
+          lead_type: string
+          message?: string | null
+          name?: string | null
+          newsletter_opt_in?: boolean | null
+          page_path?: string | null
+          phone?: string | null
+          role?: string | null
+          source?: string | null
+          status?: string | null
+          utm_campaign?: string | null
+          utm_medium?: string | null
+        }
+        Update: {
+          company?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+          lead_type?: string
+          message?: string | null
+          name?: string | null
+          newsletter_opt_in?: boolean | null
+          page_path?: string | null
+          phone?: string | null
+          role?: string | null
+          source?: string | null
+          status?: string | null
+          utm_campaign?: string | null
+          utm_medium?: string | null
+        }
+        Relationships: []
+      }
       website_templates: {
         Row: {
           created_at: string
