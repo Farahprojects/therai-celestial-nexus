@@ -579,13 +579,21 @@ export const FolderView: React.FC<FolderViewProps> = ({
               <textarea value={editJournalText} onChange={e => setEditJournalText(e.target.value)} placeholder="Edit your entry..." disabled={isSavingJournal} rows={6} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900" />
             </div>
             <div className="flex justify-end gap-2 mt-4">
-              <button onClick={() => {
-            setShowEditJournalDialog(false);
-            setEditingJournal(null);
-          }} disabled={isSavingJournal} className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50">
+              <button
+                onClick={() => {
+                  setShowEditJournalDialog(false);
+                  setEditingJournal(null);
+                }}
+                disabled={isSavingJournal}
+                className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-full transition-colors disabled:opacity-50"
+              >
                 Cancel
               </button>
-              <button onClick={handleSaveJournalEdit} disabled={isSavingJournal} className="px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-50">
+              <button
+                onClick={handleSaveJournalEdit}
+                disabled={isSavingJournal}
+                className="px-4 py-2 bg-gray-900 text-white rounded-full hover:bg-gray-800 transition-colors disabled:opacity-50"
+              >
                 {isSavingJournal ? 'Saving...' : 'Save'}
               </button>
             </div>
