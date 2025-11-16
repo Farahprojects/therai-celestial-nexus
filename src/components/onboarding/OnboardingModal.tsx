@@ -244,7 +244,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
         
         // Create folder and move conversation into it
         try {
-          const folder = await createFolder(user.id, 'My Chats');
+          const folder = await createFolder(user.id, 'My Folder');
           console.log('[OnboardingModal] Folder created:', folder.id);
           
           // Link folder to primary profile so insights use saved data
