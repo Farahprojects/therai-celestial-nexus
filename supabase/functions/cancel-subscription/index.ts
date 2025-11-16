@@ -48,20 +48,40 @@ Deno.serve(async (req) => {
       throw new Error("No active subscription found");
     }
 
-    let result;
-    if (cancelImmediately) {
-      // Cancel subscription immediately
-      result = await stripe.subscriptions.cancel(profile.stripe_subscription_id);
-      console.log(`Canceled subscription ${profile.stripe_subscription_id} immediately`);
-    } else {
-      // Cancel at period end
-      result = await stripe.subscriptions.update(profile.stripe_subscription_id, {
-        cancel_at_period_end: true,
-      });
-      console.log(`Set subscription ${profile.stripe_subscription_id} to cancel at period end`);
+    let result = null;
+    let subscriptionNotFound = false;
+
+    // Try to cancel/update subscription in Stripe
+    try {
+      if (cancelImmediately) {
+        // Cancel subscription immediately
+        result = await stripe.subscriptions.cancel(profile.stripe_subscription_id);
+        console.log(`Canceled subscription ${profile.stripe_subscription_id} immediately`);
+      } else {
+        // Cancel at period end
+        result = await stripe.subscriptions.update(profile.stripe_subscription_id, {
+          cancel_at_period_end: true,
+        });
+        console.log(`Set subscription ${profile.stripe_subscription_id} to cancel at period end`);
+      }
+    } catch (stripeError: any) {
+      // Check if subscription was not found (404) or already canceled
+      const isNotFound = 
+        stripeError?.statusCode === 404 ||
+        stripeError?.code === "resource_missing" ||
+        (stripeError?.type === "StripeInvalidRequestError" && stripeError?.statusCode === 404);
+
+      if (isNotFound) {
+        console.log(`Subscription ${profile.stripe_subscription_id} not found in Stripe (likely already canceled), updating local database only`);
+        subscriptionNotFound = true;
+      } else {
+        // Re-throw other Stripe errors
+        throw stripeError;
+      }
     }
 
-    // Update profiles table
+    // Update profiles table regardless of Stripe result
+    // If subscription was already canceled in Stripe, we still want to update local state
     const { error: updateError } = await supabaseClient
       .from("profiles")
       .update({
@@ -72,14 +92,16 @@ Deno.serve(async (req) => {
 
     if (updateError) {
       console.error("Error updating profile:", updateError);
+      throw new Error(`Failed to update profile: ${updateError.message}`);
     }
 
     return new Response(
       JSON.stringify({
         success: true,
         canceled_immediately: cancelImmediately,
-        cancel_at_period_end: result.cancel_at_period_end,
-        current_period_end: result.current_period_end,
+        cancel_at_period_end: result?.cancel_at_period_end ?? (!cancelImmediately),
+        current_period_end: result?.current_period_end ?? null,
+        already_canceled: subscriptionNotFound,
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
