@@ -590,6 +590,9 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
                             {isSharedThread(c) && (
                               <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700 border border-blue-200">Shared</span>
                             )}
+                            {c.mode === 'sync_score' && (
+                              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-pink-100 text-pink-700 border border-pink-200">Compatibility</span>
+                            )}
                           </div>
                         </button>
 

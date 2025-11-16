@@ -20,6 +20,10 @@ import { supabase } from '@/integrations/supabase/client';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ShareConversationModal } from '@/components/chat/ShareConversationModal';
 import { ShareFolderModal } from '@/components/folders/ShareFolderModal';
+import { SecondPersonForm, SecondPersonData } from './SecondPersonForm';
+import { createCompatibilityConversation, buildSyncPayload, ensureProfileExists } from '@/services/compatibility';
+import { toast } from 'sonner';
+
 interface FolderViewProps {
   folderId: string;
   onChatClick: (chatId: string) => void;
@@ -62,6 +66,7 @@ export const FolderView: React.FC<FolderViewProps> = ({
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [showInsightsModal, setShowInsightsModal] = useState(false);
   const [showHelpDialog, setShowHelpDialog] = useState(false);
+  const [showSecondPersonForm, setShowSecondPersonForm] = useState(false);
   // Journal edit/delete states
   const [showEditJournalDialog, setShowEditJournalDialog] = useState(false);
   const [editingJournal, setEditingJournal] = useState<JournalEntry | null>(null);
@@ -405,6 +410,95 @@ export const FolderView: React.FC<FolderViewProps> = ({
       console.error('[FolderView] Failed to reload folder profile:', error);
     }
   };
+
+  const handleAddSecondPerson = async (secondPersonData: SecondPersonData) => {
+    if (!user?.id) return;
+    
+    // Validate folder has profile_id (person_a)
+    if (!folderProfile || !folderProfileId) {
+      toast.error('Please set up your profile for this folder first');
+      setShowSecondPersonForm(false);
+      return;
+    }
+
+    try {
+      // Ensure second person profile exists
+      let personBId = secondPersonData.profile_id;
+      if (!personBId) {
+        personBId = await ensureProfileExists(user.id, {
+          name: secondPersonData.name,
+          birth_date: secondPersonData.birth_date,
+          birth_time: secondPersonData.birth_time,
+          location: secondPersonData.location,
+          latitude: secondPersonData.latitude,
+          longitude: secondPersonData.longitude,
+          place_id: secondPersonData.place_id,
+          timezone: secondPersonData.timezone,
+        });
+      }
+
+      // Prepare person A data from folder profile
+      const personA = {
+        name: folderProfile.name,
+        birth_date: folderProfile.birth_date,
+        birth_time: folderProfile.birth_time,
+        location: folderProfile.birth_location,
+        latitude: folderProfile.birth_latitude,
+        longitude: folderProfile.birth_longitude,
+        tz: folderProfile.timezone,
+        house_system: folderProfile.house_system || 'placidus',
+      };
+
+      // Prepare person B data
+      const personB = {
+        name: secondPersonData.name,
+        birth_date: secondPersonData.birth_date,
+        birth_time: secondPersonData.birth_time,
+        location: secondPersonData.location,
+        latitude: secondPersonData.latitude,
+        longitude: secondPersonData.longitude,
+        tz: secondPersonData.timezone,
+        house_system: 'placidus',
+      };
+
+      // Create compatibility conversation
+      const conversationId = await createCompatibilityConversation(
+        user.id,
+        folderId,
+        personA,
+        personB
+      );
+
+      // Build sync payload
+      const payload = buildSyncPayload(conversationId, personA, personB);
+
+      // Fire initiate-auth-report to generate sync chart
+      const { error: reportError } = await supabase.functions.invoke('initiate-auth-report', {
+        body: payload,
+      });
+
+      if (reportError) {
+        console.error('[FolderView] Error initiating sync chart:', reportError);
+        toast.error('Failed to generate compatibility chart');
+        return;
+      }
+
+      // Close form and navigate to new conversation
+      setShowSecondPersonForm(false);
+      toast.success('Compatibility chat created!');
+      
+      // Reload folder data to show new conversation
+      await loadFolderData();
+      
+      // Navigate to the new conversation
+      setViewMode('chat');
+      startConversation(conversationId);
+      onChatClick(conversationId);
+    } catch (error) {
+      console.error('[FolderView] Failed to create compatibility chat:', error);
+      toast.error('Failed to create compatibility chat');
+    }
+  };
   if (isLoading) {
     return <div className="h-full flex items-center justify-center">
         <div className="text-gray-500 font-light">Loading...</div>
@@ -436,7 +530,7 @@ export const FolderView: React.FC<FolderViewProps> = ({
               <FolderExportMenu folderId={folderId} folderName={folderName} />
               
               {/* Add Menu */}
-              <FolderAddMenu onJournalClick={() => setShowJournalModal(true)} onInsightsClick={() => setShowInsightsModal(true)} onUploadClick={() => setShowUploadModal(true)} onNewChatClick={handleNewChat} />
+              <FolderAddMenu onJournalClick={() => setShowJournalModal(true)} onInsightsClick={() => setShowInsightsModal(true)} onUploadClick={() => setShowUploadModal(true)} onNewChatClick={handleNewChat} onAddSecondPersonClick={() => setShowSecondPersonForm(true)} />
             </div>}
         </div>
       </div>
@@ -503,6 +597,7 @@ export const FolderView: React.FC<FolderViewProps> = ({
                     <div className="text-sm font-light text-gray-900 truncate">
                       {conversation.title || 'New Chat'}
                     </div>
+                    {conversation.mode === 'sync_score' && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-pink-100 text-pink-700 border border-pink-200 flex-shrink-0">Compatibility</span>}
                   </div>
                   
                   {/* Three dots menu */}
@@ -641,6 +736,9 @@ export const FolderView: React.FC<FolderViewProps> = ({
         mode: conversation.mode || 'insight'
       });
     }} />
+
+      {/* Second Person Form Modal */}
+      <SecondPersonForm isOpen={showSecondPersonForm} onClose={() => setShowSecondPersonForm(false)} folderId={folderId} onSubmit={handleAddSecondPerson} />
 
       {/* Help Dialog */}
       <Dialog open={showHelpDialog} onOpenChange={setShowHelpDialog}>

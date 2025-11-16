@@ -144,6 +144,14 @@ Use astrodata for insight and signals
 Never mention the data, only the interpretation is needed unless asked
 Answer the user's latest message first and fully.
 
+**Available Tools** (call them when you need specific data):
+- get_profile_astro_data: Fetch Swiss ephemeris for precise planetary positions
+- get_linked_profiles: Fetch partner/sibling profiles for relationship insights
+- get_folder_journals: Fetch recent journal entries for emotional context
+- get_previous_insights: Fetch past reports to build on previous work
+
+Only call tools when you need the data. Don't load everything upfront.
+
 Acknowledge: One-word encourager, followed by brief,  supportive check-in — a short phrase, Gen-Z style  .
 Tone:
 – Direct, a bit playful. Contractions welcome, dated slang not.
@@ -187,6 +195,63 @@ const imageGenerationTool = [
   }
 ];
 
+/* ------------------------- Data Fetching Tools --------------------------- */
+const dataFetchingTools = [
+  {
+    functionDeclarations: [
+      {
+        name: "get_profile_astro_data",
+        description: "Fetch Swiss ephemeris data for a specific profile. Call this when you need precise planetary positions, aspects, or house placements for astrological interpretation.",
+        parameters: {
+          type: "object",
+          properties: {
+            profile_id: { 
+              type: "string", 
+              description: "UUID of the profile to fetch astro data for. Use 'primary' for the folder's main profile."
+            }
+          },
+          required: ["profile_id"]
+        }
+      },
+      {
+        name: "get_linked_profiles",
+        description: "Fetch partner, sibling, or other linked profiles for the current folder. Call this for synastry, composite, or relationship insights.",
+        parameters: {
+          type: "object",
+          properties: {
+            relation_type: { 
+              type: "string", 
+              enum: ["partner", "sibling", "friend", "all"],
+              description: "Type of relationship to fetch" 
+            }
+          },
+          required: ["relation_type"]
+        }
+      },
+      {
+        name: "get_folder_journals",
+        description: "Fetch recent journal entries from the current folder. Call this to understand user's recent emotional state, questions, or reflections.",
+        parameters: {
+          type: "object",
+          properties: {
+            limit: { type: "integer", description: "Number of entries to fetch (default: 5)" }
+          }
+        }
+      },
+      {
+        name: "get_previous_insights",
+        description: "Fetch past insight reports generated in this folder. Call this to build on previous analysis or track patterns over time.",
+        parameters: {
+          type: "object",
+          properties: {
+            limit: { type: "integer", description: "Number of insights to fetch (default: 3)" }
+          }
+        }
+      }
+    ]
+  }
+];
+
 /* ----------------------------- Supabase client --------------------------- */
 const supabase = createPooledClient();
 
@@ -208,7 +273,7 @@ async function createCache(chat_id: string, systemText: string): Promise<string 
           role: "system",
           parts: [{ text: combinedSystemInstruction }]
         },
-        tools: imageGenerationTool,
+        tools: [...imageGenerationTool, ...dataFetchingTools],
         toolConfig: {
           functionCallingConfig: { mode: "AUTO" }
         },
@@ -360,7 +425,7 @@ Deno.serve(async (req: Request) => {
         .limit(1)
         .single(),
       supabase.from("conversations")
-        .select("turn_count, last_summary_at_turn")
+        .select("turn_count, last_summary_at_turn, folder_id, profile_id")
         .eq("id", chat_id)
         .single(),
       supabase.from("conversation_summaries")
@@ -383,6 +448,8 @@ Deno.serve(async (req: Request) => {
 
     systemText = systemMessageRes?.data?.text || "";
     conversationMeta = conversationRes?.data || { turn_count: 0, last_summary_at_turn: 0 };
+    const conversationFolderId = conversationRes?.data?.folder_id || null;
+    const conversationProfileId = conversationRes?.data?.profile_id || null;
     conversationSummary = summaryRes?.data?.summary_text || "";
     historyRows = historyRes?.data || [];
     ({ memoryContext = "", memoryIds = [] } = memoryResult || {});
@@ -451,11 +518,12 @@ Deno.serve(async (req: Request) => {
       combinedSystemInstruction += `\n\n[CRITICAL: Remember Your Instructions]\n${systemPrompt}`;
       requestBody.system_instruction = { role: "system", parts: [{ text: combinedSystemInstruction }] };
       
-      // Only add tools if explicitly requested
-      if (enableImageTool) {
-        requestBody.tools = imageGenerationTool;
-        requestBody.toolConfig = { functionCallingConfig: { mode: "AUTO" } };
-      }
+      // Add tools: image tool if requested, always include data-fetching tools
+      const allTools = enableImageTool 
+        ? [...imageGenerationTool, ...dataFetchingTools]
+        : dataFetchingTools;
+      requestBody.tools = allTools;
+      requestBody.toolConfig = { functionCallingConfig: { mode: "AUTO" } };
     }
 
     requestBody.generationConfig = { temperature: 0.7, thinkingConfig: { thinkingBudget: 0 } };
@@ -601,6 +669,58 @@ Deno.serve(async (req: Request) => {
           body: JSON.stringify({ chat_id, prompt, user_id, mode, image_id: imageId })
         }).catch((err) => console.error("[image-gen] failed:", err));
       }
+    } else if (functionCall?.name === "get_profile_astro_data") {
+      const profileId = functionCall.args?.profile_id === "primary" ? conversationProfileId : functionCall.args?.profile_id;
+      
+      const { data: translatorLog } = await supabase
+        .from("translator_logs")
+        .select("swiss_data")
+        .eq("profile_id", profileId)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .single();
+      
+      assistantText = translatorLog?.swiss_data 
+        ? JSON.stringify(translatorLog.swiss_data)
+        : "No astro data found for this profile.";
+    } else if (functionCall?.name === "get_linked_profiles") {
+      const relationType = functionCall.args?.relation_type || "all";
+      
+      const { data: links } = await supabase
+        .from("user_profile_list")
+        .select("*")
+        .eq("user_id", user_id);
+      
+      assistantText = links?.length 
+        ? JSON.stringify(links)
+        : "No linked profiles found.";
+    } else if (functionCall?.name === "get_folder_journals") {
+      const limit = functionCall.args?.limit || 5;
+      
+      const { data: journals } = await supabase
+        .from("journal_entries")
+        .select("title, content, created_at")
+        .eq("folder_id", conversationFolderId)
+        .order("created_at", { ascending: false })
+        .limit(limit);
+      
+      assistantText = journals?.length
+        ? JSON.stringify(journals)
+        : "No journal entries found.";
+    } else if (functionCall?.name === "get_previous_insights") {
+      const limit = functionCall.args?.limit || 3;
+      
+      const { data: insights } = await supabase
+        .from("insights")
+        .select("title, request, created_at")
+        .eq("folder_id", conversationFolderId)
+        .eq("is_ready", true)
+        .order("created_at", { ascending: false })
+        .limit(limit);
+      
+      assistantText = insights?.length
+        ? JSON.stringify(insights)
+        : "No previous insights found.";
     } else if (functionCall && !enableImageTool) {
       // 🔥 SAFETY: Function call happened but shouldn't have - ignore it and extract text
       console.warn("[gemini] unexpected function call ignored - user didn't request image");

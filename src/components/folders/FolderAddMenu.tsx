@@ -1,5 +1,5 @@
 import React from 'react';
-import { Plus, FileText, Sparkles, Upload, MessageCircle } from 'lucide-react';
+import { Plus, FileText, Sparkles, Upload, MessageCircle, Users } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,6 +13,7 @@ interface FolderAddMenuProps {
   onInsightsClick: () => void;
   onUploadClick: () => void;
   onNewChatClick: () => void;
+  onAddSecondPersonClick: () => void;
 }
 
 export const FolderAddMenu: React.FC<FolderAddMenuProps> = ({
@@ -20,6 +21,7 @@ export const FolderAddMenu: React.FC<FolderAddMenuProps> = ({
   onInsightsClick,
   onUploadClick,
   onNewChatClick,
+  onAddSecondPersonClick,
 }) => {
   return (
     <DropdownMenu>
@@ -75,6 +77,17 @@ export const FolderAddMenu: React.FC<FolderAddMenuProps> = ({
           <div className="flex flex-col">
             <span className="text-sm">New Chat</span>
             <span className="text-xs text-gray-500">Start a conversation</span>
+          </div>
+        </DropdownMenuItem>
+        
+        <DropdownMenuItem
+          onClick={onAddSecondPersonClick}
+          className="cursor-pointer font-light"
+        >
+          <Users className="w-4 h-4 mr-3 text-gray-600" />
+          <div className="flex flex-col">
+            <span className="text-sm">Add Second Person</span>
+            <span className="text-xs text-gray-500">Compatibility analysis</span>
           </div>
         </DropdownMenuItem>
       </DropdownMenuContent>
