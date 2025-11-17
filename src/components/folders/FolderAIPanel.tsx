@@ -139,7 +139,7 @@ export const FolderAIPanel: React.FC<FolderAIPanelProps> = ({
     <Sheet open={isOpen} onOpenChange={onClose}>
       <SheetContent 
         side="right" 
-        className="w-full sm:max-w-2xl p-0 flex flex-col"
+        className="w-full sm:max-w-2xl p-0 flex flex-col [&>button]:hidden"
         style={{
           paddingTop: 'env(safe-area-inset-top)',
           paddingBottom: 'env(safe-area-inset-bottom)',

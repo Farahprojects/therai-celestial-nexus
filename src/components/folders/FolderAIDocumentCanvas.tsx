@@ -57,7 +57,7 @@ export const FolderAIDocumentCanvas: React.FC<FolderAIDocumentCanvasProps> = ({
     <Sheet open={isOpen} onOpenChange={(open) => !open && !isSaving && onClose()}>
       <SheetContent 
         side="left" 
-        className="w-full sm:max-w-2xl p-0 flex flex-col border-r"
+        className="w-full sm:max-w-2xl p-0 flex flex-col border-r [&>button]:hidden"
         style={{
           paddingTop: 'env(safe-area-inset-top)',
           paddingBottom: 'env(safe-area-inset-bottom)',
