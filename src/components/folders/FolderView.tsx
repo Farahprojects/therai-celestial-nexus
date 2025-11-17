@@ -24,6 +24,8 @@ import { ShareFolderModal } from '@/components/folders/ShareFolderModal';
 import { AstroDataForm } from '@/components/chat/AstroDataForm';
 import { ReportSlideOver } from '@/components/public-report/ReportSlideOver';
 import { FolderAIPanel } from '@/components/folders/FolderAIPanel';
+import { FolderAIDocumentCanvas } from '@/components/folders/FolderAIDocumentCanvas';
+import { DraftDocument, saveDocumentDraft } from '@/services/folder-ai';
 import { toast } from 'sonner';
 
 interface FolderViewProps {
