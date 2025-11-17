@@ -349,17 +349,20 @@ return json({ success: true, conversation_id });
 },
 
 // List owned + shared (deduped)
+// Exclude folder-owned conversations from history (they're shown under folders)
 async list_conversations({ admin, userId }: HandlerCtx) {
 const [{ data: owned, error: ownedErr }, { data: shared, error: sharedErr }] = await Promise.all([
 admin
 .from('conversations')
 .select('id, title, created_at, updated_at, meta, is_public, mode, folder_id')
 .eq('user_id', userId)
+.is('folder_id', null) // Exclude folder-owned conversations from history
 .order('updated_at', { ascending: false }),
 admin
 .from('conversations')
 .select('id, title, created_at, updated_at, meta, is_public, mode, folder_id, conversations_participants!inner(role)')
 .eq('conversations_participants.user_id', userId)
+.is('folder_id', null) // Exclude folder-owned conversations from history
 .order('updated_at', { ascending: false }),
 ]);
 
