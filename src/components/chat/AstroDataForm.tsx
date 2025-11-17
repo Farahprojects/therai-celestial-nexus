@@ -38,6 +38,16 @@ interface AstroDataFormProps {
   variant?: 'standalone' | 'insights';
   mode?: 'chat' | 'astro' | 'insight' | 'swiss' | 'together' | 'sync_score';
   defaultName?: string;
+  prefillPersonA?: {
+    name: string;
+    birthDate: string;
+    birthTime: string;
+    birthLocation: string;
+    birthLatitude?: number;
+    birthLongitude?: number;
+    birthPlaceId?: string;
+    timezone?: string;
+  };
 }
 
 const DEFAULT_FORM_VALUES: ReportFormData = {
@@ -77,12 +87,15 @@ export const AstroDataForm: React.FC<AstroDataFormProps> = ({
   variant = 'standalone',
   mode: explicitMode,
   defaultName,
+  prefillPersonA,
 }) => {
   // State
   const isInsights = variant === 'insights';
-  const [currentStep, setCurrentStep] = useState<'type' | 'details' | 'secondPerson'>(
-    isInsights ? 'details' : preselectedType ? 'details' : 'details'
-  );
+  // If prefillPersonA is provided and type is sync, skip to secondPerson step
+  const initialStep = prefillPersonA && preselectedType === 'sync' 
+    ? 'secondPerson' 
+    : isInsights ? 'details' : preselectedType ? 'details' : 'details';
+  const [currentStep, setCurrentStep] = useState<'type' | 'details' | 'secondPerson'>(initialStep);
   const [selectedAstroType, setSelectedAstroType] = useState<string>(preselectedType || '');
   const [activeSelector, setActiveSelector] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -119,6 +132,25 @@ export const AstroDataForm: React.FC<AstroDataFormProps> = ({
       setValue('name', defaultName);
     }
   }, [defaultName, setValue, formValues.name]);
+
+  // Pre-fill person A data from folder profile if provided
+  useEffect(() => {
+    if (prefillPersonA) {
+      setValue('name', prefillPersonA.name);
+      setValue('birthDate', prefillPersonA.birthDate);
+      setValue('birthTime', prefillPersonA.birthTime);
+      setValue('birthLocation', prefillPersonA.birthLocation);
+      if (prefillPersonA.birthLatitude !== undefined) {
+        setValue('birthLatitude', prefillPersonA.birthLatitude);
+      }
+      if (prefillPersonA.birthLongitude !== undefined) {
+        setValue('birthLongitude', prefillPersonA.birthLongitude);
+      }
+      if (prefillPersonA.birthPlaceId) {
+        setValue('birthPlaceId', prefillPersonA.birthPlaceId);
+      }
+    }
+  }, [prefillPersonA, setValue]);
 
   useEffect(() => {
     if (preselectedType) {

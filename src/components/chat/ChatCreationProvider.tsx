@@ -110,8 +110,7 @@ export const ChatCreationProvider: React.FC<ChatCreationProviderProps> = ({
   }, [navigate, requireEligibleUser, user]);
 
   const openAstroFlow = useCallback(() => {
-    // ✅ Astro requires subscription
-    if (!requireEligibleUser(true)) return;
+    if (!requireEligibleUser(false)) return;
     setShowAstroChartSelector(true);
   }, [requireEligibleUser]);
 

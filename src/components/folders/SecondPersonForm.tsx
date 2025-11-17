@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { LocationAutocomplete } from '@/components/chat/LocationAutocomplete';
+import { CleanPlaceAutocomplete } from '@/components/shared/forms/place-input/CleanPlaceAutocomplete';
 
 interface SecondPersonFormProps {
   isOpen: boolean;
@@ -82,17 +82,23 @@ export const SecondPersonForm: React.FC<SecondPersonFormProps> = ({
     }
   };
 
-  const handleLocationSelect = (locationData: {
+  const handleLocationSelect = (placeData: {
     name: string;
-    lat: number;
-    lng: number;
-    placeId: string;
-    timezone?: string;
+    latitude?: number;
+    longitude?: number;
+    placeId?: string;
+    address?: string;
   }) => {
-    setLocation(locationData.name);
-    setLatitude(locationData.lat);
-    setLongitude(locationData.lng);
-    setPlaceId(locationData.placeId);
+    setLocation(placeData.name);
+    if (placeData.latitude !== undefined) {
+      setLatitude(placeData.latitude);
+    }
+    if (placeData.longitude !== undefined) {
+      setLongitude(placeData.longitude);
+    }
+    if (placeData.placeId) {
+      setPlaceId(placeData.placeId);
+    }
   };
 
   const handleSubmit = () => {
@@ -229,11 +235,12 @@ export const SecondPersonForm: React.FC<SecondPersonFormProps> = ({
 
               <div className="space-y-2">
                 <Label htmlFor="location" className="font-light">Birth Location</Label>
-                <LocationAutocomplete
+                <CleanPlaceAutocomplete
                   value={location}
                   onChange={setLocation}
-                  onSelect={handleLocationSelect}
+                  onPlaceSelect={handleLocationSelect}
                   placeholder="Enter birth location"
+                  className="rounded-xl"
                 />
               </div>
             </div>
