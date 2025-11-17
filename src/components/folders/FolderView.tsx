@@ -233,6 +233,10 @@ export const FolderView: React.FC<FolderViewProps> = ({
       setIsDeleting(false);
       setEditingConversationId(null);
 
+      // Reload threads to update the left sidebar
+      const { loadThreads } = useChatStore.getState();
+      loadThreads(user.id);
+
       // If this was the current chat, clear the session
       const {
         chat_id
