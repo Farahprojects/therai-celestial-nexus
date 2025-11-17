@@ -814,13 +814,15 @@ ${folderMap.reports.map((r, i) =>
     }
 
     // Check if the text response contains XML document request tags
-    const xmlRequestMatch = assistantText.match(/<request_documents>\s*<ids>\[(.*?)\]<\/ids>\s*<reason>(.*?)<\/reason>\s*<\/request_documents>/);
+    // More robust regex with multiline and whitespace handling
+    const xmlRequestMatch = assistantText.match(/<request_documents>[\s\S]*?<ids>\s*\[([\s\S]*?)\]\s*<\/ids>[\s\S]*?<reason>([\s\S]*?)<\/reason>[\s\S]*?<\/request_documents>/);
     
     console.log(JSON.stringify({
       event: 'checking_xml_tags',
       request_id: requestId,
       has_xml_match: !!xmlRequestMatch,
-      text_contains_request: assistantText.includes('<request_documents>')
+      text_contains_request: assistantText.includes('<request_documents>'),
+      raw_text_preview: assistantText.substring(0, 500)
     }));
 
     if (xmlRequestMatch) {
@@ -923,7 +925,20 @@ ${folderMap.reports.map((r, i) =>
             new_text_length: newText.length,
             new_text_preview: newText.substring(0, 300)
           }));
+          // Use the continued response
           assistantText = newText;
+          
+          // Check if the continued response ALSO has a document request (nested requests)
+          const nestedMatch = newText.match(/<request_documents>[\s\S]*?<ids>\s*\[([\s\S]*?)\]\s*<\/ids>[\s\S]*?<reason>([\s\S]*?)<\/reason>[\s\S]*?<\/request_documents>/);
+          if (nestedMatch) {
+            console.warn(JSON.stringify({
+              event: 'nested_document_request_detected',
+              request_id: requestId,
+              message: 'AI requested more documents in continued response - this needs another iteration'
+            }));
+            // For now, we'll return the current response and let the user trigger the next fetch
+            // In a future enhancement, we could loop here
+          }
         } else {
           console.warn(JSON.stringify({
             event: 'gemini_continued_no_candidate',
@@ -941,6 +956,10 @@ ${folderMap.reports.map((r, i) =>
         // Continue with original response
       }
     }
+    
+    // Strip any remaining XML request tags from final response
+    // This ensures the user doesn't see the raw XML
+    assistantText = assistantText.replace(/<request_documents>[\s\S]*?<\/request_documents>/g, '').trim();
 
     // Save final assistant response
     console.log(JSON.stringify({
