@@ -27,7 +27,6 @@ import { FolderAIPanel } from '@/components/folders/FolderAIPanel';
 import { FolderAIDocumentCanvas } from '@/components/folders/FolderAIDocumentCanvas';
 import { DraftDocument, saveDocumentDraft } from '@/services/folder-ai';
 import { toast } from 'sonner';
-
 interface FolderViewProps {
   folderId: string;
   onChatClick: (chatId: string) => void;
@@ -238,7 +237,9 @@ export const FolderView: React.FC<FolderViewProps> = ({
       setEditingConversationId(null);
 
       // Reload threads to update the left sidebar
-      const { loadThreads } = useChatStore.getState();
+      const {
+        loadThreads
+      } = useChatStore.getState();
       loadThreads(user.id);
 
       // If this was the current chat, clear the session
@@ -327,12 +328,10 @@ export const FolderView: React.FC<FolderViewProps> = ({
       console.error('[FolderView] Failed to reload documents:', err);
     }
   };
-
   const handleRequestDeleteDocument = (documentId: string) => {
     setDeletingDocumentId(documentId);
     setShowDeleteDocumentDialog(true);
   };
-
   const handleConfirmDeleteDocument = async () => {
     if (!deletingDocumentId) return;
     try {
@@ -346,7 +345,6 @@ export const FolderView: React.FC<FolderViewProps> = ({
       toast.error('Failed to delete document');
     }
   };
-
   const formatFileSize = (bytes: number): string => {
     if (bytes === 0) return '0 Bytes';
     const k = 1024;
@@ -501,15 +499,15 @@ export const FolderView: React.FC<FolderViewProps> = ({
       console.error('[FolderView] Failed to reload folder profile:', error);
     }
   };
-
-  const handleAstroFormSubmit = async (data: any & { chat_id?: string }) => {
+  const handleAstroFormSubmit = async (data: any & {
+    chat_id?: string;
+  }) => {
     if (!data.chat_id) return;
-    
+
     // Move conversation to folder if it's not already there
     try {
       await moveConversationToFolder(data.chat_id, folderId);
       await loadFolderData();
-      
       setShowAstroForm(false);
       onChatClick(data.chat_id);
     } catch (error) {
@@ -537,11 +535,7 @@ export const FolderView: React.FC<FolderViewProps> = ({
           </div>
           {user && <div className="flex items-center gap-2">
               {/* Folder AI Button */}
-              <button 
-                onClick={() => setShowFolderAI(true)} 
-                className="p-2 hover:bg-purple-100 rounded-full transition-colors" 
-                title="Open Folder AI"
-              >
+              <button onClick={() => setShowFolderAI(true)} title="Open Folder AI" className="p-2 hover:p-2 rounded-full transition-colors">
                 <Sparkles className="w-4 h-4 text-purple-600" />
               </button>
               <button onClick={() => setShowFolderShareModal(true)} className="p-2 hover:bg-gray-100 rounded-full transition-colors" title="Share folder">
@@ -557,12 +551,12 @@ export const FolderView: React.FC<FolderViewProps> = ({
               
               {/* Add Menu */}
               <FolderAddMenu onJournalClick={() => setShowJournalModal(true)} onInsightsClick={() => setShowInsightsModal(true)} onUploadClick={() => setShowUploadModal(true)} onNewChatClick={handleNewChat} onCompatibilityClick={() => {
-                if (!folderProfile || !folderProfileId) {
-                  toast.error('Please set up your profile for this folder first');
-                  return;
-                }
-                setShowAstroForm(true);
-              }} />
+            if (!folderProfile || !folderProfileId) {
+              toast.error('Please set up your profile for this folder first');
+              return;
+            }
+            setShowAstroForm(true);
+          }} />
             </div>}
         </div>
       </div>
@@ -573,8 +567,7 @@ export const FolderView: React.FC<FolderViewProps> = ({
         </div>}
 
       {/* Journal Entries Section - styled to align with conversations list */}
-      {journals.length > 0 && (
-        <div className="px-6 py-4">
+      {journals.length > 0 && <div className="px-6 py-4">
           <div className="w-full max-w-2xl mx-auto">
             <div className="flex items-center justify-between mb-2">
               <p className="text-xs font-medium tracking-wide text-gray-500 uppercase">
@@ -583,17 +576,11 @@ export const FolderView: React.FC<FolderViewProps> = ({
             </div>
 
             <div className="flex flex-col space-y-2">
-              {journals.map(journal => (
-                <div
-                  key={journal.id}
-                  className="flex items-start justify-between gap-4 py-3 px-4 rounded-2xl hover:bg-gray-50 transition-colors group"
-                >
+              {journals.map(journal => <div key={journal.id} className="flex items-start justify-between gap-4 py-3 px-4 rounded-2xl hover:bg-gray-50 transition-colors group">
                   <div className="flex-1 min-w-0">
-                    {!!journal.title && (
-                      <p className="text-sm font-light text-gray-900 mb-0.5 truncate">
+                    {!!journal.title && <p className="text-sm font-light text-gray-900 mb-0.5 truncate">
                         {journal.title}
-                      </p>
-                    )}
+                      </p>}
                     <p className="text-sm font-light text-gray-900 mb-0.5">
                       {journal.entry_text}
                     </p>
@@ -602,46 +589,32 @@ export const FolderView: React.FC<FolderViewProps> = ({
                     </p>
                   </div>
 
-                  {user && (
-                    <DropdownMenu>
+                  {user && <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <button
-                          className="p-1 hover:bg-gray-100 rounded transition-colors"
-                          aria-label="Journal actions"
-                        >
+                        <button className="p-1 hover:bg-gray-100 rounded transition-colors" aria-label="Journal actions">
                           <MoreHorizontal className="w-4 h-4 text-gray-600" />
                         </button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="w-40">
-                        <button
-                          className="w-full text-left"
-                          onClick={() => handleOpenEditJournal(journal)}
-                        >
+                        <button className="w-full text-left" onClick={() => handleOpenEditJournal(journal)}>
                           <div className="px-2 py-1.5 text-sm hover:bg-gray-100 rounded">
                             Edit
                           </div>
                         </button>
-                        <button
-                          className="w-full text-left"
-                          onClick={() => handleRequestDeleteJournal(journal.id)}
-                        >
+                        <button className="w-full text-left" onClick={() => handleRequestDeleteJournal(journal.id)}>
                           <div className="px-2 py-1.5 text-sm text-red-600 hover:bg-gray-100 rounded">
                             Delete
                           </div>
                         </button>
                       </DropdownMenuContent>
-                    </DropdownMenu>
-                  )}
-                </div>
-              ))}
+                    </DropdownMenu>}
+                </div>)}
             </div>
           </div>
-        </div>
-      )}
+        </div>}
 
       {/* Documents Section - styled to align with journals and conversations */}
-      {documents.length > 0 && (
-        <div className="px-6 py-4">
+      {documents.length > 0 && <div className="px-6 py-4">
           <div className="w-full max-w-2xl mx-auto">
             <div className="flex items-center justify-between mb-2">
               <p className="text-xs font-medium tracking-wide text-gray-500 uppercase">
@@ -650,15 +623,8 @@ export const FolderView: React.FC<FolderViewProps> = ({
             </div>
 
             <div className="flex flex-col space-y-2">
-              {documents.map(document => (
-                <div
-                  key={document.id}
-                  className="flex items-center justify-between gap-4 py-3 px-4 rounded-2xl hover:bg-gray-50 transition-colors group"
-                >
-                  <div 
-                    className="flex items-center gap-3 flex-1 min-w-0 cursor-pointer"
-                    onClick={() => setViewingDocumentId(document.id)}
-                  >
+              {documents.map(document => <div key={document.id} className="flex items-center justify-between gap-4 py-3 px-4 rounded-2xl hover:bg-gray-50 transition-colors group">
+                  <div className="flex items-center gap-3 flex-1 min-w-0 cursor-pointer" onClick={() => setViewingDocumentId(document.id)}>
                     <File className="w-5 h-5 text-gray-400 flex-shrink-0" />
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-light text-gray-900 truncate">
@@ -672,84 +638,61 @@ export const FolderView: React.FC<FolderViewProps> = ({
                         <p className="text-xs font-light text-gray-500">
                           {formatFileSize(document.file_size)}
                         </p>
-                        {document.upload_status === 'completed' && (
-                          <>
+                        {document.upload_status === 'completed' && <>
                             <span className="text-xs text-gray-400">•</span>
                             <span className="text-xs text-green-600">Uploaded</span>
-                          </>
-                        )}
-                        {document.upload_status === 'pending' && (
-                          <>
+                          </>}
+                        {document.upload_status === 'pending' && <>
                             <span className="text-xs text-gray-400">•</span>
                             <span className="text-xs text-yellow-600">Processing</span>
-                          </>
-                        )}
-                        {document.upload_status === 'failed' && (
-                          <>
+                          </>}
+                        {document.upload_status === 'failed' && <>
                             <span className="text-xs text-gray-400">•</span>
                             <span className="text-xs text-red-600">Failed</span>
-                          </>
-                        )}
+                          </>}
                       </div>
                     </div>
                   </div>
 
-                  {user && (
-                    <DropdownMenu>
+                  {user && <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <button
-                          className="p-1 hover:bg-gray-100 rounded transition-colors opacity-0 group-hover:opacity-100"
-                          aria-label="Document actions"
-                          onClick={(e) => e.stopPropagation()}
-                        >
+                        <button className="p-1 hover:bg-gray-100 rounded transition-colors opacity-0 group-hover:opacity-100" aria-label="Document actions" onClick={e => e.stopPropagation()}>
                           <MoreHorizontal className="w-4 h-4 text-gray-600" />
                         </button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="w-40">
-                        <button
-                          className="w-full text-left"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setViewingDocumentId(document.id);
-                            setEditingDocumentId(null);
-                          }}
-                        >
+                        <button className="w-full text-left" onClick={e => {
+                  e.stopPropagation();
+                  setViewingDocumentId(document.id);
+                  setEditingDocumentId(null);
+                }}>
                           <div className="px-2 py-1.5 text-sm hover:bg-gray-100 rounded">
                             View
                           </div>
                         </button>
-                        <button
-                          className="w-full text-left"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setViewingDocumentId(document.id);
-                            setEditingDocumentId(document.id);
-                          }}
-                        >
+                        <button className="w-full text-left" onClick={e => {
+                  e.stopPropagation();
+                  setViewingDocumentId(document.id);
+                  setEditingDocumentId(document.id);
+                }}>
                           <div className="px-2 py-1.5 text-sm hover:bg-gray-100 rounded">
                             Edit
                           </div>
                         </button>
-                        <button
-                          className="w-full text-left"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleRequestDeleteDocument(document.id);
-                          }}
-                        >
+                        <button className="w-full text-left" onClick={e => {
+                  e.stopPropagation();
+                  handleRequestDeleteDocument(document.id);
+                }}>
                           <div className="px-2 py-1.5 text-sm text-red-600 hover:bg-gray-100 rounded">
                             Delete
                           </div>
                         </button>
                       </DropdownMenuContent>
-                    </DropdownMenu>
-                  )}
-                </div>
-              ))}
+                    </DropdownMenu>}
+                </div>)}
             </div>
           </div>
-        </div>
-      )}
+        </div>}
 
       {/* Conversations List */}
       <div className="flex-1 overflow-y-auto">
@@ -842,21 +785,13 @@ export const FolderView: React.FC<FolderViewProps> = ({
               <textarea value={editJournalText} onChange={e => setEditJournalText(e.target.value)} placeholder="Edit your entry..." disabled={isSavingJournal} rows={6} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900" />
             </div>
             <div className="flex justify-end gap-2 mt-4">
-              <button
-                onClick={() => {
-                  setShowEditJournalDialog(false);
-                  setEditingJournal(null);
-                }}
-                disabled={isSavingJournal}
-                className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-full transition-colors disabled:opacity-50"
-              >
+              <button onClick={() => {
+            setShowEditJournalDialog(false);
+            setEditingJournal(null);
+          }} disabled={isSavingJournal} className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-full transition-colors disabled:opacity-50">
                 Cancel
               </button>
-              <button
-                onClick={handleSaveJournalEdit}
-                disabled={isSavingJournal}
-                className="px-4 py-2 bg-gray-900 text-white rounded-full hover:bg-gray-800 transition-colors disabled:opacity-50"
-              >
+              <button onClick={handleSaveJournalEdit} disabled={isSavingJournal} className="px-4 py-2 bg-gray-900 text-white rounded-full hover:bg-gray-800 transition-colors disabled:opacity-50">
                 {isSavingJournal ? 'Saving...' : 'Save'}
               </button>
             </div>
@@ -925,91 +860,53 @@ export const FolderView: React.FC<FolderViewProps> = ({
     }} />
 
       {/* Astro Form Modal for Sync */}
-      {showAstroForm && folderProfile && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/10 backdrop-blur-sm">
+      {showAstroForm && folderProfile && <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/10 backdrop-blur-sm">
           <div className="relative w-full max-w-2xl max-h-[90vh] overflow-hidden rounded-3xl bg-white shadow-2xl">
             {/* Desktop close button - only show on non-mobile */}
-            <button
-              onClick={() => setShowAstroForm(false)}
-              className="hidden sm:block absolute top-4 right-4 z-10 p-2 hover:bg-gray-100 rounded-full transition-colors"
-              aria-label="Close"
-            >
+            <button onClick={() => setShowAstroForm(false)} className="hidden sm:block absolute top-4 right-4 z-10 p-2 hover:bg-gray-100 rounded-full transition-colors" aria-label="Close">
               <X className="w-5 h-5 text-gray-600" />
             </button>
-            <AstroDataForm
-              onClose={() => setShowAstroForm(false)}
-              onSubmit={handleAstroFormSubmit}
-              mode="astro"
-              preselectedType="sync"
-              reportType={null}
-              contextId={folderId}
-              prefillPersonA={{
-                name: folderProfile.name,
-                birthDate: folderProfile.birth_date,
-                birthTime: folderProfile.birth_time,
-                birthLocation: folderProfile.birth_location,
-                birthLatitude: folderProfile.birth_latitude,
-                birthLongitude: folderProfile.birth_longitude,
-                birthPlaceId: folderProfile.birth_place_id,
-                timezone: folderProfile.timezone,
-              }}
-            />
+            <AstroDataForm onClose={() => setShowAstroForm(false)} onSubmit={handleAstroFormSubmit} mode="astro" preselectedType="sync" reportType={null} contextId={folderId} prefillPersonA={{
+          name: folderProfile.name,
+          birthDate: folderProfile.birth_date,
+          birthTime: folderProfile.birth_time,
+          birthLocation: folderProfile.birth_location,
+          birthLatitude: folderProfile.birth_latitude,
+          birthLongitude: folderProfile.birth_longitude,
+          birthPlaceId: folderProfile.birth_place_id,
+          timezone: folderProfile.timezone
+        }} />
           </div>
-        </div>
-      )}
+        </div>}
 
       {/* Document Viewer Slide-Over */}
-      <ReportSlideOver
-        isOpen={!!viewingDocumentId}
-        onClose={() => {
-          setViewingDocumentId(null);
-          setEditingDocumentId(null);
-        }}
-        documentId={viewingDocumentId || undefined}
-        documentEditMode={editingDocumentId === viewingDocumentId}
-      />
+      <ReportSlideOver isOpen={!!viewingDocumentId} onClose={() => {
+      setViewingDocumentId(null);
+      setEditingDocumentId(null);
+    }} documentId={viewingDocumentId || undefined} documentEditMode={editingDocumentId === viewingDocumentId} />
 
       {/* Folder AI Panel */}
-      {user && (
-        <>
-          <FolderAIPanel
-            isOpen={showFolderAI}
-            onClose={() => setShowFolderAI(false)}
-            folderId={folderId}
-            userId={user.id}
-            folderName={folderName}
-            onDocumentCreated={handleDocumentUploaded}
-            onDocumentUpdated={handleDocumentUploaded}
-            currentDraft={currentDraft}
-            onDraftChange={setCurrentDraft}
-            onOpenDocumentCanvas={() => setShowDocumentCanvas(true)}
-          />
+      {user && <>
+          <FolderAIPanel isOpen={showFolderAI} onClose={() => setShowFolderAI(false)} folderId={folderId} userId={user.id} folderName={folderName} onDocumentCreated={handleDocumentUploaded} onDocumentUpdated={handleDocumentUploaded} currentDraft={currentDraft} onDraftChange={setCurrentDraft} onOpenDocumentCanvas={() => setShowDocumentCanvas(true)} />
           
           {/* Document Canvas - opens independently on left */}
-          <FolderAIDocumentCanvas
-            isOpen={showDocumentCanvas}
-            onClose={() => {
-              setShowDocumentCanvas(false);
-              setCurrentDraft(null);
-            }}
-            draft={currentDraft}
-            onSave={async (title, content) => {
-              if (!user) return;
-              try {
-                await saveDocumentDraft(folderId, user.id, title, content);
-                toast.success('Document saved to folder');
-                setShowDocumentCanvas(false);
-                setCurrentDraft(null);
-                handleDocumentUploaded();
-              } catch (error) {
-                console.error('[FolderView] Error saving draft:', error);
-                toast.error('Failed to save document');
-              }
-            }}
-            isSaving={false}
-          />
-        </>
-      )}
+          <FolderAIDocumentCanvas isOpen={showDocumentCanvas} onClose={() => {
+        setShowDocumentCanvas(false);
+        setCurrentDraft(null);
+      }} draft={currentDraft} onSave={async (title, content) => {
+        if (!user) return;
+        try {
+          await saveDocumentDraft(folderId, user.id, title, content);
+          toast.success('Document saved to folder');
+          setShowDocumentCanvas(false);
+          setCurrentDraft(null);
+          handleDocumentUploaded();
+        } catch (error) {
+          console.error('[FolderView] Error saving draft:', error);
+          toast.error('Failed to save document');
+        }
+      }} isSaving={false} />
+        </>}
 
       {/* Help Dialog */}
       <Dialog open={showHelpDialog} onOpenChange={setShowHelpDialog}>
