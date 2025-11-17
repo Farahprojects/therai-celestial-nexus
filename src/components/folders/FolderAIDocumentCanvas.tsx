@@ -63,96 +63,97 @@ export const FolderAIDocumentCanvas: React.FC<FolderAIDocumentCanvasProps> = ({
           paddingBottom: 'env(safe-area-inset-bottom)',
         }}
       >
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b bg-white shrink-0">
-          <div className="flex items-center gap-3 flex-1 min-w-0">
-            <FileText className="w-5 h-5 text-purple-600 shrink-0" />
+        {/* Header - Apple Style */}
+        <div className="flex items-center justify-between px-6 py-3.5 border-b border-gray-200/80 bg-white/80 backdrop-blur-xl shrink-0">
+          <div className="flex items-center gap-2.5 flex-1 min-w-0">
+            <FileText className="w-5 h-5 text-[#007AFF] shrink-0" />
             {isEditing ? (
               <input
                 type="text"
                 value={editedTitle}
                 onChange={(e) => setEditedTitle(e.target.value)}
-                className="flex-1 text-lg font-medium text-gray-900 bg-transparent border-none focus:outline-none focus:ring-0"
+                className="flex-1 text-[17px] font-semibold text-gray-900 bg-transparent border-none focus:outline-none focus:ring-0 tracking-tight"
                 placeholder="Document title..."
               />
             ) : (
-              <h2 className="text-lg font-medium text-gray-900 truncate">{editedTitle}</h2>
+              <h2 className="text-[17px] font-semibold text-gray-900 truncate tracking-tight">{editedTitle}</h2>
             )}
           </div>
           <button
             onClick={onClose}
             disabled={isSaving}
-            className="p-1 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50 shrink-0 ml-2"
+            className="w-7 h-7 flex items-center justify-center hover:bg-gray-100/80 rounded-full transition-all disabled:opacity-40 shrink-0 ml-2"
           >
-            <X className="w-5 h-5 text-gray-600" />
+            <X className="w-4 h-4 text-gray-600" />
           </button>
         </div>
 
-        {/* Mode Toggle */}
-        <div className="flex items-center gap-2 px-6 py-3 border-b bg-gray-50 shrink-0">
-          <button
-            onClick={() => setIsEditing(false)}
-            className={cn(
-              "px-3 py-1.5 rounded-md text-sm font-medium transition-colors",
-              !isEditing 
-                ? "bg-white text-purple-600 shadow-sm" 
-                : "text-gray-600 hover:text-gray-900"
-            )}
-          >
-            Preview
-          </button>
-          <button
-            onClick={() => setIsEditing(true)}
-            className={cn(
-              "px-3 py-1.5 rounded-md text-sm font-medium transition-colors",
-              isEditing 
-                ? "bg-white text-purple-600 shadow-sm" 
-                : "text-gray-600 hover:text-gray-900"
-            )}
-          >
-            Edit
-          </button>
-          <div className="ml-auto text-xs text-gray-500">
-            {editedContent.length.toLocaleString()} characters
+        {/* Mode Toggle - Apple Style with pill buttons */}
+        <div className="flex items-center gap-1.5 px-6 py-2.5 border-b border-gray-200/60 bg-white/50 shrink-0">
+          <div className="flex items-center gap-1 bg-gray-100/80 rounded-full p-0.5">
+            <button
+              onClick={() => setIsEditing(false)}
+              className={cn(
+                "px-3 py-1 rounded-full text-[13px] font-semibold transition-all",
+                !isEditing 
+                  ? "bg-white text-[#007AFF] shadow-sm" 
+                  : "text-gray-600 hover:text-gray-900"
+              )}
+            >
+              Preview
+            </button>
+            <button
+              onClick={() => setIsEditing(true)}
+              className={cn(
+                "px-3 py-1 rounded-full text-[13px] font-semibold transition-all",
+                isEditing 
+                  ? "bg-white text-[#007AFF] shadow-sm" 
+                  : "text-gray-600 hover:text-gray-900"
+              )}
+            >
+              Edit
+            </button>
+          </div>
+          <div className="ml-auto text-[11px] text-gray-500 font-medium">
+            {editedContent.length.toLocaleString()} chars
           </div>
         </div>
 
-        {/* Content */}
+        {/* Content - Apple Style */}
         <ScrollArea className="flex-1">
-          <div className="px-6 py-4">
+          <div className="px-6 py-6">
             {isEditing ? (
               <Textarea
                 value={editedContent}
                 onChange={(e) => setEditedContent(e.target.value)}
-                className="min-h-[600px] font-mono text-sm resize-none border-gray-200 focus:border-purple-300 focus:ring-purple-200"
+                className="min-h-[600px] font-mono text-[15px] resize-none border-2 border-gray-200/80 focus:border-[#007AFF] focus:ring-0 rounded-2xl p-4"
                 placeholder="Document content..."
               />
             ) : (
-              <div className="prose prose-sm max-w-none">
+              <div className="prose prose-sm max-w-none text-gray-900 font-light">
                 <ReactMarkdown>{editedContent}</ReactMarkdown>
               </div>
             )}
           </div>
         </ScrollArea>
 
-        {/* Actions */}
-        <div className="flex items-center gap-3 px-6 py-4 border-t bg-white shrink-0">
-          <Button
+        {/* Actions - Apple Style with pill buttons */}
+        <div className="flex items-center gap-3 px-6 py-4 border-t border-gray-200/60 bg-white/80 backdrop-blur-xl shrink-0">
+          <button
             onClick={handleDiscard}
-            variant="outline"
             disabled={isSaving}
-            className="flex-1"
+            className="flex-1 rounded-full px-5 py-2.5 text-[15px] font-semibold text-gray-700 bg-gray-100/80 hover:bg-gray-200/80 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
           >
             Discard
-          </Button>
-          <Button
+          </button>
+          <button
             onClick={handleSave}
             disabled={isSaving || !editedTitle.trim() || !editedContent.trim()}
-            className="flex-1 bg-purple-600 hover:bg-purple-700 text-white"
+            className="flex-1 rounded-full px-5 py-2.5 text-[15px] font-semibold text-white bg-[#007AFF] hover:bg-[#0051D5] transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
-            <Save className="w-4 h-4 mr-2" />
-            {isSaving ? 'Saving...' : 'Save to Folder'}
-          </Button>
+            <Save className="w-4 h-4" />
+            {isSaving ? 'Saving...' : 'Save'}
+          </button>
         </div>
       </SheetContent>
     </Sheet>

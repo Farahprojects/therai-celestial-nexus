@@ -144,40 +144,41 @@ export const FolderAIPanel: React.FC<FolderAIPanelProps> = ({
           paddingBottom: 'env(safe-area-inset-bottom)',
         }}
       >
-        {/* Header */}
-        <SheetHeader className="flex flex-row items-center justify-between px-6 py-4 border-b bg-white shrink-0">
-          <div className="flex items-center gap-3">
-            <Sparkles className="w-5 h-5 text-purple-600" />
-            <SheetTitle className="text-lg font-medium text-gray-900">Folder AI</SheetTitle>
+        {/* Header - Apple Style */}
+        <SheetHeader className="flex flex-row items-center justify-between px-6 py-3.5 border-b border-gray-200/80 bg-white/80 backdrop-blur-xl shrink-0">
+          <div className="flex items-center gap-2.5">
+            <Sparkles className="w-5 h-5 text-[#007AFF]" />
+            <SheetTitle className="text-[17px] font-semibold text-gray-900 tracking-tight">Folder AI</SheetTitle>
           </div>
-          <div className="flex items-center gap-2">
-            {/* New Chat Button */}
+          <div className="flex items-center gap-1.5">
+            {/* New Chat Button - Pill shaped */}
             <button
               onClick={handleNewChat}
               disabled={isSending || messages.length === 0}
-              className="p-1.5 hover:bg-purple-50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-3 py-1.5 hover:bg-gray-100/80 rounded-full transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5"
               title="Start new conversation"
             >
-              <SquarePen className="w-4 h-4 text-purple-600" />
+              <SquarePen className="w-3.5 h-3.5 text-[#007AFF]" />
+              <span className="text-[13px] font-medium text-[#007AFF]">New</span>
             </button>
-            {/* Close Button */}
+            {/* Close Button - Pill shaped */}
             <button
               onClick={onClose}
-              className="p-1 hover:bg-gray-100 rounded-lg transition-colors"
+              className="w-7 h-7 flex items-center justify-center hover:bg-gray-100/80 rounded-full transition-all"
             >
-              <X className="w-5 h-5 text-gray-600" />
+              <X className="w-4 h-4 text-gray-600" />
             </button>
           </div>
         </SheetHeader>
 
-        {/* Folder Map (Collapsible) */}
+        {/* Folder Map (Collapsible) - Apple Style */}
         {folderContext && (
-          <div className="border-b bg-gray-50 shrink-0">
+          <div className="border-b border-gray-200/60 bg-white/50 shrink-0">
             <button
               onClick={() => setShowFolderMap(!showFolderMap)}
-              className="w-full px-6 py-3 flex items-center justify-between hover:bg-gray-100 transition-colors"
+              className="w-full px-6 py-2.5 flex items-center justify-between hover:bg-gray-50/80 transition-all"
             >
-              <span className="text-sm font-medium text-gray-700">
+              <span className="text-[13px] font-medium text-gray-700 tracking-tight">
                 Folder Contents ({
                   folderContext.documents.length + 
                   folderContext.journals.length + 
@@ -186,96 +187,96 @@ export const FolderAIPanel: React.FC<FolderAIPanelProps> = ({
                 } items)
               </span>
               {showFolderMap ? (
-                <ChevronUp className="w-4 h-4 text-gray-500" />
+                <ChevronUp className="w-3.5 h-3.5 text-gray-500" />
               ) : (
-                <ChevronDown className="w-4 h-4 text-gray-500" />
+                <ChevronDown className="w-3.5 h-3.5 text-gray-500" />
               )}
             </button>
             
             {showFolderMap && (
-              <div className="px-6 pb-4 space-y-3">
-                {/* Documents */}
+              <div className="px-6 pb-4 space-y-3.5">
+                {/* Documents - Apple Style */}
                 {folderContext.documents.length > 0 && (
                   <div>
-                    <div className="flex items-center gap-2 mb-2">
-                      <FileText className="w-4 h-4 text-gray-500" />
-                      <span className="text-xs font-medium text-gray-600 uppercase">Documents</span>
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <FileText className="w-3.5 h-3.5 text-[#007AFF]" />
+                      <span className="text-[11px] font-semibold text-gray-700 uppercase tracking-wide">Documents</span>
                     </div>
-                    <div className="space-y-1">
+                    <div className="space-y-0.5">
                       {folderContext.documents.slice(0, 5).map((doc) => (
-                        <div key={doc.id} className="text-xs text-gray-600 pl-6">
-                          • {doc.file_name}
+                        <div key={doc.id} className="text-[13px] text-gray-700 font-normal pl-5">
+                          {doc.file_name}
                         </div>
                       ))}
                       {folderContext.documents.length > 5 && (
-                        <div className="text-xs text-gray-500 pl-6">
-                          + {folderContext.documents.length - 5} more
+                        <div className="text-[12px] text-gray-500 font-medium pl-5 mt-1">
+                          +{folderContext.documents.length - 5} more
                         </div>
                       )}
                     </div>
                   </div>
                 )}
 
-                {/* Journals */}
+                {/* Journals - Apple Style */}
                 {folderContext.journals.length > 0 && (
                   <div>
-                    <div className="flex items-center gap-2 mb-2">
-                      <BookOpen className="w-4 h-4 text-gray-500" />
-                      <span className="text-xs font-medium text-gray-600 uppercase">Journal Entries</span>
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <BookOpen className="w-3.5 h-3.5 text-[#007AFF]" />
+                      <span className="text-[11px] font-semibold text-gray-700 uppercase tracking-wide">Journals</span>
                     </div>
-                    <div className="space-y-1">
+                    <div className="space-y-0.5">
                       {folderContext.journals.slice(0, 5).map((journal) => (
-                        <div key={journal.id} className="text-xs text-gray-600 pl-6">
-                          • {journal.title || 'Untitled'}
+                        <div key={journal.id} className="text-[13px] text-gray-700 font-normal pl-5">
+                          {journal.title || 'Untitled'}
                         </div>
                       ))}
                       {folderContext.journals.length > 5 && (
-                        <div className="text-xs text-gray-500 pl-6">
-                          + {folderContext.journals.length - 5} more
+                        <div className="text-[12px] text-gray-500 font-medium pl-5 mt-1">
+                          +{folderContext.journals.length - 5} more
                         </div>
                       )}
                     </div>
                   </div>
                 )}
 
-                {/* Conversations */}
+                {/* Conversations - Apple Style */}
                 {folderContext.conversations.length > 0 && (
                   <div>
-                    <div className="flex items-center gap-2 mb-2">
-                      <MessageSquare className="w-4 h-4 text-gray-500" />
-                      <span className="text-xs font-medium text-gray-600 uppercase">Conversations</span>
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <MessageSquare className="w-3.5 h-3.5 text-[#007AFF]" />
+                      <span className="text-[11px] font-semibold text-gray-700 uppercase tracking-wide">Chats</span>
                     </div>
-                    <div className="space-y-1">
+                    <div className="space-y-0.5">
                       {folderContext.conversations.slice(0, 5).map((conv) => (
-                        <div key={conv.id} className="text-xs text-gray-600 pl-6">
-                          • {conv.title || 'Untitled'} {conv.mode && `(${conv.mode})`}
+                        <div key={conv.id} className="text-[13px] text-gray-700 font-normal pl-5">
+                          {conv.title || 'Untitled'}
                         </div>
                       ))}
                       {folderContext.conversations.length > 5 && (
-                        <div className="text-xs text-gray-500 pl-6">
-                          + {folderContext.conversations.length - 5} more
+                        <div className="text-[12px] text-gray-500 font-medium pl-5 mt-1">
+                          +{folderContext.conversations.length - 5} more
                         </div>
                       )}
                     </div>
                   </div>
                 )}
 
-                {/* Reports */}
+                {/* Reports - Apple Style */}
                 {folderContext.reports.length > 0 && (
                   <div>
-                    <div className="flex items-center gap-2 mb-2">
-                      <BarChart3 className="w-4 h-4 text-gray-500" />
-                      <span className="text-xs font-medium text-gray-600 uppercase">Reports/Insights</span>
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <BarChart3 className="w-3.5 h-3.5 text-[#007AFF]" />
+                      <span className="text-[11px] font-semibold text-gray-700 uppercase tracking-wide">Reports</span>
                     </div>
-                    <div className="space-y-1">
+                    <div className="space-y-0.5">
                       {folderContext.reports.slice(0, 5).map((report) => (
-                        <div key={report.id} className="text-xs text-gray-600 pl-6">
-                          • {report.report_type || 'Insight'}
+                        <div key={report.id} className="text-[13px] text-gray-700 font-normal pl-5">
+                          {report.report_type || 'Insight'}
                         </div>
                       ))}
                       {folderContext.reports.length > 5 && (
-                        <div className="text-xs text-gray-500 pl-6">
-                          + {folderContext.reports.length - 5} more
+                        <div className="text-[12px] text-gray-500 font-medium pl-5 mt-1">
+                          +{folderContext.reports.length - 5} more
                         </div>
                       )}
                     </div>
@@ -318,60 +319,60 @@ export const FolderAIPanel: React.FC<FolderAIPanelProps> = ({
               />
             ))}
 
-            {/* Sending indicator */}
+            {/* Sending indicator - Apple style */}
             {isSending && (
               <div className="flex items-start gap-3">
-                <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center shrink-0">
-                  <Sparkles className="w-4 h-4 text-purple-600" />
+                <div className="w-7 h-7 rounded-full bg-[#007AFF]/10 flex items-center justify-center shrink-0 mt-1">
+                  <Sparkles className="w-3.5 h-3.5 text-[#007AFF]" />
                 </div>
-                <div className="flex-1 bg-gray-50 rounded-2xl rounded-tl-sm px-4 py-3">
-                  <div className="flex items-center gap-2">
-                    <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
-                    <span className="text-sm text-gray-500">Thinking...</span>
-                  </div>
+                <div className="flex items-center gap-2">
+                  <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
+                  <span className="text-[15px] text-gray-500 font-light">Thinking...</span>
                 </div>
               </div>
             )}
 
-            {/* Error message */}
+            {/* Error message - Apple style */}
             {error && (
-              <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3">
-                <p className="text-sm text-red-700">{error}</p>
+              <div className="bg-red-50/80 border border-red-200/60 rounded-2xl px-4 py-3">
+                <p className="text-[13px] text-red-700 font-medium">{error}</p>
               </div>
             )}
           </div>
         </ScrollArea>
 
-        {/* Input Area */}
-        <div className="border-t bg-white px-6 py-4 shrink-0">
-          <div className="flex items-end gap-3">
-            <textarea
-              ref={inputRef}
-              value={inputText}
-              onChange={(e) => setInputText(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder="Ask me to analyze, create, or update documents..."
-              disabled={isSending}
-              rows={1}
-              className="flex-1 resize-none rounded-xl border border-gray-300 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
-              style={{ minHeight: '44px', maxHeight: '120px' }}
-            />
-            <Button
+        {/* Input Area - Apple Style with pill-shaped input */}
+        <div className="border-t border-gray-200/60 bg-white/80 backdrop-blur-xl px-4 py-3 shrink-0">
+          <div className="flex items-end gap-2">
+            <div className="flex-1 relative">
+              <textarea
+                ref={inputRef}
+                value={inputText}
+                onChange={(e) => setInputText(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="Ask me anything..."
+                disabled={isSending}
+                rows={1}
+                className="w-full resize-none rounded-[20px] border-2 border-gray-300/80 px-4 py-2.5 text-[15px] font-normal focus:outline-none focus:ring-0 focus:border-[#007AFF] disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-50 transition-all"
+                style={{ minHeight: '40px', maxHeight: '120px', fontSize: '15px' }}
+              />
+            </div>
+            <button
               onClick={handleSend}
               disabled={!inputText.trim() || isSending}
-              className="rounded-xl bg-purple-600 hover:bg-purple-700 text-white px-4 h-11"
+              className="w-9 h-9 rounded-full bg-[#007AFF] hover:bg-[#0051D5] disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center transition-all shrink-0"
             >
               {isSending ? (
-                <Loader2 className="w-5 h-5 animate-spin" />
+                <Loader2 className="w-4 h-4 animate-spin text-white" />
               ) : (
-                <Send className="w-5 h-5" />
+                <Send className="w-4 h-4 text-white" />
               )}
-            </Button>
+            </button>
           </div>
           
           {hasPendingDocumentRequest && (
-            <div className="mt-2 text-xs text-gray-500">
-              AI is waiting to fetch documents. Send a message to continue.
+            <div className="mt-2 text-xs text-gray-600 font-medium">
+              Waiting for documents...
             </div>
           )}
         </div>
@@ -398,7 +399,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
   if (isSystem) {
     return (
       <div className="flex justify-center">
-        <div className="bg-gray-100 rounded-lg px-3 py-2 text-xs text-gray-600">
+        <div className="bg-gray-100/60 rounded-full px-4 py-1.5 text-xs text-gray-600 font-medium">
           {message.plainText}
         </div>
       </div>
@@ -406,58 +407,62 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
   }
 
   return (
-    <div className={cn('flex items-start gap-3', isUser && 'flex-row-reverse')}>
+    <div className={cn('flex items-start gap-3', isUser && 'flex-row-reverse justify-start')}>
       {!isUser && (
-        <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center shrink-0">
-          <Sparkles className="w-4 h-4 text-purple-600" />
+        <div className="w-7 h-7 rounded-full bg-[#007AFF]/10 flex items-center justify-center shrink-0 mt-1">
+          <Sparkles className="w-3.5 h-3.5 text-[#007AFF]" />
         </div>
       )}
       
-      <div className="flex-1 space-y-3">
-        {/* Text content */}
+      <div className="flex-1 space-y-3 max-w-[85%]">
+        {/* Text content - Apple style: plain AI, grey pill user */}
         {message.plainText && (
           <div
             className={cn(
-              'rounded-2xl px-4 py-3',
               isUser
-                ? 'bg-purple-600 text-white rounded-tr-sm ml-8'
-                : 'bg-gray-50 text-gray-700 rounded-tl-sm'
+                ? 'bg-[#E5E5EA] text-gray-900 rounded-[20px] px-4 py-2.5 inline-block ml-auto'
+                : 'text-gray-900 leading-relaxed'
             )}
           >
-            <p className="text-sm whitespace-pre-wrap">{message.plainText}</p>
-          </div>
-        )}
-
-        {/* Draft indicator - actual preview shown in left canvas */}
-        {message.draft && !isUser && (
-          <div className="rounded-lg bg-purple-50 border border-purple-200 px-4 py-3">
-            <div className="flex items-center gap-2">
-              <FileText className="w-4 h-4 text-purple-600" />
-              <span className="text-sm font-medium text-purple-900">{message.draft.title}</span>
-            </div>
-            <p className="text-xs text-purple-600 mt-1">
-              Document ready to review in left panel
+            <p className={cn(
+              'text-[15px] whitespace-pre-wrap',
+              isUser ? 'font-normal' : 'font-light tracking-tight'
+            )}>
+              {message.plainText}
             </p>
           </div>
         )}
 
-        {/* Update indicator */}
-        {message.update && !isUser && (
-          <div className="rounded-lg bg-blue-50 border border-blue-200 px-4 py-3">
+        {/* Draft indicator - Apple style */}
+        {message.draft && !isUser && (
+          <div className="rounded-2xl bg-[#007AFF]/5 border border-[#007AFF]/20 px-4 py-3">
             <div className="flex items-center gap-2">
-              <FileText className="w-4 h-4 text-blue-600" />
-              <span className="text-sm font-medium text-blue-900">Proposed Update</span>
+              <FileText className="w-4 h-4 text-[#007AFF]" />
+              <span className="text-[13px] font-semibold text-gray-900">{message.draft.title}</span>
             </div>
-            <p className="text-xs text-blue-600 mt-1">
-              Changes ready to review
+            <p className="text-xs text-gray-600 mt-1 font-medium">
+              Open in left panel to review
+            </p>
+          </div>
+        )}
+
+        {/* Update indicator - Apple style */}
+        {message.update && !isUser && (
+          <div className="rounded-2xl bg-[#007AFF]/5 border border-[#007AFF]/20 px-4 py-3">
+            <div className="flex items-center gap-2">
+              <FileText className="w-4 h-4 text-[#007AFF]" />
+              <span className="text-[13px] font-semibold text-gray-900">Proposed Update</span>
+            </div>
+            <p className="text-xs text-gray-600 mt-1 font-medium">
+              Review changes in panel
             </p>
           </div>
         )}
       </div>
 
       {isUser && (
-        <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center shrink-0">
-          <span className="text-xs font-medium text-gray-600">You</span>
+        <div className="w-7 h-7 rounded-full bg-gray-300/60 flex items-center justify-center shrink-0 mt-1">
+          <span className="text-[11px] font-semibold text-gray-700">You</span>
         </div>
       )}
     </div>
