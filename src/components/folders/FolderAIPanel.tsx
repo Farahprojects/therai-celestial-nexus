@@ -336,8 +336,6 @@ export const FolderAIPanel: React.FC<FolderAIPanelProps> = ({
                 key={message.id}
                 message={message}
                 onDraftSaved={handleDraftSaved}
-                onDraftEdited={handleDraftEdited}
-                onUpdateApplied={handleUpdateApplied}
                 folderId={folderId}
                 userId={userId}
               />
@@ -421,8 +419,6 @@ export const FolderAIPanel: React.FC<FolderAIPanelProps> = ({
 interface MessageBubbleProps {
   message: ParsedMessage;
   onDraftSaved: () => void;
-  onDraftEdited: () => void;
-  onUpdateApplied: () => void;
   folderId: string;
   userId: string;
 }
@@ -430,8 +426,6 @@ interface MessageBubbleProps {
 const MessageBubble: React.FC<MessageBubbleProps> = ({
   message,
   onDraftSaved,
-  onDraftEdited,
-  onUpdateApplied,
   folderId,
   userId
 }) => {
