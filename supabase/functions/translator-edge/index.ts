@@ -344,7 +344,50 @@ Deno.serve(async (req)=>{
       };
     }
     const url = `${SWISS_API}/${canon}`;
-    const swiss = await fetch(url,{ method:["moonphases","positions"].includes(canon)?"GET":"POST", headers:{"Content-Type":"application/json"}, body:["moonphases","positions"].includes(canon)?undefined:JSON.stringify(payload) });
+    const method = ["moonphases","positions"].includes(canon)?"GET":"POST";
+    const requestBody = ["moonphases","positions"].includes(canon)?undefined:JSON.stringify(payload);
+    
+    // Comprehensive logging for Swiss API call
+    console.log(`[translator-edge-${reqId}] ========== SWISS API CALL DETAILS ==========`);
+    console.log(`[translator-edge-${reqId}] Environment Variable SWISS_EPHEMERIS_URL: ${SWISS_API}`);
+    console.log(`[translator-edge-${reqId}] Full Endpoint URL: ${url}`);
+    console.log(`[translator-edge-${reqId}] HTTP Method: ${method}`);
+    console.log(`[translator-edge-${reqId}] Canon Type: ${canon}`);
+    console.log(`[translator-edge-${reqId}] Request Payload:`, JSON.stringify(payload, null, 2));
+    if (requestBody) {
+      console.log(`[translator-edge-${reqId}] Request Body (stringified): ${requestBody}`);
+    }
+    console.log(`[translator-edge-${reqId}] Request Headers:`, JSON.stringify({"Content-Type":"application/json"}));
+    
+    // Try to extract IP from URL if it's an IP address
+    try {
+      const urlObj = new URL(url);
+      console.log(`[translator-edge-${reqId}] URL Hostname: ${urlObj.hostname}`);
+      console.log(`[translator-edge-${reqId}] URL Protocol: ${urlObj.protocol}`);
+      console.log(`[translator-edge-${reqId}] URL Port: ${urlObj.port || 'default'}`);
+      console.log(`[translator-edge-${reqId}] URL Path: ${urlObj.pathname}`);
+      
+      // Check if hostname is an IP address
+      const ipPattern = /^(\d{1,3}\.){3}\d{1,3}$/;
+      if (ipPattern.test(urlObj.hostname)) {
+        console.log(`[translator-edge-${reqId}] ⚠️  Hostname is an IP address: ${urlObj.hostname}`);
+      }
+    } catch (urlParseErr) {
+      console.warn(`[translator-edge-${reqId}] Could not parse URL for IP extraction:`, urlParseErr);
+    }
+    
+    console.log(`[translator-edge-${reqId}] ===========================================`);
+    
+    const swiss = await fetch(url,{ 
+      method: method, 
+      headers:{"Content-Type":"application/json"}, 
+      body: requestBody 
+    });
+    
+    console.log(`[translator-edge-${reqId}] Swiss API Response Status: ${swiss.status}`);
+    console.log(`[translator-edge-${reqId}] Swiss API Response OK: ${swiss.ok}`);
+    console.log(`[translator-edge-${reqId}] Swiss API Response Headers:`, JSON.stringify(Object.fromEntries(swiss.headers.entries())));
+    
     const txt = await swiss.text();
     const swissData = (()=>{ try{return JSON.parse(txt);}catch{return { raw:txt }; }})();
     
