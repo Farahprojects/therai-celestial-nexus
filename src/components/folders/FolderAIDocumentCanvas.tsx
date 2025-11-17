@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { X, Save, FileText } from 'lucide-react';
-import { Sheet, SheetContent } from '@/components/ui/sheet';
-import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Textarea } from '@/components/ui/textarea';
 import { DraftDocument } from '@/services/folder-ai';
@@ -51,18 +49,16 @@ export const FolderAIDocumentCanvas: React.FC<FolderAIDocumentCanvasProps> = ({
     onClose();
   };
 
-  if (!draft) return null;
+  if (!draft || !isOpen) return null;
 
   return (
-    <Sheet open={isOpen} onOpenChange={(open) => !open && !isSaving && onClose()}>
-      <SheetContent 
-        side="left" 
-        className="w-full sm:max-w-2xl p-0 flex flex-col border-r [&>button]:hidden"
-        style={{
-          paddingTop: 'env(safe-area-inset-top)',
-          paddingBottom: 'env(safe-area-inset-bottom)',
-        }}
-      >
+    <div
+      className="fixed inset-y-0 left-0 z-40 w-3/4 sm:max-w-2xl p-0 flex flex-col border-r bg-white shadow-lg"
+      style={{
+        paddingTop: 'env(safe-area-inset-top)',
+        paddingBottom: 'env(safe-area-inset-bottom)',
+      }}
+    >
         {/* Header - Apple Style */}
         <div className="flex items-center justify-between px-6 py-3.5 border-b border-gray-200/80 bg-white/80 backdrop-blur-xl shrink-0">
           <div className="flex items-center gap-2.5 flex-1 min-w-0">
@@ -155,8 +151,7 @@ export const FolderAIDocumentCanvas: React.FC<FolderAIDocumentCanvasProps> = ({
             {isSaving ? 'Saving...' : 'Save'}
           </button>
         </div>
-      </SheetContent>
-    </Sheet>
+      </div>
   );
 };
 
