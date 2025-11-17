@@ -130,21 +130,13 @@ export class UniversalSTTRecorder {
     // Mobile-specific defaults unless explicitly overridden
     if (this.isMobileDevice()) {
       if (options.silenceMargin === undefined) {
-        // Make it easier for mobile (iOS/Android) to detect when speech has ended
-        // by lowering the stop threshold relative to the baseline.
-        this.options.silenceMargin = 0.22;
+        this.options.silenceMargin = 0.10;
       }
       if (options.silenceHangover === undefined) {
-        // Slightly longer hangover so we reliably catch end-of-utterance on mobile.
-        this.options.silenceHangover = 600;
+        this.options.silenceHangover = 500;
       }
       if (options.baselineCaptureDuration === undefined) {
         this.options.baselineCaptureDuration = 700;
-      }
-      if (options.minSegSnrFactor === undefined) {
-        // Accept quieter segments on mobile so we don't require shouting
-        // for a segment to be considered strong enough to send.
-        this.options.minSegSnrFactor = 1.05;
       }
     }
   }
