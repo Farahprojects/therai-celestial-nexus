@@ -44,7 +44,7 @@ export const FolderAddMenu: React.FC<FolderAddMenuProps> = ({
           <Upload className="w-4 h-4 mr-3 text-gray-600" />
           <div className="flex flex-col">
             <span className="text-sm">Upload Document</span>
-            <span className="text-xs text-gray-500">PDF, DOCX, TXT, MD, CSV</span>
+            
           </div>
         </DropdownMenuItem>
         
