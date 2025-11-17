@@ -628,10 +628,10 @@ ${folderMap.reports.map((r, i) =>
       throw new Error('No response from Gemini');
     }
 
-    const assistantText = candidate.content?.parts?.[0]?.text || '';
+    let assistantText = candidate.content?.parts?.[0]?.text || '';
     const functionCall = candidate.content?.parts?.[0]?.functionCall;
 
-    // If there's a function call (tool request)
+    // If there's a function call (tool request via Gemini function calling)
     if (functionCall && functionCall.name === 'fetch_documents') {
       const requestedIds = functionCall.args?.ids || [];
       
@@ -641,20 +641,77 @@ ${folderMap.reports.map((r, i) =>
         requested_ids: requestedIds
       });
 
-      // Return with tool call indicator
-      return JSON_RESPONSE(200, {
-        text: assistantText || 'Let me fetch those documents...',
-        tool_call: {
-          type: 'fetch_documents',
-          ids: requestedIds,
-          reason: functionCall.args?.reason || 'Fetching documents'
-        },
-        request_id: requestId,
-        latency_ms: Date.now() - startTime
+      // Fetch documents and continue automatically
+      console.log(`[FolderAI] Auto-fetching ${requestedIds.length} documents via function call`);
+      const fetchedDocs = await fetchDocumentsByIds(supabase, requestedIds);
+      const docsContent = fetchedDocs.map(doc => {
+        const content = doc.content || doc.content_text || doc.entry_text || '[No text content]';
+        return `\n\nDocument: ${doc.file_name || doc.title || 'Untitled'}\nID: ${doc.id}\nType: ${doc.type || 'unknown'}\nContent:\n${content}`;
+      }).join('\n\n---\n');
+
+      // Add fetched documents to context
+      geminiMessages.push({
+        role: 'model',
+        parts: [{ text: assistantText }]
       });
+      geminiMessages.push({
+        role: 'user',
+        parts: [{ text: `Here are the documents you requested:\n${docsContent}\n\nPlease analyze these and provide your response.` }]
+      });
+
+      // Call Gemini again with the fetched documents
+      const secondResponse = await callGeminiAPI(geminiMessages, TOOL_DEFINITIONS);
+      const secondCandidate = secondResponse.candidates?.[0];
+      if (secondCandidate) {
+        assistantText = secondCandidate.content?.parts?.[0]?.text || assistantText;
+      }
     }
 
-    // Normal response (no tool call)
+    // Check if the text response contains XML document request tags
+    const xmlRequestMatch = assistantText.match(/<request_documents>\s*<ids>\[(.*?)\]<\/ids>\s*<reason>(.*?)<\/reason>\s*<\/request_documents>/);
+    if (xmlRequestMatch) {
+      try {
+        const idsString = xmlRequestMatch[1];
+        const ids = idsString.split(',').map(id => id.trim().replace(/['"]/g, ''));
+        
+        console.log(`[FolderAI] Auto-fetching ${ids.length} documents via XML tags`);
+        
+        // Save the request message
+        await saveMessage(supabase, folder_id, user_id, 'assistant', assistantText, {
+          xml_request: 'fetch_documents',
+          requested_ids: ids
+        });
+
+        // Fetch documents
+        const fetchedDocs = await fetchDocumentsByIds(supabase, ids);
+        const docsContent = fetchedDocs.map(doc => {
+          const content = doc.content || doc.content_text || doc.entry_text || '[No text content]';
+          return `\n\nDocument: ${doc.file_name || doc.title || 'Untitled'}\nID: ${doc.id}\nType: ${doc.type || 'unknown'}\nContent:\n${content}`;
+        }).join('\n\n---\n');
+
+        // Add to context and continue
+        geminiMessages.push({
+          role: 'model',
+          parts: [{ text: assistantText }]
+        });
+        geminiMessages.push({
+          role: 'user',
+          parts: [{ text: `Here are the documents you requested:\n${docsContent}\n\nPlease analyze these and provide your response.` }]
+        });
+
+        // Call Gemini again
+        const continuedResponse = await callGeminiAPI(geminiMessages, TOOL_DEFINITIONS);
+        const continuedCandidate = continuedResponse.candidates?.[0];
+        if (continuedCandidate) {
+          assistantText = continuedCandidate.content?.parts?.[0]?.text || assistantText;
+        }
+      } catch (parseError) {
+        console.error('[FolderAI] Error parsing XML document request:', parseError);
+        // Continue with original response
+      }
+    }
+
+    // Save final assistant response
     await saveMessage(supabase, folder_id, user_id, 'assistant', assistantText);
 
     // Increment usage (fire-and-forget)
