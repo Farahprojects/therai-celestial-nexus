@@ -4,7 +4,8 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sh
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useFolderAI, ParsedMessage } from '@/hooks/useFolderAI';
-import { FolderAIDraftPreview } from './FolderAIDraftPreview';
+import { FolderAIDocumentCanvas } from './FolderAIDocumentCanvas';
+import { saveDocumentDraft, DraftDocument } from '@/services/folder-ai';
 import { clearFolderAIHistory } from '@/services/folder-ai';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -30,6 +31,9 @@ export const FolderAIPanel: React.FC<FolderAIPanelProps> = ({
 }) => {
   const [inputText, setInputText] = useState('');
   const [showFolderMap, setShowFolderMap] = useState(false);
+  const [showDocumentCanvas, setShowDocumentCanvas] = useState(false);
+  const [currentDraft, setCurrentDraft] = useState<DraftDocument | null>(null);
+  const [isSavingDraft, setIsSavingDraft] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -89,13 +93,23 @@ export const FolderAIPanel: React.FC<FolderAIPanelProps> = ({
     onDocumentCreated?.();
   };
 
-  const handleDraftEdited = () => {
-    onDocumentCreated?.();
-  };
+  const handleSaveDraft = async (title: string, content: string) => {
+    if (!folderId || !userId) return;
 
-  const handleUpdateApplied = () => {
-    refreshContext();
-    onDocumentUpdated?.();
+    try {
+      setIsSavingDraft(true);
+      await saveDocumentDraft(folderId, userId, title, content);
+      toast.success('Document saved to folder');
+      refreshContext();
+      onDocumentCreated?.();
+      setShowDocumentCanvas(false);
+      setCurrentDraft(null);
+    } catch (err: any) {
+      console.error('[FolderAIPanel] Error saving draft:', err);
+      toast.error('Failed to save document');
+    } finally {
+      setIsSavingDraft(false);
+    }
   };
 
   const handleNewChat = async () => {
@@ -105,12 +119,29 @@ export const FolderAIPanel: React.FC<FolderAIPanelProps> = ({
       await clearFolderAIHistory(folderId);
       // Reload messages (will be empty now)
       await loadMessages();
+      // Close document canvas if open
+      setShowDocumentCanvas(false);
+      setCurrentDraft(null);
       toast.success('New conversation started');
     } catch (err: any) {
       console.error('[FolderAIPanel] Error clearing history:', err);
       toast.error('Failed to start new conversation');
     }
   };
+
+  // Auto-open document canvas when AI creates a draft
+  useEffect(() => {
+    // Find the most recent assistant message with a draft
+    const recentDraftMessage = messages
+      .slice()
+      .reverse()
+      .find(msg => msg.role === 'assistant' && msg.draft);
+
+    if (recentDraftMessage?.draft && !showDocumentCanvas) {
+      setCurrentDraft(recentDraftMessage.draft);
+      setShowDocumentCanvas(true);
+    }
+  }, [messages, showDocumentCanvas]);
 
   // Get initial greeting message
   const getGreetingMessage = (): string => {
@@ -370,6 +401,18 @@ export const FolderAIPanel: React.FC<FolderAIPanelProps> = ({
           )}
         </div>
       </SheetContent>
+
+      {/* Document Canvas - opens on left */}
+      <FolderAIDocumentCanvas
+        isOpen={showDocumentCanvas}
+        onClose={() => {
+          setShowDocumentCanvas(false);
+          setCurrentDraft(null);
+        }}
+        draft={currentDraft}
+        onSave={handleSaveDraft}
+        isSaving={isSavingDraft}
+      />
     </Sheet>
   );
 };
@@ -428,27 +471,30 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
           </div>
         )}
 
-        {/* Draft preview */}
+        {/* Draft indicator - actual preview shown in left canvas */}
         {message.draft && !isUser && (
-          <FolderAIDraftPreview
-            draft={message.draft}
-            messageId={message.id}
-            folderId={folderId}
-            userId={userId}
-            onSaved={onDraftSaved}
-            onEdited={onDraftEdited}
-          />
+          <div className="rounded-lg bg-purple-50 border border-purple-200 px-4 py-3">
+            <div className="flex items-center gap-2">
+              <FileText className="w-4 h-4 text-purple-600" />
+              <span className="text-sm font-medium text-purple-900">{message.draft.title}</span>
+            </div>
+            <p className="text-xs text-purple-600 mt-1">
+              Document ready to review in left panel
+            </p>
+          </div>
         )}
 
-        {/* Document update preview */}
+        {/* Update indicator */}
         {message.update && !isUser && (
-          <FolderAIDraftPreview
-            update={message.update}
-            messageId={message.id}
-            folderId={folderId}
-            userId={userId}
-            onUpdated={onUpdateApplied}
-          />
+          <div className="rounded-lg bg-blue-50 border border-blue-200 px-4 py-3">
+            <div className="flex items-center gap-2">
+              <FileText className="w-4 h-4 text-blue-600" />
+              <span className="text-sm font-medium text-blue-900">Proposed Update</span>
+            </div>
+            <p className="text-xs text-blue-600 mt-1">
+              Changes ready to review
+            </p>
+          </div>
         )}
       </div>
 
