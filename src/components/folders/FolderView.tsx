@@ -23,7 +23,6 @@ import { ShareFolderModal } from '@/components/folders/ShareFolderModal';
 import { AstroDataForm } from '@/components/chat/AstroDataForm';
 import { useReportModal } from '@/contexts/ReportModalContext';
 import { toast } from 'sonner';
-import { useReportModal } from '@/contexts/ReportModalContext';
 
 interface FolderViewProps {
   folderId: string;
