@@ -88,11 +88,6 @@ export const FolderAIPanel: React.FC<FolderAIPanelProps> = ({
     }
   };
 
-  const handleDraftSaved = () => {
-    refreshContext();
-    onDocumentCreated?.();
-  };
-
   const handleSaveDraft = async (title: string, content: string) => {
     if (!folderId || !userId) return;
 
@@ -335,7 +330,6 @@ export const FolderAIPanel: React.FC<FolderAIPanelProps> = ({
               <MessageBubble
                 key={message.id}
                 message={message}
-                onDraftSaved={handleDraftSaved}
                 folderId={folderId}
                 userId={userId}
               />
@@ -418,14 +412,12 @@ export const FolderAIPanel: React.FC<FolderAIPanelProps> = ({
 // Message Bubble Component
 interface MessageBubbleProps {
   message: ParsedMessage;
-  onDraftSaved: () => void;
   folderId: string;
   userId: string;
 }
 
 const MessageBubble: React.FC<MessageBubbleProps> = ({
   message,
-  onDraftSaved,
   folderId,
   userId
 }) => {
