@@ -31,7 +31,7 @@ export async function createCompatibilityConversation(
   personB: PersonData
 ): Promise<string> {
   // Create conversation with sync_score mode
-  const title = `Compatibility: ${personA.name} & ${personB.name}`;
+  const title = `Sync: ${personA.name} & ${personB.name}`;
   
   const { data: conversation, error: conversationError } = await supabase
     .from('conversations')

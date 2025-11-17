@@ -262,7 +262,7 @@ export const SecondPersonForm: React.FC<SecondPersonFormProps> = ({
             disabled={!isFormValid() || isLoading}
             className="font-light rounded-xl bg-gray-900 hover:bg-gray-800"
           >
-            {isLoading ? 'Creating...' : 'Create Compatibility Chat'}
+            {isLoading ? 'Creating...' : 'Create Sync Chat'}
           </Button>
         </div>
       </DialogContent>

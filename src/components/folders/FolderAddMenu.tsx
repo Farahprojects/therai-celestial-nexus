@@ -1,5 +1,5 @@
 import React from 'react';
-import { Plus, FileText, Sparkles, Upload, MessageCircle, Heart } from 'lucide-react';
+import { Plus, FileText, Sparkles, Upload, MessageCircle, Users } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 interface FolderAddMenuProps {
@@ -57,9 +57,9 @@ export const FolderAddMenu: React.FC<FolderAddMenuProps> = ({
         </DropdownMenuItem>
         
         <DropdownMenuItem onClick={onCompatibilityClick} className="cursor-pointer font-light">
-          <Heart className="w-4 h-4 mr-3 text-gray-600" />
+          <Users className="w-4 h-4 mr-3 text-gray-600" />
           <div className="flex flex-col">
-            <span className="text-sm">Compatibility</span>
+            <span className="text-sm">Sync</span>
             
           </div>
         </DropdownMenuItem>

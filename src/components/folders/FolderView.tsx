@@ -529,7 +529,7 @@ export const FolderView: React.FC<FolderViewProps> = ({
                     <div className="text-sm font-light text-gray-900 truncate">
                       {conversation.title || 'New Chat'}
                     </div>
-                    {conversation.mode === 'sync_score' && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-pink-100 text-pink-700 border border-pink-200 flex-shrink-0">Compatibility</span>}
+                    {conversation.mode === 'sync_score' && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-pink-100 text-pink-700 border border-pink-200 flex-shrink-0">Sync</span>}
                   </div>
                   
                   {/* Three dots menu */}
@@ -669,7 +669,7 @@ export const FolderView: React.FC<FolderViewProps> = ({
       });
     }} />
 
-      {/* Astro Form Modal for Compatibility */}
+      {/* Astro Form Modal for Sync */}
       {showAstroForm && folderProfile && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="w-full max-w-2xl max-h-[90vh] overflow-hidden rounded-3xl bg-white shadow-2xl">
