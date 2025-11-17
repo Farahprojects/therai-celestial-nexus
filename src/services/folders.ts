@@ -124,6 +124,17 @@ export async function deleteFolder(folderId: string): Promise<void> {
  * Move a conversation to a folder
  */
 export async function moveConversationToFolder(conversationId: string, folderId: string | null): Promise<void> {
+  // ✅ First check if this is a sync_score conversation - they cannot be moved to folders
+  const { data: conversation } = await supabase
+    .from('conversations')
+    .select('mode')
+    .eq('id', conversationId)
+    .single();
+
+  if (conversation?.mode === 'sync_score') {
+    throw new Error('sync_score conversations cannot be moved to folders. They can only be created from the meme button in the left panel.');
+  }
+
   const { error } = await supabase
     .from('conversations')
     .update({ folder_id: folderId })
@@ -138,6 +149,7 @@ export async function moveConversationToFolder(conversationId: string, folderId:
 /**
  * Get all conversations in a folder with their details
  * Excludes Profile conversations (mode: 'profile') as they are for internal use
+ * Excludes sync_score conversations (should never be in folders per design)
  */
 export async function getFolderConversations(folderId: string): Promise<Array<{
   id: string;
@@ -150,6 +162,7 @@ export async function getFolderConversations(folderId: string): Promise<Array<{
     .select('id, title, updated_at, mode')
     .eq('folder_id', folderId)
     .neq('mode', 'profile') // Exclude Profile conversations (internal use only)
+    .neq('mode', 'sync_score') // Exclude sync_score (can only be created from meme button)
     .order('updated_at', { ascending: false });
 
   if (error) {

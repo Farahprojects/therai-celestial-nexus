@@ -65,6 +65,11 @@ export const createConversation = async (
   },
   folderId?: string
 ): Promise<string> => {
+  // ✅ sync_score can only be created from UI left panel (meme button) - NOT from folders
+  if (mode === 'sync_score' && folderId) {
+    throw new Error('sync_score conversations cannot be created in folders. Please use the meme button from the left panel.');
+  }
+
   // ✅ Fetch primary profile for memory tracking
   const profileId = await getPrimaryProfileId(userId);
   

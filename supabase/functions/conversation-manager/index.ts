@@ -130,6 +130,14 @@ if (!mode) return errorJson('mode is required for conversation creation');
 // Check if profile_mode flag is present
 const isProfileMode = profile_mode === true;
 
+// ✅ sync_score can only be created from UI left panel (meme button) - NOT from folders
+if (mode === 'sync_score' && folder_id) {
+  return jsonResponse({
+    success: false,
+    error: 'sync_score conversations cannot be created in folders. Please use the meme button from the left panel.'
+  });
+}
+
 // ✅ Check image generation limit for sync_score mode (6 images per day)
 if (mode === 'sync_score') {
   const limitCheck = await checkLimit(admin, userId, 'image_generation', 1);
