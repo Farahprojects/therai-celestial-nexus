@@ -352,6 +352,40 @@ export async function clearFolderAIHistory(folderId: string): Promise<void> {
 }
 
 /**
+ * Save a document draft to the folder
+ */
+export async function saveDocumentDraft(
+  folderId: string,
+  userId: string,
+  title: string,
+  content: string
+): Promise<void> {
+  try {
+    const { error } = await supabase
+      .from('folder_documents')
+      .insert({
+        folder_id: folderId,
+        user_id: userId,
+        file_name: title.endsWith('.md') ? title : `${title}.md`,
+        content_text: content,
+        file_type: 'text/markdown',
+        ai_generated: true,
+        ai_metadata: {
+          generated_at: new Date().toISOString(),
+          source: 'folder_ai'
+        }
+      });
+
+    if (error) {
+      throw new Error(error.message || 'Failed to save document');
+    }
+  } catch (err: any) {
+    console.error('[FolderAI] Error saving document:', err);
+    throw err;
+  }
+}
+
+/**
  * Get user's folder AI usage stats
  */
 export async function getFolderAIUsage(userId: string): Promise<{
