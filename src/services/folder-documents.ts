@@ -97,8 +97,9 @@ export async function updateDocument(
   documentId: string,
   updates: {
     upload_status?: 'pending' | 'processing' | 'completed' | 'failed';
-    content_text?: string;
+    content_text?: string | null;
     file_path?: string;
+    file_name?: string;
     error_message?: string;
   }
 ): Promise<FolderDocument> {

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { X, Send, Sparkles, FileText, BookOpen, Loader2, ChevronDown, ChevronUp } from 'lucide-react';
+import { X, Send, Sparkles, FileText, BookOpen, Loader2, ChevronDown, ChevronUp, MessageSquare, BarChart3 } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -101,8 +101,11 @@ export const FolderAIPanel: React.FC<FolderAIPanelProps> = ({
     
     const docCount = folderContext.documents.length;
     const journalCount = folderContext.journals.length;
+    const convCount = folderContext.conversations.length;
+    const reportCount = folderContext.reports.length;
+    const totalItems = docCount + journalCount + convCount + reportCount;
     
-    return `I'm ready to work in **${folderName}**. I can see ${docCount} document${docCount !== 1 ? 's' : ''} and ${journalCount} journal entr${journalCount !== 1 ? 'ies' : 'y'}. How can I help you today?`;
+    return `I'm ready to work in **${folderName}**. I can see ${totalItems} items: ${docCount} document${docCount !== 1 ? 's' : ''}, ${journalCount} journal entr${journalCount !== 1 ? 'ies' : 'y'}, ${convCount} conversation${convCount !== 1 ? 's' : ''}, and ${reportCount} report${reportCount !== 1 ? 's' : ''}. How can I help you today?`;
   };
 
   return (
@@ -137,7 +140,12 @@ export const FolderAIPanel: React.FC<FolderAIPanelProps> = ({
               className="w-full px-6 py-3 flex items-center justify-between hover:bg-gray-100 transition-colors"
             >
               <span className="text-sm font-medium text-gray-700">
-                Folder Contents ({folderContext.documents.length + folderContext.journals.length} items)
+                Folder Contents ({
+                  folderContext.documents.length + 
+                  folderContext.journals.length + 
+                  folderContext.conversations.length + 
+                  folderContext.reports.length
+                } items)
               </span>
               {showFolderMap ? (
                 <ChevronUp className="w-4 h-4 text-gray-500" />
@@ -186,6 +194,50 @@ export const FolderAIPanel: React.FC<FolderAIPanelProps> = ({
                       {folderContext.journals.length > 5 && (
                         <div className="text-xs text-gray-500 pl-6">
                           + {folderContext.journals.length - 5} more
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Conversations */}
+                {folderContext.conversations.length > 0 && (
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <MessageSquare className="w-4 h-4 text-gray-500" />
+                      <span className="text-xs font-medium text-gray-600 uppercase">Conversations</span>
+                    </div>
+                    <div className="space-y-1">
+                      {folderContext.conversations.slice(0, 5).map((conv) => (
+                        <div key={conv.id} className="text-xs text-gray-600 pl-6">
+                          • {conv.title || 'Untitled'} {conv.mode && `(${conv.mode})`}
+                        </div>
+                      ))}
+                      {folderContext.conversations.length > 5 && (
+                        <div className="text-xs text-gray-500 pl-6">
+                          + {folderContext.conversations.length - 5} more
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Reports */}
+                {folderContext.reports.length > 0 && (
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <BarChart3 className="w-4 h-4 text-gray-500" />
+                      <span className="text-xs font-medium text-gray-600 uppercase">Reports/Insights</span>
+                    </div>
+                    <div className="space-y-1">
+                      {folderContext.reports.slice(0, 5).map((report) => (
+                        <div key={report.id} className="text-xs text-gray-600 pl-6">
+                          • {report.report_type || 'Insight'}
+                        </div>
+                      ))}
+                      {folderContext.reports.length > 5 && (
+                        <div className="text-xs text-gray-500 pl-6">
+                          + {folderContext.reports.length - 5} more
                         </div>
                       )}
                     </div>

@@ -301,6 +301,16 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
     if (folderId) {
       setViewMode('folder', folderId);
       setShouldCollapseFolders(false);
+      // Preserve folder URL with chat_id query parameter
+      setChatId(conversationId);
+      startConversation(conversationId);
+      try {
+        const { chatController } = await import('@/features/chat/ChatController');
+        await chatController.switchToChat(conversationId);
+      } catch {/* ignore socket handoff errors to avoid blocking nav */}
+      navigate(`/folders/${folderId}?chat_id=${conversationId}`, { replace: true });
+      closeSidebar();
+      return;
     } else {
       setViewMode('chat', null); // Clear folder context
       setShouldCollapseFolders(true); // Collapse folders when switching to History item

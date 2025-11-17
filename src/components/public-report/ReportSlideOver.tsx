@@ -6,11 +6,13 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '
 import { toast } from 'sonner';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { ReportContent } from './ReportContent';
+import { DocumentContent } from './DocumentContent';
 import { supabase } from '@/integrations/supabase/client';
 import { ReportData, extractReportContent, getPersonName } from '@/utils/reportContentExtraction';
 import { renderUnifiedContentAsText } from '@/utils/componentToTextRenderer';
 import { AstroDataRenderer } from './AstroDataRenderer';
 import { useSystemPrompts, SystemPrompt } from '@/hooks/useSystemPrompts';
+import { useDocumentLoader } from '@/hooks/useDocumentLoader';
 import {
   Dialog,
   DialogContent,
@@ -25,6 +27,8 @@ interface ReportSlideOverProps {
   onLoad?: (error?: string | null) => void;
   shouldFetch?: boolean;
   reportId?: string;
+  documentId?: string; // New prop for document viewing
+  documentEditMode?: boolean; // Open document in edit mode
 }
 
 
@@ -34,7 +38,9 @@ export const ReportSlideOver: React.FC<ReportSlideOverProps> = ({
   onClose, 
   onLoad, 
   shouldFetch = false,
-  reportId 
+  reportId,
+  documentId,
+  documentEditMode = false
 }) => {
   const [reportData, setReportData] = useState<ReportData | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -46,6 +52,9 @@ export const ReportSlideOver: React.FC<ReportSlideOverProps> = ({
   const [copied, setCopied] = useState(false);
   const isMobile = useIsMobile();
   const { prompts } = useSystemPrompts();
+  
+  // Load document if documentId is provided
+  const { refresh: refreshDocument, ...documentData } = useDocumentLoader(documentId || null);
 
   // Reset state when modal closes
   useEffect(() => {
@@ -111,6 +120,13 @@ export const ReportSlideOver: React.FC<ReportSlideOverProps> = ({
     }
   }, [shouldFetch, reportId]);
 
+  // Handle document loading callback
+  useEffect(() => {
+    if (documentId && !documentData.isLoading) {
+      onLoad?.(documentData.error);
+    }
+  }, [documentId, documentData.isLoading, documentData.error, onLoad]);
+
   useEffect(() => {
     if (!isLoading) {
       onLoad?.(error);
@@ -145,18 +161,28 @@ export const ReportSlideOver: React.FC<ReportSlideOverProps> = ({
     }
   }, [reportData, prompts, expandedCategory]);
 
-  if (isLoading) {
+  // If viewing a document, use document loading state
+  const isLoadingContent = documentId ? documentData.isLoading : isLoading;
+  const errorContent = documentId ? documentData.error : error;
+
+  if (isLoadingContent) {
     return (
       <Sheet open={isOpen} onOpenChange={onClose}>
         <SheetContent side="right" className="w-full sm:max-w-2xl">
           <SheetHeader className="px-6 py-4 border-b bg-white">
-            <SheetTitle className="text-lg font-medium text-gray-900">Loading Report</SheetTitle>
-            <SheetDescription className="text-sm text-gray-600">Please wait while we prepare your report</SheetDescription>
+            <SheetTitle className="text-lg font-medium text-gray-900">
+              {documentId ? 'Loading Document' : 'Loading Report'}
+            </SheetTitle>
+            <SheetDescription className="text-sm text-gray-600">
+              {documentId ? 'Please wait while we load the document' : 'Please wait while we prepare your report'}
+            </SheetDescription>
           </SheetHeader>
           <div className="flex items-center justify-center h-full p-6">
             <div className="text-center">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto mb-4"></div>
-              <p className="text-gray-600">Loading your report...</p>
+              <p className="text-gray-600">
+                {documentId ? 'Loading document...' : 'Loading your report...'}
+              </p>
             </div>
           </div>
         </SheetContent>
@@ -164,20 +190,24 @@ export const ReportSlideOver: React.FC<ReportSlideOverProps> = ({
     );
   }
 
-  if (error) {
+  if (errorContent) {
     return (
       <Sheet open={isOpen} onOpenChange={onClose}>
         <SheetContent side="right" className="w-full sm:max-w-2xl">
           <SheetHeader className="px-6 py-4 border-b bg-white">
             <SheetTitle className="text-lg font-medium text-gray-900">Error</SheetTitle>
-            <SheetDescription className="text-sm text-gray-600">There was a problem loading your report</SheetDescription>
+            <SheetDescription className="text-sm text-gray-600">
+              {documentId ? 'There was a problem loading the document' : 'There was a problem loading your report'}
+            </SheetDescription>
           </SheetHeader>
           <div className="flex items-center justify-center h-full p-6">
             <div className="text-center">
-              <p className="text-red-600 mb-4">Error loading report: {error}</p>
-              <Button onClick={() => reportId && fetchReport(reportId)}>
-                Try Again
-              </Button>
+              <p className="text-red-600 mb-4">Error: {errorContent}</p>
+              {!documentId && reportId && (
+                <Button onClick={() => fetchReport(reportId)}>
+                  Try Again
+                </Button>
+              )}
             </div>
           </div>
         </SheetContent>
@@ -215,7 +245,45 @@ export const ReportSlideOver: React.FC<ReportSlideOverProps> = ({
     );
   }
 
-  if (!reportData) {
+  // If viewing a document, render document content
+  if (documentId && documentData.document) {
+    const handleDocumentUpdate = () => {
+      // Refresh the document data after update
+      refreshDocument();
+    };
+
+    return (
+      <Sheet open={isOpen} onOpenChange={onClose}>
+        <SheetContent 
+          side="right" 
+          className="w-full sm:max-w-2xl p-0"
+          style={{
+            paddingTop: 'env(safe-area-inset-top)',
+            paddingBottom: 'env(safe-area-inset-bottom)',
+          }}
+        >
+          <div className="flex flex-col h-full">
+            <SheetHeader className="flex flex-row items-center justify-between px-6 py-4 border-b bg-white">
+              <SheetTitle className="text-lg font-medium text-gray-900">Document</SheetTitle>
+            </SheetHeader>
+            <ScrollArea className="flex-1">
+              <div className="p-6">
+                <DocumentContent
+                  document={documentData.document}
+                  fileUrl={documentData.fileUrl}
+                  textContent={documentData.textContent}
+                  onUpdate={handleDocumentUpdate}
+                  initialEditMode={documentEditMode}
+                />
+              </div>
+            </ScrollArea>
+          </div>
+        </SheetContent>
+      </Sheet>
+    );
+  }
+
+  if (!reportData && !documentId) {
     return (
       <Sheet open={isOpen} onOpenChange={onClose}>
         <SheetContent 

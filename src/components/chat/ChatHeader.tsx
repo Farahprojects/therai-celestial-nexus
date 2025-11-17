@@ -25,27 +25,30 @@ export const ChatHeader: React.FC = () => {
             </div>
 
             <div className="flex items-center gap-2">
-              {/* Share Button - Works for both folders and chats */}
-              <button
-                onClick={() => {
-                  if (viewMode === 'folder' && (selectedFolderId || urlFolderId)) {
-                    setShowFolderShareModal(true);
-                  } else if (chat_id) {
-                    setShowShareModal(true);
-                  }
-                }}
-                disabled={!chat_id && viewMode !== 'folder'}
-                className={`flex items-center justify-center w-8 h-8 rounded-lg transition-colors ${
-                  (chat_id || viewMode === 'folder')
-                    ? 'text-gray-700 hover:text-gray-900 hover:bg-gray-50'
-                    : 'text-gray-300 cursor-not-allowed'
-                }`}
-              >
-                <Share2 className="w-4 h-4" />
-              </button>
+              {/* Hide top-right share/menu when viewing a folder to avoid confusion */}
+              {viewMode !== 'folder' && (
+                <>
+                  {/* Share Button - Chat only when not in folder view */}
+                  <button
+                    onClick={() => {
+                      if (chat_id) {
+                        setShowShareModal(true);
+                      }
+                    }}
+                    disabled={!chat_id}
+                    className={`flex items-center justify-center w-8 h-8 rounded-lg transition-colors ${
+                      chat_id
+                        ? 'text-gray-700 hover:text-gray-900 hover:bg-gray-50'
+                        : 'text-gray-300 cursor-not-allowed'
+                    }`}
+                  >
+                    <Share2 className="w-4 h-4" />
+                  </button>
 
-              {/* 3 Dots Menu */}
-              <ChatMenuButton />
+                  {/* 3 Dots Menu */}
+                  <ChatMenuButton />
+                </>
+              )}
             </div>
           </div>
         </div>

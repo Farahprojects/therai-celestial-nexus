@@ -10,6 +10,7 @@ interface DocumentUploadModalProps {
   onClose: () => void;
   folderId: string;
   userId: string;
+  onUploadComplete?: () => void;
 }
 
 interface FileWithPreview {
@@ -17,19 +18,52 @@ interface FileWithPreview {
   id: string;
 }
 
+// Expanded list of accepted document formats
+// We accept these file types - text extraction will work for some, others will be stored for download
 const ACCEPTED_FORMATS = {
+  // Documents
   'application/pdf': '.pdf',
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document': '.docx',
+  'application/msword': '.doc',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': '.xlsx',
+  'application/vnd.ms-excel': '.xls',
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation': '.pptx',
+  'application/vnd.ms-powerpoint': '.ppt',
+  // Text files
   'text/plain': '.txt',
   'text/markdown': '.md',
   'text/csv': '.csv',
+  'text/html': '.html',
+  'text/xml': '.xml',
+  'application/json': '.json',
+  'application/javascript': '.js',
+  'text/javascript': '.js',
+  'application/typescript': '.ts',
+  'text/typescript': '.ts',
+  // Archives (for storage, not text extraction)
+  'application/zip': '.zip',
+  'application/x-rar-compressed': '.rar',
+  'application/x-7z-compressed': '.7z',
+  // Images (for reference documents)
+  'image/jpeg': '.jpg',
+  'image/jpg': '.jpg',
+  'image/png': '.png',
+  'image/gif': '.gif',
+  'image/webp': '.webp',
+  'image/svg+xml': '.svg',
 };
+
+// File extensions that we can extract text from (for server-side processing)
+export const TEXT_EXTRACTABLE_EXTENSIONS = [
+  'pdf', 'docx', 'doc', 'txt', 'md', 'csv', 'html', 'xml', 'json'
+];
 
 export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
   isOpen,
   onClose,
   folderId,
   userId,
+  onUploadComplete,
 }) => {
   const [files, setFiles] = useState<FileWithPreview[]>([]);
   const [isUploading, setIsUploading] = useState(false);
@@ -70,10 +104,14 @@ export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
   const addFiles = (newFiles: File[]) => {
     const validFiles = newFiles.filter(file => {
       const extension = '.' + file.name.split('.').pop()?.toLowerCase();
-      const isValid = Object.values(ACCEPTED_FORMATS).includes(extension);
+      const mimeType = file.type;
+      
+      // Check by MIME type first, then by extension as fallback
+      const isValid = ACCEPTED_FORMATS[mimeType as keyof typeof ACCEPTED_FORMATS] === extension ||
+                     Object.values(ACCEPTED_FORMATS).includes(extension);
       
       if (!isValid) {
-        toast.error(`${file.name} is not a supported format`);
+        toast.error(`${file.name} is not a supported format. Supported: PDF, DOCX, DOC, XLSX, PPTX, TXT, MD, CSV, HTML, JSON, images, and archives.`);
       }
       
       return isValid;
@@ -148,6 +186,7 @@ export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
       }
 
       if (successCount === files.length) {
+        onUploadComplete?.();
         onClose();
       }
     } finally {
@@ -201,7 +240,10 @@ export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
                 <span className="text-gray-900 font-normal">Click to upload</span> or drag and drop
               </div>
               <div className="text-xs text-gray-500">
-                PDF, DOCX, TXT, MD, CSV
+                Documents, Text files, Images, Archives
+              </div>
+              <div className="text-xs text-gray-400 mt-1">
+                PDF, DOCX, DOC, XLSX, PPTX, TXT, MD, CSV, HTML, JSON, Images, ZIP, and more
               </div>
             </label>
           </div>

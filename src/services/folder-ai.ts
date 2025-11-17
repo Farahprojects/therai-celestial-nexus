@@ -23,6 +23,18 @@ export interface FolderMap {
     title: string;
     created_at: string;
   }[];
+  conversations: {
+    id: string;
+    title: string;
+    mode: string;
+    created_at: string;
+  }[];
+  reports: {
+    id: string;
+    chat_id: string;
+    report_type: string;
+    created_at: string;
+  }[];
   folderName: string;
 }
 
@@ -135,9 +147,38 @@ export async function getFolderContext(folderId: string): Promise<FolderMap> {
 
     if (journalsError) throw journalsError;
 
+    // Get conversations
+    const { data: conversations, error: convsError } = await supabase
+      .from('conversations')
+      .select('id, title, mode, created_at')
+      .eq('folder_id', folderId)
+      .neq('mode', 'profile') // Exclude internal profile conversations
+      .order('created_at', { ascending: false });
+
+    if (convsError) throw convsError;
+
+    // Get reports associated with conversations in this folder
+    const conversationIds = (conversations || []).map(c => c.id);
+    let reports: any[] = [];
+    
+    if (conversationIds.length > 0) {
+      const { data: reportsData, error: reportsError } = await supabase
+        .from('report_logs')
+        .select('id, chat_id, report_type, created_at, status')
+        .in('chat_id', conversationIds)
+        .eq('status', 'completed')
+        .order('created_at', { ascending: false });
+
+      if (!reportsError && reportsData) {
+        reports = reportsData;
+      }
+    }
+
     return {
       documents: documents || [],
       journals: journals || [],
+      conversations: conversations || [],
+      reports: reports || [],
       folderName: folder?.name || 'Untitled Folder'
     };
   } catch (err: any) {

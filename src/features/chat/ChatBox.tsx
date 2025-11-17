@@ -428,7 +428,8 @@ export const ChatBox: React.FC<ChatBoxProps> = ({ onDelete }) => {
                       folderId={selectedFolderId}
                       onChatClick={(chatId: string) => {
                         startConversation(chatId);
-                        navigate(`/c/${chatId}`);
+                        // Preserve folder URL with chat_id query parameter
+                        navigate(`/folders/${selectedFolderId}?chat_id=${chatId}`, { replace: true });
                       }}
                     />
                   </Suspense>

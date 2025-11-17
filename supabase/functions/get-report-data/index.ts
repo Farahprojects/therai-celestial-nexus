@@ -12,6 +12,188 @@ function isValidUUID(uuid: string): boolean {
   return uuidRegex.test(uuid);
 }
 
+// Function to fetch and extract document content
+async function fetchDocumentData(
+  supabaseUrl: string,
+  supabaseServiceKey: string,
+  documentId: string,
+  requestId: string
+): Promise<Response> {
+  const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+  try {
+    // 1. Fetch document metadata
+    console.log(`[get-report-data][${requestId}] 📄 Fetching document: ${documentId}`);
+    const { data: document, error: docError } = await supabase
+      .from("folder_documents")
+      .select("*")
+      .eq("id", documentId)
+      .single();
+
+    if (docError || !document) {
+      console.error(`[get-report-data] Document not found:`, docError);
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: "Document not found",
+          timestamp: new Date().toISOString()
+        }),
+        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // 2. If we already have text content, return it
+    if (document.content_text) {
+      console.log(`[get-report-data][${requestId}] ✅ Using cached text content`);
+      return new Response(
+        JSON.stringify({ 
+          ok: true,
+          data: {
+            document: document,
+            textContent: document.content_text,
+            fileUrl: null // Not needed if we have text
+          }
+        }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // 3. If we have a file_path, fetch and extract text
+    if (document.file_path) {
+      console.log(`[get-report-data][${requestId}] 📥 Fetching file from storage: ${document.file_path}`);
+      
+      // Download file from storage
+      const { data: fileData, error: storageError } = await supabase.storage
+        .from("folder-documents")
+        .download(document.file_path);
+
+      if (storageError || !fileData) {
+        console.error(`[get-report-data] Failed to download file:`, storageError);
+        // Return document metadata even if file fetch fails
+        return new Response(
+          JSON.stringify({ 
+            ok: true,
+            data: {
+              document: document,
+              textContent: null,
+              fileUrl: null,
+              error: "Failed to fetch file from storage"
+            }
+          }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // 4. Extract text based on file type
+      let extractedText = "";
+      const extension = document.file_extension.toLowerCase();
+
+      if (['txt', 'md', 'csv', 'html', 'xml', 'json', 'js', 'ts', 'css'].includes(extension)) {
+        // Text-based files - read directly
+        try {
+          extractedText = await fileData.text();
+        } catch (textError) {
+          console.warn(`[get-report-data] Text file read failed:`, textError);
+          extractedText = "";
+        }
+      } else if (extension === 'pdf') {
+        // PDF - use pdf-parse library
+        try {
+          const { default: pdfParse } = await import("https://esm.sh/pdf-parse@1.1.1");
+          const pdfData = await pdfParse(await fileData.arrayBuffer());
+          extractedText = pdfData.text;
+        } catch (pdfError) {
+          console.warn(`[get-report-data] PDF extraction failed:`, pdfError);
+          extractedText = ""; // Will fall back to iframe viewing
+        }
+      } else if (['docx', 'doc'].includes(extension)) {
+        // DOCX/DOC - use mammoth library for DOCX, docx for DOC
+        try {
+          if (extension === 'docx') {
+            const { default: mammoth } = await import("https://esm.sh/mammoth@1.6.0");
+            const result = await mammoth.extractRawText({ arrayBuffer: await fileData.arrayBuffer() });
+            extractedText = result.value;
+          } else {
+            // DOC files need different handling - for now, skip extraction
+            console.warn(`[get-report-data] DOC file extraction not yet implemented`);
+            extractedText = "";
+          }
+        } catch (docxError) {
+          console.warn(`[get-report-data] DOCX extraction failed:`, docxError);
+          extractedText = ""; // Will fall back to download
+        }
+      } else if (['xlsx', 'xls'].includes(extension)) {
+        // Excel files - could use a library like xlsx, but for now skip
+        console.warn(`[get-report-data] Excel file extraction not yet implemented`);
+        extractedText = "";
+      } else if (['pptx', 'ppt'].includes(extension)) {
+        // PowerPoint files - extraction not yet implemented
+        console.warn(`[get-report-data] PowerPoint file extraction not yet implemented`);
+        extractedText = "";
+      }
+      // For other file types (images, archives, etc.), no text extraction
+
+      // 5. Update document with extracted text if we got any
+      if (extractedText) {
+        console.log(`[get-report-data][${requestId}] ✅ Extracted ${extractedText.length} characters`);
+        await supabase
+          .from("folder_documents")
+          .update({ content_text: extractedText })
+          .eq("id", documentId);
+      }
+
+      // 6. Create signed URL for file viewing (for PDFs and fallback)
+      let fileUrl = null;
+      if (extension === 'pdf' || !extractedText) {
+        const { data: signedData, error: signedError } = await supabase.storage
+          .from("folder-documents")
+          .createSignedUrl(document.file_path, 3600);
+        
+        if (!signedError && signedData) {
+          fileUrl = signedData.signedUrl;
+        }
+      }
+
+      return new Response(
+        JSON.stringify({ 
+          ok: true,
+          data: {
+            document: document,
+            textContent: extractedText || null,
+            fileUrl: fileUrl
+          }
+        }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // No file_path - return document metadata only
+    return new Response(
+      JSON.stringify({ 
+        ok: true,
+        data: {
+          document: document,
+          textContent: null,
+          fileUrl: null
+        }
+      }),
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+
+  } catch (error) {
+    console.error("[get-report-data] Document fetch error:", error);
+    return new Response(
+      JSON.stringify({ 
+        success: false, 
+        error: "Failed to fetch document",
+        details: error instanceof Error ? error.message : String(error),
+        timestamp: new Date().toISOString()
+      }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+}
+
 Deno.serve(async (req) => {
   const startTime = Date.now();
   const requestId = Math.random().toString(36).substring(7);
@@ -60,9 +242,25 @@ Deno.serve(async (req) => {
       );
     }
 
-    const { chat_id } = requestBody;
+    const { chat_id, document_id } = requestBody;
 
-    // Validate chat_id
+    // If document_id is provided, handle document fetching
+    if (document_id) {
+      if (!isValidUUID(document_id)) {
+        return new Response(
+          JSON.stringify({ 
+            success: false, 
+            error: "document_id must be a valid UUID",
+            timestamp: new Date().toISOString()
+          }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      return await fetchDocumentData(supabaseUrl, supabaseServiceKey, document_id, requestId);
+    }
+
+    // Validate chat_id for report fetching
     if (!chat_id || typeof chat_id !== 'string' || !isValidUUID(chat_id)) {
       console.error("[get-report-data] Invalid chat_id format:", chat_id);
       return new Response(

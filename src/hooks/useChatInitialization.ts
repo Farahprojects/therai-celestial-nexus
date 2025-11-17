@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { useParams, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useChatStore } from '@/core/store';
 import { chatController } from '@/features/chat/ChatController';
 import { useAuth } from '@/contexts/AuthContext';
@@ -21,6 +21,7 @@ export const useChatInitialization = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
 
   useEffect(() => {
     // Load threads when user signs in (useChatStore needs this for ChatThreadsSidebar)
@@ -38,6 +39,25 @@ export const useChatInitialization = () => {
     // Handle folder navigation from URL
     if (folderId) {
       setViewMode('folder', folderId);
+      
+      // Check if there's a chat_id query parameter for folder routes
+      const chatIdFromQuery = searchParams.get('chat_id');
+      if (chatIdFromQuery && chatIdFromQuery !== "1") {
+        // Load the chat when on a folder route with chat_id query param
+        const loadThread = async () => {
+          try {
+            const { useMessageStore } = await import('@/stores/messageStore');
+            useMessageStore.getState().setChatId(chatIdFromQuery);
+            startConversation(chatIdFromQuery);
+            await chatController.switchToChat(chatIdFromQuery);
+          } catch (error) {
+            console.error('[useChatInitialization] Error loading thread from folder query:', error);
+            useChatStore.getState().clearChat();
+          }
+        };
+        
+        loadThread();
+      }
       return;
     }
 
@@ -61,7 +81,7 @@ export const useChatInitialization = () => {
     } else if (routeChatId === "1") {
       useChatStore.getState().clearChat();
     }
-  }, [routeChatId, folderId, startConversation, setViewMode]);
+  }, [routeChatId, folderId, startConversation, setViewMode, searchParams]);
 
   // Smart navigation: redirect to last chat when visiting root URLs
   useEffect(() => {

@@ -219,7 +219,13 @@ async function incrementFolderAIUsage(supabase: SupabaseClient, userId: string):
 async function buildFolderMap(
   supabase: SupabaseClient,
   folderId: string
-): Promise<{ documents: any[]; journals: any[]; folderName: string }> {
+): Promise<{ 
+  documents: any[]; 
+  journals: any[]; 
+  conversations: any[];
+  reports: any[];
+  folderName: string;
+}> {
   try {
     // Get folder details
     const { data: folder, error: folderError } = await supabase
@@ -249,9 +255,38 @@ async function buildFolderMap(
 
     if (journalsError) throw journalsError;
 
+    // Get conversations (chats) in folder
+    const { data: conversations, error: convsError } = await supabase
+      .from('conversations')
+      .select('id, title, mode, created_at')
+      .eq('folder_id', folderId)
+      .neq('mode', 'profile') // Exclude internal profile conversations
+      .order('created_at', { ascending: false });
+
+    if (convsError) throw convsError;
+
+    // Get reports (insights) associated with conversations in this folder
+    const conversationIds = (conversations || []).map(c => c.id);
+    let reports: any[] = [];
+    
+    if (conversationIds.length > 0) {
+      const { data: reportsData, error: reportsError } = await supabase
+        .from('report_logs')
+        .select('id, chat_id, report_type, created_at, status')
+        .in('chat_id', conversationIds)
+        .eq('status', 'completed')
+        .order('created_at', { ascending: false });
+
+      if (!reportsError && reportsData) {
+        reports = reportsData;
+      }
+    }
+
     return {
       documents: documents || [],
       journals: journals || [],
+      conversations: conversations || [],
+      reports: reports || [],
       folderName: folder?.name || 'Untitled Folder'
     };
   } catch (err) {
@@ -262,27 +297,92 @@ async function buildFolderMap(
 
 /**
  * Fetch specific documents by IDs
+ * Handles documents, journals, conversations (messages), and reports
  */
 async function fetchDocumentsByIds(
   supabase: SupabaseClient,
   documentIds: string[]
 ): Promise<any[]> {
   try {
+    const results: any[] = [];
+
+    // Fetch folder documents
     const { data: documents, error: docsError } = await supabase
       .from('folder_documents')
       .select('id, file_name, content_text, created_at')
       .in('id', documentIds);
 
-    if (docsError) throw docsError;
+    if (!docsError && documents) {
+      results.push(...documents.map(doc => ({
+        ...doc,
+        type: 'document',
+        content: doc.content_text
+      })));
+    }
 
+    // Fetch journal entries
     const { data: journals, error: journalsError } = await supabase
       .from('journal_entries')
       .select('id, title, entry_text, created_at')
       .in('id', documentIds);
 
-    if (journalsError) throw journalsError;
+    if (!journalsError && journals) {
+      results.push(...journals.map(j => ({
+        ...j,
+        type: 'journal',
+        content: j.entry_text
+      })));
+    }
 
-    return [...(documents || []), ...(journals || [])];
+    // Fetch conversation messages (if IDs are conversation IDs)
+    const { data: conversations, error: convsError } = await supabase
+      .from('conversations')
+      .select('id, title, mode, created_at')
+      .in('id', documentIds);
+
+    if (!convsError && conversations) {
+      // For each conversation, fetch recent messages
+      for (const conv of conversations) {
+        const { data: messages, error: msgsError } = await supabase
+          .from('messages')
+          .select('role, text, created_at')
+          .eq('chat_id', conv.id)
+          .order('created_at', { ascending: true })
+          .limit(20); // Last 20 messages
+
+        if (!msgsError && messages) {
+          const messageText = messages
+            .map(m => `${m.role}: ${m.text}`)
+            .join('\n\n');
+
+          results.push({
+            id: conv.id,
+            title: conv.title || 'Untitled Conversation',
+            mode: conv.mode,
+            created_at: conv.created_at,
+            type: 'conversation',
+            content: messageText,
+            message_count: messages.length
+          });
+        }
+      }
+    }
+
+    // Fetch reports
+    const { data: reports, error: reportsError } = await supabase
+      .from('report_logs')
+      .select('id, chat_id, report_type, report_text, created_at')
+      .in('id', documentIds);
+
+    if (!reportsError && reports) {
+      results.push(...reports.map(r => ({
+        ...r,
+        type: 'report',
+        content: r.report_text
+      })));
+    }
+
+    return results;
   } catch (err) {
     console.error('[FolderAI] Error fetching documents:', err);
     throw err;
@@ -453,7 +553,17 @@ ${folderMap.documents.map((doc, i) =>
 Journal Entries (${folderMap.journals.length}):
 ${folderMap.journals.map((j, i) => 
   `${i + 1}. [${j.id}] ${j.title || 'Untitled'} - Created: ${new Date(j.created_at).toLocaleDateString()}`
-).join('\n') || 'No journal entries'}`;
+).join('\n') || 'No journal entries'}
+
+Conversations (${folderMap.conversations.length}):
+${folderMap.conversations.map((c, i) => 
+  `${i + 1}. [${c.id}] ${c.title || 'Untitled'} (${c.mode || 'chat'}) - Created: ${new Date(c.created_at).toLocaleDateString()}`
+).join('\n') || 'No conversations'}
+
+Reports/Insights (${folderMap.reports.length}):
+${folderMap.reports.map((r, i) => 
+  `${i + 1}. [${r.id}] ${r.report_type || 'Insight'} - Created: ${new Date(r.created_at).toLocaleDateString()}`
+).join('\n') || 'No reports'}`;
 
     // Build Gemini messages array
     const geminiMessages: any[] = [];
@@ -473,9 +583,10 @@ ${folderMap.journals.map((j, i) =>
       role: 'user',
       parts: [{ text: `Here is the current folder map:\n\n${folderMapString}` }]
     });
+    const totalItems = folderMap.documents.length + folderMap.journals.length + folderMap.conversations.length + folderMap.reports.length;
     geminiMessages.push({
       role: 'model',
-      parts: [{ text: `I can see the folder contents. I'm ready to help you work with these ${folderMap.documents.length} documents and ${folderMap.journals.length} journal entries.` }]
+      parts: [{ text: `I can see the folder contents. I'm ready to help you work with ${totalItems} items: ${folderMap.documents.length} documents, ${folderMap.journals.length} journal entries, ${folderMap.conversations.length} conversations, and ${folderMap.reports.length} reports.` }]
     });
 
     // Add conversation history (if any)
