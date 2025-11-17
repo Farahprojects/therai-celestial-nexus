@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { FileText, Check, Edit, X, Loader2 } from 'lucide-react';
+import { FileText, Check, Edit, X, Loader2, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { saveDraft, updateDocumentContent, DraftDocument, DocumentUpdate } from '@/services/folder-ai';
+import { DocumentEditorModal } from './DocumentEditorModal';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
@@ -31,6 +32,10 @@ export const FolderAIDraftPreview: React.FC<FolderAIDraftPreviewProps> = ({
   const [isSaving, setIsSaving] = useState(false);
   const [isDiscarded, setIsDiscarded] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
+  const [showEditor, setShowEditor] = useState(false);
+  const [showFullPreview, setShowFullPreview] = useState(false);
+  const [editedTitle, setEditedTitle] = useState('');
+  const [editedContent, setEditedContent] = useState('');
 
   const isDraft = !!draft;
   const isUpdate = !!update;
@@ -82,10 +87,39 @@ export const FolderAIDraftPreview: React.FC<FolderAIDraftPreviewProps> = ({
   };
 
   const handleEdit = () => {
-    // For now, just show a message. In the future, this could open DocumentUploadModal
-    // with pre-filled content
-    toast.info('Edit functionality coming soon');
-    onEdited?.();
+    const title = isDraft ? draft!.title : 'Document Update';
+    const content = isDraft ? draft!.content : update!.content;
+    
+    setEditedTitle(title);
+    setEditedContent(content);
+    setShowEditor(true);
+  };
+
+  const handleSaveEdited = async (title: string, content: string) => {
+    setIsSaving(true);
+    try {
+      if (isDraft) {
+        // Save edited draft as new document
+        await saveDraft(folderId, userId, title, content, messageId);
+        toast.success('Document saved to folder');
+        setIsSaved(true);
+        onSaved?.();
+        onEdited?.();
+      } else if (isUpdate && update) {
+        // Apply edited update
+        await updateDocumentContent(update.documentId, content, update.changeType, messageId);
+        toast.success('Document updated');
+        setIsSaved(true);
+        onUpdated?.();
+        onEdited?.();
+      }
+    } catch (err: any) {
+      console.error('[FolderAIDraftPreview] Error saving edited:', err);
+      toast.error(err.message || 'Failed to save');
+      throw err; // Re-throw to keep modal open
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleDiscard = () => {
@@ -97,36 +131,52 @@ export const FolderAIDraftPreview: React.FC<FolderAIDraftPreviewProps> = ({
   const title = isDraft ? draft!.title : 'Document Update';
   const content = isDraft ? draft!.content : update!.content;
   const previewLength = 200;
-  const preview = content.length > previewLength 
-    ? content.substring(0, previewLength) + '...' 
-    : content;
+  const preview = showFullPreview 
+    ? content 
+    : (content.length > previewLength ? content.substring(0, previewLength) + '...' : content);
 
   return (
-    <div className="bg-white border-2 border-purple-200 rounded-xl overflow-hidden">
-      {/* Header */}
-      <div className="bg-purple-50 px-4 py-3 border-b border-purple-200">
-        <div className="flex items-center gap-2">
-          <FileText className="w-4 h-4 text-purple-600" />
-          <h3 className="text-sm font-medium text-purple-900">{title}</h3>
+    <>
+      <div className="bg-white border-2 border-purple-200 rounded-xl overflow-hidden">
+        {/* Header */}
+        <div className="bg-purple-50 px-4 py-3 border-b border-purple-200">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <FileText className="w-4 h-4 text-purple-600" />
+              <h3 className="text-sm font-medium text-purple-900">{title}</h3>
+            </div>
+            {/* View Full toggle */}
+            {content.length > previewLength && (
+              <button
+                onClick={() => setShowFullPreview(!showFullPreview)}
+                className="text-xs text-purple-600 hover:text-purple-700 flex items-center gap-1"
+              >
+                <Eye className="w-3 h-3" />
+                {showFullPreview ? 'Show less' : 'View full'}
+              </button>
+            )}
+          </div>
+          {isUpdate && update && (
+            <p className="text-xs text-purple-600 mt-1">
+              Change type: {update.changeType}
+            </p>
+          )}
         </div>
-        {isUpdate && update && (
-          <p className="text-xs text-purple-600 mt-1">
-            Change type: {update.changeType}
-          </p>
-        )}
-      </div>
 
-      {/* Content Preview */}
-      <div className="px-4 py-3 bg-gray-50">
-        <div className="text-sm text-gray-700 whitespace-pre-wrap font-mono text-xs max-h-32 overflow-y-auto">
-          {preview}
+        {/* Content Preview */}
+        <div className="px-4 py-3 bg-gray-50">
+          <div className={cn(
+            "text-sm text-gray-700 whitespace-pre-wrap font-mono text-xs overflow-y-auto",
+            showFullPreview ? "max-h-96" : "max-h-32"
+          )}>
+            {preview}
+          </div>
+          {content.length > previewLength && !showFullPreview && (
+            <p className="text-xs text-gray-500 mt-2">
+              {content.length} characters total
+            </p>
+          )}
         </div>
-        {content.length > previewLength && (
-          <p className="text-xs text-gray-500 mt-2">
-            {content.length} characters total
-          </p>
-        )}
-      </div>
 
       {/* Actions */}
       <div className="px-4 py-3 bg-white border-t border-purple-100 flex items-center gap-2">
@@ -168,6 +218,17 @@ export const FolderAIDraftPreview: React.FC<FolderAIDraftPreviewProps> = ({
         </Button>
       </div>
     </div>
+
+    {/* Editor Modal */}
+    <DocumentEditorModal
+      isOpen={showEditor}
+      onClose={() => setShowEditor(false)}
+      title={editedTitle}
+      content={editedContent}
+      onSave={handleSaveEdited}
+      mode={isDraft ? 'draft' : 'update'}
+    />
+  </>
   );
 };
 
