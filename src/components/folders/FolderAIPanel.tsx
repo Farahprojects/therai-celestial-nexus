@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { X, Send, Sparkles, FileText, BookOpen, Loader2, ChevronDown, ChevronUp, MessageSquare, BarChart3, SquarePen } from 'lucide-react';
+import { X, Send, Sparkles, FileText, BookOpen, Loader2, ChevronDown, ChevronUp, MessageSquare, BarChart3, SquarePen, Mic, ArrowRight } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -8,6 +8,7 @@ import { DraftDocument } from '@/services/folder-ai';
 import { clearFolderAIHistory } from '@/services/folder-ai';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import TextareaAutosize from 'react-textarea-autosize';
 
 interface FolderAIPanelProps {
   isOpen: boolean;
@@ -341,37 +342,64 @@ export const FolderAIPanel: React.FC<FolderAIPanelProps> = ({
           </div>
         </ScrollArea>
 
-        {/* Input Area - Apple Style with pill-shaped input */}
-        <div className="border-t border-gray-200/60 bg-white/80 backdrop-blur-xl px-4 py-3 shrink-0">
-          <div className="flex items-end gap-2">
+        {/* Input Area - Same as main chat */}
+        <div className="bg-white backdrop-blur-lg p-2 relative shrink-0" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0.5rem)' }}>
+          <div className="flex items-end gap-2 max-w-3xl mx-auto">
             <div className="flex-1 relative">
-              <textarea
+              <TextareaAutosize
                 ref={inputRef}
                 value={inputText}
                 onChange={(e) => setInputText(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder="Ask me anything..."
+                placeholder={isSending ? "Thinking..." : "Share your thoughts..."}
                 disabled={isSending}
-                rows={1}
-                className="w-full resize-none rounded-[20px] border-2 border-gray-300/80 px-4 py-2.5 text-[15px] font-normal focus:outline-none focus:ring-0 focus:border-[#007AFF] disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-50 transition-all"
-                style={{ minHeight: '40px', maxHeight: '120px', fontSize: '15px' }}
+                className={`w-full px-4 py-2.5 pr-24 text-base font-light bg-white border-2 rounded-3xl focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-400 resize-none text-black placeholder-gray-500 overflow-y-auto ${
+                  isSending
+                    ? 'border-gray-200 bg-gray-50 cursor-not-allowed' 
+                    : 'border-gray-300'
+                }`}
+                style={{ fontSize: '16px' }} // Prevents zoom on iOS
+                maxRows={4}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey && !isSending) {
+                    e.preventDefault();
+                    handleSend();
+                  }
+                }}
               />
+              <div className="absolute right-1 inset-y-0 flex items-center gap-1 z-10" style={{ transform: 'translateY(-4px) translateX(-4px)' }}>
+                <button 
+                  className={`mic-button w-8 h-8 transition-all duration-200 ease-in-out flex items-center justify-center ${
+                    isSending 
+                      ? 'text-gray-300 cursor-not-allowed' 
+                      : 'text-gray-500 hover:text-gray-900'
+                  }`}
+                  disabled={isSending}
+                  title="Voice input (coming soon)"
+                >
+                  <Mic className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={handleSend}
+                  disabled={isSending || !inputText.trim()}
+                  className={`w-8 h-8 rounded-full transition-all duration-200 flex items-center justify-center ${
+                    inputText.trim() && !isSending
+                      ? 'bg-black hover:bg-gray-800 text-white'
+                      : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                  }`}
+                  title="Send message"
+                >
+                  {isSending ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <ArrowRight className="w-4 h-4" />
+                  )}
+                </button>
+              </div>
             </div>
-            <button
-              onClick={handleSend}
-              disabled={!inputText.trim() || isSending}
-              className="w-9 h-9 rounded-full bg-[#007AFF] hover:bg-[#0051D5] disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center transition-all shrink-0"
-            >
-              {isSending ? (
-                <Loader2 className="w-4 h-4 animate-spin text-white" />
-              ) : (
-                <Send className="w-4 h-4 text-white" />
-              )}
-            </button>
           </div>
           
           {hasPendingDocumentRequest && (
-            <div className="mt-2 text-xs text-gray-600 font-medium">
+            <div className="mt-2 text-xs text-gray-600 font-medium text-center">
               Waiting for documents...
             </div>
           )}
