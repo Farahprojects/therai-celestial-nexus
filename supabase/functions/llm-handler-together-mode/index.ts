@@ -109,7 +109,7 @@ Deno.serve(async (req) => {
           role: "assistant",
           mode: "together",
           user_id,
-          user_name,
+          user_name: 'Therai',
           meta: {
             together_mode_analysis: true
           }

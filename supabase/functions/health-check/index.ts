@@ -83,7 +83,7 @@ Deno.serve(async (req) => {
     }).single();
 
     if (!error && data) {
-      databaseSizeGB = data / (1024 * 1024 * 1024); // Convert bytes to GB
+      databaseSizeGB = Number(data) / (1024 * 1024 * 1024); // Convert bytes to GB
     } else {
       // Fallback: estimate from table sizes
       const { data: tableData } = await supabase

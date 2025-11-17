@@ -700,7 +700,7 @@ async function checkAndProcessInactiveBuffers(chat_id: string, user_id: string |
     const { data: needsProcessing } = await supabase
       .rpc('get_conversations_needing_buffer_processing', { inactivity_minutes: 10 })
       .eq('conversation_id', chat_id)
-      .maybeSingle();
+      .maybeSingle() as { data: { pending_count?: number; minutes_since_activity?: number } | null };
 
     if (!needsProcessing || !needsProcessing.pending_count) {
       console.info(JSON.stringify({

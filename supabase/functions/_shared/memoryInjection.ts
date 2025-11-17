@@ -30,7 +30,7 @@ export async function fetchAndFormatMemories(
 ): Promise<MemoryResult> {
   try {
     // Use cache to avoid repeated memory fetches (2 minute TTL)
-    return await queryCache.get(
+    const result = await queryCache.get(
       `memories:${chatId}`,
       2 * 60 * 1000, // 2 minutes
       async () => {
@@ -63,7 +63,7 @@ export async function fetchAndFormatMemories(
         // Score and rank memories
         const now = Date.now();
         const scoredMemories = memories.map(m => {
-          const typeWeight = TYPE_WEIGHTS[m.memory_type] || 0.5;
+          const typeWeight = TYPE_WEIGHTS[m.memory_type as keyof typeof TYPE_WEIGHTS] || 0.5;
           const recencyFactor = 1 / (1 + (now - new Date(m.created_at).getTime()) / (1000 * 60 * 60 * 24 * 30));
           const usageBoost = 1 + Math.log(1 + m.reference_count);
           
@@ -82,6 +82,8 @@ export async function fetchAndFormatMemories(
         return { memoryContext, memoryIds };
       }
     );
+    
+    return result || { memoryContext: '', memoryIds: [] };
   } catch (error) {
     console.error('[memoryInjection] Error fetching memories:', error);
     return { memoryContext: '', memoryIds: [] };
