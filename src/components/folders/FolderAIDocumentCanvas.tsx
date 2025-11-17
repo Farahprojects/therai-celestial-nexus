@@ -66,7 +66,7 @@ export const FolderAIDocumentCanvas: React.FC<FolderAIDocumentCanvasProps> = ({
         {/* Header - Apple Style */}
         <div className="flex items-center justify-between px-6 py-3.5 border-b border-gray-200/80 bg-white/80 backdrop-blur-xl shrink-0">
           <div className="flex items-center gap-2.5 flex-1 min-w-0">
-            <FileText className="w-5 h-5 text-[#007AFF] shrink-0" />
+            <FileText className="w-5 h-5 text-gray-700 shrink-0" />
             {isEditing ? (
               <input
                 type="text"
@@ -96,7 +96,7 @@ export const FolderAIDocumentCanvas: React.FC<FolderAIDocumentCanvasProps> = ({
               className={cn(
                 "px-3 py-1 rounded-full text-[13px] font-semibold transition-all",
                 !isEditing 
-                  ? "bg-white text-[#007AFF] shadow-sm" 
+                  ? "bg-white text-gray-900 shadow-sm" 
                   : "text-gray-600 hover:text-gray-900"
               )}
             >
@@ -107,7 +107,7 @@ export const FolderAIDocumentCanvas: React.FC<FolderAIDocumentCanvasProps> = ({
               className={cn(
                 "px-3 py-1 rounded-full text-[13px] font-semibold transition-all",
                 isEditing 
-                  ? "bg-white text-[#007AFF] shadow-sm" 
+                  ? "bg-white text-gray-900 shadow-sm" 
                   : "text-gray-600 hover:text-gray-900"
               )}
             >
@@ -126,7 +126,7 @@ export const FolderAIDocumentCanvas: React.FC<FolderAIDocumentCanvasProps> = ({
               <Textarea
                 value={editedContent}
                 onChange={(e) => setEditedContent(e.target.value)}
-                className="min-h-[600px] font-mono text-[15px] resize-none border-2 border-gray-200/80 focus:border-[#007AFF] focus:ring-0 rounded-2xl p-4"
+                className="min-h-[600px] font-mono text-[15px] resize-none border-2 border-gray-200/80 focus:border-gray-400 focus:ring-0 rounded-2xl p-4"
                 placeholder="Document content..."
               />
             ) : (
@@ -149,7 +149,7 @@ export const FolderAIDocumentCanvas: React.FC<FolderAIDocumentCanvasProps> = ({
           <button
             onClick={handleSave}
             disabled={isSaving || !editedTitle.trim() || !editedContent.trim()}
-            className="flex-1 rounded-full px-5 py-2.5 text-[15px] font-semibold text-white bg-[#007AFF] hover:bg-[#0051D5] transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            className="flex-1 rounded-full px-5 py-2.5 text-[15px] font-semibold text-white bg-black hover:bg-gray-800 transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
             <Save className="w-4 h-4" />
             {isSaving ? 'Saving...' : 'Save'}

@@ -148,7 +148,7 @@ export const FolderAIPanel: React.FC<FolderAIPanelProps> = ({
         {/* Header - Apple Style */}
         <SheetHeader className="flex flex-row items-center justify-between px-6 py-3.5 border-b border-gray-200/80 bg-white/80 backdrop-blur-xl shrink-0">
           <div className="flex items-center gap-2.5">
-            <Sparkles className="w-5 h-5 text-[#007AFF]" />
+            <Sparkles className="w-5 h-5 text-gray-700" />
             <SheetTitle className="text-[17px] font-semibold text-gray-900 tracking-tight">Folder AI</SheetTitle>
           </div>
           <div className="flex items-center gap-1.5">
@@ -159,8 +159,8 @@ export const FolderAIPanel: React.FC<FolderAIPanelProps> = ({
               className="px-3 py-1.5 hover:bg-gray-100/80 rounded-full transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5"
               title="Start new conversation"
             >
-              <SquarePen className="w-3.5 h-3.5 text-[#007AFF]" />
-              <span className="text-[13px] font-medium text-[#007AFF]">New</span>
+              <SquarePen className="w-3.5 h-3.5 text-gray-700" />
+              <span className="text-[13px] font-medium text-gray-700">New</span>
             </button>
             {/* Close Button - Pill shaped */}
             <button
@@ -200,7 +200,7 @@ export const FolderAIPanel: React.FC<FolderAIPanelProps> = ({
                 {folderContext.documents.length > 0 && (
                   <div>
                     <div className="flex items-center gap-2 mb-1.5">
-                      <FileText className="w-3.5 h-3.5 text-[#007AFF]" />
+                      <FileText className="w-3.5 h-3.5 text-gray-600" />
                       <span className="text-[11px] font-semibold text-gray-700 uppercase tracking-wide">Documents</span>
                     </div>
                     <div className="space-y-0.5">
@@ -222,7 +222,7 @@ export const FolderAIPanel: React.FC<FolderAIPanelProps> = ({
                 {folderContext.journals.length > 0 && (
                   <div>
                     <div className="flex items-center gap-2 mb-1.5">
-                      <BookOpen className="w-3.5 h-3.5 text-[#007AFF]" />
+                      <BookOpen className="w-3.5 h-3.5 text-gray-600" />
                       <span className="text-[11px] font-semibold text-gray-700 uppercase tracking-wide">Journals</span>
                     </div>
                     <div className="space-y-0.5">
@@ -244,7 +244,7 @@ export const FolderAIPanel: React.FC<FolderAIPanelProps> = ({
                 {folderContext.conversations.length > 0 && (
                   <div>
                     <div className="flex items-center gap-2 mb-1.5">
-                      <MessageSquare className="w-3.5 h-3.5 text-[#007AFF]" />
+                      <MessageSquare className="w-3.5 h-3.5 text-gray-600" />
                       <span className="text-[11px] font-semibold text-gray-700 uppercase tracking-wide">Chats</span>
                     </div>
                     <div className="space-y-0.5">
@@ -266,7 +266,7 @@ export const FolderAIPanel: React.FC<FolderAIPanelProps> = ({
                 {folderContext.reports.length > 0 && (
                   <div>
                     <div className="flex items-center gap-2 mb-1.5">
-                      <BarChart3 className="w-3.5 h-3.5 text-[#007AFF]" />
+                      <BarChart3 className="w-3.5 h-3.5 text-gray-600" />
                       <span className="text-[11px] font-semibold text-gray-700 uppercase tracking-wide">Reports</span>
                     </div>
                     <div className="space-y-0.5">
@@ -323,8 +323,8 @@ export const FolderAIPanel: React.FC<FolderAIPanelProps> = ({
             {/* Sending indicator - Apple style */}
             {isSending && (
               <div className="flex items-start gap-3">
-                <div className="w-7 h-7 rounded-full bg-[#007AFF]/10 flex items-center justify-center shrink-0 mt-1">
-                  <Sparkles className="w-3.5 h-3.5 text-[#007AFF]" />
+                <div className="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center shrink-0 mt-1">
+                  <Sparkles className="w-3.5 h-3.5 text-gray-600" />
                 </div>
                 <div className="flex items-center gap-2">
                   <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
@@ -437,8 +437,8 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
   return (
     <div className={cn('flex items-start gap-3', isUser && 'flex-row-reverse justify-start')}>
       {!isUser && (
-        <div className="w-7 h-7 rounded-full bg-[#007AFF]/10 flex items-center justify-center shrink-0 mt-1">
-          <Sparkles className="w-3.5 h-3.5 text-[#007AFF]" />
+        <div className="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center shrink-0 mt-1">
+          <Sparkles className="w-3.5 h-3.5 text-gray-600" />
         </div>
       )}
       
@@ -463,9 +463,9 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
 
         {/* Draft indicator - Apple style */}
         {message.draft && !isUser && (
-          <div className="rounded-2xl bg-[#007AFF]/5 border border-[#007AFF]/20 px-4 py-3">
+          <div className="rounded-2xl bg-gray-50 border border-gray-200 px-4 py-3">
             <div className="flex items-center gap-2">
-              <FileText className="w-4 h-4 text-[#007AFF]" />
+              <FileText className="w-4 h-4 text-gray-600" />
               <span className="text-[13px] font-semibold text-gray-900">{message.draft.title}</span>
             </div>
             <p className="text-xs text-gray-600 mt-1 font-medium">
@@ -476,9 +476,9 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
 
         {/* Update indicator - Apple style */}
         {message.update && !isUser && (
-          <div className="rounded-2xl bg-[#007AFF]/5 border border-[#007AFF]/20 px-4 py-3">
+          <div className="rounded-2xl bg-gray-50 border border-gray-200 px-4 py-3">
             <div className="flex items-center gap-2">
-              <FileText className="w-4 h-4 text-[#007AFF]" />
+              <FileText className="w-4 h-4 text-gray-600" />
               <span className="text-[13px] font-semibold text-gray-900">Proposed Update</span>
             </div>
             <p className="text-xs text-gray-600 mt-1 font-medium">
