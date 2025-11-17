@@ -4,8 +4,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sh
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useFolderAI, ParsedMessage } from '@/hooks/useFolderAI';
-import { FolderAIDocumentCanvas } from './FolderAIDocumentCanvas';
-import { saveDocumentDraft, DraftDocument } from '@/services/folder-ai';
+import { DraftDocument } from '@/services/folder-ai';
 import { clearFolderAIHistory } from '@/services/folder-ai';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -18,6 +17,9 @@ interface FolderAIPanelProps {
   folderName: string;
   onDocumentCreated?: () => void;
   onDocumentUpdated?: () => void;
+  currentDraft: DraftDocument | null;
+  onDraftChange: (draft: DraftDocument | null) => void;
+  onOpenDocumentCanvas: () => void;
 }
 
 export const FolderAIPanel: React.FC<FolderAIPanelProps> = ({
@@ -27,13 +29,13 @@ export const FolderAIPanel: React.FC<FolderAIPanelProps> = ({
   userId,
   folderName,
   onDocumentCreated,
-  onDocumentUpdated
+  onDocumentUpdated,
+  currentDraft,
+  onDraftChange,
+  onOpenDocumentCanvas
 }) => {
   const [inputText, setInputText] = useState('');
   const [showFolderMap, setShowFolderMap] = useState(false);
-  const [showDocumentCanvas, setShowDocumentCanvas] = useState(false);
-  const [currentDraft, setCurrentDraft] = useState<DraftDocument | null>(null);
-  const [isSavingDraft, setIsSavingDraft] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -88,24 +90,6 @@ export const FolderAIPanel: React.FC<FolderAIPanelProps> = ({
     }
   };
 
-  const handleSaveDraft = async (title: string, content: string) => {
-    if (!folderId || !userId) return;
-
-    try {
-      setIsSavingDraft(true);
-      await saveDocumentDraft(folderId, userId, title, content);
-      toast.success('Document saved to folder');
-      refreshContext();
-      onDocumentCreated?.();
-      setShowDocumentCanvas(false);
-      setCurrentDraft(null);
-    } catch (err: any) {
-      console.error('[FolderAIPanel] Error saving draft:', err);
-      toast.error('Failed to save document');
-    } finally {
-      setIsSavingDraft(false);
-    }
-  };
 
   const handleNewChat = async () => {
     if (!folderId) return;
@@ -115,8 +99,7 @@ export const FolderAIPanel: React.FC<FolderAIPanelProps> = ({
       // Reload messages (will be empty now)
       await loadMessages();
       // Close document canvas if open
-      setShowDocumentCanvas(false);
-      setCurrentDraft(null);
+      onDraftChange(null);
       toast.success('New conversation started');
     } catch (err: any) {
       console.error('[FolderAIPanel] Error clearing history:', err);
@@ -132,11 +115,11 @@ export const FolderAIPanel: React.FC<FolderAIPanelProps> = ({
       .reverse()
       .find(msg => msg.role === 'assistant' && msg.draft);
 
-    if (recentDraftMessage?.draft && !showDocumentCanvas) {
-      setCurrentDraft(recentDraftMessage.draft);
-      setShowDocumentCanvas(true);
+    if (recentDraftMessage?.draft && !currentDraft) {
+      onDraftChange(recentDraftMessage.draft);
+      onOpenDocumentCanvas();
     }
-  }, [messages, showDocumentCanvas]);
+  }, [messages, currentDraft, onDraftChange, onOpenDocumentCanvas]);
 
   // Get initial greeting message
   const getGreetingMessage = (): string => {
@@ -393,18 +376,6 @@ export const FolderAIPanel: React.FC<FolderAIPanelProps> = ({
           )}
         </div>
       </SheetContent>
-
-      {/* Document Canvas - opens on left */}
-      <FolderAIDocumentCanvas
-        isOpen={showDocumentCanvas}
-        onClose={() => {
-          setShowDocumentCanvas(false);
-          setCurrentDraft(null);
-        }}
-        draft={currentDraft}
-        onSave={handleSaveDraft}
-        isSaving={isSavingDraft}
-      />
     </Sheet>
   );
 };
