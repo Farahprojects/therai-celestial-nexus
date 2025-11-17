@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { getFolderConversations, getUserFolders, getSharedFolder, moveConversationToFolder, getFolderWithProfile } from '@/services/folders';
 import { getJournalEntries, JournalEntry, updateJournalEntry, deleteJournalEntry } from '@/services/journal';
-import { MoreHorizontal, Folder, HelpCircle, Sparkles, Share2 } from 'lucide-react';
+import { getDocuments, deleteDocument, FolderDocument } from '@/services/folder-documents';
+import { MoreHorizontal, Folder, HelpCircle, Sparkles, Share2, File, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useChatStore } from '@/core/store';
 import { useAuth } from '@/contexts/AuthContext';
@@ -21,6 +22,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { ShareConversationModal } from '@/components/chat/ShareConversationModal';
 import { ShareFolderModal } from '@/components/folders/ShareFolderModal';
 import { AstroDataForm } from '@/components/chat/AstroDataForm';
+import { ReportSlideOver } from '@/components/public-report/ReportSlideOver';
+import { FolderAIPanel } from '@/components/folders/FolderAIPanel';
 import { toast } from 'sonner';
 
 interface FolderViewProps {
@@ -39,6 +42,7 @@ export const FolderView: React.FC<FolderViewProps> = ({
 }) => {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [journals, setJournals] = useState<JournalEntry[]>([]);
+  const [documents, setDocuments] = useState<FolderDocument[]>([]);
   const [folderName, setFolderName] = useState<string>('');
   const [folderProfileId, setFolderProfileId] = useState<string | null>(null);
   const [folderProfile, setFolderProfile] = useState<any | null>(null);
@@ -74,6 +78,14 @@ export const FolderView: React.FC<FolderViewProps> = ({
   const [isSavingJournal, setIsSavingJournal] = useState(false);
   const [showDeleteJournalDialog, setShowDeleteJournalDialog] = useState(false);
   const [deletingJournalId, setDeletingJournalId] = useState<string | null>(null);
+  // Document delete states
+  const [showDeleteDocumentDialog, setShowDeleteDocumentDialog] = useState(false);
+  const [deletingDocumentId, setDeletingDocumentId] = useState<string | null>(null);
+  // Document viewer state
+  const [viewingDocumentId, setViewingDocumentId] = useState<string | null>(null);
+  const [editingDocumentId, setEditingDocumentId] = useState<string | null>(null);
+  // Folder AI state
+  const [showFolderAI, setShowFolderAI] = useState(false);
   const navigate = useNavigate();
   const {
     user
@@ -93,7 +105,7 @@ export const FolderView: React.FC<FolderViewProps> = ({
       // Try to load folder - works for authenticated users
       if (user?.id) {
         try {
-          const [folderWithProfile, userFolders, conversationsData, journalsData] = await Promise.all([getFolderWithProfile(folderId), getUserFolders(user.id), getFolderConversations(folderId), getJournalEntries(folderId)]);
+          const [folderWithProfile, userFolders, conversationsData, journalsData, documentsData] = await Promise.all([getFolderWithProfile(folderId), getUserFolders(user.id), getFolderConversations(folderId), getJournalEntries(folderId), getDocuments(folderId)]);
           const folder = userFolders.find(f => f.id === folderId);
           if (folder) {
             setFolderName(folderWithProfile.folder.name);
@@ -102,6 +114,7 @@ export const FolderView: React.FC<FolderViewProps> = ({
             setFolderProfile(folderWithProfile.profile || null);
             setConversations(conversationsData);
             setJournals(journalsData);
+            setDocuments(documentsData);
 
             // Also load all folders for move to folder menu
             setFolders(userFolders.map(f => ({
@@ -149,9 +162,6 @@ export const FolderView: React.FC<FolderViewProps> = ({
     loadFolderData();
   }, [loadFolderData]);
   const handleChatClick = (conversation: Conversation) => {
-    // Switch to chat view
-    setViewMode('chat');
-
     // Handle swiss conversations differently
     if (conversation.mode === 'swiss') {
       navigate(`/astro?chat_id=${conversation.id}`, {
@@ -161,6 +171,7 @@ export const FolderView: React.FC<FolderViewProps> = ({
     }
 
     // For regular conversations, use standard navigation
+    // Note: onChatClick will handle view mode and navigation correctly
     startConversation(conversation.id);
     onChatClick(conversation.id);
   };
@@ -298,6 +309,44 @@ export const FolderView: React.FC<FolderViewProps> = ({
     setJournals(prev => [entry, ...prev]);
   };
 
+  // Document handlers
+  const handleDocumentUploaded = async () => {
+    // Reload documents after upload
+    try {
+      const documentsData = await getDocuments(folderId);
+      setDocuments(documentsData);
+    } catch (err) {
+      console.error('[FolderView] Failed to reload documents:', err);
+    }
+  };
+
+  const handleRequestDeleteDocument = (documentId: string) => {
+    setDeletingDocumentId(documentId);
+    setShowDeleteDocumentDialog(true);
+  };
+
+  const handleConfirmDeleteDocument = async () => {
+    if (!deletingDocumentId) return;
+    try {
+      await deleteDocument(deletingDocumentId);
+      setDocuments(prev => prev.filter(d => d.id !== deletingDocumentId));
+      setShowDeleteDocumentDialog(false);
+      setDeletingDocumentId(null);
+      toast.success('Document deleted');
+    } catch (err) {
+      console.error('[FolderView] Failed to delete document:', err);
+      toast.error('Failed to delete document');
+    }
+  };
+
+  const formatFileSize = (bytes: number): string => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+  };
+
   // Journal handlers
   const handleOpenEditJournal = (journal: JournalEntry) => {
     setEditingJournal(journal);
@@ -375,6 +424,41 @@ export const FolderView: React.FC<FolderViewProps> = ({
       if (payload.old?.id) {
         removeConversationById(payload.old.id);
       }
+    }).on('postgres_changes', {
+      event: 'INSERT',
+      schema: 'public',
+      table: 'folder_documents',
+      filter: `folder_id=eq.${folderId}`
+    }, async () => {
+      // Reload documents when new one is added
+      try {
+        const documentsData = await getDocuments(folderId);
+        setDocuments(documentsData);
+      } catch (err) {
+        console.error('[FolderView] Failed to reload documents:', err);
+      }
+    }).on('postgres_changes', {
+      event: 'UPDATE',
+      schema: 'public',
+      table: 'folder_documents',
+      filter: `folder_id=eq.${folderId}`
+    }, async () => {
+      // Reload documents when one is updated
+      try {
+        const documentsData = await getDocuments(folderId);
+        setDocuments(documentsData);
+      } catch (err) {
+        console.error('[FolderView] Failed to reload documents:', err);
+      }
+    }).on('postgres_changes', {
+      event: 'DELETE',
+      schema: 'public',
+      table: 'folder_documents',
+      filter: `folder_id=eq.${folderId}`
+    }, payload => {
+      if (payload.old?.id) {
+        setDocuments(prev => prev.filter(d => d.id !== payload.old.id));
+      }
     }).subscribe();
     return () => {
       supabase.removeChannel(channel);
@@ -444,6 +528,14 @@ export const FolderView: React.FC<FolderViewProps> = ({
             <span>{folderName}</span>
           </div>
           {user && <div className="flex items-center gap-2">
+              {/* Folder AI Button */}
+              <button 
+                onClick={() => setShowFolderAI(true)} 
+                className="p-2 hover:bg-purple-100 rounded-full transition-colors" 
+                title="Open Folder AI"
+              >
+                <Sparkles className="w-4 h-4 text-purple-600" />
+              </button>
               <button onClick={() => setShowFolderShareModal(true)} className="p-2 hover:bg-gray-100 rounded-full transition-colors" title="Share folder">
                 <Share2 className="w-4 h-4 text-gray-500" />
               </button>
@@ -472,48 +564,184 @@ export const FolderView: React.FC<FolderViewProps> = ({
           <FolderProfileSetup folderId={folderId} folderName={folderName} onProfileLinked={handleProfileLinked} />
         </div>}
 
-      {/* Journal Entries Section */}
-      {journals.length > 0 && <div className="px-6 py-4">
+      {/* Journal Entries Section - styled to align with conversations list */}
+      {journals.length > 0 && (
+        <div className="px-6 py-4">
           <div className="w-full max-w-2xl mx-auto">
-            
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-xs font-medium tracking-wide text-gray-500 uppercase">
+                Journal
+              </p>
+            </div>
+
             <div className="flex flex-col space-y-2">
-              {journals.map(journal => <div key={journal.id} className="py-2">
-                  <div className="flex items-start gap-3">
-                    <div className="flex-1">
-                      {!!journal.title && <p className="text-sm font-light text-gray-900 mb-1">
-                          {journal.title}
-                        </p>}
-                      <p className="text-sm font-light text-gray-900 mb-1">
-                        {journal.entry_text}
+              {journals.map(journal => (
+                <div
+                  key={journal.id}
+                  className="flex items-start justify-between gap-4 py-3 px-4 rounded-2xl hover:bg-gray-50 transition-colors group"
+                >
+                  <div className="flex-1 min-w-0">
+                    {!!journal.title && (
+                      <p className="text-sm font-light text-gray-900 mb-0.5 truncate">
+                        {journal.title}
                       </p>
-                      <p className="text-xs font-light text-gray-500">
-                        {new Date(journal.created_at).toLocaleDateString()}
-                      </p>
-                    </div>
-                    {user && <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <button className="p-1 hover:bg-gray-100 rounded transition-colors" aria-label="Journal actions">
-                            <MoreHorizontal className="w-4 h-4 text-gray-600" />
-                          </button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-40">
-                          <button className="w-full text-left" onClick={() => handleOpenEditJournal(journal)}>
-                            <div className="px-2 py-1.5 text-sm hover:bg-gray-100 rounded">
-                              Edit
-                            </div>
-                          </button>
-                          <button className="w-full text-left" onClick={() => handleRequestDeleteJournal(journal.id)}>
-                            <div className="px-2 py-1.5 text-sm text-red-600 hover:bg-gray-100 rounded">
-                              Delete
-                            </div>
-                          </button>
-                        </DropdownMenuContent>
-                      </DropdownMenu>}
+                    )}
+                    <p className="text-sm font-light text-gray-900 mb-0.5">
+                      {journal.entry_text}
+                    </p>
+                    <p className="text-xs font-light text-gray-500">
+                      {new Date(journal.created_at).toLocaleDateString()}
+                    </p>
                   </div>
-                </div>)}
+
+                  {user && (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button
+                          className="p-1 hover:bg-gray-100 rounded transition-colors"
+                          aria-label="Journal actions"
+                        >
+                          <MoreHorizontal className="w-4 h-4 text-gray-600" />
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-40">
+                        <button
+                          className="w-full text-left"
+                          onClick={() => handleOpenEditJournal(journal)}
+                        >
+                          <div className="px-2 py-1.5 text-sm hover:bg-gray-100 rounded">
+                            Edit
+                          </div>
+                        </button>
+                        <button
+                          className="w-full text-left"
+                          onClick={() => handleRequestDeleteJournal(journal.id)}
+                        >
+                          <div className="px-2 py-1.5 text-sm text-red-600 hover:bg-gray-100 rounded">
+                            Delete
+                          </div>
+                        </button>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  )}
+                </div>
+              ))}
             </div>
           </div>
-        </div>}
+        </div>
+      )}
+
+      {/* Documents Section - styled to align with journals and conversations */}
+      {documents.length > 0 && (
+        <div className="px-6 py-4">
+          <div className="w-full max-w-2xl mx-auto">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-xs font-medium tracking-wide text-gray-500 uppercase">
+                Documents
+              </p>
+            </div>
+
+            <div className="flex flex-col space-y-2">
+              {documents.map(document => (
+                <div
+                  key={document.id}
+                  className="flex items-center justify-between gap-4 py-3 px-4 rounded-2xl hover:bg-gray-50 transition-colors group"
+                >
+                  <div 
+                    className="flex items-center gap-3 flex-1 min-w-0 cursor-pointer"
+                    onClick={() => setViewingDocumentId(document.id)}
+                  >
+                    <File className="w-5 h-5 text-gray-400 flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-light text-gray-900 truncate">
+                        {document.file_name}
+                      </p>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <p className="text-xs font-light text-gray-500">
+                          {new Date(document.created_at).toLocaleDateString()}
+                        </p>
+                        <span className="text-xs text-gray-400">•</span>
+                        <p className="text-xs font-light text-gray-500">
+                          {formatFileSize(document.file_size)}
+                        </p>
+                        {document.upload_status === 'completed' && (
+                          <>
+                            <span className="text-xs text-gray-400">•</span>
+                            <span className="text-xs text-green-600">Uploaded</span>
+                          </>
+                        )}
+                        {document.upload_status === 'pending' && (
+                          <>
+                            <span className="text-xs text-gray-400">•</span>
+                            <span className="text-xs text-yellow-600">Processing</span>
+                          </>
+                        )}
+                        {document.upload_status === 'failed' && (
+                          <>
+                            <span className="text-xs text-gray-400">•</span>
+                            <span className="text-xs text-red-600">Failed</span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {user && (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button
+                          className="p-1 hover:bg-gray-100 rounded transition-colors opacity-0 group-hover:opacity-100"
+                          aria-label="Document actions"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <MoreHorizontal className="w-4 h-4 text-gray-600" />
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-40">
+                        <button
+                          className="w-full text-left"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setViewingDocumentId(document.id);
+                            setEditingDocumentId(null);
+                          }}
+                        >
+                          <div className="px-2 py-1.5 text-sm hover:bg-gray-100 rounded">
+                            View
+                          </div>
+                        </button>
+                        <button
+                          className="w-full text-left"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setViewingDocumentId(document.id);
+                            setEditingDocumentId(document.id);
+                          }}
+                        >
+                          <div className="px-2 py-1.5 text-sm hover:bg-gray-100 rounded">
+                            Edit
+                          </div>
+                        </button>
+                        <button
+                          className="w-full text-left"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleRequestDeleteDocument(document.id);
+                          }}
+                        >
+                          <div className="px-2 py-1.5 text-sm text-red-600 hover:bg-gray-100 rounded">
+                            Delete
+                          </div>
+                        </button>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Conversations List */}
       <div className="flex-1 overflow-y-auto">
@@ -646,6 +874,25 @@ export const FolderView: React.FC<FolderViewProps> = ({
           </div>
         </div>}
 
+      {/* Delete Document Confirmation Dialog */}
+      {showDeleteDocumentDialog && <div className="fixed inset-0 flex items-center justify-center z-50 p-6 bg-black/10 backdrop-blur-sm">
+          <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-md">
+            <h3 className="text-lg font-medium text-gray-900 mb-2">Delete Document</h3>
+            <p className="text-gray-600 mb-4">Are you sure you want to delete this document? This action cannot be undone.</p>
+            <div className="flex justify-end gap-2">
+              <button onClick={() => {
+            setShowDeleteDocumentDialog(false);
+            setDeletingDocumentId(null);
+          }} className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-full transition-colors">
+                Cancel
+              </button>
+              <button onClick={handleConfirmDeleteDocument} className="px-4 py-2 bg-red-600 text-white rounded-full hover:bg-red-700 transition-colors">
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>}
+
       {/* Folder Modal for Create New Folder */}
       {showFolderModal && <FolderModal isOpen={showFolderModal} onClose={() => {
       setShowFolderModal(false);
@@ -656,7 +903,7 @@ export const FolderView: React.FC<FolderViewProps> = ({
       {user && <JournalEntryModal isOpen={showJournalModal} onClose={() => setShowJournalModal(false)} folderId={folderId} userId={user.id} onEntrySaved={handleJournalSaved} />}
 
       {/* Document Upload Modal */}
-      {user && <DocumentUploadModal isOpen={showUploadModal} onClose={() => setShowUploadModal(false)} folderId={folderId} userId={user.id} />}
+      {user && <DocumentUploadModal isOpen={showUploadModal} onClose={() => setShowUploadModal(false)} folderId={folderId} userId={user.id} onUploadComplete={handleDocumentUploaded} />}
 
       {/* Insights Modal */}
       <InsightsModal isOpen={showInsightsModal} onClose={() => setShowInsightsModal(false)} folderId={folderId} profileData={folderProfile} onReportReady={loadFolderData} onReportCreated={conversation => {
@@ -695,6 +942,30 @@ export const FolderView: React.FC<FolderViewProps> = ({
         </div>
       )}
 
+      {/* Document Viewer Slide-Over */}
+      <ReportSlideOver
+        isOpen={!!viewingDocumentId}
+        onClose={() => {
+          setViewingDocumentId(null);
+          setEditingDocumentId(null);
+        }}
+        documentId={viewingDocumentId || undefined}
+        documentEditMode={editingDocumentId === viewingDocumentId}
+      />
+
+      {/* Folder AI Panel */}
+      {user && (
+        <FolderAIPanel
+          isOpen={showFolderAI}
+          onClose={() => setShowFolderAI(false)}
+          folderId={folderId}
+          userId={user.id}
+          folderName={folderName}
+          onDocumentCreated={handleDocumentUploaded}
+          onDocumentUpdated={handleDocumentUploaded}
+        />
+      )}
+
       {/* Help Dialog */}
       <Dialog open={showHelpDialog} onOpenChange={setShowHelpDialog}>
         <DialogContent className="sm:max-w-lg">
@@ -702,6 +973,10 @@ export const FolderView: React.FC<FolderViewProps> = ({
             <DialogTitle className="font-light">Folder Features</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4 text-sm font-light text-gray-700">
+            <div>
+              <h4 className="font-normal text-gray-900 mb-1">Folder AI</h4>
+              <p>Your AI knowledge worker. Ask it to analyze documents, create summaries, or generate new content based on your folder's data.</p>
+            </div>
             <div>
               <h4 className="font-normal text-gray-900 mb-1">Journal Entries</h4>
               <p>Quick notes and reflections saved to this folder. Use the mic button for voice-to-text.</p>
