@@ -21,6 +21,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { ShareConversationModal } from '@/components/chat/ShareConversationModal';
 import { ShareFolderModal } from '@/components/folders/ShareFolderModal';
 import { AstroDataForm } from '@/components/chat/AstroDataForm';
+import { useReportModal } from '@/contexts/ReportModalContext';
 import { toast } from 'sonner';
 import { useReportModal } from '@/contexts/ReportModalContext';
 
