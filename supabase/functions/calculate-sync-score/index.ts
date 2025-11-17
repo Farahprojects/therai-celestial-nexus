@@ -258,7 +258,9 @@ Remember: Viral memes are SHORT, FUNNY, and PERFECTLY EXECUTED. Quality over com
   
   return {
     caption: memeCaption,
-    imagePrompt: parsed.imagePrompt
+    imagePrompt: parsed.imagePrompt,
+    personA: { name: personAName, gender: 'unknown' },
+    personB: { name: personBName, gender: 'unknown' }
   };
 }
 
@@ -423,7 +425,7 @@ function storeMemeMetadataAsync(chat_id: string, memeData: MemeData): void {
         console.log('[Metadata] ✓ Stored');
       }
     })
-    .catch((error) => {
+    .catch((error: unknown) => {
       console.error('[Metadata] Error:', error);
     });
 }
@@ -576,7 +578,7 @@ Deno.serve(async (req) => {
     
     return new Response(
       JSON.stringify({ 
-        error: error.message || "Internal server error",
+        error: error instanceof Error ? error.message : "Internal server error",
         processing_time_ms: duration
       }),
       { status: 500, headers: corsHeaders }
