@@ -429,8 +429,8 @@ export function parseAIResponse(text: string): {
   let update: DocumentUpdate | undefined;
   let requestDocuments: { ids: string[]; reason: string } | undefined;
 
-  // Parse draft_document tags
-  const draftMatch = text.match(/<draft_document>\s*<title>(.*?)<\/title>\s*<content>([\s\S]*?)<\/content>\s*<\/draft_document>/);
+  // Parse draft_document tags - robust multiline matching
+  const draftMatch = text.match(/<draft_document>[\s\S]*?<title>([\s\S]*?)<\/title>[\s\S]*?<content>([\s\S]*?)<\/content>[\s\S]*?<\/draft_document>/);
   if (draftMatch) {
     draft = {
       title: draftMatch[1].trim(),
@@ -439,8 +439,8 @@ export function parseAIResponse(text: string): {
     plainText = plainText.replace(draftMatch[0], '').trim();
   }
 
-  // Parse propose_update tags
-  const updateMatch = text.match(/<propose_update>\s*<document_id>(.*?)<\/document_id>\s*<change_type>(.*?)<\/change_type>\s*<content>([\s\S]*?)<\/content>\s*<\/propose_update>/);
+  // Parse propose_update tags - robust multiline matching
+  const updateMatch = text.match(/<propose_update>[\s\S]*?<document_id>([\s\S]*?)<\/document_id>[\s\S]*?<change_type>([\s\S]*?)<\/change_type>[\s\S]*?<content>([\s\S]*?)<\/content>[\s\S]*?<\/propose_update>/);
   if (updateMatch) {
     update = {
       documentId: updateMatch[1].trim(),
@@ -450,8 +450,8 @@ export function parseAIResponse(text: string): {
     plainText = plainText.replace(updateMatch[0], '').trim();
   }
 
-  // Parse request_documents tags
-  const requestMatch = text.match(/<request_documents>\s*<ids>\[(.*?)\]<\/ids>\s*<reason>(.*?)<\/reason>\s*<\/request_documents>/);
+  // Parse request_documents tags - robust multiline matching
+  const requestMatch = text.match(/<request_documents>[\s\S]*?<ids>\s*\[([\s\S]*?)\]\s*<\/ids>[\s\S]*?<reason>([\s\S]*?)<\/reason>[\s\S]*?<\/request_documents>/);
   if (requestMatch) {
     try {
       const idsString = requestMatch[1];

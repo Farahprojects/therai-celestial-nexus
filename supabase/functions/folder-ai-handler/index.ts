@@ -71,7 +71,7 @@ When you need more detail from a file, you request it using this format:
 </request_documents>
 
 Creating Drafts:
-When you want to create new content, use this format:
+IMPORTANT: When you create ANY document, you MUST use this EXACT format with XML tags:
 
 <draft_document>
 <title>Week's Emotional Pattern Summary</title>
@@ -80,8 +80,10 @@ When you want to create new content, use this format:
 </content>
 </draft_document>
 
-After generating a draft, ALWAYS ask the user:
-"Would you like me to save this into the folder or edit it first?"
+NEVER just write the document as plain text in your response. ALWAYS wrap it in <draft_document> tags.
+
+After generating a draft with the XML tags above, say:
+"I've created a draft document. It should now be visible in the document canvas on the left. You can review it there, make edits, and save it to the folder when ready."
 
 Updating Existing Documents:
 If your analysis modifies an existing document:
