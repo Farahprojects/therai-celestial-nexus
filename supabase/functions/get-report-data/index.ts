@@ -102,10 +102,11 @@ Deno.serve(async (req) => {
 
     const conversationMode = conversation.mode;
     const userId = conversation.user_id;
-    console.log(`[get-report-data][${requestId}] Conversation mode: ${conversationMode}`);
+    console.log(`[get-report-data][${requestId}] Conversation mode: ${conversationMode}, user_id: ${userId}`);
 
     // Step 2: Determine which chat_id to use for fetching astro data
     let dataChatId = chat_id; // Default: use the current chat_id
+    console.log(`[get-report-data][${requestId}] Original chat_id: ${chat_id}`);
 
     // For chat/together modes, fetch from the user's profile conversation
     if (conversationMode === 'chat' || conversationMode === 'together') {
@@ -122,11 +123,13 @@ Deno.serve(async (req) => {
       
       if (profileConv) {
         dataChatId = profileConv.id;
-        console.log(`[get-report-data][${requestId}] Using profile conversation: ${dataChatId}`);
+        console.log(`[get-report-data][${requestId}] ⚠️ SWITCHING chat_id: ${chat_id} → ${dataChatId} (profile conversation)`);
       } else {
-        console.warn(`[get-report-data][${requestId}] No profile conversation found for user: ${userId}`);
+        console.warn(`[get-report-data][${requestId}] No profile conversation found for user: ${userId}, using original chat_id`);
         // Continue with original chat_id - may not find data, but that's expected
       }
+    } else {
+      console.log(`[get-report-data][${requestId}] Using original chat_id (mode: ${conversationMode})`);
     }
 
     // Step 3: Fetch report data from report_logs
