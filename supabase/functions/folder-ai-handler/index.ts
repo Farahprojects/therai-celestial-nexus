@@ -303,6 +303,14 @@ async function fetchDocumentsByIds(
   supabase: SupabaseClient,
   documentIds: string[]
 ): Promise<any[]> {
+  const fetchId = crypto.randomUUID().substring(0, 8);
+  console.log(JSON.stringify({
+    event: 'fetchDocumentsByIds_start',
+    fetch_id: fetchId,
+    requested_ids: documentIds,
+    ids_count: documentIds.length
+  }));
+
   try {
     const results: any[] = [];
 
@@ -311,6 +319,13 @@ async function fetchDocumentsByIds(
       .from('folder_documents')
       .select('id, file_name, content_text, created_at')
       .in('id', documentIds);
+
+    console.log(JSON.stringify({
+      event: 'fetch_folder_documents',
+      fetch_id: fetchId,
+      found: documents?.length || 0,
+      error: docsError?.message
+    }));
 
     if (!docsError && documents) {
       results.push(...documents.map(doc => ({
@@ -326,6 +341,13 @@ async function fetchDocumentsByIds(
       .select('id, title, entry_text, created_at')
       .in('id', documentIds);
 
+    console.log(JSON.stringify({
+      event: 'fetch_journals',
+      fetch_id: fetchId,
+      found: journals?.length || 0,
+      error: journalsError?.message
+    }));
+
     if (!journalsError && journals) {
       results.push(...journals.map(j => ({
         ...j,
@@ -340,6 +362,13 @@ async function fetchDocumentsByIds(
       .select('id, title, mode, created_at')
       .in('id', documentIds);
 
+    console.log(JSON.stringify({
+      event: 'fetch_conversations',
+      fetch_id: fetchId,
+      found: conversations?.length || 0,
+      error: convsError?.message
+    }));
+
     if (!convsError && conversations) {
       // For each conversation, fetch recent messages
       for (const conv of conversations) {
@@ -349,6 +378,14 @@ async function fetchDocumentsByIds(
           .eq('chat_id', conv.id)
           .order('created_at', { ascending: true })
           .limit(20); // Last 20 messages
+
+        console.log(JSON.stringify({
+          event: 'fetch_conversation_messages',
+          fetch_id: fetchId,
+          conversation_id: conv.id,
+          messages_found: messages?.length || 0,
+          error: msgsError?.message
+        }));
 
         if (!msgsError && messages) {
           const messageText = messages
@@ -374,6 +411,13 @@ async function fetchDocumentsByIds(
       .select('id, chat_id, report_type, report_text, created_at')
       .in('id', documentIds);
 
+    console.log(JSON.stringify({
+      event: 'fetch_reports',
+      fetch_id: fetchId,
+      found: reports?.length || 0,
+      error: reportsError?.message
+    }));
+
     if (!reportsError && reports) {
       results.push(...reports.map(r => ({
         ...r,
@@ -382,9 +426,21 @@ async function fetchDocumentsByIds(
       })));
     }
 
+    console.log(JSON.stringify({
+      event: 'fetchDocumentsByIds_complete',
+      fetch_id: fetchId,
+      total_results: results.length,
+      result_types: results.map(r => r.type)
+    }));
+
     return results;
   } catch (err) {
-    console.error('[FolderAI] Error fetching documents:', err);
+    console.error(JSON.stringify({
+      event: 'fetchDocumentsByIds_error',
+      fetch_id: fetchId,
+      error: err instanceof Error ? err.message : String(err),
+      stack: err instanceof Error ? err.stack : undefined
+    }));
     throw err;
   }
 }
@@ -620,20 +676,56 @@ ${folderMap.reports.map((r, i) =>
     });
 
     // Call Gemini API
+    console.log(JSON.stringify({
+      event: 'gemini_first_call',
+      request_id: requestId,
+      message_count: geminiMessages.length,
+      has_request_documents: !!request_documents
+    }));
+
     const geminiResponse = await callGeminiAPI(geminiMessages, TOOL_DEFINITIONS);
+
+    console.log(JSON.stringify({
+      event: 'gemini_first_response',
+      request_id: requestId,
+      has_candidates: !!geminiResponse.candidates?.length,
+      candidate_count: geminiResponse.candidates?.length || 0
+    }));
 
     // Parse response
     const candidate = geminiResponse.candidates?.[0];
     if (!candidate) {
+      console.error(JSON.stringify({
+        event: 'gemini_no_candidate',
+        request_id: requestId,
+        response: JSON.stringify(geminiResponse)
+      }));
       throw new Error('No response from Gemini');
     }
 
     let assistantText = candidate.content?.parts?.[0]?.text || '';
     const functionCall = candidate.content?.parts?.[0]?.functionCall;
 
+    console.log(JSON.stringify({
+      event: 'gemini_response_parsed',
+      request_id: requestId,
+      text_length: assistantText.length,
+      text_preview: assistantText.substring(0, 200),
+      has_function_call: !!functionCall,
+      function_name: functionCall?.name
+    }));
+
     // If there's a function call (tool request via Gemini function calling)
     if (functionCall && functionCall.name === 'fetch_documents') {
       const requestedIds = functionCall.args?.ids || [];
+      
+      console.log(JSON.stringify({
+        event: 'function_call_detected',
+        request_id: requestId,
+        function_name: functionCall.name,
+        requested_ids: requestedIds,
+        ids_count: requestedIds.length
+      }));
       
       // Save assistant message with tool request metadata
       await saveMessage(supabase, folder_id, user_id, 'assistant', assistantText, {
@@ -642,12 +734,37 @@ ${folderMap.reports.map((r, i) =>
       });
 
       // Fetch documents and continue automatically
-      console.log(`[FolderAI] Auto-fetching ${requestedIds.length} documents via function call`);
+      console.log(JSON.stringify({
+        event: 'fetching_documents_start',
+        request_id: requestId,
+        ids: requestedIds
+      }));
+
+      const fetchStartTime = Date.now();
       const fetchedDocs = await fetchDocumentsByIds(supabase, requestedIds);
+      const fetchDuration = Date.now() - fetchStartTime;
+
+      console.log(JSON.stringify({
+        event: 'fetching_documents_complete',
+        request_id: requestId,
+        documents_found: fetchedDocs.length,
+        fetch_duration_ms: fetchDuration,
+        document_ids: fetchedDocs.map(d => d.id),
+        document_types: fetchedDocs.map(d => d.type || 'unknown')
+      }));
+
       const docsContent = fetchedDocs.map(doc => {
         const content = doc.content || doc.content_text || doc.entry_text || '[No text content]';
+        const contentLength = content.length;
         return `\n\nDocument: ${doc.file_name || doc.title || 'Untitled'}\nID: ${doc.id}\nType: ${doc.type || 'unknown'}\nContent:\n${content}`;
       }).join('\n\n---\n');
+
+      console.log(JSON.stringify({
+        event: 'documents_formatted',
+        request_id: requestId,
+        total_content_length: docsContent.length,
+        content_preview: docsContent.substring(0, 500)
+      }));
 
       // Add fetched documents to context
       geminiMessages.push({
@@ -659,22 +776,67 @@ ${folderMap.reports.map((r, i) =>
         parts: [{ text: `Here are the documents you requested:\n${docsContent}\n\nPlease analyze these and provide your response.` }]
       });
 
+      console.log(JSON.stringify({
+        event: 'gemini_second_call_start',
+        request_id: requestId,
+        message_count: geminiMessages.length
+      }));
+
       // Call Gemini again with the fetched documents
+      const secondResponseStart = Date.now();
       const secondResponse = await callGeminiAPI(geminiMessages, TOOL_DEFINITIONS);
+      const secondResponseDuration = Date.now() - secondResponseStart;
+
+      console.log(JSON.stringify({
+        event: 'gemini_second_response',
+        request_id: requestId,
+        has_candidates: !!secondResponse.candidates?.length,
+        duration_ms: secondResponseDuration
+      }));
+
       const secondCandidate = secondResponse.candidates?.[0];
       if (secondCandidate) {
-        assistantText = secondCandidate.content?.parts?.[0]?.text || assistantText;
+        const newText = secondCandidate.content?.parts?.[0]?.text || '';
+        console.log(JSON.stringify({
+          event: 'gemini_second_response_parsed',
+          request_id: requestId,
+          new_text_length: newText.length,
+          new_text_preview: newText.substring(0, 300)
+        }));
+        assistantText = newText;
+      } else {
+        console.warn(JSON.stringify({
+          event: 'gemini_second_no_candidate',
+          request_id: requestId,
+          using_original_text: true
+        }));
       }
     }
 
     // Check if the text response contains XML document request tags
     const xmlRequestMatch = assistantText.match(/<request_documents>\s*<ids>\[(.*?)\]<\/ids>\s*<reason>(.*?)<\/reason>\s*<\/request_documents>/);
+    
+    console.log(JSON.stringify({
+      event: 'checking_xml_tags',
+      request_id: requestId,
+      has_xml_match: !!xmlRequestMatch,
+      text_contains_request: assistantText.includes('<request_documents>')
+    }));
+
     if (xmlRequestMatch) {
       try {
         const idsString = xmlRequestMatch[1];
         const ids = idsString.split(',').map(id => id.trim().replace(/['"]/g, ''));
+        const reason = xmlRequestMatch[2]?.trim() || 'No reason provided';
         
-        console.log(`[FolderAI] Auto-fetching ${ids.length} documents via XML tags`);
+        console.log(JSON.stringify({
+          event: 'xml_request_detected',
+          request_id: requestId,
+          ids_string: idsString,
+          parsed_ids: ids,
+          ids_count: ids.length,
+          reason: reason
+        }));
         
         // Save the request message
         await saveMessage(supabase, folder_id, user_id, 'assistant', assistantText, {
@@ -682,12 +844,47 @@ ${folderMap.reports.map((r, i) =>
           requested_ids: ids
         });
 
+        console.log(JSON.stringify({
+          event: 'fetching_documents_xml_start',
+          request_id: requestId,
+          ids: ids
+        }));
+
         // Fetch documents
+        const fetchStartTime = Date.now();
         const fetchedDocs = await fetchDocumentsByIds(supabase, ids);
+        const fetchDuration = Date.now() - fetchStartTime;
+
+        console.log(JSON.stringify({
+          event: 'fetching_documents_xml_complete',
+          request_id: requestId,
+          documents_found: fetchedDocs.length,
+          fetch_duration_ms: fetchDuration,
+          document_ids: fetchedDocs.map(d => d.id),
+          document_types: fetchedDocs.map(d => d.type || 'unknown'),
+          document_titles: fetchedDocs.map(d => d.file_name || d.title || 'Untitled')
+        }));
+
+        if (fetchedDocs.length === 0) {
+          console.warn(JSON.stringify({
+            event: 'no_documents_found',
+            request_id: requestId,
+            requested_ids: ids
+          }));
+        }
+
         const docsContent = fetchedDocs.map(doc => {
           const content = doc.content || doc.content_text || doc.entry_text || '[No text content]';
+          const contentLength = content.length;
           return `\n\nDocument: ${doc.file_name || doc.title || 'Untitled'}\nID: ${doc.id}\nType: ${doc.type || 'unknown'}\nContent:\n${content}`;
         }).join('\n\n---\n');
+
+        console.log(JSON.stringify({
+          event: 'documents_formatted_xml',
+          request_id: requestId,
+          total_content_length: docsContent.length,
+          content_preview: docsContent.substring(0, 500)
+        }));
 
         // Add to context and continue
         geminiMessages.push({
@@ -699,28 +896,77 @@ ${folderMap.reports.map((r, i) =>
           parts: [{ text: `Here are the documents you requested:\n${docsContent}\n\nPlease analyze these and provide your response.` }]
         });
 
+        console.log(JSON.stringify({
+          event: 'gemini_continued_call_start',
+          request_id: requestId,
+          message_count: geminiMessages.length
+        }));
+
         // Call Gemini again
+        const continuedResponseStart = Date.now();
         const continuedResponse = await callGeminiAPI(geminiMessages, TOOL_DEFINITIONS);
+        const continuedResponseDuration = Date.now() - continuedResponseStart;
+
+        console.log(JSON.stringify({
+          event: 'gemini_continued_response',
+          request_id: requestId,
+          has_candidates: !!continuedResponse.candidates?.length,
+          duration_ms: continuedResponseDuration
+        }));
+
         const continuedCandidate = continuedResponse.candidates?.[0];
         if (continuedCandidate) {
-          assistantText = continuedCandidate.content?.parts?.[0]?.text || assistantText;
+          const newText = continuedCandidate.content?.parts?.[0]?.text || '';
+          console.log(JSON.stringify({
+            event: 'gemini_continued_response_parsed',
+            request_id: requestId,
+            new_text_length: newText.length,
+            new_text_preview: newText.substring(0, 300)
+          }));
+          assistantText = newText;
+        } else {
+          console.warn(JSON.stringify({
+            event: 'gemini_continued_no_candidate',
+            request_id: requestId,
+            using_original_text: true
+          }));
         }
       } catch (parseError) {
-        console.error('[FolderAI] Error parsing XML document request:', parseError);
+        console.error(JSON.stringify({
+          event: 'xml_parse_error',
+          request_id: requestId,
+          error: parseError instanceof Error ? parseError.message : String(parseError),
+          stack: parseError instanceof Error ? parseError.stack : undefined
+        }));
         // Continue with original response
       }
     }
 
     // Save final assistant response
+    console.log(JSON.stringify({
+      event: 'saving_final_response',
+      request_id: requestId,
+      response_length: assistantText.length,
+      response_preview: assistantText.substring(0, 200)
+    }));
+
     await saveMessage(supabase, folder_id, user_id, 'assistant', assistantText);
 
     // Increment usage (fire-and-forget)
     incrementFolderAIUsage(supabase, user_id).catch(() => {});
 
+    const totalLatency = Date.now() - startTime;
+    console.log(JSON.stringify({
+      event: 'request_complete',
+      request_id: requestId,
+      total_latency_ms: totalLatency,
+      final_response_length: assistantText.length
+    }));
+
     return JSON_RESPONSE(200, {
       text: assistantText,
       request_id: requestId,
-      latency_ms: Date.now() - startTime
+      latency_ms: totalLatency
     });
 
   } catch (err: any) {
