@@ -53,20 +53,32 @@ export function useFolderAI(folderId: string | null, userId: string | null) {
       
       // Parse messages for structured content
       const parsedMessages: ParsedMessage[] = rawMessages.map(msg => {
-        if (msg.role === 'assistant') {
-          const parsed = parseAIResponse(msg.content);
+        try {
+          if (msg.role === 'assistant') {
+            const parsed = parseAIResponse(msg.content || '');
+            return {
+              ...msg,
+              plainText: parsed.plainText || msg.content || '',
+              draft: parsed.draft,
+              update: parsed.update,
+              requestDocuments: parsed.requestDocuments
+            };
+          }
           return {
             ...msg,
-            plainText: parsed.plainText,
-            draft: parsed.draft,
-            update: parsed.update,
-            requestDocuments: parsed.requestDocuments
+            plainText: msg.content || ''
+          };
+        } catch (err) {
+          // Handle old message formats gracefully
+          console.warn('[useFolderAI] Error parsing message:', err, msg);
+          return {
+            ...msg,
+            plainText: msg.content || '',
+            draft: undefined,
+            update: undefined,
+            requestDocuments: undefined
           };
         }
-        return {
-          ...msg,
-          plainText: msg.content
-        };
       });
 
       setMessages(parsedMessages);
