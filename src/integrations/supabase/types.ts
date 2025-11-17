@@ -2619,6 +2619,14 @@ export type Database = {
         }
         Returns: Json
       }
+      check_feature_access: {
+        Args: {
+          p_feature_type: string
+          p_plan_id: string
+          p_trial_end_date: string
+        }
+        Returns: Json
+      }
       check_feature_limit: {
         Args: {
           p_feature_type: string
