@@ -354,7 +354,7 @@ export const AstroDataForm: React.FC<AstroDataFormProps> = ({
             : 'rounded-3xl'
         }`}
       >
-        {/* Mobile close button */}
+        {/* Header with close button - only show on mobile or when not in a Dialog wrapper */}
         {isMobile && (
           <div className="sticky top-0 z-10 bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
             <h2 className="text-lg font-light text-gray-900">

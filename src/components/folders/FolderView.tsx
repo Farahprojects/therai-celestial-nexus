@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { getFolderConversations, getUserFolders, getSharedFolder, moveConversationToFolder, getFolderWithProfile } from '@/services/folders';
 import { getJournalEntries, JournalEntry, updateJournalEntry, deleteJournalEntry } from '@/services/journal';
 import { getDocuments, deleteDocument, FolderDocument } from '@/services/folder-documents';
-import { MoreHorizontal, Folder, HelpCircle, Sparkles, Share2, File, Trash2 } from 'lucide-react';
+import { MoreHorizontal, Folder, HelpCircle, Sparkles, Share2, File, Trash2, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useChatStore } from '@/core/store';
 import { useAuth } from '@/contexts/AuthContext';
@@ -922,8 +922,16 @@ export const FolderView: React.FC<FolderViewProps> = ({
 
       {/* Astro Form Modal for Sync */}
       {showAstroForm && folderProfile && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="w-full max-w-2xl max-h-[90vh] overflow-hidden rounded-3xl bg-white shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/10 backdrop-blur-sm">
+          <div className="relative w-full max-w-2xl max-h-[90vh] overflow-hidden rounded-3xl bg-white shadow-2xl">
+            {/* Desktop close button - only show on non-mobile */}
+            <button
+              onClick={() => setShowAstroForm(false)}
+              className="hidden sm:block absolute top-4 right-4 z-10 p-2 hover:bg-gray-100 rounded-full transition-colors"
+              aria-label="Close"
+            >
+              <X className="w-5 h-5 text-gray-600" />
+            </button>
             <AstroDataForm
               onClose={() => setShowAstroForm(false)}
               onSubmit={handleAstroFormSubmit}

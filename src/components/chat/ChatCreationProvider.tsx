@@ -1,5 +1,6 @@
 import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { X } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { getBillingMode } from '@/utils/billingMode';
@@ -350,8 +351,16 @@ export const ChatCreationProvider: React.FC<ChatCreationProviderProps> = ({
       )}
 
       {showAstroModal && selectedChartType && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="w-full max-w-2xl max-h-[90vh] overflow-hidden rounded-3xl bg-white shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/10 backdrop-blur-sm">
+          <div className="relative w-full max-w-2xl max-h-[90vh] overflow-hidden rounded-3xl bg-white shadow-2xl">
+            {/* Desktop close button - only show on non-mobile */}
+            <button
+              onClick={closeAstroModal}
+              className="hidden sm:block absolute top-4 right-4 z-10 p-2 hover:bg-gray-100 rounded-full transition-colors"
+              aria-label="Close"
+            >
+              <X className="w-5 h-5 text-gray-600" />
+            </button>
             <AstroDataForm
               onClose={closeAstroModal}
               onSubmit={handleAstroFormSubmit}

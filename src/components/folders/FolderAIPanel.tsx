@@ -1,11 +1,13 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { X, Send, Sparkles, FileText, BookOpen, Loader2, ChevronDown, ChevronUp, MessageSquare, BarChart3 } from 'lucide-react';
+import { X, Send, Sparkles, FileText, BookOpen, Loader2, ChevronDown, ChevronUp, MessageSquare, BarChart3, SquarePen } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useFolderAI, ParsedMessage } from '@/hooks/useFolderAI';
 import { FolderAIDraftPreview } from './FolderAIDraftPreview';
+import { clearFolderAIHistory } from '@/services/folder-ai';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 interface FolderAIPanelProps {
   isOpen: boolean;
@@ -40,7 +42,8 @@ export const FolderAIPanel: React.FC<FolderAIPanelProps> = ({
     sendMessage,
     continueWithDocuments,
     refreshContext,
-    hasPendingDocumentRequest
+    hasPendingDocumentRequest,
+    loadMessages
   } = useFolderAI(isOpen ? folderId : null, isOpen ? userId : null);
 
   // Auto-scroll to bottom when messages change
@@ -95,6 +98,20 @@ export const FolderAIPanel: React.FC<FolderAIPanelProps> = ({
     onDocumentUpdated?.();
   };
 
+  const handleNewChat = async () => {
+    if (!folderId) return;
+    
+    try {
+      await clearFolderAIHistory(folderId);
+      // Reload messages (will be empty now)
+      await loadMessages();
+      toast.success('New conversation started');
+    } catch (err: any) {
+      console.error('[FolderAIPanel] Error clearing history:', err);
+      toast.error('Failed to start new conversation');
+    }
+  };
+
   // Get initial greeting message
   const getGreetingMessage = (): string => {
     if (!folderContext) return 'Loading folder context...';
@@ -124,12 +141,24 @@ export const FolderAIPanel: React.FC<FolderAIPanelProps> = ({
             <Sparkles className="w-5 h-5 text-purple-600" />
             <SheetTitle className="text-lg font-medium text-gray-900">Folder AI</SheetTitle>
           </div>
-          <button
-            onClick={onClose}
-            className="p-1 hover:bg-gray-100 rounded-lg transition-colors"
-          >
-            <X className="w-5 h-5 text-gray-600" />
-          </button>
+          <div className="flex items-center gap-2">
+            {/* New Chat Button */}
+            <button
+              onClick={handleNewChat}
+              disabled={isSending || messages.length === 0}
+              className="p-1.5 hover:bg-purple-50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Start new conversation"
+            >
+              <SquarePen className="w-4 h-4 text-purple-600" />
+            </button>
+            {/* Close Button */}
+            <button
+              onClick={onClose}
+              className="p-1 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              <X className="w-5 h-5 text-gray-600" />
+            </button>
+          </div>
         </SheetHeader>
 
         {/* Folder Map (Collapsible) */}

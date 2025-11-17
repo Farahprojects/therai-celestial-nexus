@@ -188,7 +188,8 @@ export function useFolderAI(folderId: string | null, userId: string | null) {
     continueWithDocuments,
     refreshContext,
     hasPendingDocumentRequest: !!pendingDocumentRequest,
-    pendingDocumentRequest
+    pendingDocumentRequest,
+    loadMessages
   };
 }
 
