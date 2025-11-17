@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { CleanPlaceAutocomplete } from '@/components/shared/forms/place-input/CleanPlaceAutocomplete';
+import { LocationAutocomplete } from '@/components/chat/LocationAutocomplete';
 
 interface SecondPersonFormProps {
   isOpen: boolean;
@@ -229,10 +229,10 @@ export const SecondPersonForm: React.FC<SecondPersonFormProps> = ({
 
               <div className="space-y-2">
                 <Label htmlFor="location" className="font-light">Birth Location</Label>
-                <CleanPlaceAutocomplete
+                <LocationAutocomplete
                   value={location}
                   onChange={setLocation}
-                  onPlaceSelect={handleLocationSelect}
+                  onSelect={handleLocationSelect}
                   placeholder="Enter birth location"
                 />
               </div>
