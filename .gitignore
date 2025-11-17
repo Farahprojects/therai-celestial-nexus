@@ -25,3 +25,6 @@ Thumbs.db
 vendor/
 **/vendor/bundle/
 
+# Separate projects
+custom-ai-systems/
+

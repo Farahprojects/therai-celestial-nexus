@@ -21,7 +21,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { ShareConversationModal } from '@/components/chat/ShareConversationModal';
 import { ShareFolderModal } from '@/components/folders/ShareFolderModal';
 import { AstroDataForm } from '@/components/chat/AstroDataForm';
-import { useReportModal } from '@/contexts/ReportModalContext';
 import { toast } from 'sonner';
 
 interface FolderViewProps {
@@ -76,7 +75,6 @@ export const FolderView: React.FC<FolderViewProps> = ({
   const [showDeleteJournalDialog, setShowDeleteJournalDialog] = useState(false);
   const [deletingJournalId, setDeletingJournalId] = useState<string | null>(null);
   const navigate = useNavigate();
-  const { open: openReportModal } = useReportModal();
   const {
     user
   } = useAuth();
@@ -421,9 +419,7 @@ export const FolderView: React.FC<FolderViewProps> = ({
       await loadFolderData();
       
       setShowAstroForm(false);
-      
-      // Open report modal to show the astro data
-      openReportModal(data.chat_id);
+      onChatClick(data.chat_id);
     } catch (error) {
       console.error('[FolderView] Failed to move conversation to folder:', error);
       toast.error('Failed to add conversation to folder');
