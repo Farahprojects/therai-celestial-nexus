@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useUsers } from '../hooks/useUsers';
-import { supabaseAdmin } from '../lib/supabase';
+import { callAdminOperation } from '../lib/adminApi';
 import { useQueryClient } from '@tanstack/react-query';
 import { CreditCard, Check } from 'lucide-react';
 
@@ -16,22 +16,17 @@ export default function SubscriptionPanel() {
   const selectedUser = users?.find(u => u.id === selectedUserId);
 
   const handleUpdateSubscription = async () => {
-    if (!selectedUserId || !supabaseAdmin) return;
+    if (!selectedUserId) return;
 
     setUpdating(true);
     setMessage(null);
 
     try {
-      const { error } = await supabaseAdmin
-        .from('profiles')
-        .update({
-          subscription_plan: newPlan,
-          subscription_active: isActive,
-          subscription_status: isActive ? 'active' : 'inactive',
-        })
-        .eq('id', selectedUserId);
-
-      if (error) throw error;
+      await callAdminOperation('update_subscription', {
+        user_id: selectedUserId,
+        subscription_plan: newPlan,
+        subscription_active: isActive,
+      });
 
       setMessage({ type: 'success', text: 'Subscription updated successfully' });
       queryClient.invalidateQueries({ queryKey: ['users'] });
@@ -41,9 +36,9 @@ export default function SubscriptionPanel() {
         setSelectedUserId('');
         setMessage(null);
       }, 2000);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating subscription:', error);
-      setMessage({ type: 'error', text: 'Failed to update subscription' });
+      setMessage({ type: 'error', text: error.message || 'Failed to update subscription' });
     } finally {
       setUpdating(false);
     }
@@ -184,6 +179,8 @@ export default function SubscriptionPanel() {
     </div>
   );
 }
+
+
 
 
 

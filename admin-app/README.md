@@ -13,8 +13,9 @@ npm install
 ```
 VITE_SUPABASE_URL=your-supabase-url
 VITE_SUPABASE_ANON_KEY=your-anon-key
-VITE_SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 ```
+
+**Note:** The service role key is no longer needed in the frontend. All admin operations are handled securely through edge functions.
 
 3. Run the development server:
 ```bash
@@ -35,6 +36,8 @@ The admin dashboard will be available at http://localhost:3001
 ## Admin Access
 
 Only users with the `admin` role in the `user_roles` table can access this dashboard.
+
+
 
 
 

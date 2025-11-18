@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useUsers } from '../hooks/useUsers';
-import { supabaseAdmin } from '../lib/supabase';
+import { callAdminOperation } from '../lib/adminApi';
 import { useQueryClient } from '@tanstack/react-query';
 import { Shield, Crown, Check } from 'lucide-react';
 
@@ -15,44 +15,30 @@ export default function RoleManagement() {
   const isCurrentlyAdmin = selectedUser?.role === 'admin';
 
   const handleToggleAdminRole = async () => {
-    if (!selectedUserId || !supabaseAdmin) return;
+    if (!selectedUserId) return;
 
     setUpdating(true);
     setMessage(null);
 
     try {
-      if (isCurrentlyAdmin) {
-        // Remove admin role
-        const { error } = await supabaseAdmin
-          .from('user_roles')
-          .delete()
-          .eq('user_id', selectedUserId)
-          .eq('role', 'admin');
+      const response = await callAdminOperation<{ success: boolean; message: string }>(
+        'toggle_admin_role',
+        {
+          user_id: selectedUserId,
+          grant: !isCurrentlyAdmin,
+        }
+      );
 
-        if (error) throw error;
-        setMessage({ type: 'success', text: 'Admin role revoked successfully' });
-      } else {
-        // Add admin role
-        const { error } = await supabaseAdmin
-          .from('user_roles')
-          .insert({
-            user_id: selectedUserId,
-            role: 'admin',
-          });
-
-        if (error) throw error;
-        setMessage({ type: 'success', text: 'Admin role granted successfully' });
-      }
-
+      setMessage({ type: 'success', text: response.message });
       queryClient.invalidateQueries({ queryKey: ['users'] });
       
       // Clear message after 2 seconds
       setTimeout(() => {
         setMessage(null);
       }, 2000);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating role:', error);
-      setMessage({ type: 'error', text: 'Failed to update role' });
+      setMessage({ type: 'error', text: error.message || 'Failed to update role' });
     } finally {
       setUpdating(false);
     }
@@ -193,6 +179,8 @@ export default function RoleManagement() {
     </div>
   );
 }
+
+
 
 
 

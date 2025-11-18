@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useUsers } from '../hooks/useUsers';
-import { supabaseAdmin } from '../lib/supabase';
+import { callAdminOperation } from '../lib/adminApi';
 import { useQueryClient } from '@tanstack/react-query';
 import { Coins, Plus, Minus, Check } from 'lucide-react';
 
@@ -17,47 +17,25 @@ export default function CreditManagement() {
   const selectedUser = users?.find(u => u.id === selectedUserId);
 
   const handleUpdateCredits = async () => {
-    if (!selectedUserId || !supabaseAdmin || creditAmount <= 0) return;
+    if (!selectedUserId || creditAmount <= 0) return;
 
     setUpdating(true);
     setMessage(null);
 
     try {
-      // Get current credits
-      const { data: profile, error: fetchError } = await supabaseAdmin
-        .from('profiles')
-        .select('credits')
-        .eq('id', selectedUserId)
-        .single();
-
-      if (fetchError) throw fetchError;
-
-      const currentCredits = profile?.credits || 0;
-      const newCredits = operation === 'add' 
-        ? currentCredits + creditAmount 
-        : Math.max(0, currentCredits - creditAmount);
-
-      // Update credits
-      const { error: updateError } = await supabaseAdmin
-        .from('profiles')
-        .update({ credits: newCredits })
-        .eq('id', selectedUserId);
-
-      if (updateError) throw updateError;
-
-      // Log transaction
-      await supabaseAdmin
-        .from('credit_transactions')
-        .insert({
+      const response = await callAdminOperation<{ success: boolean; message: string; new_credits: number }>(
+        'update_credits',
+        {
           user_id: selectedUserId,
-          amount: operation === 'add' ? creditAmount : -creditAmount,
-          description: reason || `Admin ${operation === 'add' ? 'added' : 'removed'} credits`,
-          transaction_type: 'admin_adjustment',
-        });
+          amount: creditAmount,
+          operation,
+          reason,
+        }
+      );
 
       setMessage({ 
         type: 'success', 
-        text: `Successfully ${operation === 'add' ? 'added' : 'removed'} ${creditAmount} credits` 
+        text: response.message
       });
       queryClient.invalidateQueries({ queryKey: ['users'] });
       
@@ -67,9 +45,9 @@ export default function CreditManagement() {
         setReason('');
         setMessage(null);
       }, 2000);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating credits:', error);
-      setMessage({ type: 'error', text: 'Failed to update credits' });
+      setMessage({ type: 'error', text: error.message || 'Failed to update credits' });
     } finally {
       setUpdating(false);
     }
@@ -229,6 +207,8 @@ export default function CreditManagement() {
     </div>
   );
 }
+
+
 
 
 

@@ -94,7 +94,7 @@ export function MessagesView() {
     return (
       <div className="bg-white rounded-xl shadow-sm p-8 text-center">
         <p className="text-sm text-red-600 font-light">
-          Failed to load email messages. Ensure the service role key is configured.
+          Failed to load email messages. Please try again later.
         </p>
       </div>
     );

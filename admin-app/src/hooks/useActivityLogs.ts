@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { supabaseAdmin } from '../lib/supabase';
+import { callAdminOperation } from '../lib/adminApi';
 
 export interface AdminLog {
   id: string;
@@ -22,39 +22,13 @@ export interface ApiUsage {
 }
 
 async function fetchAdminLogs(): Promise<AdminLog[]> {
-  if (!supabaseAdmin) {
-    throw new Error('Admin client not configured');
-  }
-
-  const { data, error } = await supabaseAdmin
-    .from('admin_logs')
-    .select('*')
-    .order('created_at', { ascending: false })
-    .limit(100);
-
-  if (error) {
-    throw new Error(`Failed to fetch admin logs: ${error.message}`);
-  }
-
-  return data || [];
+  const response = await callAdminOperation<{ data: AdminLog[] }>('get_admin_logs', { limit: 100 });
+  return response.data;
 }
 
 async function fetchApiUsage(): Promise<ApiUsage[]> {
-  if (!supabaseAdmin) {
-    throw new Error('Admin client not configured');
-  }
-
-  const { data, error } = await supabaseAdmin
-    .from('api_usage')
-    .select('*')
-    .order('created_at', { ascending: false })
-    .limit(100);
-
-  if (error) {
-    throw new Error(`Failed to fetch API usage: ${error.message}`);
-  }
-
-  return data || [];
+  const response = await callAdminOperation<{ data: ApiUsage[] }>('get_api_usage', { limit: 100 });
+  return response.data;
 }
 
 export function useAdminLogs() {
@@ -72,6 +46,8 @@ export function useApiUsage() {
     staleTime: 60 * 1000, // 1 minute
   });
 }
+
+
 
 
 
