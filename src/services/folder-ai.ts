@@ -387,26 +387,26 @@ export async function saveDocumentDraft(
       }
     } else {
       // Create new document
-      const { error } = await supabase
-        .from('folder_documents')
-        .insert({
-          folder_id: folderId,
-          user_id: userId,
+    const { error } = await supabase
+      .from('folder_documents')
+      .insert({
+        folder_id: folderId,
+        user_id: userId,
           file_name: fileName,
           file_size: fileSize,
           file_extension: 'md',
-          content_text: content,
-          file_type: 'text/markdown',
+        content_text: content,
+        file_type: 'text/markdown',
           upload_status: 'completed',
-          ai_generated: true,
-          ai_metadata: {
-            generated_at: new Date().toISOString(),
-            source: 'folder_ai'
-          }
-        });
+        ai_generated: true,
+        ai_metadata: {
+          generated_at: new Date().toISOString(),
+          source: 'folder_ai'
+        }
+      });
 
-      if (error) {
-        throw new Error(error.message || 'Failed to save document');
+    if (error) {
+      throw new Error(error.message || 'Failed to save document');
       }
     }
   } catch (err: any) {

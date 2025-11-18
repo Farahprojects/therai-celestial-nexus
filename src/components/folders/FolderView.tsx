@@ -1,8 +1,9 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState, useRef } from 'react';
 import { getFolderConversations, getUserFolders, getSharedFolder, moveConversationToFolder, getFolderWithProfile } from '@/services/folders';
 import { getJournalEntries, JournalEntry, updateJournalEntry, deleteJournalEntry } from '@/services/journal';
 import { getDocuments, deleteDocument, FolderDocument } from '@/services/folder-documents';
-import { MoreHorizontal, Folder, HelpCircle, Sparkles, Share2, File, Trash2, X } from 'lucide-react';
+import { MoreHorizontal, Folder, HelpCircle, Sparkles, Share2, File, Trash2, X, ArrowRight } from 'lucide-react';
+import TextareaAutosize from 'react-textarea-autosize';
 import { useNavigate } from 'react-router-dom';
 import { useChatStore } from '@/core/store';
 import { useAuth } from '@/contexts/AuthContext';
@@ -91,6 +92,8 @@ export const FolderView: React.FC<FolderViewProps> = ({
   const [currentDraft, setCurrentDraft] = useState<DraftDocument | null>(null);
   const [currentDocumentId, setCurrentDocumentId] = useState<string | null>(null);
   const [isSavingDraft, setIsSavingDraft] = useState(false);
+  const [folderAIMessage, setFolderAIMessage] = useState<string>('');
+  const folderAIInputRef = useRef<HTMLTextAreaElement>(null);
   const navigate = useNavigate();
   const {
     user
@@ -891,7 +894,10 @@ export const FolderView: React.FC<FolderViewProps> = ({
       {user && (
         <FolderAIPanel
           isOpen={showFolderAI}
-          onClose={() => setShowFolderAI(false)}
+          onClose={() => {
+            setShowFolderAI(false);
+            setFolderAIMessage(''); // Clear message when closing
+          }}
           folderId={folderId}
           userId={user.id}
           folderName={folderName}
@@ -902,36 +908,87 @@ export const FolderView: React.FC<FolderViewProps> = ({
             setCurrentDocumentId(docId);
             setShowDocumentCanvas(true);
           }}
+          initialMessage={folderAIMessage || undefined}
         />
       )}
 
+      {/* Footer Chat Bar - Only show when Folder AI panel is closed */}
+      {user && !showFolderAI && (
+        <div className="bg-white backdrop-blur-lg p-2 relative shrink-0 border-t border-gray-200" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0.5rem)' }}>
+          <div className="flex items-end gap-2 max-w-3xl mx-auto">
+            <div className="flex-1 relative">
+              <TextareaAutosize
+                ref={folderAIInputRef}
+                value={folderAIMessage}
+                onChange={(e) => setFolderAIMessage(e.target.value)}
+                placeholder="Ask Folder AI about this folder..."
+                className="w-full px-4 py-2.5 pr-24 text-base font-light bg-white border-2 rounded-3xl focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-400 resize-none text-black placeholder-gray-500 overflow-y-auto border-gray-300"
+                style={{ fontSize: '16px' }} // Prevents zoom on iOS
+                maxRows={4}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    if (folderAIMessage.trim()) {
+                      setShowFolderAI(true);
+                    }
+                  }
+                }}
+              />
+              <div className="absolute right-1 inset-y-0 flex items-center gap-1 z-10" style={{ transform: 'translateY(-4px) translateX(-4px)' }}>
+                <button
+                  onClick={() => {
+                    if (folderAIMessage.trim()) {
+                      setShowFolderAI(true);
+                    }
+                  }}
+                  disabled={!folderAIMessage.trim()}
+                  className={`w-8 h-8 rounded-full transition-all duration-200 flex items-center justify-center ${
+                    folderAIMessage.trim()
+                      ? 'bg-black hover:bg-gray-800 text-white'
+                      : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                  }`}
+                  title="Send message"
+                >
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          </div>
+          <div className="max-w-3xl mx-auto mt-2">
+            <p className="text-xs text-gray-600 font-light text-center">
+              Therai can make mistakes. Check important info.
+            </p>
+          </div>
+        </div>
+      )}
+          
       {/* Document Canvas - Rendered at top level with high z-index */}
       {user && showDocumentCanvas && (
         <FolderAIDocumentCanvas
           isOpen={showDocumentCanvas}
           onClose={() => {
-            setShowDocumentCanvas(false);
-            setCurrentDraft(null);
+        setShowDocumentCanvas(false);
+        setCurrentDraft(null);
             setCurrentDocumentId(null);
           }}
           draft={currentDraft}
           documentId={currentDocumentId || undefined}
           onSave={async (title, content, docId) => {
             if (!folderId || !user.id) return;
-            try {
+        try {
               setIsSavingDraft(true);
               await saveDocumentDraft(folderId, user.id, title, content, docId);
               toast.success(docId ? 'Document updated' : 'Document saved to folder');
-              setShowDocumentCanvas(false);
-              setCurrentDraft(null);
+          setShowDocumentCanvas(false);
+          setCurrentDraft(null);
               setCurrentDocumentId(null);
-              handleDocumentUploaded();
-            } catch (error) {
+          handleDocumentUploaded();
+        } catch (error) {
               console.error('[FolderView] Error saving document:', error);
-              toast.error('Failed to save document');
+          toast.error('Failed to save document');
             } finally {
               setIsSavingDraft(false);
-            }
+        }
           }}
           isSaving={isSavingDraft}
         />

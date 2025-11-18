@@ -33,6 +33,7 @@ interface FolderAIPanelProps {
   onDocumentCreated?: () => void;
   onDocumentUpdated?: () => void;
   onOpenDocumentCanvas?: (draft: DraftDocument, documentId?: string) => void;
+  initialMessage?: string; // Message to auto-send when panel opens
 }
 
 export const FolderAIPanel: React.FC<FolderAIPanelProps> = ({
@@ -43,12 +44,14 @@ export const FolderAIPanel: React.FC<FolderAIPanelProps> = ({
   folderName,
   onDocumentCreated,
   onDocumentUpdated,
-  onOpenDocumentCanvas
+  onOpenDocumentCanvas,
+  initialMessage
 }) => {
   const [inputText, setInputText] = useState('');
   const [showFolderMap, setShowFolderMap] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const hasAutoSentInitialMessage = useRef(false);
 
   const {
     messages,
@@ -72,6 +75,31 @@ export const FolderAIPanel: React.FC<FolderAIPanelProps> = ({
       }
     }
   }, [messages]);
+
+  // Handle initial message - show in input when panel opens
+  useEffect(() => {
+    if (isOpen && initialMessage && !hasAutoSentInitialMessage.current) {
+      hasAutoSentInitialMessage.current = true;
+      setInputText(initialMessage);
+      // Auto-send the message after a brief delay so user sees it first
+      setTimeout(() => {
+        if (hasPendingDocumentRequest) {
+          continueWithDocuments(initialMessage);
+        } else {
+          sendMessage(initialMessage);
+        }
+        setInputText('');
+      }, 500);
+    }
+    // Reset flag when panel closes
+    if (!isOpen) {
+      hasAutoSentInitialMessage.current = false;
+      // Clear input when closing if it was from initial message
+      if (initialMessage) {
+        setInputText('');
+      }
+    }
+  }, [isOpen, initialMessage, hasPendingDocumentRequest, sendMessage, continueWithDocuments]);
 
   // Focus input when panel opens
   useEffect(() => {
@@ -109,9 +137,6 @@ export const FolderAIPanel: React.FC<FolderAIPanelProps> = ({
       await clearFolderAIHistory(folderId);
       // Reload messages (will be empty now)
       await loadMessages();
-      // Close document canvas if open
-      setCurrentDraft(null);
-      setShowDocumentCanvas(false);
       toast.success('New conversation started');
     } catch (err: any) {
       console.error('[FolderAIPanel] Error clearing history:', err);
@@ -120,8 +145,8 @@ export const FolderAIPanel: React.FC<FolderAIPanelProps> = ({
   };
 
   // Open document canvas only when user explicitly selects a draft
-  const handleOpenDraft = (draft: DraftDocument) => {
-    onOpenDocumentCanvas?.(draft);
+  const handleOpenDraft = (draft: DraftDocument, documentId?: string) => {
+    onOpenDocumentCanvas?.(draft, documentId);
   };
 
   // Get initial greeting message
@@ -417,7 +442,7 @@ interface MessageBubbleProps {
   message: ParsedMessage;
   folderId: string;
   userId: string;
-  onDraftSelect?: (draft: DraftDocument) => void;
+  onDraftSelect?: (draft: DraftDocument, documentId?: string) => void;
 }
 
 const MessageBubble: React.FC<MessageBubbleProps> = ({
@@ -558,7 +583,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
               >
                 <Download className="w-3 h-3" />
                 Download
-              </button>
+          </button>
             </div>
           </div>
         )}
