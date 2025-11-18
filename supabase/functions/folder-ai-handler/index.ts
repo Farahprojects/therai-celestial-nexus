@@ -26,7 +26,7 @@ const ENV = {
   SUPABASE_URL: Deno.env.get("SUPABASE_URL"),
   SUPABASE_SERVICE_ROLE_KEY: Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"),
   GOOGLE_API_KEY: Deno.env.get("GOOGLE-LLM-NEW"),
-  GEMINI_MODEL: Deno.env.get("GEMINI_MODEL") || "gemini-2.0-flash-exp"
+  GEMINI_MODEL: Deno.env.get("GEMINI_MODEL") || "gemini-2.5-flash"
 };
 
 const GEMINI_TIMEOUT_MS = 30_000;
@@ -515,9 +515,7 @@ async function callGeminiAPI(
     tools: tools.length > 0 ? [{ functionDeclarations: tools }] : undefined,
     generationConfig: {
       temperature: 0.7,
-      topP: 0.9,
-      topK: 40,
-      maxOutputTokens: 6000
+      thinkingConfig: { thinkingBudget: 0 }
     }
   };
 
@@ -569,7 +567,7 @@ Deno.serve(async (req: Request) => {
     console.log(`[FolderAI] Request ${requestId}: folder=${folder_id}, user=${user_id}`);
 
     // Create Supabase client
-    const supabase = createPooledClient(ENV.SUPABASE_URL!, ENV.SUPABASE_SERVICE_ROLE_KEY!);
+    const supabase = createPooledClient();
 
     // Check usage limits
     const canProceed = await checkFolderAILimit(supabase, user_id);
