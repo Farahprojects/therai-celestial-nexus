@@ -380,7 +380,7 @@ export const ChatBox: React.FC<ChatBoxProps> = ({ onDelete }) => {
                     
                     {/* New Chat Button on left */}
                     <Suspense fallback={<div className="h-8 w-8 bg-gray-200 rounded-lg animate-pulse" />}>
-                      <NewChatButton />
+                      <NewChatButton isFolderView={viewMode === 'folder'} />
                     </Suspense>
                   </div>
                   

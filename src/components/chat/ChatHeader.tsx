@@ -23,7 +23,7 @@ export const ChatHeader: React.FC = () => {
           <div className="max-w-3xl mx-auto w-full flex items-center justify-between">
             <div className="flex items-center gap-3">
               {/* New Chat Button */}
-              <NewChatButton />
+              <NewChatButton isFolderView={viewMode === 'folder'} />
             </div>
 
             <div className="flex items-center gap-2">

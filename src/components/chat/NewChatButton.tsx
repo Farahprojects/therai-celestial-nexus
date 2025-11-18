@@ -1,5 +1,5 @@
 import React from 'react';
-import { MessageCircle, Blend } from 'lucide-react';
+import { MessageCircle, Blend, SquarePen } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,9 +11,10 @@ import { useChatCreation } from '@/components/chat/ChatCreationProvider';
 
 interface NewChatButtonProps {
   className?: string;
+  isFolderView?: boolean; // Show "Folder" text only in folder view
 }
 
-export const NewChatButton: React.FC<NewChatButtonProps> = ({ className = "" }) => {
+export const NewChatButton: React.FC<NewChatButtonProps> = ({ className = "", isFolderView = false }) => {
   const {
     startChat,
     startTogetherMode,
@@ -23,9 +24,15 @@ export const NewChatButton: React.FC<NewChatButtonProps> = ({ className = "" }) 
     <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <button className={`flex items-center justify-center px-3 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors ${className}`}>
-            Folder
-          </button>
+          {isFolderView ? (
+            <button className={`flex items-center justify-center px-3 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors ${className}`}>
+              Folder
+            </button>
+          ) : (
+            <button className={`flex items-center justify-center p-2 text-black hover:bg-gray-100 rounded-lg transition-colors ${className}`}>
+              <SquarePen className="w-5 h-5" />
+            </button>
+          )}
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" className="w-48">
           <DropdownMenuItem
