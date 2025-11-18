@@ -107,7 +107,7 @@ export async function getFolderAIMessages(folderId: string): Promise<FolderAIMes
       throw new Error(error.message || 'Failed to fetch messages');
     }
 
-    return data as FolderAIMessage[];
+    return (data || []) as unknown as FolderAIMessage[];
   } catch (err: any) {
     console.error('[FolderAI] Error fetching messages:', err);
     throw err;
@@ -338,7 +338,7 @@ export async function updateDocumentContent(
 export async function clearFolderAIHistory(folderId: string): Promise<void> {
   try {
     const { error } = await supabase
-      .from('folder_ai_messages')
+      .from('folder_ai_messages' as any)
       .delete()
       .eq('folder_id', folderId);
 
@@ -425,7 +425,7 @@ export async function getFolderAIUsage(userId: string): Promise<{
 }> {
   try {
     const { data, error } = await supabase
-      .from('folder_ai_usage')
+      .from('folder_ai_usage' as any)
       .select('operation_count, last_reset_at')
       .eq('user_id', userId)
       .single();
@@ -434,9 +434,11 @@ export async function getFolderAIUsage(userId: string): Promise<{
       throw error;
     }
 
+    const typedData = data as unknown as { operation_count: number; last_reset_at: string } | null;
+
     return {
-      operationCount: data?.operation_count || 0,
-      lastResetAt: data?.last_reset_at || new Date().toISOString(),
+      operationCount: typedData?.operation_count || 0,
+      lastResetAt: typedData?.last_reset_at || new Date().toISOString(),
       limit: 50 // Free tier limit
     };
   } catch (err: any) {

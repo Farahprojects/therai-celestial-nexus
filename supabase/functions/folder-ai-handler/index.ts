@@ -830,7 +830,7 @@ ${folderMap.reports.map((r, i) =>
     if (xmlRequestMatch) {
       try {
         const idsString = xmlRequestMatch[1];
-        const ids = idsString.split(',').map(id => id.trim().replace(/['"]/g, ''));
+        const ids = idsString.split(',').map((id: string) => id.trim().replace(/['"]/g, ''));
         const reason = xmlRequestMatch[2]?.trim() || 'No reason provided';
         
         console.log(JSON.stringify({
