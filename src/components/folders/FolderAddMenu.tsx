@@ -27,7 +27,7 @@ export const FolderAddMenu: React.FC<FolderAddMenuProps> = ({
         <DropdownMenuItem onClick={onJournalClick} className="cursor-pointer font-light">
           <FileText className="w-4 h-4 mr-3 text-gray-600" />
           <div className="flex flex-col">
-            <span className="text-sm">Journal Entry</span>
+            <span className="text-sm">Notes</span>
             
           </div>
         </DropdownMenuItem>
