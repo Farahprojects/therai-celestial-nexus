@@ -515,7 +515,10 @@ async function callGeminiAPI(
     tools: tools.length > 0 ? [{ functionDeclarations: tools }] : undefined,
     generationConfig: {
       temperature: 0.7,
-      maxOutputTokens: 2048,
+      topP: 0.9,
+      topK: 40,
+      maxOutputTokens: 6000,
+      thinkingConfig: { thinkingBudget: 2048 }
     }
   };
 

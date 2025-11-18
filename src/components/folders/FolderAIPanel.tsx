@@ -108,19 +108,11 @@ export const FolderAIPanel: React.FC<FolderAIPanelProps> = ({
     }
   };
 
-  // Auto-open document canvas when AI creates a draft
-  useEffect(() => {
-    // Find the most recent assistant message with a draft
-    const recentDraftMessage = messages
-      .slice()
-      .reverse()
-      .find(msg => msg.role === 'assistant' && msg.draft);
-
-    if (recentDraftMessage?.draft && !currentDraft) {
-      onDraftChange(recentDraftMessage.draft);
-      onOpenDocumentCanvas();
-    }
-  }, [messages, currentDraft, onDraftChange, onOpenDocumentCanvas]);
+  // Open document canvas only when user explicitly selects a draft
+  const handleOpenDraft = (draft: DraftDocument) => {
+    onDraftChange(draft);
+    onOpenDocumentCanvas();
+  };
 
   // Get initial greeting message
   const getGreetingMessage = (): string => {
@@ -317,6 +309,7 @@ export const FolderAIPanel: React.FC<FolderAIPanelProps> = ({
                 message={message}
                 folderId={folderId}
                 userId={userId}
+                onDraftSelect={handleOpenDraft}
               />
             ))}
 
@@ -414,12 +407,14 @@ interface MessageBubbleProps {
   message: ParsedMessage;
   folderId: string;
   userId: string;
+  onDraftSelect?: (draft: DraftDocument) => void;
 }
 
 const MessageBubble: React.FC<MessageBubbleProps> = ({
   message,
   folderId,
-  userId
+  userId,
+  onDraftSelect
 }) => {
   const isUser = message.role === 'user';
   const isSystem = message.role === 'system';
@@ -461,17 +456,23 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
           </div>
         )}
 
-        {/* Draft indicator - Apple style */}
+        {/* Draft indicator - Apple style, clickable to open canvas */}
         {message.draft && !isUser && (
-          <div className="rounded-2xl bg-gray-50 border border-gray-200 px-4 py-3">
+          <button
+            type="button"
+            onClick={() => onDraftSelect?.(message.draft!)}
+            className="w-full text-left rounded-2xl bg-gray-50 border border-gray-200 px-4 py-3 hover:bg-gray-100 transition-colors"
+          >
             <div className="flex items-center gap-2">
               <FileText className="w-4 h-4 text-gray-600" />
-              <span className="text-[13px] font-semibold text-gray-900">{message.draft.title}</span>
+              <span className="text-[13px] font-semibold text-gray-900 truncate">
+                {message.draft.title}
+              </span>
             </div>
             <p className="text-xs text-gray-600 mt-1 font-medium">
-              Open in left panel to review
+              Tap to open in document canvas
             </p>
-          </div>
+          </button>
         )}
 
         {/* Update indicator - Apple style */}

@@ -5,6 +5,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { DraftDocument } from '@/services/folder-ai';
 import { cn } from '@/lib/utils';
 import ReactMarkdown from 'react-markdown';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface FolderAIDocumentCanvasProps {
   isOpen: boolean;
@@ -21,6 +22,7 @@ export const FolderAIDocumentCanvas: React.FC<FolderAIDocumentCanvasProps> = ({
   onSave,
   isSaving
 }) => {
+  const isMobile = useIsMobile();
   const [isEditing, setIsEditing] = useState(false);
   const [editedTitle, setEditedTitle] = useState('');
   const [editedContent, setEditedContent] = useState('');
@@ -51,9 +53,13 @@ export const FolderAIDocumentCanvas: React.FC<FolderAIDocumentCanvasProps> = ({
 
   if (!draft || !isOpen) return null;
 
+  const containerClassName = isMobile
+    ? 'fixed inset-0 z-50 flex flex-col bg-white'
+    : 'fixed inset-y-0 left-0 z-40 w-3/4 sm:max-w-2xl p-0 flex flex-col border-r bg-white shadow-lg';
+
   return (
     <div
-      className="fixed inset-y-0 left-0 z-40 w-3/4 sm:max-w-2xl p-0 flex flex-col border-r bg-white shadow-lg"
+      className={containerClassName}
       style={{
         paddingTop: 'env(safe-area-inset-top)',
         paddingBottom: 'env(safe-area-inset-bottom)',
