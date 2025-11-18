@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useState, useRef } from 'react';
 import { getFolderConversations, getUserFolders, getSharedFolder, moveConversationToFolder, getFolderWithProfile } from '@/services/folders';
 import { getJournalEntries, JournalEntry, updateJournalEntry, deleteJournalEntry } from '@/services/journal';
 import { getDocuments, deleteDocument, FolderDocument } from '@/services/folder-documents';
-import { MoreHorizontal, Folder, HelpCircle, Sparkles, Share2, File, Trash2, X, ArrowRight } from 'lucide-react';
+import { MoreHorizontal, Folder, File, Trash2, X, ArrowRight, Sparkles } from 'lucide-react';
 import TextareaAutosize from 'react-textarea-autosize';
 import { useNavigate } from 'react-router-dom';
 import { useChatStore } from '@/core/store';
@@ -539,18 +539,6 @@ export const FolderView: React.FC<FolderViewProps> = ({
             <span>{folderName}</span>
           </div>
           {user && <div className="flex items-center gap-2">
-              {/* Folder AI Button */}
-              <button onClick={() => setShowFolderAI(true)} title="Open Folder AI" className="p-2 hover:p-2 rounded-full transition-colors">
-                <Sparkles className="w-4 h-4 text-purple-600" />
-              </button>
-              <button onClick={() => setShowFolderShareModal(true)} className="p-2 hover:bg-gray-100 rounded-full transition-colors" title="Share folder">
-                <Share2 className="w-4 h-4 text-gray-500" />
-              </button>
-              {/* Help Icon */}
-              <button onClick={() => setShowHelpDialog(true)} className="p-2 hover:bg-gray-100 rounded-full transition-colors" title="Help">
-                <HelpCircle className="w-4 h-4 text-gray-500" />
-              </button>
-              
               {/* Export Menu */}
               <FolderExportMenu folderId={folderId} folderName={folderName} />
               

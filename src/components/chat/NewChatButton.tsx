@@ -1,5 +1,5 @@
 import React from 'react';
-import { SquarePen, MessageCircle, Blend } from 'lucide-react';
+import { MessageCircle, Blend } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,8 +23,8 @@ export const NewChatButton: React.FC<NewChatButtonProps> = ({ className = "" }) 
     <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <button className={`flex items-center justify-center p-2 text-black hover:bg-gray-100 rounded-lg transition-colors ${className}`}>
-            <SquarePen className="w-5 h-5" />
+          <button className={`flex items-center justify-center px-3 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors ${className}`}>
+            Folder
           </button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" className="w-48">
