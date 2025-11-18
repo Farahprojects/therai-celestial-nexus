@@ -17,7 +17,7 @@ if (!SUPABASE_SERVICE_ROLE_KEY) throw new Error("Missing env: SUPABASE_SERVICE_R
  * - Connection pooling handled automatically by Supabase infrastructure
  */
 export function createPooledClient(): SupabaseClient {
-  return createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+  return createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!, {
     auth: { 
       persistSession: false,
       autoRefreshToken: false,

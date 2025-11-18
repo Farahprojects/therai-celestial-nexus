@@ -772,8 +772,75 @@ export type Database = {
         }
         Relationships: []
       }
+      folder_ai_messages: {
+        Row: {
+          content: string
+          created_at: string
+          folder_id: string
+          id: string
+          metadata: Json
+          role: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          folder_id: string
+          id?: string
+          metadata?: Json
+          role: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          folder_id?: string
+          id?: string
+          metadata?: Json
+          role?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "folder_ai_messages_folder_id_fkey"
+            columns: ["folder_id"]
+            isOneToOne: false
+            referencedRelation: "chat_folders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      folder_ai_usage: {
+        Row: {
+          created_at: string
+          id: string
+          last_reset_at: string
+          operation_count: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          last_reset_at?: string
+          operation_count?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          last_reset_at?: string
+          operation_count?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       folder_documents: {
         Row: {
+          ai_generated: boolean | null
+          ai_metadata: Json
           content_text: string | null
           created_at: string
           error_message: string | null
@@ -785,11 +852,15 @@ export type Database = {
           folder_id: string
           id: string
           metadata: Json | null
+          parent_document_id: string | null
           updated_at: string
           upload_status: string
           user_id: string
+          version: number
         }
         Insert: {
+          ai_generated?: boolean | null
+          ai_metadata?: Json
           content_text?: string | null
           created_at?: string
           error_message?: string | null
@@ -801,11 +872,15 @@ export type Database = {
           folder_id: string
           id?: string
           metadata?: Json | null
+          parent_document_id?: string | null
           updated_at?: string
           upload_status?: string
           user_id: string
+          version?: number
         }
         Update: {
+          ai_generated?: boolean | null
+          ai_metadata?: Json
           content_text?: string | null
           created_at?: string
           error_message?: string | null
@@ -817,9 +892,11 @@ export type Database = {
           folder_id?: string
           id?: string
           metadata?: Json | null
+          parent_document_id?: string | null
           updated_at?: string
           upload_status?: string
           user_id?: string
+          version?: number
         }
         Relationships: [
           {
@@ -827,6 +904,13 @@ export type Database = {
             columns: ["folder_id"]
             isOneToOne: false
             referencedRelation: "chat_folders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "folder_documents_parent_document_id_fkey"
+            columns: ["parent_document_id"]
+            isOneToOne: false
+            referencedRelation: "folder_documents"
             referencedColumns: ["id"]
           },
         ]
@@ -2560,16 +2644,7 @@ export type Database = {
       }
     }
     Views: {
-      message_archival_stats: {
-        Row: {
-          active_messages: number | null
-          archived_messages: number | null
-          conversations_with_archived: number | null
-          latest_archive_date: string | null
-          oldest_archive_date: string | null
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Functions: {
       add_credits: {
@@ -2591,7 +2666,6 @@ export type Database = {
         }[]
       }
       assign_ab_test_group: { Args: never; Returns: string }
-      bytea_to_text: { Args: { data: string }; Returns: string }
       check_and_increment_insights_count: {
         Args: {
           p_count: number
@@ -2635,6 +2709,10 @@ export type Database = {
           p_user_id: string
         }
         Returns: Json
+      }
+      check_folder_ai_limit: {
+        Args: { p_limit?: number; p_user_id: string }
+        Returns: boolean
       }
       check_orphaned_data: {
         Args: never
@@ -2713,6 +2791,16 @@ export type Database = {
           updated_at: string
         }[]
       }
+      get_message_archival_stats: {
+        Args: never
+        Returns: {
+          active_messages: number
+          archived_messages: number
+          conversations_with_archived: number
+          latest_archive_date: string
+          oldest_archive_date: string
+        }[]
+      }
       get_next_engine_sequence: { Args: never; Returns: number }
       get_stripe_customer_id_for_user: {
         Args: { user_id_param: string }
@@ -2727,131 +2815,6 @@ export type Database = {
         Args: { months_old?: number }
         Returns: number
       }
-      http: {
-        Args: { request: Database["public"]["CompositeTypes"]["http_request"] }
-        Returns: Database["public"]["CompositeTypes"]["http_response"]
-        SetofOptions: {
-          from: "http_request"
-          to: "http_response"
-          isOneToOne: true
-          isSetofReturn: false
-        }
-      }
-      http_delete:
-        | {
-            Args: { uri: string }
-            Returns: Database["public"]["CompositeTypes"]["http_response"]
-            SetofOptions: {
-              from: "*"
-              to: "http_response"
-              isOneToOne: true
-              isSetofReturn: false
-            }
-          }
-        | {
-            Args: { content: string; content_type: string; uri: string }
-            Returns: Database["public"]["CompositeTypes"]["http_response"]
-            SetofOptions: {
-              from: "*"
-              to: "http_response"
-              isOneToOne: true
-              isSetofReturn: false
-            }
-          }
-      http_get:
-        | {
-            Args: { uri: string }
-            Returns: Database["public"]["CompositeTypes"]["http_response"]
-            SetofOptions: {
-              from: "*"
-              to: "http_response"
-              isOneToOne: true
-              isSetofReturn: false
-            }
-          }
-        | {
-            Args: { data: Json; uri: string }
-            Returns: Database["public"]["CompositeTypes"]["http_response"]
-            SetofOptions: {
-              from: "*"
-              to: "http_response"
-              isOneToOne: true
-              isSetofReturn: false
-            }
-          }
-      http_head: {
-        Args: { uri: string }
-        Returns: Database["public"]["CompositeTypes"]["http_response"]
-        SetofOptions: {
-          from: "*"
-          to: "http_response"
-          isOneToOne: true
-          isSetofReturn: false
-        }
-      }
-      http_header: {
-        Args: { field: string; value: string }
-        Returns: Database["public"]["CompositeTypes"]["http_header"]
-        SetofOptions: {
-          from: "*"
-          to: "http_header"
-          isOneToOne: true
-          isSetofReturn: false
-        }
-      }
-      http_list_curlopt: {
-        Args: never
-        Returns: {
-          curlopt: string
-          value: string
-        }[]
-      }
-      http_patch: {
-        Args: { content: string; content_type: string; uri: string }
-        Returns: Database["public"]["CompositeTypes"]["http_response"]
-        SetofOptions: {
-          from: "*"
-          to: "http_response"
-          isOneToOne: true
-          isSetofReturn: false
-        }
-      }
-      http_post:
-        | {
-            Args: { content: string; content_type: string; uri: string }
-            Returns: Database["public"]["CompositeTypes"]["http_response"]
-            SetofOptions: {
-              from: "*"
-              to: "http_response"
-              isOneToOne: true
-              isSetofReturn: false
-            }
-          }
-        | {
-            Args: { data: Json; uri: string }
-            Returns: Database["public"]["CompositeTypes"]["http_response"]
-            SetofOptions: {
-              from: "*"
-              to: "http_response"
-              isOneToOne: true
-              isSetofReturn: false
-            }
-          }
-      http_put: {
-        Args: { content: string; content_type: string; uri: string }
-        Returns: Database["public"]["CompositeTypes"]["http_response"]
-        SetofOptions: {
-          from: "*"
-          to: "http_response"
-          isOneToOne: true
-          isSetofReturn: false
-        }
-      }
-      http_reset_curlopt: { Args: never; Returns: boolean }
-      http_set_curlopt: {
-        Args: { curlopt: string; value: string }
-        Returns: boolean
-      }
       increment_chat_messages:
         | {
             Args: { p_count: number; p_period: string; p_user_id: string }
@@ -2865,6 +2828,10 @@ export type Database = {
           p_period: string
           p_user_id: string
         }
+        Returns: undefined
+      }
+      increment_folder_ai_usage: {
+        Args: { p_user_id: string }
         Returns: undefined
       }
       increment_images_generated:
@@ -2927,6 +2894,7 @@ export type Database = {
           user_id: string
         }[]
       }
+      reset_folder_ai_usage: { Args: { p_user_id: string }; Returns: undefined }
       rpc_notify_orchestrator: {
         Args: { guest_report_id: string }
         Returns: undefined
@@ -2963,7 +2931,6 @@ export type Database = {
         }
         Returns: boolean
       }
-      text_to_bytea: { Args: { data: string }; Returns: string }
       toggle_addon: {
         Args: { addon_name: string; enabled: boolean; user_id_param: string }
         Returns: undefined
@@ -2981,20 +2948,6 @@ export type Database = {
         Args: { new_plan: string; user_id_param: string }
         Returns: undefined
       }
-      urlencode:
-        | { Args: { data: Json }; Returns: string }
-        | {
-            Args: { string: string }
-            Returns: {
-              error: true
-            } & "Could not choose the best candidate function between: public.urlencode(string => bytea), public.urlencode(string => varchar). Try renaming the parameters or the function itself in the database so function overloading can be resolved"
-          }
-        | {
-            Args: { string: string }
-            Returns: {
-              error: true
-            } & "Could not choose the best candidate function between: public.urlencode(string => bytea), public.urlencode(string => varchar). Try renaming the parameters or the function itself in the database so function overloading can be resolved"
-          }
       user_owns_insight: { Args: { report_id: string }; Returns: boolean }
     }
     Enums: {
@@ -3003,23 +2956,7 @@ export type Database = {
       user_role: "admin" | "user"
     }
     CompositeTypes: {
-      http_header: {
-        field: string | null
-        value: string | null
-      }
-      http_request: {
-        method: unknown
-        uri: string | null
-        headers: Database["public"]["CompositeTypes"]["http_header"][] | null
-        content_type: string | null
-        content: string | null
-      }
-      http_response: {
-        status: number | null
-        content_type: string | null
-        headers: Database["public"]["CompositeTypes"]["http_header"][] | null
-        content: string | null
-      }
+      [_ in never]: never
     }
   }
 }
