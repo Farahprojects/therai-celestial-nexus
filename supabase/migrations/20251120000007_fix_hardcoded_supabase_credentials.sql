@@ -168,7 +168,7 @@ GRANT EXECUTE ON FUNCTION public.get_service_role_key() TO service_role;
 
 -- Add comment explaining configuration
 COMMENT ON FUNCTION public.get_supabase_url() IS 
-'Gets Supabase URL from app settings. Configure via: ALTER DATABASE postgres SET app.settings.supabase_url = ''https://your-project.supabase.co'';';
+'Gets Supabase URL from app settings. Configure via: ALTER DATABASE postgres SET app.settings.supabase_url = ''https://api.therai.co'';';
 
 COMMENT ON FUNCTION public.get_service_role_key() IS 
 'Gets service role key from Supabase Vault. Configure via: SELECT vault.create_secret(''your-service-role-key'', ''service_role_key'');';
