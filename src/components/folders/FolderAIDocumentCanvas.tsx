@@ -25,7 +25,8 @@ interface FolderAIDocumentCanvasProps {
   isOpen: boolean;
   onClose: () => void;
   draft: DraftDocument | null;
-  onSave: (title: string, content: string) => Promise<void>;
+  documentId?: string; // If editing existing document
+  onSave: (title: string, content: string, documentId?: string) => Promise<void>;
   isSaving: boolean;
 }
 
@@ -33,6 +34,7 @@ export const FolderAIDocumentCanvas: React.FC<FolderAIDocumentCanvasProps> = ({
   isOpen,
   onClose,
   draft,
+  documentId,
   onSave,
   isSaving
 }) => {
@@ -71,7 +73,7 @@ export const FolderAIDocumentCanvas: React.FC<FolderAIDocumentCanvasProps> = ({
     if (!editedTitle.trim() || !editedContent.trim()) return;
     
     try {
-      await onSave(editedTitle, editedContent);
+      await onSave(editedTitle, editedContent, documentId);
       onClose();
     } catch (error) {
       console.error('[DocumentCanvas] Error saving:', error);
@@ -99,7 +101,7 @@ export const FolderAIDocumentCanvas: React.FC<FolderAIDocumentCanvasProps> = ({
           'flex flex-col bg-white shadow-xl',
           isMobile
             ? 'w-full h-full'
-            : 'h-[95vh] w-full sm:max-w-2xl border-l'
+            : 'h-full w-full sm:max-w-2xl border-l'
         )}
         onClick={(e) => e.stopPropagation()}
         onMouseDown={(e) => e.stopPropagation()}
@@ -108,7 +110,6 @@ export const FolderAIDocumentCanvas: React.FC<FolderAIDocumentCanvasProps> = ({
           paddingTop: 'env(safe-area-inset-top)',
           paddingBottom: 'env(safe-area-inset-bottom)',
           pointerEvents: 'auto',
-          marginTop: '2.5vh', // Position lower, leaving space at top
         }}
       >
         {/* Header - Apple Style */}
@@ -143,7 +144,7 @@ export const FolderAIDocumentCanvas: React.FC<FolderAIDocumentCanvasProps> = ({
         {/* Content - Always in edit mode */}
         <ScrollArea 
           className="flex-1" 
-          style={{ pointerEvents: 'auto', maxHeight: 'calc(95vh - 180px)' }}
+          style={{ pointerEvents: 'auto' }}
           onClick={(e) => e.stopPropagation()}
           onMouseDown={(e) => e.stopPropagation()}
         >
@@ -155,7 +156,7 @@ export const FolderAIDocumentCanvas: React.FC<FolderAIDocumentCanvasProps> = ({
               onMouseDown={(e) => e.stopPropagation()}
               onFocus={(e) => e.stopPropagation()}
               onWheel={(e) => e.stopPropagation()}
-              className="min-h-[calc(95vh-250px)] font-mono text-[15px] resize-none border-2 border-gray-200/80 focus:border-gray-400 focus:ring-0 rounded-2xl p-4"
+              className="min-h-[calc(100vh-250px)] font-mono text-[15px] resize-none border-2 border-gray-200/80 focus:border-gray-400 focus:ring-0 rounded-2xl p-4"
               placeholder="Document content..."
               style={{ pointerEvents: 'auto' }}
             />

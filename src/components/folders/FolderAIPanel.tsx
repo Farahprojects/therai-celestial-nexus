@@ -32,7 +32,7 @@ interface FolderAIPanelProps {
   folderName: string;
   onDocumentCreated?: () => void;
   onDocumentUpdated?: () => void;
-  onOpenDocumentCanvas?: (draft: DraftDocument) => void;
+  onOpenDocumentCanvas?: (draft: DraftDocument, documentId?: string) => void;
 }
 
 export const FolderAIPanel: React.FC<FolderAIPanelProps> = ({
@@ -439,16 +439,16 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
     );
   }
 
-  // Apply markdown stripping to draft preview (same logic as canvas)
-  const draftPreview =
-    message.draft && message.draft.content
-      ? (() => {
-          const sanitized = sanitizePlainText(message.draft.content);
-          return sanitized.length > 1200
-            ? `${sanitized.slice(0, 1200)}…`
-            : sanitized;
-        })()
-      : '';
+  // Apply markdown stripping to content preview (treat draft and update the same)
+  const contentToShow = message.draft?.content || message.update?.content || '';
+  const draftPreview = contentToShow
+    ? (() => {
+        const sanitized = sanitizePlainText(contentToShow);
+        return sanitized.length > 1200
+          ? `${sanitized.slice(0, 1200)}…`
+          : sanitized;
+      })()
+    : '';
 
   return (
     <div className={cn('flex items-start gap-3', isUser && 'flex-row-reverse justify-start')}>
@@ -460,8 +460,8 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
       
       <div className="flex-1 space-y-3 max-w-[85%]">
         {/* Text content - Apple style: plain AI, grey pill user */}
-        {/* Hide generic plainText when there's a draft - show actual content instead */}
-        {message.plainText && !message.draft && (
+        {/* Hide generic plainText when there's a draft or update - show actual content instead */}
+        {message.plainText && !message.draft && !message.update && (
           <div
             className={cn(
               isUser
@@ -478,13 +478,13 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
           </div>
         )}
 
-        {/* Draft preview card - appears inside chat with actions */}
-        {message.draft && !isUser && (
+        {/* Document content - appears inside chat with actions (treat draft and update the same) */}
+        {(message.draft || message.update) && !isUser && (
           <div className="w-full rounded-2xl px-4 py-3">
             <div className="flex items-center gap-2 mb-2">
               <FileText className="w-4 h-4 text-gray-600" />
               <span className="text-[13px] font-semibold text-gray-900 truncate">
-                {message.draft.title}
+                {message.draft?.title || 'Document'}
               </span>
             </div>
             {draftPreview && (
@@ -497,10 +497,11 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
                 type="button"
                 onClick={async () => {
                   try {
-                    await navigator.clipboard.writeText(message.draft!.content);
-                    toast.success('Draft copied to clipboard');
+                    const content = message.draft?.content || message.update?.content || '';
+                    await navigator.clipboard.writeText(content);
+                    toast.success('Content copied to clipboard');
                   } catch (err) {
-                    console.error('[FolderAIPanel] Failed to copy draft:', err);
+                    console.error('[FolderAIPanel] Failed to copy:', err);
                     toast.error('Unable to copy right now');
                   }
                 }}
@@ -511,7 +512,18 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
               </button>
               <button
                 type="button"
-                onClick={() => onDraftSelect?.(message.draft!)}
+                onClick={() => {
+                  // Treat both draft and update the same - just open editor
+                  if (message.draft) {
+                    onDraftSelect?.(message.draft);
+                  } else if (message.update) {
+                    // Convert update to draft format for editor, pass documentId if updating
+                    onDraftSelect?.({
+                      title: 'Document',
+                      content: message.update.content
+                    }, message.update.documentId);
+                  }
+                }}
                 className="inline-flex items-center gap-1 rounded-full bg-black px-3 py-1.5 text-xs font-medium text-white hover:bg-gray-800 transition-colors"
               >
                 <SquarePen className="w-3 h-3" />
@@ -521,14 +533,15 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
                 type="button"
                 onClick={() => {
                   try {
-                    const blob = new Blob([message.draft!.content], {
+                    const content = message.draft?.content || message.update?.content || '';
+                    const title = message.draft?.title || 'folder-ai-document';
+                    const blob = new Blob([content], {
                       type: 'text/markdown',
                     });
                     const url = URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.href = url;
-                    const safeTitle =
-                      message.draft!.title?.trim() || 'folder-ai-document';
+                    const safeTitle = title.trim();
                     a.download = safeTitle.endsWith('.md')
                       ? safeTitle
                       : `${safeTitle}.md`;
@@ -537,7 +550,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
                     a.remove();
                     URL.revokeObjectURL(url);
                   } catch (err) {
-                    console.error('[FolderAIPanel] Failed to download draft:', err);
+                    console.error('[FolderAIPanel] Failed to download:', err);
                     toast.error('Unable to download right now');
                   }
                 }}
@@ -547,19 +560,6 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
                 Download
               </button>
             </div>
-          </div>
-        )}
-
-        {/* Update indicator - Apple style */}
-        {message.update && !isUser && (
-          <div className="rounded-2xl bg-gray-50 border border-gray-200 px-4 py-3">
-            <div className="flex items-center gap-2">
-              <FileText className="w-4 h-4 text-gray-600" />
-              <span className="text-[13px] font-semibold text-gray-900">Proposed Update</span>
-            </div>
-            <p className="text-xs text-gray-600 mt-1 font-medium">
-              Review changes in panel
-            </p>
           </div>
         )}
       </div>

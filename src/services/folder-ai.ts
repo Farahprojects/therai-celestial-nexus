@@ -352,39 +352,62 @@ export async function clearFolderAIHistory(folderId: string): Promise<void> {
 }
 
 /**
- * Save a document draft to the folder
+ * Save a document - creates new or updates existing
  */
 export async function saveDocumentDraft(
   folderId: string,
   userId: string,
   title: string,
-  content: string
+  content: string,
+  documentId?: string // If provided, update existing; otherwise create new
 ): Promise<void> {
   try {
     // Calculate file size from content (in bytes)
     const fileSize = new Blob([content]).size;
     const fileName = title.endsWith('.md') ? title : `${title}.md`;
 
-    const { error } = await supabase
-      .from('folder_documents')
-      .insert({
-        folder_id: folderId,
-        user_id: userId,
-        file_name: fileName,
-        file_size: fileSize,
-        file_extension: 'md',
-        content_text: content,
-        file_type: 'text/markdown',
-        upload_status: 'completed',
-        ai_generated: true,
-        ai_metadata: {
-          generated_at: new Date().toISOString(),
-          source: 'folder_ai'
-        }
-      });
+    if (documentId) {
+      // Update existing document
+      const { error } = await supabase
+        .from('folder_documents')
+        .update({
+          file_name: fileName,
+          file_size: fileSize,
+          content_text: content,
+          ai_metadata: {
+            generated_at: new Date().toISOString(),
+            source: 'folder_ai',
+            updated: true
+          }
+        })
+        .eq('id', documentId);
 
-    if (error) {
-      throw new Error(error.message || 'Failed to save document');
+      if (error) {
+        throw new Error(error.message || 'Failed to update document');
+      }
+    } else {
+      // Create new document
+      const { error } = await supabase
+        .from('folder_documents')
+        .insert({
+          folder_id: folderId,
+          user_id: userId,
+          file_name: fileName,
+          file_size: fileSize,
+          file_extension: 'md',
+          content_text: content,
+          file_type: 'text/markdown',
+          upload_status: 'completed',
+          ai_generated: true,
+          ai_metadata: {
+            generated_at: new Date().toISOString(),
+            source: 'folder_ai'
+          }
+        });
+
+      if (error) {
+        throw new Error(error.message || 'Failed to save document');
+      }
     }
   } catch (err: any) {
     console.error('[FolderAI] Error saving document:', err);

@@ -89,6 +89,7 @@ export const FolderView: React.FC<FolderViewProps> = ({
   const [showFolderAI, setShowFolderAI] = useState(false);
   const [showDocumentCanvas, setShowDocumentCanvas] = useState(false);
   const [currentDraft, setCurrentDraft] = useState<DraftDocument | null>(null);
+  const [currentDocumentId, setCurrentDocumentId] = useState<string | null>(null);
   const [isSavingDraft, setIsSavingDraft] = useState(false);
   const navigate = useNavigate();
   const {
@@ -896,8 +897,9 @@ export const FolderView: React.FC<FolderViewProps> = ({
           folderName={folderName}
           onDocumentCreated={handleDocumentUploaded}
           onDocumentUpdated={handleDocumentUploaded}
-          onOpenDocumentCanvas={(draft) => {
+          onOpenDocumentCanvas={(draft, docId) => {
             setCurrentDraft(draft);
+            setCurrentDocumentId(docId);
             setShowDocumentCanvas(true);
           }}
         />
@@ -910,19 +912,22 @@ export const FolderView: React.FC<FolderViewProps> = ({
           onClose={() => {
             setShowDocumentCanvas(false);
             setCurrentDraft(null);
+            setCurrentDocumentId(null);
           }}
           draft={currentDraft}
-          onSave={async (title, content) => {
+          documentId={currentDocumentId || undefined}
+          onSave={async (title, content, docId) => {
             if (!folderId || !user.id) return;
             try {
               setIsSavingDraft(true);
-              await saveDocumentDraft(folderId, user.id, title, content);
-              toast.success('Document saved to folder');
+              await saveDocumentDraft(folderId, user.id, title, content, docId);
+              toast.success(docId ? 'Document updated' : 'Document saved to folder');
               setShowDocumentCanvas(false);
               setCurrentDraft(null);
+              setCurrentDocumentId(null);
               handleDocumentUploaded();
             } catch (error) {
-              console.error('[FolderView] Error saving draft:', error);
+              console.error('[FolderView] Error saving document:', error);
               toast.error('Failed to save document');
             } finally {
               setIsSavingDraft(false);
