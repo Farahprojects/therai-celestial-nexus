@@ -498,7 +498,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
               'text-[15px] whitespace-pre-wrap',
               isUser ? 'font-normal' : 'font-light tracking-tight'
             )}>
-              {message.plainText}
+              {isUser ? message.plainText : sanitizePlainText(message.plainText)}
             </p>
           </div>
         )}
