@@ -1,14 +1,28 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { X, Send, Sparkles, FileText, BookOpen, Loader2, ChevronDown, ChevronUp, MessageSquare, BarChart3, SquarePen, Mic, ArrowRight } from 'lucide-react';
+import { X, Send, Sparkles, FileText, BookOpen, Loader2, ChevronDown, ChevronUp, MessageSquare, BarChart3, SquarePen, Mic, ArrowRight, Copy, Download } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useFolderAI, ParsedMessage } from '@/hooks/useFolderAI';
-import { DraftDocument } from '@/services/folder-ai';
+import { DraftDocument, saveDocumentDraft } from '@/services/folder-ai';
 import { clearFolderAIHistory } from '@/services/folder-ai';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import TextareaAutosize from 'react-textarea-autosize';
+
+// Same robust markdown stripping logic as Gemini LLM handler, but preserves line breaks
+function sanitizePlainText(input: string): string {
+  return (typeof input === "string" ? input : "")
+    .replace(/```[\s\S]*?```/g, "") // code blocks
+    .replace(/`([^`]+)`/g, "$1") // inline code
+    .replace(/!\[[^\]]+\]\([^)]+\)/g, "") // images
+    .replace(/\[[^\]]+\]\([^)]+\)/g, "$1") // links
+    .replace(/[>_~#*]+/g, "") // md symbols (including bold/italic *)
+    .replace(/-{3,}/g, "\n") // horizontal rules -> line break
+    .replace(/[ \t]+/g, " ") // multiple spaces/tabs -> single space (preserve newlines)
+    .replace(/\n{3,}/g, "\n\n") // multiple newlines -> double newline (paragraph break)
+    .trim();
+}
 
 interface FolderAIPanelProps {
   isOpen: boolean;
@@ -18,9 +32,7 @@ interface FolderAIPanelProps {
   folderName: string;
   onDocumentCreated?: () => void;
   onDocumentUpdated?: () => void;
-  currentDraft: DraftDocument | null;
-  onDraftChange: (draft: DraftDocument | null) => void;
-  onOpenDocumentCanvas: () => void;
+  onOpenDocumentCanvas?: (draft: DraftDocument) => void;
 }
 
 export const FolderAIPanel: React.FC<FolderAIPanelProps> = ({
@@ -31,8 +43,6 @@ export const FolderAIPanel: React.FC<FolderAIPanelProps> = ({
   folderName,
   onDocumentCreated,
   onDocumentUpdated,
-  currentDraft,
-  onDraftChange,
   onOpenDocumentCanvas
 }) => {
   const [inputText, setInputText] = useState('');
@@ -48,9 +58,9 @@ export const FolderAIPanel: React.FC<FolderAIPanelProps> = ({
     error,
     sendMessage,
     continueWithDocuments,
-    refreshContext,
     hasPendingDocumentRequest,
-    loadMessages
+    loadMessages,
+    refreshContext
   } = useFolderAI(isOpen ? folderId : null, isOpen ? userId : null);
 
   // Auto-scroll to bottom when messages change
@@ -100,7 +110,8 @@ export const FolderAIPanel: React.FC<FolderAIPanelProps> = ({
       // Reload messages (will be empty now)
       await loadMessages();
       // Close document canvas if open
-      onDraftChange(null);
+      setCurrentDraft(null);
+      setShowDocumentCanvas(false);
       toast.success('New conversation started');
     } catch (err: any) {
       console.error('[FolderAIPanel] Error clearing history:', err);
@@ -110,8 +121,7 @@ export const FolderAIPanel: React.FC<FolderAIPanelProps> = ({
 
   // Open document canvas only when user explicitly selects a draft
   const handleOpenDraft = (draft: DraftDocument) => {
-    onDraftChange(draft);
-    onOpenDocumentCanvas();
+    onOpenDocumentCanvas?.(draft);
   };
 
   // Get initial greeting message
@@ -343,7 +353,7 @@ export const FolderAIPanel: React.FC<FolderAIPanelProps> = ({
                 ref={inputRef}
                 value={inputText}
                 onChange={(e) => setInputText(e.target.value)}
-                placeholder={isSending ? "Thinking..." : "Share your thoughts..."}
+                placeholder={isSending ? "Thinking..." : "Ask Folder AI about this folder..."}
                 disabled={isSending}
                 className={`w-full px-4 py-2.5 pr-24 text-base font-light bg-white border-2 rounded-3xl focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-400 resize-none text-black placeholder-gray-500 overflow-y-auto ${
                   isSending
@@ -429,6 +439,17 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
     );
   }
 
+  // Apply markdown stripping to draft preview (same logic as canvas)
+  const draftPreview =
+    message.draft && message.draft.content
+      ? (() => {
+          const sanitized = sanitizePlainText(message.draft.content);
+          return sanitized.length > 1200
+            ? `${sanitized.slice(0, 1200)}…`
+            : sanitized;
+        })()
+      : '';
+
   return (
     <div className={cn('flex items-start gap-3', isUser && 'flex-row-reverse justify-start')}>
       {!isUser && (
@@ -439,7 +460,8 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
       
       <div className="flex-1 space-y-3 max-w-[85%]">
         {/* Text content - Apple style: plain AI, grey pill user */}
-        {message.plainText && (
+        {/* Hide generic plainText when there's a draft - show actual content instead */}
+        {message.plainText && !message.draft && (
           <div
             className={cn(
               isUser
@@ -456,23 +478,76 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
           </div>
         )}
 
-        {/* Draft indicator - Apple style, clickable to open canvas */}
+        {/* Draft preview card - appears inside chat with actions */}
         {message.draft && !isUser && (
-          <button
-            type="button"
-            onClick={() => onDraftSelect?.(message.draft!)}
-            className="w-full text-left rounded-2xl bg-gray-50 border border-gray-200 px-4 py-3 hover:bg-gray-100 transition-colors"
-          >
-            <div className="flex items-center gap-2">
+          <div className="w-full rounded-2xl px-4 py-3">
+            <div className="flex items-center gap-2 mb-2">
               <FileText className="w-4 h-4 text-gray-600" />
               <span className="text-[13px] font-semibold text-gray-900 truncate">
                 {message.draft.title}
               </span>
             </div>
-            <p className="text-xs text-gray-600 mt-1 font-medium">
-              Tap to open in document canvas
-            </p>
-          </button>
+            {draftPreview && (
+              <div className="mt-2 text-sm text-gray-900 font-light whitespace-pre-wrap max-h-60 overflow-y-auto">
+                {draftPreview}
+              </div>
+            )}
+            <div className="mt-3 flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    await navigator.clipboard.writeText(message.draft!.content);
+                    toast.success('Draft copied to clipboard');
+                  } catch (err) {
+                    console.error('[FolderAIPanel] Failed to copy draft:', err);
+                    toast.error('Unable to copy right now');
+                  }
+                }}
+                className="inline-flex items-center gap-1 rounded-full border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-100 transition-colors"
+              >
+                <Copy className="w-3 h-3" />
+                Copy
+              </button>
+              <button
+                type="button"
+                onClick={() => onDraftSelect?.(message.draft!)}
+                className="inline-flex items-center gap-1 rounded-full bg-black px-3 py-1.5 text-xs font-medium text-white hover:bg-gray-800 transition-colors"
+              >
+                <SquarePen className="w-3 h-3" />
+                Edit
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  try {
+                    const blob = new Blob([message.draft!.content], {
+                      type: 'text/markdown',
+                    });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    const safeTitle =
+                      message.draft!.title?.trim() || 'folder-ai-document';
+                    a.download = safeTitle.endsWith('.md')
+                      ? safeTitle
+                      : `${safeTitle}.md`;
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                    URL.revokeObjectURL(url);
+                  } catch (err) {
+                    console.error('[FolderAIPanel] Failed to download draft:', err);
+                    toast.error('Unable to download right now');
+                  }
+                }}
+                className="inline-flex items-center gap-1 rounded-full border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-100 transition-colors"
+              >
+                <Download className="w-3 h-3" />
+                Download
+              </button>
+            </div>
+          </div>
         )}
 
         {/* Update indicator - Apple style */}

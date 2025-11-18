@@ -361,14 +361,21 @@ export async function saveDocumentDraft(
   content: string
 ): Promise<void> {
   try {
+    // Calculate file size from content (in bytes)
+    const fileSize = new Blob([content]).size;
+    const fileName = title.endsWith('.md') ? title : `${title}.md`;
+
     const { error } = await supabase
       .from('folder_documents')
       .insert({
         folder_id: folderId,
         user_id: userId,
-        file_name: title.endsWith('.md') ? title : `${title}.md`,
+        file_name: fileName,
+        file_size: fileSize,
+        file_extension: 'md',
         content_text: content,
         file_type: 'text/markdown',
+        upload_status: 'completed',
         ai_generated: true,
         ai_metadata: {
           generated_at: new Date().toISOString(),

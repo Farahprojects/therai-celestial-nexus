@@ -89,6 +89,7 @@ export const FolderView: React.FC<FolderViewProps> = ({
   const [showFolderAI, setShowFolderAI] = useState(false);
   const [showDocumentCanvas, setShowDocumentCanvas] = useState(false);
   const [currentDraft, setCurrentDraft] = useState<DraftDocument | null>(null);
+  const [isSavingDraft, setIsSavingDraft] = useState(false);
   const navigate = useNavigate();
   const {
     user
@@ -886,27 +887,50 @@ export const FolderView: React.FC<FolderViewProps> = ({
     }} documentId={viewingDocumentId || undefined} documentEditMode={editingDocumentId === viewingDocumentId} />
 
       {/* Folder AI Panel */}
-      {user && <>
-          <FolderAIPanel isOpen={showFolderAI} onClose={() => setShowFolderAI(false)} folderId={folderId} userId={user.id} folderName={folderName} onDocumentCreated={handleDocumentUploaded} onDocumentUpdated={handleDocumentUploaded} currentDraft={currentDraft} onDraftChange={setCurrentDraft} onOpenDocumentCanvas={() => setShowDocumentCanvas(true)} />
-          
-          {/* Document Canvas - opens independently on left */}
-          <FolderAIDocumentCanvas isOpen={showDocumentCanvas} onClose={() => {
-        setShowDocumentCanvas(false);
-        setCurrentDraft(null);
-      }} draft={currentDraft} onSave={async (title, content) => {
-        if (!user) return;
-        try {
-          await saveDocumentDraft(folderId, user.id, title, content);
-          toast.success('Document saved to folder');
-          setShowDocumentCanvas(false);
-          setCurrentDraft(null);
-          handleDocumentUploaded();
-        } catch (error) {
-          console.error('[FolderView] Error saving draft:', error);
-          toast.error('Failed to save document');
-        }
-      }} isSaving={false} />
-        </>}
+      {user && (
+        <FolderAIPanel
+          isOpen={showFolderAI}
+          onClose={() => setShowFolderAI(false)}
+          folderId={folderId}
+          userId={user.id}
+          folderName={folderName}
+          onDocumentCreated={handleDocumentUploaded}
+          onDocumentUpdated={handleDocumentUploaded}
+          onOpenDocumentCanvas={(draft) => {
+            setCurrentDraft(draft);
+            setShowDocumentCanvas(true);
+          }}
+        />
+      )}
+
+      {/* Document Canvas - Rendered at top level with high z-index */}
+      {user && showDocumentCanvas && (
+        <FolderAIDocumentCanvas
+          isOpen={showDocumentCanvas}
+          onClose={() => {
+            setShowDocumentCanvas(false);
+            setCurrentDraft(null);
+          }}
+          draft={currentDraft}
+          onSave={async (title, content) => {
+            if (!folderId || !user.id) return;
+            try {
+              setIsSavingDraft(true);
+              await saveDocumentDraft(folderId, user.id, title, content);
+              toast.success('Document saved to folder');
+              setShowDocumentCanvas(false);
+              setCurrentDraft(null);
+              handleDocumentUploaded();
+            } catch (error) {
+              console.error('[FolderView] Error saving draft:', error);
+              toast.error('Failed to save document');
+            } finally {
+              setIsSavingDraft(false);
+            }
+          }}
+          isSaving={isSavingDraft}
+        />
+      )}
 
       {/* Help Dialog */}
       <Dialog open={showHelpDialog} onOpenChange={setShowHelpDialog}>
