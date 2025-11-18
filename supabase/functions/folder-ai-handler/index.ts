@@ -26,7 +26,7 @@ const ENV = {
   SUPABASE_URL: Deno.env.get("SUPABASE_URL"),
   SUPABASE_SERVICE_ROLE_KEY: Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"),
   GOOGLE_API_KEY: Deno.env.get("GOOGLE-LLM-NEW"),
-  GEMINI_MODEL: Deno.env.get("GEMINI_MODEL") || "gemini-2.5-flash"
+  GEMINI_MODEL: Deno.env.get("GEMINI_MODEL") || "gemini-2.5-pro"
 };
 
 const GEMINI_TIMEOUT_MS = 30_000;
@@ -515,7 +515,7 @@ async function callGeminiAPI(
     tools: tools.length > 0 ? [{ functionDeclarations: tools }] : undefined,
     generationConfig: {
       temperature: 0.7,
-      thinkingConfig: { thinkingBudget: 0 }
+      thinkingConfig: { thinkingBudget: -1 }
     }
   };
 
