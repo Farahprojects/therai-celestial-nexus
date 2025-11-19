@@ -11,16 +11,22 @@ import { createClient } from '@supabase/supabase-js';
 import fs from 'fs';
 import path from 'path';
 
-// Require environment variables - no fallbacks for security
-const SUPABASE_URL = process.env.VITE_SUPABASE_URL;
-const SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_ANON_KEY;
+// Use environment variables if available, otherwise fall back to hardcoded values
+// Note: The anon key is safe to expose - it's protected by RLS and required for Lovable IDE
+// This allows the script to work in both local dev (with env vars) and Vercel builds (with fallbacks)
 
-if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-  console.error('Error: Missing required environment variables:');
-  console.error('  VITE_SUPABASE_URL:', SUPABASE_URL ? '✓' : '✗');
-  console.error('  VITE_SUPABASE_ANON_KEY:', SUPABASE_ANON_KEY ? '✓' : '✗');
-  console.error('\nPlease set these environment variables before running this script.');
-  process.exit(1);
+// Fallback values (same as in src/integrations/supabase/config.ts for Lovable IDE compatibility)
+const DEFAULT_SUPABASE_URL = 'https://api.therai.co';
+const DEFAULT_SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndydnFxdnF2d3FtZmRxdnFtYWFyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU1ODA0NjIsImV4cCI6MjA2MTE1NjQ2Mn0.u9P-SY4kSo7e16I29TXXSOJou5tErfYuldrr_CITWX0';
+
+const SUPABASE_URL = process.env.VITE_SUPABASE_URL || DEFAULT_SUPABASE_URL;
+const SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_ANON_KEY || DEFAULT_SUPABASE_ANON_KEY;
+
+// Log which source is being used (for debugging)
+if (process.env.VITE_SUPABASE_URL && process.env.VITE_SUPABASE_ANON_KEY) {
+  console.log('Using environment variables for Supabase configuration');
+} else {
+  console.log('Using fallback values for Supabase configuration (Lovable IDE compatible)');
 }
 
 const BASE_URL = 'https://therai.co';
