@@ -28,3 +28,9 @@ vendor/
 # Separate projects
 custom-ai-systems/
 
+# iOS local config (contains sensitive credentials)
+TheraiIOS/Constants/Config.local.swift
+
+# Note: backup_migrations/ is tracked in git for historical reference
+# but contains hardcoded credentials - see backup_migrations/README.md for security warning
+

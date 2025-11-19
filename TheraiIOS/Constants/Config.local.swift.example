@@ -1,0 +1,25 @@
+//
+//  Config.local.swift
+//  TheraiIOS
+//
+//  IMPORTANT: This file is not tracked by git for security reasons.
+//  Copy this file to Config.local.swift and fill in your actual credentials.
+//
+//  To use:
+//  1. Copy this file: cp Config.local.swift.example Config.local.swift
+//  2. Fill in your actual credentials
+//  3. Add Config.local.swift to .gitignore (already done)
+//
+
+import Foundation
+
+// This struct will be defined in Config.local.swift (not tracked by git)
+// For now, we provide a default implementation that will be overridden
+struct ConfigLocal {
+    static let supabaseUrl = "https://api.therai.co"
+    static let supabaseAnonKey = "YOUR_ANON_KEY_HERE"
+    
+    // OAuth Configuration
+    static let googleClientId = "YOUR_GOOGLE_CLIENT_ID_HERE"
+    static let appleClientId = "co.scai.TheraiIOS"
+}
