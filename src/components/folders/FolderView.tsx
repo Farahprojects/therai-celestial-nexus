@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useState, useRef } from 'react';
 import { getFolderConversations, getUserFolders, getSharedFolder, moveConversationToFolder, getFolderWithProfile } from '@/services/folders';
 import { getJournalEntries, JournalEntry, updateJournalEntry, deleteJournalEntry } from '@/services/journal';
 import { getDocuments, deleteDocument, FolderDocument } from '@/services/folder-documents';
-import { MoreHorizontal, Folder, File, Trash2, X, ArrowRight, Sparkles } from 'lucide-react';
+import { MoreHorizontal, Folder, File, Trash2, X, ArrowRight, Sparkles, RefreshCw } from 'lucide-react';
 import TextareaAutosize from 'react-textarea-autosize';
 import { useNavigate } from 'react-router-dom';
 import { useChatStore } from '@/core/store';
@@ -20,6 +20,7 @@ import { InsightsModal } from '@/components/insights/InsightsModal';
 import { createFolder } from '@/services/folders';
 import { supabase } from '@/integrations/supabase/client';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { unifiedFolderService } from '@/services/websocket/UnifiedFolderService';
 import { ShareConversationModal } from '@/components/chat/ShareConversationModal';
 import { ShareFolderModal } from '@/components/folders/ShareFolderModal';
 import { AstroDataForm } from '@/components/chat/AstroDataForm';
@@ -325,14 +326,24 @@ export const FolderView: React.FC<FolderViewProps> = ({
 
   // Document handlers
   const handleDocumentUploaded = async () => {
-    // Reload documents after upload
-    try {
-      const documentsData = await getDocuments(folderId);
-      setDocuments(documentsData);
-    } catch (err) {
-      console.error('[FolderView] Failed to reload documents:', err);
+    // Trigger subscription when uploading (this is when we need realtime)
+    if (folderId) {
+      await unifiedFolderService.triggerSubscription(folderId);
     }
+    
+    // Reload documents after upload (optimistic updates handled by upload modal)
+    await refreshDocumentsRef.current();
   };
+
+  // Refresh documents on window focus (for shared folders)
+  useEffect(() => {
+    const handleFocus = () => {
+      refreshDocumentsRef.current();
+    };
+    
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, []); // No dependencies - uses ref
   const handleRequestDeleteDocument = (documentId: string) => {
     setDeletingDocumentId(documentId);
     setShowDeleteDocumentDialog(true);
@@ -398,7 +409,8 @@ export const FolderView: React.FC<FolderViewProps> = ({
       console.error('[FolderView] Failed to delete journal entry:', err);
     }
   };
-  const upsertConversation = useCallback((record: any) => {
+  // Use refs to avoid effect dependencies
+  const upsertConversationRef = useRef((record: any) => {
     if (!record?.id) return;
     const normalized: Conversation = {
       id: record.id,
@@ -411,74 +423,71 @@ export const FolderView: React.FC<FolderViewProps> = ({
       const next = [...filtered, normalized].sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime());
       return next;
     });
-  }, []);
-  const removeConversationById = useCallback((id: string) => {
+  });
+  const removeConversationByIdRef = useRef((id: string) => {
     setConversations(prev => prev.filter(c => c.id !== id));
-  }, []);
+  });
+  const refreshDocumentsRef = useRef(async () => {
+    try {
+      const documentsData = await getDocuments(folderId);
+      setDocuments(documentsData);
+    } catch (err) {
+      console.error('[FolderView] Failed to reload documents:', err);
+    }
+  });
+
+  // Update refs when folderId changes
   useEffect(() => {
-    const channel = supabase.channel(`folder-conversations-${folderId}`).on('postgres_changes', {
-      event: 'INSERT',
-      schema: 'public',
-      table: 'conversations',
-      filter: `folder_id=eq.${folderId}`
-    }, payload => upsertConversation(payload.new)).on('postgres_changes', {
-      event: 'UPDATE',
-      schema: 'public',
-      table: 'conversations',
-      filter: `folder_id=eq.${folderId}`
-    }, payload => upsertConversation(payload.new)).on('postgres_changes', {
-      event: 'DELETE',
-      schema: 'public',
-      table: 'conversations',
-      filter: `folder_id=eq.${folderId}`
-    }, payload => {
-      if (payload.old?.id) {
-        removeConversationById(payload.old.id);
-      }
-    }).on('postgres_changes', {
-      event: 'INSERT',
-      schema: 'public',
-      table: 'folder_documents',
-      filter: `folder_id=eq.${folderId}`
-    }, async () => {
-      // Reload documents when new one is added
+    refreshDocumentsRef.current = async () => {
       try {
         const documentsData = await getDocuments(folderId);
         setDocuments(documentsData);
       } catch (err) {
         console.error('[FolderView] Failed to reload documents:', err);
       }
-    }).on('postgres_changes', {
-      event: 'UPDATE',
-      schema: 'public',
-      table: 'folder_documents',
-      filter: `folder_id=eq.${folderId}`
-    }, async () => {
-      // Reload documents when one is updated
-      try {
-        const documentsData = await getDocuments(folderId);
-        setDocuments(documentsData);
-      } catch (err) {
-        console.error('[FolderView] Failed to reload documents:', err);
-      }
-    }).on('postgres_changes', {
-      event: 'DELETE',
-      schema: 'public',
-      table: 'folder_documents',
-      filter: `folder_id=eq.${folderId}`
-    }, payload => {
-      if (payload.old?.id) {
-        setDocuments(prev => prev.filter(d => d.id !== payload.old.id));
-      }
-    }).subscribe();
-    return () => {
-      supabase.removeChannel(channel);
     };
-  }, [folderId, upsertConversation, removeConversationById]);
+  }, [folderId]);
+
+  // ⚡ OPTIMIZED: Lazy subscription - only subscribe when needed (creating folder or uploading doc)
+  // Queue subscription for this folder, will be established on next action
+  useEffect(() => {
+    if (!folderId) return;
+
+    // Queue subscription (not immediate - will be established when user creates/uploads)
+    unifiedFolderService.subscribe(
+      folderId,
+      {
+        onConversationChange: (event, record) => {
+          if (event === 'INSERT' || event === 'UPDATE') {
+            upsertConversationRef.current(record);
+          } else if (event === 'DELETE') {
+            removeConversationByIdRef.current(record.id);
+          }
+        },
+        onDocumentChange: (event) => {
+          // Refresh documents when they change
+          refreshDocumentsRef.current();
+        }
+      },
+      false // Don't subscribe immediately - queue until needed
+    );
+
+    return () => {
+      // Cleanup subscription when component unmounts or folderId changes
+      // Service will handle cleanup if no other handlers are registered
+      unifiedFolderService.unsubscribe(folderId);
+    };
+  }, [folderId]); // Only folderId in dependencies - fixed!
 
   // New handler functions
   const handleNewChat = async () => {
     if (!user?.id) return;
+    
+    // Trigger subscription when creating chat (this is when we need realtime)
+    if (folderId) {
+      await unifiedFolderService.triggerSubscription(folderId);
+    }
+    
     try {
       const newChatId = await createConversation(user.id, 'chat', 'New Chat');
 
@@ -613,6 +622,14 @@ export const FolderView: React.FC<FolderViewProps> = ({
               <p className="text-xs font-medium tracking-wide text-gray-500 uppercase">
                 Documents
               </p>
+              <button
+                onClick={refreshDocuments}
+                className="p-1.5 hover:bg-gray-100 rounded transition-colors"
+                title="Refresh documents"
+                aria-label="Refresh documents"
+              >
+                <RefreshCw className="w-4 h-4 text-gray-500" />
+              </button>
             </div>
 
             <div className="flex flex-col space-y-2">
