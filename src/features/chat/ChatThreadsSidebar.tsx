@@ -237,20 +237,52 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
     })();
   }, [chat_id, user?.id]);
 
-  /** Realtime: mark report threads ready when completed */
+  /** Poll for pending insight completions (replaces realtime subscription) */
   useEffect(() => {
     if (!isAuthenticated || !user?.id) return;
-    const chan = supabase
-      .channel('report-completions')
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'insights', filter: `user_id=eq.${user.id}` }, (payload) => {
-        if (payload.new?.is_ready) {
-          const map = new Map(useChatStore.getState().pendingInsightThreads);
-          map.delete(payload.new.id);
+
+    const pollPendingInsights = async () => {
+      const { pendingInsightThreads } = useChatStore.getState();
+      const pendingIds = Array.from(pendingInsightThreads.keys());
+      if (pendingIds.length === 0) return;
+
+      try {
+        const { data, error } = await supabase
+          .from('insights')
+          .select('id, is_ready')
+          .eq('user_id', user.id)
+          .in('id', pendingIds)
+          .eq('is_ready', true);
+
+        if (error) {
+          console.error('[ChatThreadsSidebar] Polling error:', error);
+          return;
+        }
+
+        if (data && data.length > 0) {
+          const map = new Map(pendingInsightThreads);
+          data.forEach(insight => {
+            map.delete(insight.id);
+          });
           useChatStore.setState({ pendingInsightThreads: map });
         }
-      })
-      .subscribe();
-    return () => { supabase.removeChannel(chan); };
+      } catch (error) {
+        console.error('[ChatThreadsSidebar] Polling error:', error);
+      }
+    };
+
+    // Poll every 2 seconds for pending insights (reports take ~8 seconds)
+    // Only poll if there are pending insights
+    const checkAndPoll = () => {
+      const { pendingInsightThreads } = useChatStore.getState();
+      if (pendingInsightThreads.size > 0) {
+        pollPendingInsights();
+      }
+    };
+
+    const interval = setInterval(checkAndPoll, 2000);
+    
+    return () => clearInterval(interval);
   }, [isAuthenticated, user?.id]);
 
   /** Derived **/

@@ -52,10 +52,11 @@ export const InsightsModal: React.FC<InsightsModalProps> = ({
   const [showSuccess, setShowSuccess] = useState(false);
   const [selectedReportType, setSelectedReportType] = useState<string>('');
   const [selectedRequest, setSelectedRequest] = useState<string>('');
+  const [pollingInsightId, setPollingInsightId] = useState<string | null>(null);
   const {
     user
   } = useAuth();
-  const channelRef = useRef<any>(null);
+  const pollingIntervalRef = useRef<number | null>(null);
 
   // Reset form state when modal closes
   useEffect(() => {
@@ -64,18 +65,62 @@ export const InsightsModal: React.FC<InsightsModalProps> = ({
       setShowSuccess(false);
       setSelectedReportType('');
       setSelectedRequest('');
+      setPollingInsightId(null);
+      // Stop polling
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+        pollingIntervalRef.current = null;
+      }
     }
   }, [isOpen]);
 
-  // Cleanup WebSocket on unmount or close
+  // Poll for insight completion when insight ID is set
   useEffect(() => {
-    return () => {
-      if (channelRef.current) {
-        supabase.removeChannel(channelRef.current);
-        channelRef.current = null;
+    if (!pollingInsightId || !user?.id) return;
+
+    const pollForCompletion = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('insights')
+          .select('id, is_ready')
+          .eq('id', pollingInsightId)
+          .eq('user_id', user.id)
+          .single();
+
+        if (error) {
+          console.error('[InsightsModal] Polling error:', error);
+          return;
+        }
+
+        if (data?.is_ready === true) {
+          console.log('[InsightsModal] Report ready:', data.id);
+          // Stop polling
+          if (pollingIntervalRef.current) {
+            clearInterval(pollingIntervalRef.current);
+            pollingIntervalRef.current = null;
+          }
+          // Close success screen and modal
+          setShowSuccess(false);
+          setPollingInsightId(null);
+          onClose();
+          onReportReady?.(data.id);
+        }
+      } catch (error) {
+        console.error('[InsightsModal] Polling error:', error);
       }
     };
-  }, []);
+
+    // Start polling every 1.5 seconds (reports take ~8 seconds)
+    pollingIntervalRef.current = window.setInterval(pollForCompletion, 1500);
+
+    // Cleanup on unmount
+    return () => {
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+        pollingIntervalRef.current = null;
+      }
+    };
+  }, [pollingInsightId, user?.id, onClose, onReportReady]);
   if (!isOpen) return null;
   const handleReportClick = async (reportType: string, request: string, isDualPerson: boolean) => {
     setSelectedReportType(reportType);
@@ -135,31 +180,10 @@ export const InsightsModal: React.FC<InsightsModalProps> = ({
           reportType,
         });
 
-        // Show success screen and set up listener
+        // Show success screen and start polling
         setShowAstroForm(false);
         setShowSuccess(true);
-
-        // Mount WebSocket listener for report completion
-        const channel = supabase.channel('insight-completion').on('postgres_changes', {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'insights',
-          filter: `user_id=eq.${user.id}`
-        }, payload => {
-          const insight = payload.new;
-          if (insight.is_ready === true) {
-            console.log('[InsightsModal] Report ready:', insight.id);
-            // Close success screen and modal
-            setShowSuccess(false);
-            onClose();
-            // Cleanup
-            if (channelRef.current) {
-              supabase.removeChannel(channelRef.current);
-              channelRef.current = null;
-            }
-          }
-        }).subscribe();
-        channelRef.current = channel;
+        setPollingInsightId(conversationId); // Start polling for this insight
 
       } catch (error) {
         console.error('[InsightsModal] Failed to create insight report:', error);
@@ -184,33 +208,11 @@ export const InsightsModal: React.FC<InsightsModalProps> = ({
       });
     }
 
-    // Show success screen
+    // Show success screen and start polling
     setShowAstroForm(false);
     setShowSuccess(true);
-
-    // Mount WebSocket listener for report completion
-    if (user?.id) {
-      const channel = supabase.channel('insight-completion').on('postgres_changes', {
-        event: 'UPDATE',
-        schema: 'public',
-        table: 'insights',
-        filter: `user_id=eq.${user.id}`
-      }, payload => {
-        const insight = payload.new;
-        if (insight.is_ready === true) {
-          console.log('[InsightsModal] Report ready:', insight.id);
-          // Close success screen and modal
-          setShowSuccess(false);
-          onClose();
-          onReportReady?.(insight.id);
-          // Cleanup
-          if (channelRef.current) {
-            supabase.removeChannel(channelRef.current);
-            channelRef.current = null;
-          }
-        }
-      }).subscribe();
-      channelRef.current = channel;
+    if (data.chat_id) {
+      setPollingInsightId(data.chat_id); // Start polling for this insight
     }
   };
   const handleFormClose = () => {

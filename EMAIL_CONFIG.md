@@ -8,10 +8,13 @@ This document outlines the complete email system configuration for Therai email 
 ### Server Details
 - **Main IP**: 5.161.196.180
 - **Floating IP**: 5.161.20.187
-- **Domain**: therai.co
-- **Mail Domain**: mail.therai.co
+- **Domains**: 
+  - therai.co (Mail Domain: mail.therai.co)
+  - vbase.co (Mail Domain: mail.vbase.co)
 
 ### DNS Records
+
+#### therai.co
 ```
 A     mail.therai.co        → 5.161.20.187
 A     therai.co            → 5.161.20.187
@@ -20,6 +23,17 @@ MX    therai.co            → mail.therai.co (priority 10)
 TXT   therai.co            → "v=spf1 ip4:5.161.20.187 ip6:2a01:4ff:f0:4b95::1 -all"
 TXT   default._domainkey   → [DKIM public key]
 TXT   _dmarc               → "v=DMARC1; p=quarantine; rua=mailto:info@theraiastro.com; fo=1; adkim=s; aspf=s; pct=100"
+```
+
+#### vbase.co
+```
+A     mail.vbase.co        → 5.161.20.187
+A     vbase.co            → 5.161.20.187
+AAAA  mail.vbase.co       → 2a01:4ff:f0:4b95::1
+MX    vbase.co            → mail.vbase.co (priority 10)
+TXT   vbase.co            → "v=spf1 ip4:5.161.20.187 ip6:2a01:4ff:f0:4b95::1 -all"
+TXT   default._domainkey.vbase.co   → [DKIM public key - see setup instructions]
+TXT   _dmarc.vbase.co      → "v=DMARC1; p=quarantine; rua=mailto:postmaster@vbase.co; fo=1; adkim=s; aspf=s; pct=100"
 ```
 
 ## Postfix Configuration
@@ -93,6 +107,7 @@ LogWhy yes
 
 **Current Entries**:
 ```
+# therai.co domain
 @therai.co                    default._domainkey.therai.co
 noreply@therai.co            default._domainkey.therai.co
 no-reply@therai.co           default._domainkey.therai.co
@@ -105,6 +120,11 @@ admin@therai.co              default._domainkey.therai.co
 legal@therai.co              default._domainkey.therai.co
 hr@therai.co                 default._domainkey.therai.co
 dev@therai.co                default._domainkey.therai.co
+
+# vbase.co domain
+@vbase.co                    default._domainkey.vbase.co
+noreply@vbase.co            default._domainkey.vbase.co
+support@vbase.co            default._domainkey.vbase.co
 ```
 
 ### Key Table
@@ -113,10 +133,18 @@ dev@therai.co                default._domainkey.therai.co
 **Current Entries**:
 ```
 default._domainkey.therai.co therai.co:default:/etc/opendkim/keys/therai.co/default.private
+default._domainkey.vbase.co vbase.co:default:/etc/opendkim/keys/vbase.co/default.private
 ```
 
 ### DKIM Keys
+
+#### therai.co
 **Location**: `/etc/opendkim/keys/therai.co/`
+- `default.private` - Private key for signing
+- `default.txt` - Public key for DNS
+
+#### vbase.co
+**Location**: `/etc/opendkim/keys/vbase.co/`
 - `default.private` - Private key for signing
 - `default.txt` - Public key for DNS
 
@@ -324,6 +352,131 @@ opendkim-testkey -d therai.co -s default
 # Check TLS certificates
 openssl s_client -connect mail.therai.co:25 -starttls smtp
 ```
+
+## vbase.co Domain Setup
+
+### Complete VPS Configuration for vbase.co
+
+Follow these steps to set up email infrastructure for vbase.co on your VPS:
+
+#### Step 1: Generate DKIM Keys for vbase.co
+```bash
+# Create directory for vbase.co keys
+sudo mkdir -p /etc/opendkim/keys/vbase.co
+cd /etc/opendkim/keys/vbase.co
+
+# Generate DKIM key pair
+sudo opendkim-genkey -b 2048 -d vbase.co -D /etc/opendkim/keys/vbase.co -s default -v
+
+# Set proper ownership
+sudo chown opendkim:opendkim /etc/opendkim/keys/vbase.co/default.private
+sudo chmod 600 /etc/opendkim/keys/vbase.co/default.private
+
+# Display the public key for DNS
+cat /etc/opendkim/keys/vbase.co/default.txt
+```
+
+Copy the DKIM public key from `default.txt` and add it to your DNS as a TXT record:
+- **Name**: `default._domainkey.vbase.co`
+- **Value**: The content from default.txt (e.g., `v=DKIM1; k=rsa; p=MIIBIjANBg...`)
+
+#### Step 2: Update OpenDKIM Key Table
+```bash
+# Edit the key table
+sudo nano /etc/opendkim/key.table
+
+# Add this line:
+default._domainkey.vbase.co vbase.co:default:/etc/opendkim/keys/vbase.co/default.private
+```
+
+#### Step 3: Update OpenDKIM Signing Table
+```bash
+# Edit the signing table
+sudo nano /etc/opendkim/signing.table
+
+# Add these lines:
+@vbase.co                    default._domainkey.vbase.co
+noreply@vbase.co            default._domainkey.vbase.co
+support@vbase.co            default._domainkey.vbase.co
+```
+
+#### Step 4: Configure DNS Records for vbase.co
+
+Add the following DNS records to your vbase.co domain:
+
+```
+# A Records
+A     mail.vbase.co        → 5.161.20.187
+A     vbase.co            → 5.161.20.187  (if not already pointing elsewhere)
+
+# AAAA Record (IPv6)
+AAAA  mail.vbase.co       → 2a01:4ff:f0:4b95::1
+
+# MX Record
+MX    vbase.co            → mail.vbase.co (priority 10)
+
+# SPF Record
+TXT   vbase.co            → "v=spf1 ip4:5.161.20.187 ip6:2a01:4ff:f0:4b95::1 -all"
+
+# DKIM Record (from Step 1)
+TXT   default._domainkey.vbase.co → [Your DKIM public key from default.txt]
+
+# DMARC Record
+TXT   _dmarc.vbase.co     → "v=DMARC1; p=quarantine; rua=mailto:postmaster@vbase.co; fo=1; adkim=s; aspf=s; pct=100"
+```
+
+#### Step 5: Update VPS Scripts (if needed)
+
+The existing scripts at `/opt/send_outbound.py` and `/usr/local/therai/inbox_v187.py` should work with vbase.co without modification, as they handle multiple domains dynamically.
+
+#### Step 6: Restart Services
+```bash
+# Restart OpenDKIM to load new keys
+sudo systemctl restart opendkim
+
+# Verify OpenDKIM is running
+sudo systemctl status opendkim
+
+# Test DKIM key
+sudo opendkim-testkey -d vbase.co -s default -vvv
+
+# Reload Postfix (if needed)
+sudo systemctl reload postfix
+```
+
+#### Step 7: Verify DNS Configuration
+```bash
+# Check MX records
+dig MX vbase.co
+
+# Check A record for mail server
+dig A mail.vbase.co
+
+# Check SPF record
+dig TXT vbase.co
+
+# Check DKIM record
+dig TXT default._domainkey.vbase.co
+
+# Check DMARC record
+dig TXT _dmarc.vbase.co
+```
+
+#### Step 8: Database Configuration
+
+Add vbase.co to the domain_slugs table in your Supabase database:
+
+```sql
+-- Insert vbase.co domain with noreply and support slugs
+INSERT INTO public.domain_slugs (domain, noreply, support)
+VALUES ('vbase.co', true, true)
+ON CONFLICT (domain) DO UPDATE
+SET noreply = true, support = true;
+```
+
+### Email Addresses Available for vbase.co
+- `noreply@vbase.co` - For automated/no-reply emails
+- `support@vbase.co` - For customer support emails
 
 ## Adding New Email Addresses/Slugs
 

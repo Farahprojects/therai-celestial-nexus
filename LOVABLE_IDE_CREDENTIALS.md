@@ -101,3 +101,5 @@ A: They still cannot access data protected by RLS. Your RLS policies are the sec
 **Q: Should I rotate the anon key?**  
 A: Only if you suspect it's been compromised. Since it's public-facing, rotation is less critical than service role keys.
 
+
+

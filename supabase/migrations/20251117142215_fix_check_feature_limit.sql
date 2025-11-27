@@ -164,3 +164,7 @@ $_$;
 
 COMMENT ON FUNCTION "public"."check_feature_limit"("p_user_id" "uuid", "p_feature_type" "text", "p_requested_amount" integer, "p_period" "text") IS 'Check feature limits with unified tracking. Images now use feature_usage instead of log table. Treats inactive/canceled subscriptions as free tier.';
 
+
+
+
+
