@@ -37,6 +37,13 @@ if (!ENV.SUPABASE_SERVICE_ROLE_KEY) throw new Error("Missing env: SUPABASE_SERVI
 /* ----------------------------- Supabase client --------------------------- */
 const supabase = createPooledClient();
 
+// Optimize for fast rate limit checks
+supabase.rest.headers = {
+  ...supabase.rest.headers,
+  'Connection': 'keep-alive',
+  'Keep-Alive': 'timeout=30, max=100'
+};
+
 /* ------------------------------ Main Serve -------------------------------- */
 Deno.serve(async (req: Request) => {
   const startMs = Date.now();
