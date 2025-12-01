@@ -477,23 +477,10 @@ Deno.serve(async (req: Request) => {
         });
 
         if (limitError || !limitResult || !limitResult.allowed) {
-          // Send limit exceeded message immediately
+          // BLOCKED: Replace entire AI response with limit message
           const limitMessage = limitResult?.error_code === 'TRIAL_EXPIRED'
             ? "Your free trial has ended. Upgrade to Growth ($10/month) for unlimited AI conversations! 🚀"
             : `Daily image generation limit reached. ${limitResult?.remaining || 0} images remaining. Upgrade for unlimited!`;
-
-          // Send limit message to chat
-          await supabase.functions.invoke("chat-send", {
-            body: {
-              chat_id,
-              text: limitMessage,
-              role: "assistant",
-              mode: mode || 'chat',
-              user_id,
-              user_name,
-              chattype
-            }
-          }).catch(() => {});
 
           console.warn(JSON.stringify({
             event: "image_generation_blocked_by_limit",
@@ -504,10 +491,15 @@ Deno.serve(async (req: Request) => {
             error_code: limitResult?.error_code
           }));
 
-          // 🚫 DON'T proceed with image generation - limits exceeded
+          // 🚫 OVERRIDE: Don't show AI text, only show limit message
           return JSON_RESPONSE(200, {
             text: limitMessage,
-            usage,
+            usage: {
+              total_tokens: geminiResponseJson?.usageMetadata?.totalTokenCount ?? null,
+              input_tokens: geminiResponseJson?.usageMetadata?.promptTokenCount ?? null,
+              output_tokens: geminiResponseJson?.usageMetadata?.candidatesTokenCount ?? null,
+              cached_tokens: geminiResponseJson?.usageMetadata?.cachedContentTokenCount ?? null
+            },
             total_latency_ms: Date.now() - startMs
           });
         } else {
