@@ -6,7 +6,7 @@
 // - Creates message with image metadata
 
 import { createPooledClient } from "../_shared/supabaseClient.ts";
-import { GoogleGenAI } from "https://esm.sh/@google/genai@1.5.0?target=deno&deno-std=0.224.0";
+import { GoogleGenAI } from "https://esm.sh/@google/genai@^1.0.0";
 import { checkLimit, incrementUsage } from "../_shared/limitChecker.ts";
 
 const corsHeaders = {
