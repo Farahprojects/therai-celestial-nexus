@@ -73,7 +73,7 @@ export async function checkLimit(
     });
 
     if (error) {
-      console.error('[limitChecker] RPC error:', error);
+      console.error('[limitChecker] RPC error for', featureType, ':', error);
       return {
         allowed: false,
         reason: 'Failed to check limit',
@@ -81,6 +81,7 @@ export async function checkLimit(
       };
     }
 
+    console.log('[limitChecker] RPC result for', featureType, ':', JSON.stringify(data));
     return data as LimitCheckResult;
   } catch (err) {
     console.error('[limitChecker] Exception:', err);

@@ -76,6 +76,8 @@ Deno.serve(async (req: Request) => {
     // Check rate limit
     const limitCheck = await checkLimit(supabase, user_id, action, 1);
 
+    console.log('[check-rate-limit] limitCheck result:', JSON.stringify(limitCheck));
+
     if (!limitCheck.allowed) {
       const limitMessage = limitCheck.error_code === 'TRIAL_EXPIRED'
         ? "Your free trial has ended. Upgrade to Growth ($10/month) for unlimited AI conversations! 🚀"
