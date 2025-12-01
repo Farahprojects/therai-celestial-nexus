@@ -61,7 +61,7 @@ export const useAstroConversation = () => {
           .eq('user_id', user.id);
 
         const { removeThread, clearChat } = useChatStore.getState();
-        removeThread(chatId);
+        removeThread(chatId, user!.id);
         clearChat();
       } catch (error) {
         console.error('[useAstroConversation] Cleanup error:', error);

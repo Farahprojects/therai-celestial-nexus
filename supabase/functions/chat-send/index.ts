@@ -123,6 +123,31 @@ if (messages && Array.isArray(messages) && messages.length > 0) {
     meta: msg.meta || {}
   }));
 
+  // CRITICAL SECURITY: Verify user has access to this conversation BEFORE inserting
+  // Use authenticated client (not service role) to check RLS permissions
+  const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") || "";
+  const authClient = createClient(SUPABASE_URL, ANON_KEY, {
+    global: { headers: { Authorization: authHeader } },
+    auth: { persistSession: false }
+  });
+
+  const { data: conversationAccess, error: accessError } = await authClient
+    .from("conversations")
+    .select("id")
+    .eq("id", chat_id)
+    .single();
+
+  if (accessError) {
+    console.error(JSON.stringify({
+      event: "chat_send_unauthorized_access_attempt",
+      request_id: requestId,
+      chat_id,
+      user_id,
+      error: accessError.message
+    }));
+    return json(403, { error: "Access denied: You do not have permission to send messages to this conversation" });
+  }
+
   const { data: insertedMessages, error: dbError } = await supabase
     .from("messages")
     .insert(messagesToInsert)

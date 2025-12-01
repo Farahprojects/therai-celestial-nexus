@@ -191,10 +191,10 @@ export const FolderView: React.FC<FolderViewProps> = ({
     setShowEditDialog(true);
   };
   const handleSaveTitle = async () => {
-    if (!editingConversationId || !editTitle.trim() || isSaving) return;
+    if (!editingConversationId || !editTitle.trim() || isSaving || !user) return;
     setIsSaving(true);
     try {
-      await updateConversationTitle(editingConversationId, editTitle.trim());
+      await updateConversationTitle(editingConversationId, editTitle.trim(), user.id);
 
       // Update local state
       const updatedThreads = threads.map(t => t.id === editingConversationId ? {
@@ -233,7 +233,7 @@ export const FolderView: React.FC<FolderViewProps> = ({
       await supabase.from('conversations').delete().eq('id' as never, editingConversationId).eq('user_id' as never, user.id);
 
       // Update local state
-      removeThread(editingConversationId);
+      removeThread(editingConversationId, user.id);
 
       // Update conversations list in folder view
       setConversations(prev => prev.filter(c => c.id !== editingConversationId));

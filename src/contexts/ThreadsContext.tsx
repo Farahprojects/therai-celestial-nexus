@@ -94,10 +94,10 @@ export const ThreadsProvider: React.FC<ThreadsProviderProps> = ({ children }) =>
   const removeThread = async (threadId: string) => {
     setLoading(true);
     setError(null);
-    
+
     try {
       const { deleteConversation } = await import('@/services/conversations');
-      await deleteConversation(threadId);
+      await deleteConversation(threadId, authContext.user!.id);
       
       // Update local state immediately for instant UI feedback
       setThreads(prev => prev.filter(thread => thread.id !== threadId));
@@ -113,10 +113,10 @@ export const ThreadsProvider: React.FC<ThreadsProviderProps> = ({ children }) =>
   const updateThreadTitle = async (threadId: string, title: string) => {
     setLoading(true);
     setError(null);
-    
+
     try {
       const { updateConversationTitle } = await import('@/services/conversations');
-      await updateConversationTitle(threadId, title);
+      await updateConversationTitle(threadId, title, authContext.user!.id);
       
       // Update local state
       setThreads(prev => prev.map(thread => 

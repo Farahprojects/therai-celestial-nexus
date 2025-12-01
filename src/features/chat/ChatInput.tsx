@@ -151,11 +151,15 @@ export const ChatInput = () => {
                 
                 // Update title in database
                 const { updateConversationTitle } = await import('@/services/conversations');
-                await updateConversationTitle(chatIdForTitle, smartTitle);
-                
+                if (user) {
+                  await updateConversationTitle(chatIdForTitle, smartTitle, user.id);
+                }
+
                 // Update in local state
                 const { updateThreadTitle } = useChatStore.getState();
-                await updateThreadTitle(chatIdForTitle, smartTitle);
+                if (user) {
+                  await updateThreadTitle(chatIdForTitle, smartTitle, user.id);
+                }
                 
                 console.log('[ChatInput] Title upgraded to:', smartTitle);
               }

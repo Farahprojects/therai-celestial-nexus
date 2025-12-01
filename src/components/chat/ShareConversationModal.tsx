@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Copy, Check, Link } from 'lucide-react';
 import { shareConversation, unshareConversation } from '@/services/conversations';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface ShareConversationModalProps {
   conversationId: string;
@@ -14,6 +15,7 @@ export const ShareConversationModal: React.FC<ShareConversationModalProps> = ({
   conversationTitle,
   onClose,
 }) => {
+  const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [isShared, setIsShared] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -37,9 +39,11 @@ export const ShareConversationModal: React.FC<ShareConversationModalProps> = ({
   // Auto-create share link when modal opens
   useEffect(() => {
     const autoShare = async () => {
+      if (!user) return;
+
       setIsLoading(true);
       try {
-        await shareConversation(conversationId);
+        await shareConversation(conversationId, user.id);
         setIsShared(true);
       } catch (error) {
         console.error('Error sharing conversation:', error);
@@ -49,12 +53,14 @@ export const ShareConversationModal: React.FC<ShareConversationModalProps> = ({
     };
 
     autoShare();
-  }, [conversationId]);
+  }, [conversationId, user]);
 
   const handleUnshare = async () => {
+    if (!user) return;
+
     setIsLoading(true);
     try {
-      await unshareConversation(conversationId);
+      await unshareConversation(conversationId, user.id);
       setIsShared(false);
     } catch (error) {
       console.error('Error unsharing conversation:', error);

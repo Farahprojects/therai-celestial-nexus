@@ -359,10 +359,10 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
   };
 
   const saveTitle = async () => {
-    if (!editTitleFor || !editTitle.trim()) return;
+    if (!editTitleFor || !editTitle.trim() || !user) return;
     const id = editTitleFor;
     setEditTitleFor(null);
-    try { updateConversationTitle(id, editTitle.trim()).catch(() => {}); } catch {}
+    try { updateConversationTitle(id, editTitle.trim(), user.id).catch(() => {}); } catch {}
     const existing = useChatStore.getState().threads.find(t => t.id === id);
     if (existing) {
       updateConversation({ ...existing, title: editTitle.trim(), updated_at: new Date().toISOString() } as any);

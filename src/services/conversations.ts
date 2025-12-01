@@ -151,16 +151,10 @@ export const listConversations = async (userId: string, limit?: number, offset?:
 /**
  * Delete a conversation and all its messages using edge function
  */
-export const deleteConversation = async (conversationId: string): Promise<void> => {
-  // Get current user
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
-    throw new Error('User not authenticated');
-  }
-
+export const deleteConversation = async (conversationId: string, userId: string): Promise<void> => {
   const { error } = await supabase.functions.invoke('conversation-manager?action=delete_conversation', {
     body: {
-      user_id: user.id,
+      user_id: userId,
       conversation_id: conversationId
     }
   });
@@ -174,16 +168,10 @@ export const deleteConversation = async (conversationId: string): Promise<void> 
 /**
  * Update conversation title using edge function
  */
-export const updateConversationTitle = async (conversationId: string, title: string): Promise<void> => {
-  // Get current user
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
-    throw new Error('User not authenticated');
-  }
-
+export const updateConversationTitle = async (conversationId: string, title: string, userId: string): Promise<void> => {
   const { error } = await supabase.functions.invoke('conversation-manager?action=update_conversation_title', {
     body: {
-      user_id: user.id,
+      user_id: userId,
       conversation_id: conversationId,
       title
     }
@@ -198,16 +186,10 @@ export const updateConversationTitle = async (conversationId: string, title: str
 /**
  * Share a conversation publicly using edge function
  */
-export const shareConversation = async (conversationId: string): Promise<void> => {
-  // Get current user
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
-    throw new Error('User not authenticated');
-  }
-
+export const shareConversation = async (conversationId: string, userId: string): Promise<void> => {
   const { data, error } = await supabase.functions.invoke('conversation-manager?action=share_conversation', {
     body: {
-      user_id: user.id,
+      user_id: userId,
       conversation_id: conversationId
     }
   });
@@ -223,16 +205,10 @@ export const shareConversation = async (conversationId: string): Promise<void> =
 /**
  * Stop sharing a conversation using edge function
  */
-export const unshareConversation = async (conversationId: string): Promise<void> => {
-  // Get current user
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
-    throw new Error('User not authenticated');
-  }
-
+export const unshareConversation = async (conversationId: string, userId: string): Promise<void> => {
   const { error } = await supabase.functions.invoke('conversation-manager?action=unshare_conversation', {
     body: {
-      user_id: user.id,
+      user_id: userId,
       conversation_id: conversationId
     }
   });
@@ -246,16 +222,10 @@ export const unshareConversation = async (conversationId: string): Promise<void>
 /**
  * Join a public conversation using edge function
  */
-export const joinConversation = async (conversationId: string): Promise<void> => {
-  // Get current user
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
-    throw new Error('User not authenticated');
-  }
-
+export const joinConversation = async (conversationId: string, userId: string): Promise<void> => {
   const { error } = await supabase.functions.invoke('conversation-manager?action=join_conversation', {
     body: {
-      user_id: user.id,
+      user_id: userId,
       conversation_id: conversationId
     }
   });
@@ -271,19 +241,17 @@ export const joinConversation = async (conversationId: string): Promise<void> =>
  */
 export const updateConversationMode = async (
   conversationId: string,
-  mode: string
+  mode: string,
+  userId: string
 ): Promise<void> => {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error('User not authenticated');
-
   const { error } = await supabase
     .from('conversations')
-    .update({ 
+    .update({
       mode: mode,
       updated_at: new Date().toISOString()
     })
     .eq('id', conversationId)
-    .eq('owner_user_id', user.id); // Only owner can change mode
+    .eq('owner_user_id', userId); // Only owner can change mode
 
   if (error) throw new Error('Failed to update conversation mode');
 };

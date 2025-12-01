@@ -303,11 +303,11 @@ export const useChatStore = create<ChatState>()((set, get) => ({
     }
   },
 
-  removeThread: async (threadId: string) => {
+  removeThread: async (threadId: string, userId: string) => {
     set({ isLoadingThreads: true, threadsError: null });
     try {
       const { deleteConversation } = await import('@/services/conversations');
-      await deleteConversation(threadId);
+      await deleteConversation(threadId, userId);
       
       // Update local state immediately for instant UI feedback
       set(state => ({
@@ -326,11 +326,11 @@ export const useChatStore = create<ChatState>()((set, get) => ({
     }
   },
 
-  updateThreadTitle: async (threadId: string, title: string) => {
+  updateThreadTitle: async (threadId: string, title: string, userId: string) => {
     set({ isLoadingThreads: true, threadsError: null });
     try {
       const { updateConversationTitle } = await import('@/services/conversations');
-      await updateConversationTitle(threadId, title);
+      await updateConversationTitle(threadId, title, userId);
       // Update local state
       set(state => ({
         threads: state.threads.map(thread => 

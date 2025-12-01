@@ -83,7 +83,7 @@ export const ChatMenuButton: React.FC<ChatMenuButtonProps> = ({
     if (!chat_id || !editTitle.trim()) return;
 
     try {
-      await updateConversationTitle(chat_id, editTitle);
+      await updateConversationTitle(chat_id, editTitle, user.id);
       
       // Update local state
       const updatedThreads = threads.map(t => 
@@ -117,7 +117,7 @@ export const ChatMenuButton: React.FC<ChatMenuButtonProps> = ({
         .eq('user_id' as never, user.id as ConversationRow['user_id']);
 
       // Update local state
-      removeThread(chat_id);
+      removeThread(chat_id, user.id);
       clearChat();
       
       setShowDeleteDialog(false);
