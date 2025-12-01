@@ -28,6 +28,31 @@ class LlmService {
       throw new Error("sendMessage: missing or invalid mode");
     }
 
+    // Check rate limits first
+    if (user_id) {
+      try {
+        const { data: rateLimitResult, error } = await supabase.functions.invoke("check-rate-limit", {
+          body: {
+            user_id,
+            action: "chat"
+          }
+        });
+
+        if (error) {
+          console.error("Rate limit check failed:", error);
+          // Continue anyway as fallback
+        } else if (rateLimitResult && !rateLimitResult.allowed) {
+          throw new Error(rateLimitResult.message || "Rate limit exceeded");
+        }
+      } catch (error) {
+        if (error instanceof Error && error.message.includes("Rate limit")) {
+          throw error; // Re-throw rate limit errors
+        }
+        console.error("Rate limit check error:", error);
+        // Continue anyway as fallback
+      }
+    }
+
     const client_msg_id = params.client_msg_id ?? crypto.randomUUID();
 
     // Fire-and-forget: Don't await the edge function for performance

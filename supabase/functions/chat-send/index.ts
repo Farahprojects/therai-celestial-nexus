@@ -10,7 +10,6 @@
 import { createPooledClient } from "../_shared/supabaseClient.ts";
 import { getLLMHandler } from "../_shared/llmConfig.ts";
 import { getConversationMetadata } from "../_shared/queryCache.ts";
-import { checkRateLimit, RateLimits } from "../_shared/rateLimiting.ts";
 import {
   AuthContext,
   HttpError,
@@ -644,14 +643,6 @@ Deno.serve(async (req) => {
 
     const body = await parseJsonBody(req);
     const authCtx = getAuthContext(req);
-
-    // Rate limiting check
-    const rateLimitUserId = authCtx.userId || req.headers.get("x-forwarded-for") || "anonymous";
-    const { isExceeded, retryAfter } = checkRateLimit(rateLimitUserId, RateLimits.CHAT_MESSAGES);
-
-    if (isExceeded) {
-      throw new HttpError(429, `Rate limit exceeded. Try again in ${Math.ceil((retryAfter || 0) / 1000)} seconds.`);
-    }
 
     const isBatch = Array.isArray(body?.messages) && body.messages.length > 0;
     if (isBatch) {

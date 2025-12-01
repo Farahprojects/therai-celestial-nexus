@@ -11,7 +11,7 @@ declare const Deno: {
 import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { createPooledClient } from "../_shared/supabaseClient.ts";
 import { fetchAndFormatMemories, updateMemoryUsage } from "../_shared/memoryInjection.ts";
-import { checkLimit, incrementUsage } from "../_shared/limitChecker.ts";
+import { incrementUsage } from "../_shared/limitChecker.ts";
 
 /* ----------------------------- Configuration ----------------------------- */
 const CORS_HEADERS = {
@@ -279,43 +279,6 @@ Deno.serve(async (req: Request) => {
     text_length: text.length,
     model: ENV.GEMINI_MODEL
   }));
-
-  // ✅ CHAT LIMIT CHECK
-  if (user_id) {
-    const limitCheck = await checkLimit(supabase, user_id, 'chat', 1);
-    
-    if (!limitCheck.allowed) {
-      const limitMessage = limitCheck.error_code === 'TRIAL_EXPIRED'
-        ? "Your free trial has ended. Upgrade to Growth ($10/month) for unlimited AI conversations! 🚀"
-        : `You've used your ${limitCheck.limit} free messages today. Upgrade to Growth for unlimited chats!`;
-      
-      const assistantClientId = crypto.randomUUID();
-      fetch(`${ENV.SUPABASE_URL}/functions/v1/chat-send`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${ENV.SUPABASE_SERVICE_ROLE_KEY}`,
-          "x-internal-key": ENV.INTERNAL_API_KEY
-        },
-        body: JSON.stringify({
-          chat_id,
-          text: limitMessage,
-          client_msg_id: assistantClientId,
-          role: "assistant",
-          mode,
-          user_id,
-          user_name,
-          chattype
-        })
-      }).catch(() => {});
-      
-      return JSON_RESPONSE(200, {
-        text: limitMessage,
-        usage: { total_tokens: 0, input_tokens: 0, output_tokens: 0, cached_tokens: 0 },
-        total_latency_ms: Date.now() - startMs
-      });
-    }
-  }
 
   // ✅ CHECK USER PLAN for caching
   let userPlan = 'free';
