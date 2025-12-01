@@ -7,7 +7,7 @@
 
 import { createPooledClient } from "../_shared/supabaseClient.ts";
 import { GoogleGenAI } from "https://esm.sh/@google/genai@^1.0.0";
-import { checkLimit, incrementUsage } from "../_shared/limitChecker.ts";
+// Rate limiting now handled by centralized check-rate-limit edge function
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -80,36 +80,55 @@ Deno.serve(async (req) => {
   }
 
 
-  // ✅ PRO WAY: Check image generation limit (database-driven)
-  const limitCheck = await checkLimit(supabase, user_id, 'image_generation', 1);
+  // ✅ CENTRALIZED RATE LIMITING: Use the dedicated rate limit service
+  const { data: limitResult, error: limitError } = await supabase.functions.invoke("check-rate-limit", {
+    body: {
+      user_id,
+      action: "image_generation",
+      increment: true  // This will check AND increment usage atomically
+    }
+  });
 
-  console.info(JSON.stringify({
-    event: "image_limit_check",
-    request_id: requestId,
-    user_id,
-    allowed: limitCheck.allowed,
-    current_usage: limitCheck.current_usage,
-    limit: limitCheck.limit,
-    is_unlimited: limitCheck.is_unlimited
-  }));
+  if (limitError || !limitResult) {
+    console.error(JSON.stringify({
+      event: "image_generate_rate_limit_error",
+      request_id: requestId,
+      user_id,
+      error: limitError?.message || "Rate limit check failed"
+    }));
 
-  if (!limitCheck.allowed) {
+    // Default to allowing on error (fail-open for better UX)
+    console.warn("Rate limit check failed, proceeding with image generation");
+  } else if (!limitResult.allowed) {
     console.warn(JSON.stringify({
       event: "image_generate_rate_limit_exceeded",
       request_id: requestId,
       user_id,
-      limit: limitCheck.limit,
-      current_usage: limitCheck.current_usage
+      limit: limitResult.limit,
+      remaining: limitResult.remaining,
+      error_code: limitResult.error_code
     }));
-    
+
+    const errorMessage = limitResult.error_code === 'TRIAL_EXPIRED'
+      ? limitResult.message || "Your free trial has ended. Upgrade to Growth ($10/month) for unlimited AI conversations! 🚀"
+      : limitResult.remaining !== null
+        ? `You've used your daily image limit. ${limitResult.remaining} images remaining. Upgrade for unlimited!`
+        : `Daily image generation limit reached. Limit resets in 24 hours.`;
+
     return json(429, {
-      error: limitCheck.is_unlimited 
-        ? 'Image generation unavailable'
-        : `Daily image generation limit reached (${limitCheck.limit} images per day). Limit resets in 24 hours.`,
-      limit: limitCheck.limit,
-      used: limitCheck.current_usage,
-      remaining: limitCheck.remaining
+      error: errorMessage,
+      limit: limitResult.limit,
+      remaining: limitResult.remaining,
+      error_code: limitResult.error_code
     });
+  } else {
+    console.info(JSON.stringify({
+      event: "image_generate_rate_limit_allowed",
+      request_id: requestId,
+      user_id,
+      remaining: limitResult.remaining,
+      limit: limitResult.limit
+    }));
   }
 
   // Use Imagen model for image generation via SDK
@@ -238,16 +257,7 @@ Deno.serve(async (req) => {
     }));
   }
 
-  // 🚀 FIRE-AND-FORGET: Increment usage counter in feature_usage table
-  incrementUsage(supabase, user_id, 'image_generation', 1).then(({ success, reason }) => {
-    if (!success) {
-      console.error(JSON.stringify({
-        event: "image_generate_increment_failed",
-        request_id: requestId,
-        error: reason
-      }));
-    }
-  });
+  // ✅ USAGE TRACKING: Already handled by centralized rate limit check above
 
   // 🚀 FIRE-AND-FORGET: user_images table (for gallery - not time-critical)
   supabase
