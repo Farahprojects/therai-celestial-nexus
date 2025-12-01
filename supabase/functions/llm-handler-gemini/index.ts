@@ -464,7 +464,7 @@ Deno.serve(async (req: Request) => {
     if (functionCall && functionCall.name === "generate_image" && enableImageTool) {
       const prompt = functionCall.args?.prompt || "";
 
-      // Check image limits asynchronously - ping the rate limit service
+      // Check image limits asynchronously - ping the rate limit service (don't block)
       supabase.functions.invoke("check-rate-limit", {
         body: {
           user_id,
@@ -493,8 +493,7 @@ Deno.serve(async (req: Request) => {
         console.error("[rate-limit] async image check failed:", error);
       });
 
-      // For now, assume allowed and proceed (limits handled asynchronously)
-      // This prevents blocking the image generation flow
+      // Always proceed with image generation (limits handled asynchronously)
         const imageId = crypto.randomUUID();
         
         const { data: placeholderMessage } = await supabase.from('messages').insert({
