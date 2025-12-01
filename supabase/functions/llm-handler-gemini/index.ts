@@ -494,112 +494,112 @@ Deno.serve(async (req: Request) => {
       });
 
       // Always proceed with image generation (limits handled asynchronously)
-        const imageId = crypto.randomUUID();
-        
-        const { data: placeholderMessage } = await supabase.from('messages').insert({
-          id: imageId,
-          chat_id,
-          role: 'assistant',
-          text: '',
-          status: 'pending',
-          mode: mode || 'chat',
-          user_id,
-          client_msg_id: crypto.randomUUID(),
-          meta: {
-            status: 'generating',
-            image_prompt: prompt,
-            message_type: 'image'
-          }
-        }).select().single();
-        
-        if (placeholderMessage) {
-          void supabase.channel(`user-realtime:${user_id}`).send({
-            type: 'broadcast',
-            event: 'message-insert',
-            payload: { chat_id, message: placeholderMessage }
-          }).catch(() => {});
+      const imageId = crypto.randomUUID();
+
+      const { data: placeholderMessage } = await supabase.from('messages').insert({
+        id: imageId,
+        chat_id,
+        role: 'assistant',
+        text: '',
+        status: 'pending',
+        mode: mode || 'chat',
+        user_id,
+        client_msg_id: crypto.randomUUID(),
+        meta: {
+          status: 'generating',
+          image_prompt: prompt,
+          message_type: 'image'
         }
-        
-        // 🔥 KEY: Return function response to Gemini to complete the turn
-        // This prevents Gemini from trying to generate more images
-        const functionResponseContent = {
-          role: "model" as const,
-          parts: [
-            {
-              functionCall: {
-                name: "generate_image",
-                args: { prompt }
-              }
+      }).select().single();
+
+      if (placeholderMessage) {
+        void supabase.channel(`user-realtime:${user_id}`).send({
+          type: 'broadcast',
+          event: 'message-insert',
+          payload: { chat_id, message: placeholderMessage }
+        }).catch(() => {});
+      }
+
+      // 🔥 KEY: Return function response to Gemini to complete the turn
+      // This prevents Gemini from trying to generate more images
+      const functionResponseContent = {
+        role: "model" as const,
+        parts: [
+          {
+            functionCall: {
+              name: "generate_image",
+              args: { prompt }
             }
-          ]
-        };
-        
-        const functionResultContent = {
-          role: "user" as const,
-          parts: [
-            {
-              functionResponse: {
-                name: "generate_image",
-                response: {
-                  success: true,
-                  message: "Image generation started successfully"
-                }
-              }
-            }
-          ]
-        };
-        
-        // Make second API call with function response
-        const followUpBody = {
-          ...requestBody,
-          contents: [...contents, functionResponseContent, functionResultContent]
-        };
-        
-        try {
-          const followUpResp = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/${ENV.GEMINI_MODEL}:generateContent`,
-            {
-              method: "POST",
-              headers: { "Content-Type": "application/json", "x-goog-api-key": ENV.GOOGLE_API_KEY! },
-              body: JSON.stringify(followUpBody)
-            }
-          );
-          
-          if (followUpResp.ok) {
-            const followUpJson = await followUpResp.json();
-            const followUpParts = followUpJson?.candidates?.[0]?.content?.parts || [];
-            assistantText = followUpParts
-              .filter((p: any) => typeof p?.text === "string" && p.text.trim())
-              .map((p: any) => p.text)
-              .join(" ")
-              .trim() || "Generating your image now...";
-          } else {
-            assistantText = "Generating your image now...";
           }
-        } catch {
+        ]
+      };
+
+      const functionResultContent = {
+        role: "user" as const,
+        parts: [
+          {
+            functionResponse: {
+              name: "generate_image",
+              response: {
+                success: true,
+                message: "Image generation started successfully"
+              }
+            }
+          }
+        ]
+      };
+
+      // Make second API call with function response
+      const followUpBody = {
+        ...requestBody,
+        contents: [...contents, functionResponseContent, functionResultContent]
+      };
+
+      try {
+        const followUpResp = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${ENV.GEMINI_MODEL}:generateContent`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "x-goog-api-key": ENV.GOOGLE_API_KEY! },
+            body: JSON.stringify(followUpBody)
+          }
+        );
+
+        if (followUpResp.ok) {
+          const followUpJson = await followUpResp.json();
+          const followUpParts = followUpJson?.candidates?.[0]?.content?.parts || [];
+          assistantText = followUpParts
+            .filter((p: any) => typeof p?.text === "string" && p.text.trim())
+            .map((p: any) => p.text)
+            .join(" ")
+            .trim() || "Generating your image now...";
+        } else {
           assistantText = "Generating your image now...";
         }
-        
-        // Fire-and-forget image generation
-        fetch(`${ENV.SUPABASE_URL}/functions/v1/image-generate`, {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${ENV.SUPABASE_SERVICE_ROLE_KEY}`,
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({ chat_id, prompt, user_id, mode, image_id: imageId })
-        }).catch((err) => console.error("[image-gen] failed:", err));
+      } catch {
+        assistantText = "Generating your image now...";
+      }
 
-        // Increment image usage counter asynchronously
-        supabase.functions.invoke("check-rate-limit", {
-          body: {
-            user_id,
-            action: "image_generation",
-            increment: true
-          }
-        }).catch((error) => {
-          console.error("[rate-limit] image increment failed:", error);
-        });
+      // Fire-and-forget image generation
+      fetch(`${ENV.SUPABASE_URL}/functions/v1/image-generate`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${ENV.SUPABASE_SERVICE_ROLE_KEY}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ chat_id, prompt, user_id, mode, image_id: imageId })
+      }).catch((err) => console.error("[image-gen] failed:", err));
+
+      // Increment image usage counter asynchronously
+      supabase.functions.invoke("check-rate-limit", {
+        body: {
+          user_id,
+          action: "image_generation",
+          increment: true
+        }
+      }).catch((error) => {
+        console.error("[rate-limit] image increment failed:", error);
+      });
       }
     } else if (functionCall && !enableImageTool) {
       // 🔥 SAFETY: Function call happened but shouldn't have - ignore it and extract text
