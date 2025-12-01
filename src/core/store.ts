@@ -63,8 +63,8 @@ interface ChatState {
     email?: string;
     name?: string;
   }) => Promise<string>;
-  removeThread: (threadId: string) => Promise<void>;
-  updateThreadTitle: (threadId: string, title: string) => Promise<void>;
+  removeThread: (threadId: string, userId: string) => Promise<void>;
+  updateThreadTitle: (threadId: string, title: string, userId: string) => Promise<void>;
   clearThreadsError: () => void;
   
   // Real-time sync methods

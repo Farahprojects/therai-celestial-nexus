@@ -600,7 +600,6 @@ Deno.serve(async (req: Request) => {
       }).catch((error) => {
         console.error("[rate-limit] image increment failed:", error);
       });
-      }
     } else if (functionCall && !enableImageTool) {
       // 🔥 SAFETY: Function call happened but shouldn't have - ignore it and extract text
       console.warn("[gemini] unexpected function call ignored - user didn't request image");
