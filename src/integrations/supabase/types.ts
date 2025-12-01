@@ -2647,6 +2647,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      _get_secret: { Args: { name: string }; Returns: string }
       add_credits: {
         Args: {
           _amount_usd: number
@@ -2809,6 +2810,7 @@ export type Database = {
           stripe_payment_method_id: string
         }[]
       }
+      get_supabase_url: { Args: never; Returns: string }
       get_user_email_by_id: { Args: { user_id_param: string }; Returns: string }
       get_user_limits: { Args: { p_user_id: string }; Returns: Json }
       hard_delete_archived_messages: {
@@ -2860,6 +2862,8 @@ export type Database = {
         Args: { p_seconds: number; p_user_id: string }
         Returns: undefined
       }
+      is_admin: { Args: never; Returns: boolean }
+      is_ip_allowed: { Args: never; Returns: boolean }
       is_user_in_trial: { Args: { p_user_id: string }; Returns: boolean }
       is_user_verified: { Args: { _user_id?: string }; Returns: boolean }
       list_folder_journals: {
