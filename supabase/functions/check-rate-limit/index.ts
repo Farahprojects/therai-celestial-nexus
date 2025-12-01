@@ -10,7 +10,7 @@ declare const Deno: {
 };
 
 import { createPooledClient } from "../_shared/supabaseClient.ts";
-import { checkLimit } from "../_shared/limitChecker.ts";
+import { checkLimit, incrementUsage } from "../_shared/limitChecker.ts";
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
@@ -52,10 +52,16 @@ Deno.serve(async (req: Request) => {
     return JSON_RESPONSE(400, { error: "Invalid JSON body" });
   }
 
-  const { user_id, action = "chat" } = body || {};
+  const { user_id, action = "chat", increment = false } = body || {};
 
   if (!user_id || typeof user_id !== "string") {
     return JSON_RESPONSE(400, { error: "Missing or invalid field: user_id" });
+  }
+
+  // Validate action type
+  const validActions = ["chat", "image_generation"];
+  if (!validActions.includes(action)) {
+    return JSON_RESPONSE(400, { error: "Invalid action. Must be 'chat' or 'image_generation'" });
   }
 
   console.info(JSON.stringify({
@@ -94,12 +100,20 @@ Deno.serve(async (req: Request) => {
       });
     }
 
+    // Increment usage if requested (for actual usage tracking)
+    if (increment) {
+      await incrementUsage(supabase, rateLimitUserId, action, 1).catch((error) => {
+        console.error("[increment] failed:", error);
+      });
+    }
+
     console.info(JSON.stringify({
       event: "rate_limit_allowed",
       id: requestId,
       user_id,
       action,
       remaining: limitCheck.remaining,
+      incremented: increment,
       total_latency_ms: Date.now() - startMs
     }));
 
@@ -107,6 +121,7 @@ Deno.serve(async (req: Request) => {
       allowed: true,
       remaining: limitCheck.remaining,
       limit: limitCheck.limit,
+      incremented: increment,
       total_latency_ms: Date.now() - startMs
     });
 

@@ -463,13 +463,38 @@ Deno.serve(async (req: Request) => {
     // 🔥 CRITICAL FIX: Only process function call if current message explicitly requested it
     if (functionCall && functionCall.name === "generate_image" && enableImageTool) {
       const prompt = functionCall.args?.prompt || "";
-      
-      const limitCheck = await checkLimit(supabase, user_id, 'image_generation', 1);
-      
-      if (!limitCheck.allowed) {
-        const limitText = limitCheck.limit ? `${limitCheck.limit} images` : 'images';
-        assistantText = `I've reached the daily limit of ${limitText}. You can generate more tomorrow!`;
-      } else {
+
+      // Check image limits asynchronously - ping the rate limit service
+      supabase.functions.invoke("check-rate-limit", {
+        body: {
+          user_id,
+          action: "image_generation"
+        }
+      }).then(({ data: limitResult }) => {
+        if (limitResult && !limitResult.allowed) {
+          // Send a limit exceeded message asynchronously
+          const limitText = limitResult.limit ? `${limitResult.limit} images` : 'images';
+          const limitMessage = `Daily limit of ${limitText} reached. Upgrade to Growth for unlimited images!`;
+
+          // Send limit message to chat
+          supabase.functions.invoke("chat-send", {
+            body: {
+              chat_id,
+              text: limitMessage,
+              role: "assistant",
+              mode: mode || 'chat',
+              user_id,
+              user_name,
+              chattype
+            }
+          }).catch(() => {});
+        }
+      }).catch((error) => {
+        console.error("[rate-limit] async image check failed:", error);
+      });
+
+      // For now, assume allowed and proceed (limits handled asynchronously)
+      // This prevents blocking the image generation flow
         const imageId = crypto.randomUUID();
         
         const { data: placeholderMessage } = await supabase.from('messages').insert({
@@ -565,6 +590,17 @@ Deno.serve(async (req: Request) => {
           },
           body: JSON.stringify({ chat_id, prompt, user_id, mode, image_id: imageId })
         }).catch((err) => console.error("[image-gen] failed:", err));
+
+        // Increment image usage counter asynchronously
+        supabase.functions.invoke("check-rate-limit", {
+          body: {
+            user_id,
+            action: "image_generation",
+            increment: true
+          }
+        }).catch((error) => {
+          console.error("[rate-limit] image increment failed:", error);
+        });
       }
     } else if (functionCall && !enableImageTool) {
       // 🔥 SAFETY: Function call happened but shouldn't have - ignore it and extract text
