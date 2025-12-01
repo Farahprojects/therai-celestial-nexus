@@ -102,7 +102,7 @@ Deno.serve(async (req: Request) => {
 
     // Increment usage if requested (for actual usage tracking)
     if (increment) {
-      await incrementUsage(supabase, rateLimitUserId, action, 1).catch((error) => {
+      await incrementUsage(supabase, user_id, action, 1).catch((error) => {
         console.error("[increment] failed:", error);
       });
     }
