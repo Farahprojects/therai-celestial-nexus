@@ -467,57 +467,36 @@ Deno.serve(async (req: Request) => {
     if (functionCall && functionCall.name === "generate_image" && enableImageTool) {
       const prompt = functionCall.args?.prompt || "";
 
-      // 🚨 BLOCKING RATE LIMIT CHECK: Prevent image generation if limits exceeded
-      try {
-        const { data: limitResult, error: limitError } = await supabase.functions.invoke("check-rate-limit", {
-          body: {
-            user_id,
-            action: "image_generation"
-          }
-        });
-
-        if (limitError || !limitResult || !limitResult.allowed) {
-          // BLOCKED: Replace entire AI response with limit message
-          const limitMessage = limitResult?.error_code === 'TRIAL_EXPIRED'
-            ? "Your free trial has ended. Upgrade to Growth ($10/month) for unlimited AI conversations! 🚀"
-            : `Daily image generation limit reached. ${limitResult?.remaining || 0} images remaining. Upgrade for unlimited!`;
-
-          console.warn(JSON.stringify({
-            event: "image_generation_blocked_by_limit",
-            request_id: requestId,
-            user_id,
-            limit: limitResult?.limit,
-            remaining: limitResult?.remaining,
-            error_code: limitResult?.error_code
-          }));
-
-          // 🚫 OVERRIDE: Don't show AI text, only show limit message
-          return JSON_RESPONSE(200, {
-            text: limitMessage,
-            usage: {
-              total_tokens: geminiResponseJson?.usageMetadata?.totalTokenCount ?? null,
-              input_tokens: geminiResponseJson?.usageMetadata?.promptTokenCount ?? null,
-              output_tokens: geminiResponseJson?.usageMetadata?.candidatesTokenCount ?? null,
-              cached_tokens: geminiResponseJson?.usageMetadata?.cachedContentTokenCount ?? null
-            },
-            total_latency_ms: Date.now() - startMs
-          });
-        } else {
-          // ✅ Limits OK - proceed with image generation
-          console.info(JSON.stringify({
-            event: "image_generation_limit_check_passed",
-            request_id: requestId,
-            user_id,
-            remaining: limitResult?.remaining,
-            limit: limitResult?.limit
-          }));
+      // Check image limits asynchronously - ping the rate limit service (don't block)
+      supabase.functions.invoke("check-rate-limit", {
+        body: {
+          user_id,
+          action: "image_generation"
         }
-      } catch (error) {
-        console.error("[rate-limit] blocking image check failed:", error);
-        // On error, allow image generation to proceed (fail-open)
-      }
+      }).then(({ data: limitResult }) => {
+        if (limitResult && !limitResult.allowed) {
+          // Send a limit exceeded message asynchronously
+          const limitText = limitResult.limit ? `${limitResult.limit} images` : 'images';
+          const limitMessage = `Daily limit of ${limitText} reached. Upgrade to Growth for unlimited images!`;
 
-      // Proceed with image generation
+          // Send limit message to chat
+          supabase.functions.invoke("chat-send", {
+            body: {
+              chat_id,
+              text: limitMessage,
+              role: "assistant",
+              mode: mode || 'chat',
+              user_id,
+              user_name,
+              chattype
+            }
+          }).catch(() => {});
+        }
+      }).catch((error) => {
+        console.error("[rate-limit] async image check failed:", error);
+      });
+
+      // Always proceed with image generation (limits handled asynchronously)
       const imageId = crypto.randomUUID();
 
       const { data: placeholderMessage } = await supabase.from('messages').insert({
