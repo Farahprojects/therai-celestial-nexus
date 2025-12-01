@@ -7,7 +7,6 @@
 // - Consistent JSON responses and CORS handling
 // Dynamically routes to correct LLM handler based on system config
 
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { createPooledClient } from "../_shared/supabaseClient.ts";
 import { getLLMHandler } from "../_shared/llmConfig.ts";
 import { getConversationMetadata } from "../_shared/queryCache.ts";
@@ -279,81 +278,89 @@ async function triggerLLM(
 // MEMORY HELPERS
 // ============================================================================
 
-async function maybeScheduleMemoryExtraction(
+function maybeScheduleMemoryExtraction(
   insertedMessage: any,
   requestId: string
-): Promise<void> {
+): void {
   // Fire-and-forget: run sampling and extraction after response
-  Promise.resolve().then(async () => {
-    // Check if we should extract memories based on heuristics
-    // Skip short responses (< 50 chars) - likely generic acknowledgments
-    if (!insertedMessage?.text || insertedMessage.text.length < 50) {
-      console.info(JSON.stringify({
-        event: "memory_extraction_skipped_short_response",
-        request_id: requestId,
-        text_length: insertedMessage?.text?.length || 0
-      }));
-      return;
-    }
-
-    // Check conversation message count - skip early conversations
-    const { count: messageCount, error: countError } = await supabase
-      .from('messages')
-      .select('id', { count: 'exact', head: true })
-      .eq('chat_id', insertedMessage.chat_id);
-
-    if (countError || !messageCount || messageCount < 3) {
-      console.info(JSON.stringify({
-        event: "memory_extraction_skipped_early_conversation",
-        request_id: requestId,
-        message_count: messageCount || 0
-      }));
-      return;
-    }
-
-    // Always extract once heuristics above pass
-    const shouldExtract = true;
-
-    console.info(JSON.stringify({
-      event: "memory_extraction_ready",
-      request_id: requestId,
-      message_count: messageCount
-    }));
-
-    if (shouldExtract) {
-      const payload = {
-        conversation_id: insertedMessage.chat_id,
-        message_id: insertedMessage.id,
-        user_id: insertedMessage.user_id
-      };
-
-      console.info(JSON.stringify({
-        event: "memory_extraction_triggered",
-        request_id: requestId,
-        conversation_id: insertedMessage.chat_id,
-        message_id: insertedMessage.id
-      }));
-
-      // Extract observation to buffer (not direct commit)
-      fetch(`${SUPABASE_URL}/functions/v1/extract-user-memory`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`
-        },
-        body: JSON.stringify(payload)
-      }).catch(err => {
-        console.error(JSON.stringify({
-          event: "memory_extraction_trigger_failed",
+  (async () => {
+    try {
+      // Check if we should extract memories based on heuristics
+      // Skip short responses (< 50 chars) - likely generic acknowledgments
+      if (!insertedMessage?.text || insertedMessage.text.length < 50) {
+        console.info(JSON.stringify({
+          event: "memory_extraction_skipped_short_response",
           request_id: requestId,
-          error: err instanceof Error ? err.message : String(err)
+          text_length: insertedMessage?.text?.length || 0
         }));
-      });
+        return;
+      }
 
-      // Check if buffer should be processed due to inactivity
-      checkAndProcessInactiveBuffers(insertedMessage.chat_id, insertedMessage.user_id, requestId);
+      // Check conversation message count - skip early conversations
+      const { count: messageCount, error: countError } = await supabase
+        .from('messages')
+        .select('id', { count: 'exact', head: true })
+        .eq('chat_id', insertedMessage.chat_id);
+
+      if (countError || !messageCount || messageCount < 3) {
+        console.info(JSON.stringify({
+          event: "memory_extraction_skipped_early_conversation",
+          request_id: requestId,
+          message_count: messageCount || 0
+        }));
+        return;
+      }
+
+      // Always extract once heuristics above pass
+      const shouldExtract = true;
+
+      console.info(JSON.stringify({
+        event: "memory_extraction_ready",
+        request_id: requestId,
+        message_count: messageCount
+      }));
+
+      if (shouldExtract) {
+        const payload = {
+          conversation_id: insertedMessage.chat_id,
+          message_id: insertedMessage.id,
+          user_id: insertedMessage.user_id
+        };
+
+        console.info(JSON.stringify({
+          event: "memory_extraction_triggered",
+          request_id: requestId,
+          conversation_id: insertedMessage.chat_id,
+          message_id: insertedMessage.id
+        }));
+
+        // Extract observation to buffer (not direct commit)
+        fetch(`${SUPABASE_URL}/functions/v1/extract-user-memory`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`
+          },
+          body: JSON.stringify(payload)
+        }).catch(err => {
+          console.error(JSON.stringify({
+            event: "memory_extraction_trigger_failed",
+            request_id: requestId,
+            error: err instanceof Error ? err.message : String(err)
+          }));
+        });
+
+        // Check if buffer should be processed due to inactivity
+        checkAndProcessInactiveBuffers(insertedMessage.chat_id, insertedMessage.user_id, requestId);
+      }
+    } catch (err) {
+      console.error(JSON.stringify({
+        event: "memory_extraction_unexpected_error",
+        request_id: requestId,
+        error: err instanceof Error ? err.message : String(err)
+      }));
     }
-  });
+  })();
 }
 
 async function checkAndProcessInactiveBuffers(
@@ -420,7 +427,6 @@ async function checkAndProcessInactiveBuffers(
 
 async function handleBatchMessages(
   payload: BatchPayload,
-  authCtx: AuthContext,
   requestId: string,
   startTime: number
 ): Promise<any> {
@@ -502,8 +508,9 @@ async function handleSingleMessage(
   );
 
   if (shouldStartLLM && handlerName) {
-    // Broadcast thinking state to all participants
-    await broadcastAssistantThinking(payload.chat_id, payload.user_id, requestId);
+    // Fire-and-forget: Broadcast thinking state to all participants
+    broadcastAssistantThinking(payload.chat_id, payload.user_id, requestId)
+      .catch(() => { /* already logged inside */ });
 
     // Trigger LLM (fire-and-forget)
     triggerLLM(handlerName, {
@@ -631,13 +638,21 @@ Deno.serve(async (req) => {
     const body = await parseJsonBody(req);
     const authCtx = getAuthContext(req);
 
+    // Rate limiting check
+    const rateLimitUserId = authCtx.userId || req.headers.get("x-forwarded-for") || "anonymous";
+    const { isExceeded, retryAfter } = checkRateLimit(rateLimitUserId, RateLimits.CHAT_MESSAGES);
+
+    if (isExceeded) {
+      throw new HttpError(429, `Rate limit exceeded. Try again in ${Math.ceil((retryAfter || 0) / 1000)} seconds.`);
+    }
+
     const isBatch = Array.isArray(body?.messages) && body.messages.length > 0;
     if (isBatch) {
       const payload = parseAndValidateBatchPayload(body);
       await authenticateUserIfNeeded(authCtx, payload.user_id, requestId);
       await ensureConversationAccess(authCtx, payload.chat_id, requestId);
 
-      const result = await handleBatchMessages(payload, authCtx, requestId, startTime);
+      const result = await handleBatchMessages(payload, requestId, startTime);
       return json(200, result);
     } else {
       const payload = parseAndValidateSinglePayload(body);
