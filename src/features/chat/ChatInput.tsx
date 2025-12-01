@@ -30,6 +30,8 @@ export const ChatInput = () => {
   const [isMuted, setIsMuted] = useState(false);
   const [showUpgradeNotification, setShowUpgradeNotification] = useState(false);
   const [showSTTLimitNotification, setShowSTTLimitNotification] = useState(false);
+  const [rateLimitExceeded, setRateLimitExceeded] = useState(false);
+  const [rateLimitMessage, setRateLimitMessage] = useState('');
   const { mode } = useMode();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [isAnalyzeMode, setIsAnalyzeMode] = useState(false);
@@ -85,8 +87,22 @@ export const ChatInput = () => {
     const hasTherai = text.trim().toLowerCase().includes('@therai');
     setIsAnalyzeMode(isTogetherMode && hasTherai);
   }, [text, conversationMode]);
-  
-  
+
+  // Listen for rate limit exceeded events
+  useEffect(() => {
+    const handleRateLimitExceeded = (event: CustomEvent) => {
+      const { message } = event.detail;
+      setRateLimitExceeded(true);
+      setRateLimitMessage(message);
+    };
+
+    window.addEventListener('rateLimitExceeded', handleRateLimitExceeded as EventListener);
+
+    return () => {
+      window.removeEventListener('rateLimitExceeded', handleRateLimitExceeded as EventListener);
+    };
+  }, []);
+
   // Auth detection (still needed for user-specific logic)
   const { user } = useAuth();
   const { displayName } = useUserData();
@@ -123,6 +139,12 @@ export const ChatInput = () => {
 
   const handleSend = async () => {
     if (!text.trim()) return;
+
+    // Check if rate limits are exceeded (shouldn't happen due to UI blocking, but safety check)
+    if (rateLimitExceeded) {
+      console.warn('[ChatInput] Attempted to send message while rate limited');
+      return;
+    }
 
       const messageText = text.trim();
       let currentChatId = chat_id;
@@ -395,16 +417,19 @@ export const ChatInput = () => {
             >
               {getMicButtonContent()}
             </button>
-            <button 
+            <button
               className={`audio-button transition-colors ${
-                isAssistantTyping || isAssistantGenerating
-                  ? 'w-8 h-8 bg-white border border-black rounded-full text-black flex items-center justify-center' 
-                  : text.trim() 
-                    ? 'w-8 h-8 bg-white border border-black rounded-full text-black hover:bg-gray-50 flex items-center justify-center' 
+                rateLimitExceeded
+                  ? 'w-8 h-8 bg-red-500 border border-red-500 rounded-full text-white flex items-center justify-center cursor-not-allowed'
+                  : isAssistantTyping || isAssistantGenerating
+                  ? 'w-8 h-8 bg-white border border-black rounded-full text-black flex items-center justify-center'
+                  : text.trim()
+                    ? 'w-8 h-8 bg-white border border-black rounded-full text-black hover:bg-gray-50 flex items-center justify-center'
                     : 'w-8 h-8 text-gray-500 hover:text-gray-900 flex items-center justify-center'
               }`}
               onClick={handleRightButtonClick}
-              disabled={isAssistantGenerating}
+              disabled={isAssistantGenerating || rateLimitExceeded}
+              title={rateLimitExceeded ? rateLimitMessage : undefined}
             >
               {isAssistantTyping ? (
                 <StopIcon />
@@ -420,6 +445,16 @@ export const ChatInput = () => {
         </div>
       </div>
       <div className="max-w-3xl mx-auto mt-2">
+        {rateLimitExceeded && (
+          <div className="mb-2 p-2 bg-red-50 border border-red-200 rounded-lg text-center">
+            <p className="text-sm text-red-800 font-medium">
+              {rateLimitMessage}
+            </p>
+            <p className="text-xs text-red-600 mt-1">
+              Try again tomorrow or upgrade for unlimited messages.
+            </p>
+          </div>
+        )}
         <p className="text-xs text-gray-600 font-light text-center">
           Therai can make mistakes. Check important info.
         </p>

@@ -28,35 +28,24 @@ class LlmService {
       throw new Error("sendMessage: missing or invalid mode");
     }
 
-    // Check rate limits first
-    if (user_id) {
-      try {
-        const { data: rateLimitResult, error } = await supabase.functions.invoke("check-rate-limit", {
-          body: {
-            user_id,
-            action: "chat"
-          }
-        });
-
-        if (error) {
-          console.error("Rate limit check failed:", error);
-          // Continue anyway as fallback
-        } else if (rateLimitResult && !rateLimitResult.allowed) {
-          throw new Error(rateLimitResult.message || "Rate limit exceeded");
-        }
-      } catch (error) {
-        if (error instanceof Error && error.message.includes("Rate limit")) {
-          throw error; // Re-throw rate limit errors
-        }
-        console.error("Rate limit check error:", error);
-        // Continue anyway as fallback
-      }
-    }
-
     const client_msg_id = params.client_msg_id ?? crypto.randomUUID();
 
-    // Fire-and-forget: Don't await the edge function for performance
-    // The UI updates optimistically and listens for realtime updates
+    // Start BOTH calls asynchronously - don't wait for either
+    let rateLimitCheck: Promise<any> | null = null;
+
+    if (user_id) {
+      rateLimitCheck = supabase.functions.invoke("check-rate-limit", {
+        body: {
+          user_id,
+          action: "chat"
+        }
+      }).catch((error) => {
+        console.error("Rate limit check failed:", error);
+        return { data: { allowed: true } }; // Default to allowed on error
+      });
+    }
+
+    // Fire-and-forget chat-send - don't await
     supabase.functions.invoke("chat-send", {
       body: {
         chat_id,
@@ -69,11 +58,10 @@ class LlmService {
       }
     }).catch((error) => {
       console.error(`sendMessage: chat-send failed - ${error.message || "unknown error"}`);
-      // Could emit an error event here if needed
     });
 
-    // Return optimistic message immediately
-    return {
+    // Return optimistic message immediately - UI updates right away
+    const optimisticMessage = {
       id: client_msg_id,
       chat_id,
       role: "user",
@@ -85,6 +73,26 @@ class LlmService {
       user_id,
       user_name
     } as unknown as Message;
+
+    // Handle rate limit result asynchronously
+    if (rateLimitCheck) {
+      rateLimitCheck.then(({ data: rateLimitResult }) => {
+        if (rateLimitResult && !rateLimitResult.allowed) {
+          // Rate limit exceeded - emit event to disable UI
+          window.dispatchEvent(new CustomEvent('rateLimitExceeded', {
+            detail: {
+              message: rateLimitResult.message,
+              limit: rateLimitResult.limit,
+              remaining: 0
+            }
+          }));
+        }
+      }).catch(() => {
+        // Rate limit check failed - allow message to proceed
+      });
+    }
+
+    return optimisticMessage;
   }
 }
 
