@@ -30,7 +30,9 @@ class LlmService {
 
     const client_msg_id = params.client_msg_id ?? crypto.randomUUID();
 
-    const { error } = await supabase.functions.invoke("chat-send", {
+    // Fire-and-forget: Don't await the edge function for performance
+    // The UI updates optimistically and listens for realtime updates
+    supabase.functions.invoke("chat-send", {
       body: {
         chat_id,
         text,
@@ -40,12 +42,12 @@ class LlmService {
         user_id,
         user_name
       }
+    }).catch((error) => {
+      console.error(`sendMessage: chat-send failed - ${error.message || "unknown error"}`);
+      // Could emit an error event here if needed
     });
 
-    if (error) {
-      throw new Error(`sendMessage: chat-send failed - ${error.message || "unknown error"}`);
-    }
-
+    // Return optimistic message immediately
     return {
       id: client_msg_id,
       chat_id,

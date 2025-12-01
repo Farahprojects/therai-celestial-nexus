@@ -321,9 +321,9 @@ const ChatContainerContent: React.FC = () => {
       // Add message to UI immediately
       const { addOptimisticMessage } = useMessageStore.getState();
       addOptimisticMessage(optimisticMessage);
-      
-      // Send message to backend
-      await llmService.sendMessage({
+
+      // Send message to backend (fire-and-forget for performance)
+      llmService.sendMessage({
         chat_id: chat_id,
         text: question,
         mode: 'chat',
