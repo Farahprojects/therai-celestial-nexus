@@ -467,20 +467,23 @@ Deno.serve(async (req: Request) => {
     if (functionCall && functionCall.name === "generate_image" && enableImageTool) {
       const prompt = functionCall.args?.prompt || "";
 
-      // Check image limits asynchronously - ping the rate limit service (don't block)
-      supabase.functions.invoke("check-rate-limit", {
-        body: {
-          user_id,
-          action: "image_generation"
-        }
-      }).then(({ data: limitResult }) => {
-        if (limitResult && !limitResult.allowed) {
-          // Send a limit exceeded message asynchronously
-          const limitText = limitResult.limit ? `${limitResult.limit} images` : 'images';
-          const limitMessage = `Daily limit of ${limitText} reached. Upgrade to Growth for unlimited images!`;
+      // 🚨 BLOCKING RATE LIMIT CHECK: Prevent image generation if limits exceeded
+      try {
+        const { data: limitResult, error: limitError } = await supabase.functions.invoke("check-rate-limit", {
+          body: {
+            user_id,
+            action: "image_generation"
+          }
+        });
+
+        if (limitError || !limitResult || !limitResult.allowed) {
+          // Send limit exceeded message immediately
+          const limitMessage = limitResult?.error_code === 'TRIAL_EXPIRED'
+            ? "Your free trial has ended. Upgrade to Growth ($10/month) for unlimited AI conversations! 🚀"
+            : `Daily image generation limit reached. ${limitResult?.remaining || 0} images remaining. Upgrade for unlimited!`;
 
           // Send limit message to chat
-          supabase.functions.invoke("chat-send", {
+          await supabase.functions.invoke("chat-send", {
             body: {
               chat_id,
               text: limitMessage,
@@ -491,12 +494,38 @@ Deno.serve(async (req: Request) => {
               chattype
             }
           }).catch(() => {});
-        }
-      }).catch((error) => {
-        console.error("[rate-limit] async image check failed:", error);
-      });
 
-      // Always proceed with image generation (limits handled asynchronously)
+          console.warn(JSON.stringify({
+            event: "image_generation_blocked_by_limit",
+            request_id: requestId,
+            user_id,
+            limit: limitResult?.limit,
+            remaining: limitResult?.remaining,
+            error_code: limitResult?.error_code
+          }));
+
+          // 🚫 DON'T proceed with image generation - limits exceeded
+          return JSON_RESPONSE(200, {
+            text: limitMessage,
+            usage,
+            total_latency_ms: Date.now() - startMs
+          });
+        } else {
+          // ✅ Limits OK - proceed with image generation
+          console.info(JSON.stringify({
+            event: "image_generation_limit_check_passed",
+            request_id: requestId,
+            user_id,
+            remaining: limitResult?.remaining,
+            limit: limitResult?.limit
+          }));
+        }
+      } catch (error) {
+        console.error("[rate-limit] blocking image check failed:", error);
+        // On error, allow image generation to proceed (fail-open)
+      }
+
+      // Proceed with image generation
       const imageId = crypto.randomUUID();
 
       const { data: placeholderMessage } = await supabase.from('messages').insert({
