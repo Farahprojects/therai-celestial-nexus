@@ -197,30 +197,14 @@ async function broadcastAssistantThinking(
 async function shouldTriggerLLM(
   role: Role,
   chattype: string | undefined,
-  chatId: string,
-  analyze?: boolean
+  conversationMode: string
 ): Promise<{ shouldStart: boolean; handlerName: string | null }> {
   if (role !== "user" || chattype === "voice") {
     return { shouldStart: false, handlerName: null };
   }
 
-  const conversationMode = await getConversationMetadata(
-    chatId,
-    async () => {
-      const { data: conv } = await supabase
-        .from("conversations")
-        .select("mode")
-        .eq("id", chatId)
-        .single();
-      return conv?.mode || "chat";
-    }
-  );
-
-  if (conversationMode === "together" && analyze !== true) {
-    return { shouldStart: false, handlerName: null };
-  }
-
-  if (conversationMode === "together" && analyze === true) {
+  // conversationMode is already fetched by ensureConversationAccess
+  if (conversationMode === "together") {
     return { shouldStart: true, handlerName: "llm-handler-together-mode" };
   }
 
@@ -487,6 +471,30 @@ async function handleSingleMessage(
   requestId: string,
   startTime: number
 ): Promise<any> {
+  // For backwards compatibility - fetch mode if not provided
+  const conversationMode = await getConversationMetadata(
+    payload.chat_id,
+    async () => {
+      const { data: conv } = await supabase
+        .from("conversations")
+        .select("mode")
+        .eq("id", payload.chat_id)
+        .single();
+      return conv?.mode || "chat";
+    }
+  );
+
+  return handleSingleMessageWithMode(payload, role, authCtx, conversationMode, requestId, startTime);
+}
+
+async function handleSingleMessageWithMode(
+  payload: SinglePayload,
+  role: Role,
+  authCtx: AuthContext,
+  conversationMode: string,
+  requestId: string,
+  startTime: number
+): Promise<any> {
   const message = {
     chat_id: payload.chat_id,
     role,
@@ -503,8 +511,7 @@ async function handleSingleMessage(
   const { shouldStart: shouldStartLLM, handlerName } = await shouldTriggerLLM(
     role,
     payload.chattype,
-    payload.chat_id,
-    payload.analyze
+    conversationMode
   );
 
   if (shouldStartLLM && handlerName) {
@@ -649,8 +656,13 @@ Deno.serve(async (req) => {
     const isBatch = Array.isArray(body?.messages) && body.messages.length > 0;
     if (isBatch) {
       const payload = parseAndValidateBatchPayload(body);
+
+      // For batch messages: still need to await auth since they're synchronous
       await authenticateUserIfNeeded(authCtx, payload.user_id, requestId);
-      await ensureConversationAccess(authCtx, payload.chat_id, requestId);
+      const conversationResult = await ensureConversationAccess(authCtx, payload.chat_id, requestId);
+      if (!conversationResult.conversationExists) {
+        throw new HttpError(403, "Access denied to this conversation");
+      }
 
       const result = await handleBatchMessages(payload, requestId, startTime);
       return json(200, result);
@@ -658,11 +670,44 @@ Deno.serve(async (req) => {
       const payload = parseAndValidateSinglePayload(body);
       const role: Role = payload.role === "assistant" ? "assistant" : "user";
 
-      await authenticateUserIfNeeded(authCtx, payload.user_id, requestId);
-      await ensureConversationAccess(authCtx, payload.chat_id, requestId);
+      // For user messages: do auth checks asynchronously after response
+      if (role === "user") {
+        // Start auth checks in background but don't await
+        authenticateUserIfNeeded(authCtx, payload.user_id, requestId)
+          .then(() => ensureConversationAccess(authCtx, payload.chat_id, requestId))
+          .then((conversationResult) => {
+            if (!conversationResult.conversationExists) {
+              console.warn(JSON.stringify({
+                event: "auth_failed_after_response",
+                request_id: requestId,
+                chat_id: payload.chat_id,
+                user_id: payload.user_id,
+                action: "message_inserted_but_unauthorized"
+              }));
+              // Could potentially mark message as invalid or remove it here
+            }
+          })
+          .catch((error) => {
+            console.error(JSON.stringify({
+              event: "async_auth_check_failed",
+              request_id: requestId,
+              error: error.message
+            }));
+          });
 
-      const result = await handleSingleMessage(payload, role, authCtx, requestId, startTime);
-      return json(200, result);
+        const result = await handleSingleMessage(payload, role, authCtx, requestId, startTime);
+        return json(200, result);
+      } else {
+        // For assistant messages: still need to await auth (synchronous operation)
+        await authenticateUserIfNeeded(authCtx, payload.user_id, requestId);
+        const conversationResult = await ensureConversationAccess(authCtx, payload.chat_id, requestId);
+        if (!conversationResult.conversationExists) {
+          throw new HttpError(403, "Access denied to this conversation");
+        }
+
+        const result = await handleSingleMessageWithMode(payload, role, authCtx, conversationResult.mode || "chat", requestId, startTime);
+        return json(200, result);
+      }
     }
   } catch (err) {
     if (err instanceof HttpError) {

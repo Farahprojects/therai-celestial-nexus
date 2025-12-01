@@ -78,9 +78,11 @@ export async function ensureConversationAccess(
   authCtx: AuthContext,
   chatId: string,
   requestId: string
-): Promise<void> {
+): Promise<{ conversationExists: boolean; mode?: string }> {
   // internal calls can skip RLS check if you want
-  if (authCtx.isInternalCall) return;
+  if (authCtx.isInternalCall) {
+    return { conversationExists: true };
+  }
 
   const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
   const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") || "";
@@ -91,21 +93,27 @@ export async function ensureConversationAccess(
     auth: { persistSession: false },
   });
 
-  const { error } = await authClient
+  // Combined query: get both existence and mode in one call
+  const { data, error } = await authClient
     .from("conversations")
-    .select("id")
+    .select("id, mode")
     .eq("id", chatId)
     .single();
 
-  if (error) {
+  if (error || !data) {
     console.error(JSON.stringify({
       event: "unauthorized_access_attempt",
       request_id: requestId,
       chat_id: chatId,
-      error: error.message,
+      error: error?.message,
     }));
-    throw new HttpError(403, "Access denied to this conversation");
+    return { conversationExists: false };
   }
+
+  return {
+    conversationExists: true,
+    mode: data.mode
+  };
 }
 
 export function parseJsonBody(req: Request): Promise<any> {
