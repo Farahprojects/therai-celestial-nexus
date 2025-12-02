@@ -37,16 +37,22 @@ export const saveReportImageToBucket = async (imageUrl: string, fileName: string
   }
 };
 
-// Auto-save the essence report image
+/**
+ * Auto-save the essence report image (only call this when needed, not at import time)
+ */
+export const autoSaveEssenceReportImage = async (): Promise<string | null> => {
   const imagePath = '/placeholder.svg';
-const fileName = 'essence-water-drop.png';
+  const fileName = 'essence-water-drop.png';
 
-saveReportImageToBucket(imagePath, fileName)
-  .then((url) => {
+  try {
+    const url = await saveReportImageToBucket(imagePath, fileName);
     if (url) {
       console.log('Essence report image saved successfully:', url);
+      return url;
     }
-  })
-  .catch((error) => {
+    return null;
+  } catch (error) {
     console.error('Failed to save essence report image:', error);
-  });
+    return null;
+  }
+};

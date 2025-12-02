@@ -27,16 +27,22 @@ export const saveUploadedImageToBucket = async (imageUrl: string, fileName: stri
   }
 };
 
-// Auto-save the uploaded dotted circle image
+/**
+ * Auto-save the uploaded dotted circle image (only call this when needed, not at import time)
+ */
+export const autoSaveDottedCircleImage = async (): Promise<string | null> => {
   const imagePath = '/placeholder.svg';
-const fileName = 'dotted-circle-logo.png';
+  const fileName = 'dotted-circle-logo.png';
 
-saveUploadedImageToBucket(imagePath, fileName)
-  .then((url) => {
+  try {
+    const url = await saveUploadedImageToBucket(imagePath, fileName);
     if (url) {
       console.log('Dotted circle image saved successfully:', url);
+      return url;
     }
-  })
-  .catch((error) => {
+    return null;
+  } catch (error) {
     console.error('Failed to save dotted circle image:', error);
-  });
+    return null;
+  }
+};
