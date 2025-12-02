@@ -1785,36 +1785,6 @@ export type Database = {
         }
         Relationships: []
       }
-      topup_queue: {
-        Row: {
-          amount_usd: number
-          id: string
-          message: string | null
-          processed_at: string | null
-          requested_at: string | null
-          status: string | null
-          user_id: string | null
-        }
-        Insert: {
-          amount_usd: number
-          id?: string
-          message?: string | null
-          processed_at?: string | null
-          requested_at?: string | null
-          status?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          amount_usd?: number
-          id?: string
-          message?: string | null
-          processed_at?: string | null
-          requested_at?: string | null
-          status?: string | null
-          user_id?: string | null
-        }
-        Relationships: []
-      }
       translator_logs: {
         Row: {
           chat_id: string | null

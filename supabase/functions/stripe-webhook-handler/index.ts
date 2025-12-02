@@ -190,19 +190,6 @@ async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent)
       })
       
       console.log(`[Webhook] ✅ Successfully credited ${credits} credits to user ${userId}`)
-      
-      // If this was an auto top-up, mark the queue item as processed
-      if (isAutoTopup) {
-        await supabase
-          .from('topup_queue')
-          .update({ 
-            status: 'completed', 
-            processed_at: new Date().toISOString(),
-            message: `Auto top-up completed: ${credits} credits added`
-          })
-          .eq('user_id', userId)
-          .eq('status', 'pending')
-      }
     } catch (error) {
       console.error(`[Webhook] Error processing credit purchase:`, error)
       
@@ -518,19 +505,6 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
       })
       
       console.log(`✅ Successfully credited ${credits} credits to user ${userId}`)
-      
-      // If this was an auto top-up, mark the queue item as processed
-      if (isAutoTopup) {
-        await supabase
-          .from('topup_queue')
-          .update({ 
-            status: 'completed', 
-            processed_at: new Date().toISOString(),
-            message: `Auto top-up completed: ${credits} credits added`
-          })
-          .eq('user_id', userId)
-          .eq('status', 'pending')
-      }
     } catch (error) {
       console.error(`Error processing credit purchase:`, error)
       
