@@ -23,7 +23,7 @@ const queryClient = new QueryClient({
       // Data stays fresh for 5 minutes, reducing unnecessary re-fetches
       staleTime: 5 * 60 * 1000, // 5 minutes
       // Keep data in cache for 10 minutes even when unused
-      cacheTime: 10 * 60 * 1000, // 10 minutes
+      gcTime: 10 * 60 * 1000, // 10 minutes
       // Don't refetch when window regains focus (reduces API calls)
       refetchOnWindowFocus: false,
       // Refetch when reconnecting to network
@@ -31,9 +31,10 @@ const queryClient = new QueryClient({
       // Refetch on mount if data is stale
       refetchOnMount: true,
       // Custom retry logic: don't retry on 4xx errors, retry 3 times on others
-      retry: (failureCount, error: { status?: number }) => {
-        // Don't retry on client errors (4xx)
-        if (error?.status >= 400 && error?.status < 500) {
+      retry: (failureCount, error) => {
+        // Don't retry on client errors (4xx) - check if error has status property
+        const status = (error as any)?.status;
+        if (status && status >= 400 && status < 500) {
           return false;
         }
         // Retry up to 3 times for server errors or network issues
