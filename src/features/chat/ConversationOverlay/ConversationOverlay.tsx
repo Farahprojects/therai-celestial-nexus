@@ -78,8 +78,12 @@ export const ConversationOverlay: React.FC = () => {
     }
     
     // Force cleanup all resources (fire-and-forget)
-    ttsPlaybackService.destroy().catch(() => {});
-    try { recorderRef.current?.dispose(); } catch {}
+    ttsPlaybackService.destroy().catch((error) => {
+      console.warn('[ConversationOverlay] Failed to destroy TTS playback service:', error);
+    });
+    try { recorderRef.current?.dispose(); } catch (error) {
+      console.warn('[ConversationOverlay] Failed to dispose recorder:', error);
+    }
     
     // Cleanup WebSocket connection
     if (connectionRef.current) {
@@ -379,7 +383,9 @@ export const ConversationOverlay: React.FC = () => {
     
     // IMMEDIATE audio stop - no race condition
     ttsPlaybackService.stop();
-    ttsPlaybackService.destroy().catch(() => {});
+    ttsPlaybackService.destroy().catch((error) => {
+      console.warn('[ConversationOverlay] Failed to destroy TTS service on modal close:', error);
+    });
 
     // Fire-and-forget microphone release
     try { recorderRef.current?.dispose(); } catch {}
@@ -445,8 +451,12 @@ export const ConversationOverlay: React.FC = () => {
 
       // Disable TTS mode proactively
       import('@/features/chat/ChatController').then(({ chatController }) => {
-        try { chatController.setTtsMode(false); } catch {}
-      }).catch(() => {});
+        try { chatController.setTtsMode(false); } catch (error) {
+          console.warn('[ConversationOverlay] Failed to disable TTS mode:', error);
+        }
+      }).catch((error) => {
+        console.warn('[ConversationOverlay] Failed to import ChatController:', error);
+      });
 
       // Idempotent cleanup when returning to tap-to-start
       if (connectionRef.current) {
@@ -463,7 +473,9 @@ export const ConversationOverlay: React.FC = () => {
         } catch (e) {
           console.error('[ConversationOverlay] Failed to cleanup ChatController:', e);
         }
-      }).catch(() => {});
+      }).catch((error) => {
+        console.warn('[ConversationOverlay] Failed to import ChatController for cleanup:', error);
+      });
 
       try { recorderRef.current?.dispose(); } catch {}
       ttsPlaybackService.destroy().catch(() => {});

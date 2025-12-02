@@ -27,12 +27,16 @@ export async function cleanupAllServices(): Promise<void> {
     // 1. Stop all audio systems
     if (DEBUG) console.log('[MemoryCleanup] Stopping audio systems...');
     audioArbitrator.forceReleaseAll();
-    await ttsPlaybackService.destroy().catch(() => {});
+    await ttsPlaybackService.destroy().catch((error) => {
+      console.warn('[MemoryCleanup] Failed to destroy TTS playback service:', error);
+    });
     directBarsAnimationService.destroy();
     
     // 2. Close AudioContext
     if (DEBUG) console.log('[MemoryCleanup] Closing AudioContext...');
-    await useAudioStore.getState().cleanup().catch(() => {});
+    await useAudioStore.getState().cleanup().catch((error) => {
+      console.warn('[MemoryCleanup] Failed to cleanup audio store:', error);
+    });
     
     // 3. Clean up chat controller
     if (DEBUG) console.log('[MemoryCleanup] Cleaning up ChatController...');

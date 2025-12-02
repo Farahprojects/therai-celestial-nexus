@@ -346,7 +346,14 @@ Deno.serve(async (req)=>{
     const url = `${SWISS_API}/${canon}`;
     const swiss = await fetch(url,{ method:["moonphases","positions"].includes(canon)?"GET":"POST", headers:{"Content-Type":"application/json"}, body:["moonphases","positions"].includes(canon)?undefined:JSON.stringify(payload) });
     const txt = await swiss.text();
-    const swissData = (()=>{ try{return JSON.parse(txt);}catch{return { raw:txt }; }})();
+    const swissData = (()=>{
+      try {
+        return JSON.parse(txt);
+      } catch (error) {
+        console.warn('[translator-edge] Failed to parse Swiss API response as JSON, using raw text:', error);
+        return { raw: txt };
+      }
+    })();
     
     // Clean up unnecessary metadata fields from Swiss API response
     if (swissData && typeof swissData === 'object' && !swissData.raw) {

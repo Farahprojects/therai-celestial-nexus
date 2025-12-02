@@ -362,7 +362,13 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
     if (!editTitleFor || !editTitle.trim() || !user) return;
     const id = editTitleFor;
     setEditTitleFor(null);
-    try { updateConversationTitle(id, editTitle.trim(), user.id).catch(() => {}); } catch {}
+    try {
+      updateConversationTitle(id, editTitle.trim(), user.id).catch((error) => {
+        console.warn('[ChatThreadsSidebar] Failed to update conversation title:', error);
+      });
+    } catch (error) {
+      console.warn('[ChatThreadsSidebar] Failed to save title:', error);
+    }
     const existing = useChatStore.getState().threads.find(t => t.id === id);
     if (existing) {
       updateConversation({ ...existing, title: editTitle.trim(), updated_at: new Date().toISOString() } as any);
