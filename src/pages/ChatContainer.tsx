@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { ChatBox } from '@/features/chat/ChatBox';
 import { ReportModalProvider } from '@/contexts/ReportModalContext';
 import { useChatInitialization } from '@/hooks/useChatInitialization';
@@ -30,6 +30,16 @@ const ChatContainerContent: React.FC = () => {
   const { threadId } = useParams<{ threadId: string }>();
   const { chat_id } = useChatStore();
 
+  // Track if component is mounted to prevent state updates after unmount
+  const isMountedRef = useRef(true);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
   // Single responsibility: Initialize chat when threadId changes
   useChatInitialization();
   
@@ -39,34 +49,43 @@ const ChatContainerContent: React.FC = () => {
     const checkAndShowStarter = async () => {
       const isNew = searchParams.get('new') === 'true';
       const onboardingChatId = localStorage.getItem('onboarding_chat_id');
-      
+
       // CRITICAL: Wait for chat_id to be set before showing starter questions
       // This ensures ChatInput doesn't hit its fallback path and create a duplicate conversation
       if (isNew && chat_id && onboardingChatId === chat_id && user) {
-        // Check if user has seen subscription page AND onboarding modal has fully closed
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('has_seen_subscription_page, onboarding_modal_closed')
-          .eq('id', user.id)
-          .maybeSingle();
-        
-        if (profile?.has_seen_subscription_page && profile?.onboarding_modal_closed) {
-          console.log('[ChatContainer] Chat initialized, onboarding complete, showing starter questions', { chat_id });
-          setShowStarterQuestions(true);
-          
-          // Remove ?new from URL
-          const newSearchParams = new URLSearchParams(searchParams);
-          newSearchParams.delete('new');
-          setSearchParams(newSearchParams, { replace: true });
-        } else {
-          console.log('[ChatContainer] Waiting for onboarding modal to close', {
-            has_seen_subscription_page: profile?.has_seen_subscription_page,
-            onboarding_modal_closed: profile?.onboarding_modal_closed
-          });
+        try {
+          // Check if user has seen subscription page AND onboarding modal has fully closed
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('has_seen_subscription_page, onboarding_modal_closed')
+            .eq('id', user.id)
+            .maybeSingle();
+
+          // Prevent state updates if component unmounted during async operation
+          if (!isMountedRef.current) return;
+
+          if (profile?.has_seen_subscription_page && profile?.onboarding_modal_closed) {
+            console.log('[ChatContainer] Chat initialized, onboarding complete, showing starter questions', { chat_id });
+            setShowStarterQuestions(true);
+
+            // Remove ?new from URL
+            const newSearchParams = new URLSearchParams(searchParams);
+            newSearchParams.delete('new');
+            setSearchParams(newSearchParams, { replace: true });
+          } else {
+            console.log('[ChatContainer] Waiting for onboarding modal to close', {
+              has_seen_subscription_page: profile?.has_seen_subscription_page,
+              onboarding_modal_closed: profile?.onboarding_modal_closed
+            });
+          }
+        } catch (error) {
+          // Prevent state updates if component unmounted during error
+          if (!isMountedRef.current) return;
+          console.error('[ChatContainer] Error checking onboarding status:', error);
         }
       }
     };
-    
+
     checkAndShowStarter();
   }, [searchParams, chat_id, user, setSearchParams]);
   
@@ -119,31 +138,40 @@ const ChatContainerContent: React.FC = () => {
   // Handle pending folder/chat join after sign in
   useEffect(() => {
     const handlePendingJoins = async () => {
-      if (!user?.id) return;
-      
+      if (!user?.id || !isMountedRef.current) return;
+
       // Priority 1: Check URL params for redirect
       const redirectPath = getRedirectPath(searchParams);
-      
+
       if (redirectPath) {
         console.log('[ChatContainer] Found redirect path in URL params:', redirectPath);
-        
+
         // Extract ID and type from path
         const { type, id } = extractIdFromPath(redirectPath);
-        
+
         if (type === 'folder' && id) {
           console.log('[ChatContainer] Handling folder redirect', { folderId: id, userId: user.id });
           try {
             const { addFolderParticipant, isFolderParticipant } = await import('@/services/folders');
-            
+
+            // Check if component is still mounted before continuing
+            if (!isMountedRef.current) return;
+
             const isParticipant = await isFolderParticipant(id, user.id);
             console.log('[ChatContainer] Is participant:', isParticipant);
-            
+
+            // Check if component is still mounted before continuing
+            if (!isMountedRef.current) return;
+
             if (!isParticipant) {
               console.log('[ChatContainer] Adding as participant');
               await addFolderParticipant(id, user.id, 'member');
               console.log('[ChatContainer] Successfully added as participant');
             }
-            
+
+            // Check if component is still mounted before navigation
+            if (!isMountedRef.current) return;
+
             // Clear redirect param and navigate
             clearRedirectPath();
             searchParams.delete('redirect');
@@ -152,6 +180,8 @@ const ChatContainerContent: React.FC = () => {
             navigate(redirectPath, { replace: true });
             return;
           } catch (error) {
+            // Check if component is still mounted before cleanup
+            if (!isMountedRef.current) return;
             console.error('[ChatContainer] Error joining folder:', error);
             clearRedirectPath();
             searchParams.delete('redirect');
@@ -168,6 +198,9 @@ const ChatContainerContent: React.FC = () => {
               .eq('user_id', user.id)
               .maybeSingle();
 
+            // Check if component is still mounted before continuing
+            if (!isMountedRef.current) return;
+
             if (!existingParticipant) {
               // Add user as participant
               await supabase
@@ -179,7 +212,10 @@ const ChatContainerContent: React.FC = () => {
                 });
               console.log('[ChatContainer] Added as chat participant');
             }
-            
+
+            // Check if component is still mounted before navigation
+            if (!isMountedRef.current) return;
+
             // Clear redirect param and navigate
             clearRedirectPath();
             searchParams.delete('redirect');
@@ -188,12 +224,17 @@ const ChatContainerContent: React.FC = () => {
             navigate(redirectPath, { replace: true });
             return;
           } catch (error) {
+            // Check if component is still mounted before cleanup
+            if (!isMountedRef.current) return;
             console.error('[ChatContainer] Error joining chat:', error);
             clearRedirectPath();
             searchParams.delete('redirect');
             setSearchParams(searchParams);
           }
         } else {
+          // Check if component is still mounted before navigation
+          if (!isMountedRef.current) return;
+
           // Unknown redirect path, just navigate to it
           console.log('[ChatContainer] Navigating to redirect path:', redirectPath);
           clearRedirectPath();
@@ -203,36 +244,47 @@ const ChatContainerContent: React.FC = () => {
           return;
         }
       }
-      
+
       // Priority 2: Fallback to localStorage (backward compatibility)
       const storedRedirectPath = localStorage.getItem('pending_redirect_path');
       const pendingFolderId = localStorage.getItem('pending_join_folder_id');
-      
+
       if (pendingFolderId) {
         console.log('[ChatContainer] Handling pending folder join from localStorage', { pendingFolderId, userId: user.id });
         try {
           const { addFolderParticipant, isFolderParticipant } = await import('@/services/folders');
-          
+
+          // Check if component is still mounted before continuing
+          if (!isMountedRef.current) return;
+
           const isParticipant = await isFolderParticipant(pendingFolderId, user.id);
           console.log('[ChatContainer] Is participant:', isParticipant);
-          
+
+          // Check if component is still mounted before continuing
+          if (!isMountedRef.current) return;
+
           if (!isParticipant) {
             console.log('[ChatContainer] Not a participant - adding as participant');
             await addFolderParticipant(pendingFolderId, user.id, 'member');
             console.log('[ChatContainer] Successfully added as participant');
           }
-          
+
+          // Check if component is still mounted before navigation
+          if (!isMountedRef.current) return;
+
           const finalPath = storedRedirectPath || `/folders/${pendingFolderId}`;
           clearRedirectPath();
           console.log('[ChatContainer] Redirecting to:', finalPath);
           navigate(finalPath, { replace: true });
           return;
         } catch (error) {
+          // Check if component is still mounted before cleanup
+          if (!isMountedRef.current) return;
           console.error('[ChatContainer] Error joining pending folder:', error);
           clearRedirectPath();
         }
       }
-      
+
       // Handle pending chat join from localStorage
       const pendingChatId = localStorage.getItem('pending_join_chat_id');
       if (pendingChatId) {
@@ -245,6 +297,9 @@ const ChatContainerContent: React.FC = () => {
             .eq('user_id', user.id)
             .maybeSingle();
 
+          // Check if component is still mounted before continuing
+          if (!isMountedRef.current) return;
+
           if (!existingParticipant) {
             // Add user as a participant
             const { error: insertError } = await supabase
@@ -256,18 +311,25 @@ const ChatContainerContent: React.FC = () => {
               });
 
             if (insertError) {
+              // Check if component is still mounted before cleanup
+              if (!isMountedRef.current) return;
               console.error('Error adding user as participant:', insertError);
               localStorage.removeItem('pending_join_chat_id');
               localStorage.removeItem('pending_redirect_path');
               return;
             }
           }
-          
+
+          // Check if component is still mounted before navigation
+          if (!isMountedRef.current) return;
+
           const finalPath = storedRedirectPath || `/c/${pendingChatId}`;
           clearRedirectPath();
           console.log('[ChatContainer] Redirecting to:', finalPath);
           navigate(finalPath, { replace: true });
         } catch (error) {
+          // Check if component is still mounted before cleanup
+          if (!isMountedRef.current) return;
           console.error('[ChatContainer] Error joining pending chat:', error);
           clearRedirectPath();
         }
