@@ -4,10 +4,8 @@
 // - Validates inputs, consistent CORS + JSON responses
 // - Minimal helpers, clear flow
 // - Fire-and-forget internal calls guarded by env checks
-// - Dynamically routes to correct LLM handler based on system config
 // - Feature gating for voice usage limits
 
-import { getLLMHandler } from "../_shared/llmConfig.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 const corsHeaders = {
@@ -180,11 +178,11 @@ function runVoiceFlow({
         "x-internal-key": internalApiKey
       };
 
-      // Get LLM handler and call it - fire-and-forget
-      getLLMHandler(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY).then((llmHandler) => {
-        console.log(`[google-stt] Using ${llmHandler} for voice mode`);
+      // Call LLM handler - fire-and-forget
+      const llmHandler = "llm-handler-gemini";
+      console.log(`[google-stt] Using ${llmHandler} for voice mode`);
 
-        const payload = {
+      const payload = {
           chat_id: chatId,
           text: transcript,
           chattype,
@@ -226,12 +224,6 @@ function runVoiceFlow({
             error: err instanceof Error ? err.message : String(err)
           }));
         });
-      }).catch((err) => {
-        console.error(JSON.stringify({
-          event: "get_llm_handler_failed",
-          error: err instanceof Error ? err.message : String(err)
-        }));
-      });
     })
     .catch((err) => {
       console.error(JSON.stringify({

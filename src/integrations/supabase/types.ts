@@ -1632,27 +1632,6 @@ export type Database = {
         }
         Relationships: []
       }
-      system_config: {
-        Row: {
-          description: string | null
-          key: string
-          updated_at: string | null
-          value: Json
-        }
-        Insert: {
-          description?: string | null
-          key: string
-          updated_at?: string | null
-          value: Json
-        }
-        Update: {
-          description?: string | null
-          key?: string
-          updated_at?: string | null
-          value?: Json
-        }
-        Relationships: []
-      }
       system_prompts: {
         Row: {
           category: string
@@ -2720,6 +2699,7 @@ export type Database = {
         Returns: undefined
       }
       is_admin: { Args: never; Returns: boolean }
+      is_edge_system: { Args: never; Returns: boolean }
       is_ip_allowed: { Args: never; Returns: boolean }
       is_user_in_trial: { Args: { p_user_id: string }; Returns: boolean }
       is_user_verified: { Args: { _user_id?: string }; Returns: boolean }
