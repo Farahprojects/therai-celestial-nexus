@@ -20,16 +20,26 @@ interface ThreadsProviderProps {
 }
 
 export const ThreadsProvider: React.FC<ThreadsProviderProps> = ({ children }) => {
-  // useAuth must be called unconditionally at the top level
+  // All hooks must be called unconditionally at the top level (Rules of Hooks)
   const { user, isAuthenticated } = useAuth();
-
-  // If auth context is not ready, render children without threads functionality
-  if (!isAuthenticated) {
-    return <>{children}</>;
-  }
   const [threads, setThreads] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Clear threads when user logs out (MUST be called before any early returns)
+  useEffect(() => {
+    if (!isAuthenticated || !user) {
+      // Clear threads when user logs out
+      setThreads([]);
+      setError(null);
+    }
+  }, [isAuthenticated, user?.id]);
+
+  // If auth context is not ready, render children without threads functionality
+  // But do this AFTER all hooks are declared
+  if (!isAuthenticated) {
+    return <>{children}</>;
+  }
 
   const loadThreads = async () => {
     if (!user) return;
@@ -94,7 +104,7 @@ export const ThreadsProvider: React.FC<ThreadsProviderProps> = ({ children }) =>
 
     try {
       const { deleteConversation } = await import('@/services/conversations');
-      await deleteConversation(threadId, authContext.user!.id);
+      await deleteConversation(threadId, user!.id);
       
       // Update local state immediately for instant UI feedback
       setThreads(prev => prev.filter(thread => thread.id !== threadId));
@@ -113,7 +123,7 @@ export const ThreadsProvider: React.FC<ThreadsProviderProps> = ({ children }) =>
 
     try {
       const { updateConversationTitle } = await import('@/services/conversations');
-      await updateConversationTitle(threadId, title, authContext.user!.id);
+      await updateConversationTitle(threadId, title, user!.id);
       
       // Update local state
       setThreads(prev => prev.map(thread => 
@@ -131,15 +141,6 @@ export const ThreadsProvider: React.FC<ThreadsProviderProps> = ({ children }) =>
   };
 
   const clearThreadsError = () => setError(null);
-
-  // Clear threads when user logs out (loading handled by useChatInitialization)
-  useEffect(() => {
-    if (!isAuthenticated || !user) {
-      // Clear threads when user logs out
-      setThreads([]);
-      setError(null);
-    }
-  }, [isAuthenticated, user?.id]);
 
   const value: ThreadsContextType = {
     threads,

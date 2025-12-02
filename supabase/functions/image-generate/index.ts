@@ -47,6 +47,40 @@ function decodeBase64(base64: string): Uint8Array {
   return bytes;
 }
 
+// Image compression helper - simplified approach for Deno
+async function compressImage(imageBytes: Uint8Array, quality: number = 0.8, targetWidth?: number): Promise<Uint8Array> {
+  try {
+    // For now, let's use a simpler approach that just returns the original
+    // In production, you'd want to integrate with a proper image processing service
+    // like Cloudinary, Imgix, or a dedicated image processing API
+
+    console.log(`[ImageCompression] Processing image: ${imageBytes.length} bytes, quality: ${quality}, resize: ${targetWidth || 'none'}`);
+
+    // For immediate fix, let's just return the original image
+    // TODO: Implement proper image compression with a reliable library
+    return imageBytes;
+
+    // Future implementation with proper library:
+    /*
+    const { decode, encode } = await import("https://deno.land/x/imagescript@1.2.17/mod.ts");
+    const image = await decode(imageBytes);
+    let processedImage = image;
+
+    if (targetWidth && targetWidth < image.width) {
+      const aspectRatio = image.height / image.width;
+      const targetHeight = Math.round(targetWidth * aspectRatio);
+      processedImage = image.resize(targetWidth, targetHeight);
+    }
+
+    return await encode(processedImage, "webp", { quality: Math.round(quality * 100) });
+    */
+
+  } catch (error) {
+    console.warn("[ImageCompression] Failed:", error);
+    return imageBytes; // Always return original on error
+  }
+}
+
 Deno.serve(async (req) => {
   const startTime = Date.now();
   const requestId = crypto.randomUUID().substring(0, 8);
@@ -200,17 +234,41 @@ Deno.serve(async (req) => {
 
   const originalSize = imageBytes.length;
 
-  // Upload to Storage
-  const timestamp = Date.now();
-  const fileName = `${timestamp}-${crypto.randomUUID()}.png`;
-  const filePath = `${user_id}/${fileName}`;
+  // 🚀 BASIC OPTIMIZATION: Use original PNG for now (compression disabled temporarily)
+  const imageVariants: { [key: string]: { bytes: Uint8Array; width: number; height: number; format: string } } = {};
 
+  // Temporarily use PNG until compression is properly implemented
+  imageVariants.png = {
+    bytes: imageBytes,
+    width: 1024,
+    height: mode === 'sync' ? 1820 : 1024,
+    format: 'png'
+  };
+
+  console.log(JSON.stringify({
+    event: "image_generate_basic",
+    request_id: requestId,
+    size_kb: Math.round(imageBytes.length / 1024),
+    format: 'png'
+  }));
+
+  // Upload single PNG image (simplified approach)
+  const timestamp = Date.now();
+  const imageId = crypto.randomUUID();
+  const uploadResults: { [key: string]: string } = {};
+
+  const variant = 'png';
+  const data = imageVariants.png;
+  const fileName = `${timestamp}-${imageId}.${data.format}`;
+  const filePath = `${user_id}/${fileName}`;
 
   const { error: uploadError } = await supabase.storage
     .from('generated-images')
-    .upload(filePath, imageBytes, {
-      contentType: 'image/png',
-      upsert: false
+    .upload(filePath, data.bytes, {
+      contentType: `image/${data.format}`,
+      upsert: false,
+      // Add caching headers for better performance
+      cacheControl: 'public, max-age=31536000, immutable', // 1 year cache for generated images
     });
 
   if (uploadError) {
@@ -222,13 +280,28 @@ Deno.serve(async (req) => {
     return json(500, { error: `Upload failed: ${uploadError.message}` });
   }
 
+  uploadResults[variant] = filePath;
+
   // Use custom domain for image URLs
   const CUSTOM_DOMAIN = 'https://api.therai.co';
-  const publicUrl = `${CUSTOM_DOMAIN}/storage/v1/object/public/generated-images/${filePath}`;
+  const publicUrl = `${CUSTOM_DOMAIN}/storage/v1/object/public/generated-images/${uploadResults.png}`;
 
   const generationTime = Date.now() - generationStartTime;
 
-  // 🚀 OPTIMIZED: Only await critical message update
+  // Store image metadata (simplified)
+  const imageVariantsMeta: { [key: string]: any } = {};
+  for (const [variant, data] of Object.entries(imageVariants)) {
+    imageVariantsMeta[variant] = {
+      url: `${CUSTOM_DOMAIN}/storage/v1/object/public/generated-images/${uploadResults[variant]}`,
+      path: uploadResults[variant],
+      width: data.width,
+      height: data.height,
+      format: data.format,
+      size_kb: Math.round(data.bytes.length / 1024)
+    };
+  }
+
+  // Update message with image metadata
   const { data: updatedMessage, error: messageError } = await supabase
     .from('messages')
     .update({
@@ -236,10 +309,13 @@ Deno.serve(async (req) => {
       meta: {
         message_type: 'image',
         image_url: publicUrl,
-        image_path: filePath,
+        image_path: uploadResults.png,
         image_prompt: prompt,
         image_model: IMAGEN_MODEL,
         image_size: mode === 'sync' ? '1024x1820' : '1024x1024',
+        image_format: 'png',
+        image_variants: imageVariantsMeta,
+        original_size_kb: Math.round(originalSize / 1024),
         generation_time_ms: generationTime,
         cost_usd: 0.04
       }

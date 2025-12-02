@@ -44,7 +44,12 @@ function AppProviders({ children }: { children: React.ReactNode }) {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <Router>
+      <Router
+        future={{
+          v7_startTransition: true,
+          v7_relativeSplatPath: true
+        }}
+      >
         <AppProviders>
           <OnboardingGuard>
             <div className="pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">

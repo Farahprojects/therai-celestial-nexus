@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { unifiedChannel } from '@/services/websocket/UnifiedChannelService';
 import { showToast } from '@/utils/notifications';
+import { imagePreloader } from '@/utils/storageUtils';
 interface ImageMessage {
   id: string;
   chat_id: string;
@@ -45,6 +46,8 @@ export const ImageGallery = ({
   const [shareSuccess, setShareSuccess] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [deleteImage, setDeleteImage] = useState<ImageMessage | null>(null);
+  const [hasMoreImages, setHasMoreImages] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
 
   // Detect mobile
   useEffect(() => {
@@ -90,10 +93,18 @@ export const ImageGallery = ({
       if (unsubscribe) unsubscribe();
     };
   }, [isOpen, user]);
-  const loadImages = async () => {
+  const loadImages = async (loadMore = false) => {
     if (!user?.id) return;
-    setLoading(true);
+    if (loadMore) {
+      setLoadingMore(true);
+    } else {
+      setLoading(true);
+    }
+
     try {
+      const currentCount = loadMore ? images.length : 0;
+      const limit = 50; // Load 50 images at a time to prevent memory issues
+
       const {
         data,
         error
@@ -103,10 +114,12 @@ export const ImageGallery = ({
         .eq('user_id', user.id)
         .order('created_at', {
           ascending: false
-        });
+        })
+        .range(currentCount, currentCount + limit - 1);
+
       if (error) {
         console.error('Failed to load images:', error);
-        setImages([]);
+        if (!loadMore) setImages([]);
       } else {
         // Transform user_images format to ImageMessage format for compatibility
         const transformedImages: ImageMessage[] = (data || []).map((img: any) => ({
@@ -119,13 +132,26 @@ export const ImageGallery = ({
             image_path: img.image_path || ''
           }
         }));
-        setImages(transformedImages);
+
+        if (loadMore) {
+          setImages(prev => [...prev, ...transformedImages]);
+        } else {
+          setImages(transformedImages);
+        }
+
+        // Check if there are more images to load
+        setHasMoreImages(transformedImages.length === limit);
+
+        // 🚀 OPTIMIZE: Preload recent images for faster display
+        const imageUrls = transformedImages.map(img => img.meta.image_url);
+        imagePreloader.preloadRecentImages(imageUrls);
       }
     } catch (error) {
       console.error('Error loading images:', error);
-      setImages([]);
+      if (!loadMore) setImages([]);
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
   };
   const handleOpenChat = (image: ImageMessage) => {
@@ -426,6 +452,20 @@ export const ImageGallery = ({
                     />
                   </button>
                 ))}
+                {/* Load More Button */}
+                {hasMoreImages && (
+                  <div className="mt-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => loadImages(true)}
+                      disabled={loadingMore}
+                      className="w-full text-xs"
+                    >
+                      {loadingMore ? 'Loading...' : 'Load More Images'}
+                    </Button>
+                  </div>
+                )}
               </div>
             </div>
           </div>

@@ -4,6 +4,7 @@
  */
 
 import { log } from './logUtils';
+import { imageCacheManager } from './storageUtils';
 
 // Environment monitoring configuration
 interface EnvironmentStatus {
@@ -53,6 +54,11 @@ class EnvironmentMonitor {
     this.setupGlobalErrorHandlers();
     this.monitorEnvironment();
     this.logStartupInfo();
+
+    // Initialize image caching system
+    imageCacheManager.init().catch(error =>
+      log('warn', '⚠️ Image cache initialization failed', error)
+    );
 
     // Development-specific monitoring
     if (import.meta.env.DEV) {
@@ -200,10 +206,10 @@ class EnvironmentMonitor {
     if ('performance' in window && 'memory' in performance) {
       setInterval(() => {
         const memoryUsage = this.getMemoryUsage();
-        if (memoryUsage && memoryUsage.usedJSHeapSize > 100 * 1024 * 1024) { // 100MB - higher threshold
+        if (memoryUsage && memoryUsage.usedJSHeapSize > 200 * 1024 * 1024) { // 200MB threshold - more reasonable
           log('warn', '⚠️  High memory usage detected', memoryUsage);
         }
-      }, 60000); // Check every 60 seconds - less frequent
+      }, 300000); // Check every 5 minutes - much less frequent
     }
 
     // Monitor network requests in development
@@ -212,7 +218,7 @@ class EnvironmentMonitor {
         const observer = new PerformanceObserver((list) => {
           const entries = list.getEntries();
           entries.forEach((entry) => {
-            if (entry.duration > 5000) { // Slow requests > 5 seconds
+            if (entry.duration > 3000) { // Slow requests > 3 seconds (more reasonable with optimizations)
               log('warn', '🐌 Slow network request detected', {
                 url: entry.name,
                 duration: `${entry.duration.toFixed(2)}ms`,

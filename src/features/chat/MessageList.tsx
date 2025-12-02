@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useChatStore } from '@/core/store';
 import { useMessageStore } from '@/stores/messageStore';
 import { Message } from '@/core/types';
@@ -13,6 +13,7 @@ import remarkGfm from 'remark-gfm';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import { networkAwareLoader } from '@/utils/storageUtils';
 
 // ⚡ MEMOIZED USER MESSAGE - Only re-renders when message data changes
 const UserMessage = React.memo(({ message, isOwn }: { message: Message; isOwn: boolean }) => (
@@ -101,15 +102,56 @@ const ImageWithLoading = React.memo(({ message }: { message: Message }) => {
   const metaData = message.meta as any;
   const imageUrl = metaData?.image_url;
   const imagePrompt = metaData?.image_prompt;
+  const imageVariants = metaData?.image_variants;
   const [imageLoaded, setImageLoaded] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
   const [blurPhase, setBlurPhase] = useState<0 | 1 | 2>(0); // 0 heavy blur, 1 medium after 3s, 2 none when loaded
+  const [lqipLoaded, setLqipLoaded] = useState(false);
+  const [isInView, setIsInView] = useState(false);
+  const imgRef = useRef<HTMLImageElement>(null);
 
   // Reset imageLoaded when imageUrl changes
   React.useEffect(() => {
     if (imageUrl) {
       setImageLoaded(false);
+      setLqipLoaded(false);
+      setIsInView(false);
     }
+  }, [imageUrl]);
+
+  // Advanced lazy loading with intersection observer
+  React.useEffect(() => {
+    if (!imageUrl || !imgRef.current) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0];
+        if (entry.isIntersecting) {
+          setIsInView(true);
+          observer.disconnect(); // Stop observing once loaded
+        }
+      },
+      {
+        rootMargin: '50px', // Start loading 50px before image enters viewport
+        threshold: 0.1 // Trigger when 10% of image is visible
+      }
+    );
+
+    observer.observe(imgRef.current);
+
+    return () => observer.disconnect();
+  }, [imageUrl]);
+
+  // Generate LQIP (Low Quality Image Placeholder) URL
+  const lqipUrl = React.useMemo(() => {
+    if (!imageUrl) return null;
+    // Create a tiny version by adding transform parameters (if supported by storage)
+    const url = new URL(imageUrl);
+    // Add resize parameter for tiny preview (64x64)
+    url.searchParams.set('width', '64');
+    url.searchParams.set('height', '64');
+    url.searchParams.set('quality', '20');
+    return url.toString();
   }, [imageUrl]);
 
   // Progressive blur while waiting (gives sense of progress)
@@ -118,10 +160,14 @@ const ImageWithLoading = React.memo(({ message }: { message: Message }) => {
       setBlurPhase(2);
       return;
     }
-    // Start with heavy blur, reduce after 3s
+    // Start with heavy blur, reduce after 1.5s, then 3s for subtle blur
     setBlurPhase(0);
-    const t = setTimeout(() => setBlurPhase(1), 3000);
-    return () => clearTimeout(t);
+    const t1 = setTimeout(() => setBlurPhase(1), 1500);
+    const t2 = setTimeout(() => setBlurPhase(1), 3000); // Keep medium blur longer
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+    };
   }, [imageUrl, imageLoaded]);
 
   const handleShare = () => {
@@ -155,8 +201,18 @@ const ImageWithLoading = React.memo(({ message }: { message: Message }) => {
       <div className="relative group inline-block max-w-[80vw] rounded-2xl overflow-hidden shadow-md">
         {/* Placeholder canvas - universal blurred white overlay with subtle animated background */}
         <div className={`w-[512px] h-[512px] flex items-center justify-center transition-opacity duration-500 ${imageLoaded ? 'opacity-0' : 'opacity-100'}`}>
-          {/* animated neutral background to imply activity */}
-          <div className="absolute inset-0 bg-gradient-to-br from-slate-300 via-slate-200 to-slate-300 animate-pulse" />
+          {/* LQIP (Low Quality Image Placeholder) for instant visual feedback */}
+          {lqipUrl && (
+            <img
+              src={lqipUrl}
+              alt=""
+              className="absolute inset-0 w-full h-full object-cover filter blur-sm scale-110"
+              onLoad={() => setLqipLoaded(true)}
+              style={{ opacity: lqipLoaded ? 0.3 : 0, transition: 'opacity 0.3s ease' }}
+            />
+          )}
+          {/* animated neutral background to imply activity (fallback) */}
+          <div className={`absolute inset-0 bg-gradient-to-br from-slate-300 via-slate-200 to-slate-300 animate-pulse ${lqipLoaded ? 'opacity-0' : 'opacity-100'} transition-opacity duration-300`} />
           {/* heavy white blur overlay that eases over time */}
           <div className={`absolute inset-0 ${blurPhase === 0 ? 'backdrop-blur-[16px]' : blurPhase === 1 ? 'backdrop-blur-[8px]' : 'backdrop-blur-0'} bg-white/70 transition-all duration-700`} />
           {/* small centered spinner */}
@@ -168,17 +224,48 @@ const ImageWithLoading = React.memo(({ message }: { message: Message }) => {
         {/* Actual image - fades in when loaded */}
         {imageUrl && (
           <>
-            <img
-              src={imageUrl}
-              alt={imagePrompt || 'Generated image'}
-              className={`absolute inset-0 w-full h-full object-contain cursor-pointer transition-opacity duration-500 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
-              onClick={() => {
-                const sidebarButton = document.querySelector('[data-image-gallery-button]') as HTMLButtonElement;
-                if (sidebarButton) sidebarButton.click();
-              }}
-              onLoad={() => setImageLoaded(true)}
-              loading="lazy"
-            />
+            <picture>
+              {/* WebP sources for modern browsers */}
+              {imageVariants?.webp_small && (
+                <source
+                  media="(max-width: 768px)"
+                  srcSet={imageVariants.webp_small.url}
+                  type="image/webp"
+                />
+              )}
+              {imageVariants?.webp && (
+                <source
+                  srcSet={imageVariants.webp.url}
+                  type="image/webp"
+                />
+              )}
+              {/* Fallback PNG for older browsers */}
+              {imageVariants?.png && (
+                <source
+                  srcSet={imageVariants.png.url}
+                  type="image/png"
+                />
+              )}
+              {/* Main image with responsive loading */}
+              <img
+                ref={imgRef}
+                src={isInView ? imageUrl : undefined}
+                alt={imagePrompt || 'Generated image'}
+                className={`absolute inset-0 w-full h-full object-contain cursor-pointer transition-opacity duration-500 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
+                onClick={() => {
+                  const sidebarButton = document.querySelector('[data-image-gallery-button]') as HTMLButtonElement;
+                  if (sidebarButton) sidebarButton.click();
+                }}
+                onLoad={() => setImageLoaded(true)}
+                loading={isInView ? "eager" : "lazy"}
+                decoding="async"
+                fetchpriority={isInView ? "high" : "low"}
+                style={{
+                  contentVisibility: isInView ? 'auto' : 'hidden',
+                  containIntrinsicSize: '512px 512px'
+                }}
+              />
+            </picture>
             
             {/* Bottom bar with icons - only show when image is loaded */}
             {imageLoaded && (

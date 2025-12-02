@@ -20,18 +20,21 @@ const shouldSelfClean = async (): Promise<boolean> => {
     // Check if there's a valid auth user (async)
     const { data: { user }, error } = await supabase.auth.getUser();
     if (error || !user) return true;
-    
+
     // Check if chat_id exists in chat store
     const chatState = useChatStore.getState();
     if (!chatState.chat_id) return true;
-    
+
     return false;
   } catch (error) {
-    // If any error checking auth/chat state, assume we should clean
+    // If any error checking auth state, assume we should clean
     console.warn('[MessageStore] Error checking auth state:', error);
     return true;
   }
 };
+
+// Memory management: limit messages to prevent excessive memory usage
+const MAX_MESSAGES_IN_MEMORY = 500;
 
 interface MessageStore {
   // State
@@ -205,7 +208,15 @@ export const useMessageStore = create<MessageStore>()((set, get) => ({
         // Fall back to timestamp
         return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
       });
-      
+
+      // Memory management: limit messages to prevent excessive memory usage
+      // Keep the most recent messages, drop older ones if we exceed the limit
+      if (newMessages.length > MAX_MESSAGES_IN_MEMORY) {
+        const excessCount = newMessages.length - MAX_MESSAGES_IN_MEMORY;
+        newMessages.splice(0, excessCount); // Remove oldest messages
+        if (DEBUG) console.log(`[MessageStore] Memory optimization: removed ${excessCount} old messages`);
+      }
+
       return { messages: newMessages };
     });
   },
@@ -231,7 +242,14 @@ export const useMessageStore = create<MessageStore>()((set, get) => ({
         // Fall back to timestamp
         return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
       });
-      
+
+      // Memory management: limit messages to prevent excessive memory usage
+      if (newMessages.length > MAX_MESSAGES_IN_MEMORY) {
+        const excessCount = newMessages.length - MAX_MESSAGES_IN_MEMORY;
+        newMessages.splice(0, excessCount); // Remove oldest messages
+        if (DEBUG) console.log(`[MessageStore] Memory optimization: removed ${excessCount} old messages`);
+      }
+
       return { messages: newMessages };
     });
   },
@@ -324,10 +342,22 @@ export const useMessageStore = create<MessageStore>()((set, get) => ({
       if (error) throw error;
 
       const olderMessages = (data || []).map(mapDbToMessage);
-      set((state) => ({
-        messages: [...olderMessages, ...state.messages],
-        hasOlder: (data?.length || 0) === 50
-      }));
+      set((state) => {
+        const combinedMessages = [...olderMessages, ...state.messages];
+
+        // Memory management: if loading older messages would exceed our limit,
+        // only keep the most recent messages
+        if (combinedMessages.length > MAX_MESSAGES_IN_MEMORY) {
+          const excessCount = combinedMessages.length - MAX_MESSAGES_IN_MEMORY;
+          combinedMessages.splice(0, excessCount); // Remove oldest messages
+          if (DEBUG) console.log(`[MessageStore] Memory optimization: limited older messages, removed ${excessCount} messages`);
+        }
+
+        return {
+          messages: combinedMessages,
+          hasOlder: (data?.length || 0) === 50 && combinedMessages.length < MAX_MESSAGES_IN_MEMORY
+        };
+      });
     } catch (e: any) {
       console.error('[MessageStore] Failed to load older messages:', e);
     }
