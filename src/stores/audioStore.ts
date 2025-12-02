@@ -55,6 +55,7 @@ export const useAudioStore = create<AudioState>((set, get) => ({
         console.error('[AudioStore] ❌ Failed to close AudioContext:', error);
       }
     }
+    // Always reset state
     set({ audioContext: null, isAudioUnlocked: false });
   }
 }));

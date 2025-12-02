@@ -110,10 +110,15 @@ export const useChatStore = create<ChatState>()((set, get) => ({
   selectedFolderId: null,
 
   startConversation: (id) => {
-    set({ 
-      chat_id: id, 
+    // Clean up memory when switching conversations
+    import('@/utils/memoryCleanup').then(({ cleanupAllServices }) => {
+      cleanupAllServices().catch(console.error);
+    });
+
+    set({
+      chat_id: id,
       // messages removed - use useMessageStore instead
-      status: 'idle', 
+      status: 'idle',
       error: null,
       messageLoadError: null,
       lastMessagesFetch: null,
@@ -121,7 +126,7 @@ export const useChatStore = create<ChatState>()((set, get) => ({
       viewMode: 'chat', // Reset to chat view when starting a conversation
       selectedFolderId: null
     });
-    
+
     // Update both session and local storage for persistence
     if (id) {
       import('@/services/auth/chatTokens').then(({ setLastChatId }) => {
@@ -193,10 +198,15 @@ export const useChatStore = create<ChatState>()((set, get) => ({
 
   clearChat: () => {
     const state = get();
-    
+
     // Clear message store when clearing chat
     import('@/stores/messageStore').then(({ useMessageStore }) => {
       useMessageStore.getState().clearMessages();
+    });
+
+    // Clean up memory when clearing chat
+    import('@/utils/memoryCleanup').then(({ cleanupAllServices }) => {
+      cleanupAllServices().catch(console.error);
     });
     
     set({ 

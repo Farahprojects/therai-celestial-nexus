@@ -259,27 +259,32 @@ const renderMessages = (messages: Message[], currentUserId?: string, chatId?: st
     // Render assistant messages
     if (message.role === 'assistant') {
       const metaData = message.meta as any;
-      // Debug log for ALL assistant messages
-      console.log('[renderMessages] 🔍 Assistant message:', {
-        id: message.id,
-        role: message.role,
-        text: message.text?.substring(0, 30),
-        status: metaData?.status,
-        message_type: metaData?.message_type,
-        has_image_url: !!metaData?.image_url,
-        meta: message.meta
-      });
+
+      // Debug log for ALL assistant messages (development only)
+      if (import.meta.env.DEV) {
+        console.log('[renderMessages] 🔍 Assistant message:', {
+          id: message.id,
+          role: message.role,
+          text: message.text?.substring(0, 30),
+          status: metaData?.status,
+          message_type: metaData?.message_type,
+          has_image_url: !!metaData?.image_url,
+          meta: message.meta
+        });
+      }
       
       // Check if this is an image message (generating or complete)
       const isImageMessage = metaData?.message_type === 'image';
       
       if (isImageMessage) {
-        console.log('[renderMessages] 🖼️  Rendering image message:', {
-          id: message.id,
-          status: metaData?.status,
-          has_image_url: !!metaData?.image_url,
-          prompt: metaData?.image_prompt
-        });
+        if (import.meta.env.DEV) {
+          console.log('[renderMessages] 🖼️  Rendering image message:', {
+            id: message.id,
+            status: metaData?.status,
+            has_image_url: !!metaData?.image_url,
+            prompt: metaData?.image_prompt
+          });
+        }
         // Use client_msg_id as key if available to prevent glitch when optimistic message is replaced
         const messageKey = message.client_msg_id || message.id;
         elements.push(

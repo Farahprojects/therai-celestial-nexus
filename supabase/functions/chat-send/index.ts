@@ -511,6 +511,7 @@ async function handleSingleMessageWithMode(
   };
 
   // Handle DB insertion differently for user vs assistant messages
+  let shouldStartLLM = false; // Default to false for assistant messages
   if (role === "user") {
     // 🚨 RATE LIMIT CHECK for user messages
     if (payload.user_id) {

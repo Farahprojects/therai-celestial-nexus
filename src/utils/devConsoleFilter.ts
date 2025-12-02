@@ -20,6 +20,9 @@ export function initDevConsoleFilter() {
     /Access to fetch at .* has been blocked by CORS policy/i,
     /net::ERR_FAILED/i,
     /Gateway Timeout/i,
+    /\[renderMessages\]/i,
+    /🔍 Assistant message:/i,
+    /🖼️.*Rendering image message:/i,
   ];
 
   const shouldSuppress = (args: any[]): boolean => {

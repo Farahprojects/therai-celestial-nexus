@@ -88,9 +88,12 @@ class AudioArbitrator {
    * Force release all systems (emergency cleanup)
    */
   forceReleaseAll(): void {
-    console.warn('🚨 [AudioArbitrator] Force releasing all audio systems');
-    this.currentSystem = 'none';
-    this.notifyListeners();
+    // Only log and cleanup if there's actually an active audio system
+    if (this.currentSystem !== 'none') {
+      console.warn('🚨 [AudioArbitrator] Force releasing all audio systems');
+      this.currentSystem = 'none';
+      this.notifyListeners();
+    }
   }
 
   /**

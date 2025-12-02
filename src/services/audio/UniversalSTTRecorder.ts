@@ -54,7 +54,7 @@ export class UniversalSTTRecorder {
   private lowPassFilter: BiquadFilterNode | null = null;
   private bandpassFilter: BiquadFilterNode | null = null; // kept for compat
   private adaptiveGain: GainNode | null = null;
-  private scriptProcessor: ScriptProcessorNode | null = null;
+  private audioWorkletNode: AudioWorkletNode | null = null;
   private silentGain: GainNode | null = null;
 
   // VAD and timers
@@ -163,7 +163,7 @@ export class UniversalSTTRecorder {
       this.mediaStream = await this.requestMicrophoneAccess();
       if (this.debug) console.log('[UniversalSTTRecorder] Microphone access granted');
 
-      this.setupEnergyMonitoring();
+      await this.setupEnergyMonitoring();
       this.isRecording = true;
     } catch (error) {
       this.options.onError?.(error as Error);
@@ -257,7 +257,7 @@ export class UniversalSTTRecorder {
     });
   }
 
-  private setupEnergyMonitoring(): void {
+  private async setupEnergyMonitoring(): Promise<void> {
     if (!this.mediaStream) {
       console.error('[UniversalSTTRecorder] No mediaStream for energy monitoring');
       return;
@@ -293,13 +293,25 @@ export class UniversalSTTRecorder {
     sourceNode.connect(this.highPassFilter);
     lastFilterNode.connect(this.analyser);
 
-    // PCM tap
+    // PCM tap using AudioWorkletNode (replaces deprecated ScriptProcessorNode)
     try {
-      this.scriptProcessor = this.audioContext.createScriptProcessor(4096, 1, 1);
+      // Load the AudioWorklet processor
+      await this.audioContext.audioWorklet.addModule('/audio-worklet-processor.js');
+
+      this.audioWorkletNode = new AudioWorkletNode(this.audioContext, 'universal-stt-recorder-processor');
       this.silentGain = this.audioContext.createGain();
       this.silentGain.gain.value = 0;
-      lastFilterNode.connect(this.scriptProcessor);
-      this.scriptProcessor.connect(this.silentGain);
+
+      // Handle messages from the AudioWorklet
+      this.audioWorkletNode.port.onmessage = (event) => {
+        const { type, data } = event.data;
+        if (type === 'audioData') {
+          this.processAudioData(data);
+        }
+      };
+
+      lastFilterNode.connect(this.audioWorkletNode);
+      this.audioWorkletNode.connect(this.silentGain);
       this.silentGain.connect(this.audioContext.destination);
 
       // Pre-roll capacity
@@ -309,31 +321,9 @@ export class UniversalSTTRecorder {
       this.activeSampleChunks = [];
       this.activeTotalSamples = 0;
 
-      this.scriptProcessor.onaudioprocess = (ev: any) => {
-        if (!ev?.inputBuffer) return;
-        const input: Float32Array = ev.inputBuffer.getChannelData(0);
-        const copy = new Float32Array(input.length);
-        copy.set(input);
-        if (this.vadActive) {
-          this.activeSampleChunks.push(copy);
-          this.activeTotalSamples += copy.length;
-          // Force finalize if maxActiveMs exceeded
-          const now = Date.now();
-          if (this.segmentStartTs && (now - this.segmentStartTs) >= (this.options.maxActiveMs || 15000)) {
-            if (this.debug) console.log('[VAD] Max active duration reached - finalizing segment');
-            this.finalizeActiveSegment();
-          }
-        } else {
-          this.preRollSampleChunks.push(copy);
-          this.preRollTotalSamples += copy.length;
-          while (this.preRollTotalSamples > this.preRollMaxSamples && this.preRollSampleChunks.length > 0) {
-            const removed = this.preRollSampleChunks.shift()!;
-            this.preRollTotalSamples -= removed.length;
-          }
-        }
-      };
+      // Audio processing logic moved to processAudioData method
     } catch (e) {
-      console.warn('[UniversalSTTRecorder] PCM tap unavailable:', e);
+      console.warn('[UniversalSTTRecorder] AudioWorklet unavailable:', e);
     }
 
     // Arrays and baseline
@@ -353,6 +343,31 @@ export class UniversalSTTRecorder {
     this.startCandidateSinceTs = null;
 
     this.startEnergyMonitoring();
+  }
+
+  /**
+   * Process audio data received from AudioWorklet
+   */
+  private processAudioData(audioData: Float32Array): void {
+    const copy = new Float32Array(audioData.length);
+    copy.set(audioData);
+    if (this.vadActive) {
+      this.activeSampleChunks.push(copy);
+      this.activeTotalSamples += copy.length;
+      // Force finalize if maxActiveMs exceeded
+      const now = Date.now();
+      if (this.segmentStartTs && (now - this.segmentStartTs) >= (this.options.maxActiveMs || 15000)) {
+        if (this.debug) console.log('[VAD] Max active duration reached - finalizing segment');
+        this.finalizeActiveSegment();
+      }
+    } else {
+      this.preRollSampleChunks.push(copy);
+      this.preRollTotalSamples += copy.length;
+      while (this.preRollTotalSamples > this.preRollMaxSamples && this.preRollSampleChunks.length > 0) {
+        const removed = this.preRollSampleChunks.shift()!;
+        this.preRollTotalSamples -= removed.length;
+      }
+    }
   }
 
   private resetBaselineCapture(): void {
@@ -419,9 +434,9 @@ export class UniversalSTTRecorder {
                 autoGainControl: false,
                 channelCount: 1
               }
-            }).then((stream) => {
+            }).then(async (stream) => {
               this.mediaStream = stream;
-              this.setupEnergyMonitoring();
+              await this.setupEnergyMonitoring();
             }).catch((err) => {
               console.error('[VAD] Mic recovery failed:', err);
             });
@@ -842,12 +857,12 @@ export class UniversalSTTRecorder {
       cancelAnimationFrame(this.animationFrame);
       this.animationFrame = null;
     }
-    if (this.scriptProcessor) {
+    if (this.audioWorkletNode) {
       try {
-        this.scriptProcessor.onaudioprocess = null;
-        this.scriptProcessor.disconnect();
+        this.audioWorkletNode.port.onmessage = null;
+        this.audioWorkletNode.disconnect();
       } catch {}
-      this.scriptProcessor = null;
+      this.audioWorkletNode = null;
     }
     if (this.silentGain) {
       try { this.silentGain.disconnect(); } catch {}

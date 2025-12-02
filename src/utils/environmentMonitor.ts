@@ -200,10 +200,10 @@ class EnvironmentMonitor {
     if ('performance' in window && 'memory' in performance) {
       setInterval(() => {
         const memoryUsage = this.getMemoryUsage();
-        if (memoryUsage && memoryUsage.usedJSHeapSize > 50 * 1024 * 1024) { // 50MB
+        if (memoryUsage && memoryUsage.usedJSHeapSize > 100 * 1024 * 1024) { // 100MB - higher threshold
           log('warn', '⚠️  High memory usage detected', memoryUsage);
         }
-      }, 30000); // Check every 30 seconds
+      }, 60000); // Check every 60 seconds - less frequent
     }
 
     // Monitor network requests in development
