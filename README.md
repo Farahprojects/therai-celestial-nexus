@@ -24,6 +24,32 @@ An AI-driven astrology platform that provides personalized insights and reports 
 - **AI/ML**: Custom AI models for astrological analysis
 - **Deployment**: Vercel
 
+## Project Structure
+
+```
+therai-celestial-nexus/
+├── src/                    # Frontend source code
+├── supabase/              # Backend (migrations, functions, config)
+├── database/              # Database queries and schema files
+│   ├── queries/          # SQL diagnostic and check scripts
+│   └── schema/           # Database schema definitions
+├── docs/                  # Documentation organized by category
+│   ├── architecture/     # System design and architecture docs
+│   ├── database/         # Database and migration docs
+│   └── features/         # Feature implementation docs
+├── scripts/              # Build and utility scripts
+├── admin-app/           # Admin interface
+├── auth-app/            # Authentication interface
+└── public/              # Static assets and service worker
+```
+
+### Key Directories
+
+- **`supabase/migrations/`**: Official database migrations (managed by Supabase)
+- **`database/queries/`**: Diagnostic SQL scripts and health checks
+- **`docs/`**: Comprehensive documentation organized by topic
+- **`scripts/sql/`**: Operational SQL scripts and utilities
+
 ## Prerequisites
 
 - **Node.js**: Version 20.19.0 or higher (required by Vite)
