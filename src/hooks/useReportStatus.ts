@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { log } from '@/utils/logUtils';
 
 export type ReportStatus = 
@@ -14,7 +14,7 @@ export type ReportStatus =
 interface ReportStatusState {
   status: ReportStatus;
   error: string | null;
-  reportData: any | null;
+  reportData: unknown | null;
 }
 
 export const useReportStatus = () => {
@@ -24,7 +24,7 @@ export const useReportStatus = () => {
     reportData: null,
   });
 
-  const setStatus = (status: ReportStatus, error?: string, reportData?: any) => {
+  const setStatus = (status: ReportStatus, error?: string, reportData?: unknown) => {
     setState({
       status,
       error: error || null,

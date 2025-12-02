@@ -2,13 +2,9 @@
 import { supabase } from '@/integrations/supabase/client';
 import { useChatStore } from '@/core/store';
 import { useMessageStore } from '@/stores/messageStore';
-import { sttService } from '@/services/voice/stt';
-import { llmService } from '@/services/llm/chat';
 import { unifiedWebSocketService } from '@/services/websocket/UnifiedWebSocketService';
 import { unifiedChannel } from '@/services/websocket/UnifiedChannelService';
 import { Message } from '@/core/types';
-import { v4 as uuidv4 } from 'uuid';
-import { networkErrorHandler } from '@/utils/networkErrorHandler';
 
 class ChatController {
   private conversationServiceInitialized = false;
@@ -33,7 +29,7 @@ class ChatController {
 
   private async loadExistingMessages(chat_id?: string) {
     const { setMessageLoadError } = useChatStore.getState();
-    const { setChatId, fetchMessages, messages: currentMessages } = useMessageStore.getState();
+    const { setChatId, fetchMessages } = useMessageStore.getState();
     
     // Use provided chat_id or fallback to store
     const targetChatId = chat_id || useChatStore.getState().chat_id;
@@ -249,7 +245,7 @@ class ChatController {
   /**
    * Handle network retry events from the error popup
    */
-  private handleNetworkRetry = (event: CustomEvent) => {
+  private handleNetworkRetry = (): void => {
     if (this.lastFailedMessage) {
       console.log('[ChatController] Retrying failed message due to network retry');
       const { text, mode } = this.lastFailedMessage;
@@ -290,7 +286,7 @@ class ChatController {
     
     // Find and remove payment progress messages
     const progressMessages = messages.filter(m => {
-      const meta = m.meta as any;
+      const meta = m.meta as { type?: string };
       return meta?.type === 'payment-progress';
     });
     

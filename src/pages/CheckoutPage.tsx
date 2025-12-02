@@ -25,7 +25,7 @@ const CheckoutForm: React.FC<{
   currentCredits: number;
   onSuccess: () => void;
   closeSettings: () => void;
-}> = ({ state, currentCredits, onSuccess, closeSettings }) => {
+}> = ({ state, onSuccess, closeSettings }) => {
   const stripe = useStripe();
   const elements = useElements();
   const navigate = useNavigate();
@@ -74,8 +74,6 @@ const CheckoutForm: React.FC<{
       setIsProcessing(false);
     }
   };
-
-  const finalCredits = currentCredits + state.credits;
 
   // Show success animation after payment completes
   if (paymentSuccess) {

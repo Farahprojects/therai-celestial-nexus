@@ -1,6 +1,18 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+
+interface ConversationSearchResult {
+  id: string;
+  title: string | null;
+  created_at: string;
+  messages: Array<{
+    id: string;
+    text: string;
+    role: string;
+    created_at: string;
+  }>;
+}
 
 export interface SearchResult {
   id: string;
@@ -78,10 +90,10 @@ export const useConversationSearch = () => {
       // Group results by conversation
       const groupedResults = new Map<string, ConversationGroup>();
 
-      data?.forEach((conv: any) => {
+      data?.forEach((conv: ConversationSearchResult) => {
         const chatId = conv.id;
-        
-        conv.messages?.forEach((msg: any) => {
+
+        conv.messages?.forEach((msg: ConversationSearchResult['messages'][0]) => {
           if (msg.text.toLowerCase().includes(query.toLowerCase())) {
             if (!groupedResults.has(chatId)) {
               groupedResults.set(chatId, {

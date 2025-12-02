@@ -6,13 +6,12 @@ import UnifiedNavigation from '@/components/UnifiedNavigation';
 import Footer from '@/components/Footer';
 import { BlogGrid } from '@/components/blog/BlogGrid';
 import { BlogContentFilter } from '@/components/blog/BlogContentFilter';
-import { TheraLoader } from '@/components/ui/TheraLoader';
 import { SEO } from '@/components/SEO';
 
 const Blog = () => {
   const [activeFilter, setActiveFilter] = useState('all');
 
-  const { data: posts, isLoading, error } = useQuery({
+  const { data: posts, error } = useQuery({
     queryKey: ['blog-posts'],
     queryFn: async () => {
       const { data, error } = await supabase

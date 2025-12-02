@@ -12,11 +12,11 @@ export const useAstroFormValidation = () => {
       return false;
     }
     if (!data.birthDate) {
-      setError('birthDate' as any, { type: 'manual', message: 'Date of birth is required' });
+      setError('birthDate', { type: 'manual', message: 'Date of birth is required' });
       return false;
     }
     if (!data.birthTime) {
-      setError('birthTime' as any, { type: 'manual', message: 'Time of birth is required' });
+      setError('birthTime', { type: 'manual', message: 'Time of birth is required' });
       return false;
     }
     if (!data.birthLocation?.trim()) {
@@ -43,14 +43,14 @@ export const useAstroFormValidation = () => {
       return false;
     }
     if (!data.secondPersonBirthDate) {
-      setError('secondPersonBirthDate' as any, {
+      setError('secondPersonBirthDate', {
         type: 'manual',
         message: 'Date of birth is required',
       });
       return false;
     }
     if (!data.secondPersonBirthTime) {
-      setError('secondPersonBirthTime' as any, {
+      setError('secondPersonBirthTime', {
         type: 'manual',
         message: 'Time of birth is required',
       });

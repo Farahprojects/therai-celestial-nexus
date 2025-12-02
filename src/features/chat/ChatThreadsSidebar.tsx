@@ -7,6 +7,7 @@ import { useChatStore } from '@/core/store';
 import { useMessageStore } from '@/stores/messageStore';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useUserData } from '@/hooks/useUserData';
+import { Conversation } from '@/core/types';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -92,7 +93,7 @@ const useFolders = (userId?: string, currentFolderId?: string) => {
             id: f.id,
             name: f.name,
             chatsCount: conversations.length,
-            chats: conversations.map((c: any) => ({
+            chats: conversations.map((c: Conversation) => ({
               id: c.id,
               title: c.title || 'New Chat',
               mode: c.mode,
@@ -112,7 +113,7 @@ const useFolders = (userId?: string, currentFolderId?: string) => {
               id: shared.id,
               name: shared.name,
               chatsCount: conversations.length,
-              chats: conversations.map((c: any) => ({
+              chats: conversations.map((c: Conversation) => ({
                 id: c.id,
                 title: c.title || 'New Chat',
                 mode: c.mode,
@@ -300,7 +301,7 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
   const loadMore = useCallback(() => setVisible(v => Math.min(v + 12, filteredThreads.length)), [filteredThreads.length]);
   const sentinelRef = useIntersection(() => { if (hasMore) loadMore(); });
 
-  const isSharedThread = (thread: any) => {
+  const isSharedThread = (thread: Conversation) => {
     const p = thread?.conversations_participants?.[0];
     return (p?.role === 'member') || (p?.role === 'owner' && thread?.has_other_participants);
   };
@@ -371,7 +372,7 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
     }
     const existing = useChatStore.getState().threads.find(t => t.id === id);
     if (existing) {
-      updateConversation({ ...existing, title: editTitle.trim(), updated_at: new Date().toISOString() } as any);
+      updateConversation({ ...existing, title: editTitle.trim(), updated_at: new Date().toISOString() });
     }
     setEditTitle('');
   };
@@ -386,7 +387,7 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
           .select('meta')
           .eq('id', conversationId)
           .maybeSingle();
-        const isInsight = conversation && 'meta' in conversation && (conversation.meta as any)?.type === 'insight_chat';
+        const isInsight = conversation && 'meta' in conversation && (conversation.meta as { type?: string })?.type === 'insight_chat';
 
         await supabase.from('conversations').delete().eq('id', conversationId);
         if (isInsight) {
@@ -614,7 +615,7 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
                 <div className="space-y-0.5">
                   {filteredThreads.slice(0, visible).map((c) => {
                     const isActive = c.id === chat_id;
-                    const isPending = (c.meta as any)?.isPending || pendingInsightThreads.has(c.id);
+                    const isPending = (c.meta as { isPending?: boolean })?.isPending || pendingInsightThreads.has(c.id);
 
                     return (
                       <div key={c.id} className={cn('group flex items-center gap-2 py-1.5 px-3 rounded-lg transition-colors', isActive ? 'bg-gray-100' : 'hover:bg-gray-100', isPending && 'opacity-60') }>

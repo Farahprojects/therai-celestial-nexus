@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { Message, Conversation } from './types';
+import { Conversation } from './types';
 import { useMessageStore } from '@/stores/messageStore';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -74,7 +74,7 @@ interface ChatState {
   addConversation: (conversation: Conversation) => void;
   updateConversation: (conversation: Conversation) => void;
   removeConversation: (conversationId: string) => void;
-  initializeConversationSync: (userId: string) => void;
+  initializeConversationSync: () => void;
   cleanupConversationSync: () => void;
   
   // View mode actions
@@ -197,8 +197,6 @@ export const useChatStore = create<ChatState>()((set, get) => ({
   },
 
   clearChat: () => {
-    const state = get();
-
     // Clear message store when clearing chat
     import('@/stores/messageStore').then(({ useMessageStore }) => {
       useMessageStore.getState().clearMessages();
@@ -274,7 +272,7 @@ export const useChatStore = create<ChatState>()((set, get) => ({
       set({ threads: sortedConversations, isLoadingThreads: false });
       
       // Initialize real-time sync after initial load
-      get().initializeConversationSync(userId);
+      get().initializeConversationSync();
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to load threads';
       set({ threadsError: errorMessage, isLoadingThreads: false });
@@ -395,7 +393,7 @@ export const useChatStore = create<ChatState>()((set, get) => ({
     }));
   },
 
-  initializeConversationSync: (userId: string) => {
+  initializeConversationSync: (): void => {
     const state = get();
     
     // Don't initialize if already active

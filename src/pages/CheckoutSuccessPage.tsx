@@ -1,32 +1,23 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Loader2, Wallet, DollarSign } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
-interface LocationState {
-  credits?: number;
-  amount?: number;
-}
-
 export const CheckoutSuccessPage: React.FC = () => {
   const navigate = useNavigate();
-  const location = useLocation();
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
   
   const [verifying, setVerifying] = useState(true);
   const [paymentVerified, setPaymentVerified] = useState(false);
-  const [newBalance, setNewBalance] = useState<number | null>(null);
   const [purchasedCredits, setPurchasedCredits] = useState<number | null>(null);
   const [amountUsd, setAmountUsd] = useState<number | null>(null);
 
   const sessionId = searchParams.get('session_id');
   const paymentIntentId = searchParams.get('payment_intent');
-  const source = searchParams.get('source');
-  const state = location.state as LocationState;
 
   useEffect(() => {
     const verifyPayment = async () => {

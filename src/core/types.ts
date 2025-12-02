@@ -5,7 +5,7 @@ export type ProviderName = 'openai' | 'google' | 'deepgram' | 'elevenlabs' | 'lo
 export type MessageRole = 'user' | 'assistant' | 'system';
 
 // Database message type - 100% aligned with Supabase schema
-type DbMessage = Database['public']['Tables']['messages']['Row'];
+export type DbMessage = Database['public']['Tables']['messages']['Row'];
 
 // Extended message type with UI-only fields
 export interface Message {
@@ -33,7 +33,7 @@ export interface Message {
 }
 
 // Database conversation type - 100% aligned with Supabase schema
-type DbConversation = Database['public']['Tables']['conversations']['Row'];
+export type DbConversation = Database['public']['Tables']['conversations']['Row'];
 
 // Extended conversation type with UI-only fields
 export interface Conversation {

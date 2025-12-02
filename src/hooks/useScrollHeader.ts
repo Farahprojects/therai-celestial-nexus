@@ -11,7 +11,6 @@ export const useScrollHeader = () => {
       const heroSection = document.querySelector('[data-hero-section]');
       
       if (heroSection) {
-        const heroBottom = heroSection.getBoundingClientRect().bottom;
         const heroHeight = (heroSection as HTMLElement).offsetHeight;
         
         // Hide header when scrolling past hero section

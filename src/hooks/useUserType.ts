@@ -1,6 +1,5 @@
-import { useChatStore } from '@/core/store';
 import { useAuth } from '@/contexts/AuthContext';
-import { useSearchParams, useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 
 export type UserType = 'authenticated' | 'unauthenticated';
 
@@ -17,9 +16,7 @@ export interface UserTypeInfo {
  */
 export const useUserType = (): UserTypeInfo => {
   const { user } = useAuth();
-  const [searchParams] = useSearchParams();
   const { pathname } = useLocation();
-  const { chat_id } = useChatStore();
   
   // 🎯 Auth detection: URL path starts with "/c/" or /therai
   const isAuthPath = pathname.startsWith('/c/');

@@ -1,11 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { getBillingMode } from '@/utils/billingMode';
 import { useChatStore } from '@/core/store';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Plus, MessageSquare, Clock } from 'lucide-react';
 import Logo from '@/components/Logo';
 import { toast } from 'sonner';
@@ -15,7 +15,7 @@ const ThreadSelectionPage: React.FC = () => {
   const { isSubscriptionActive } = useSubscription();
   const billingMode = getBillingMode();
   const navigate = useNavigate();
-  const { threads, loadThreads, addThread, isLoadingThreads } = useChatStore();
+  const { threads, addThread, isLoadingThreads } = useChatStore();
   const [isCreating, setIsCreating] = useState(false);
 
   // Thread loading is handled by useChatInitialization on page mount

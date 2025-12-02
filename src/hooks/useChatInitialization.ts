@@ -17,7 +17,7 @@ import { getLastChatId } from '@/services/auth/chatTokens';
 export const useChatInitialization = () => {
   const { threadId, chatId, folderId } = useParams<{ threadId?: string; chatId?: string; folderId?: string }>();
   const routeChatId = threadId || chatId;
-  const { chat_id, startConversation, setViewMode } = useChatStore();
+  const { startConversation, setViewMode } = useChatStore();
   const { user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();

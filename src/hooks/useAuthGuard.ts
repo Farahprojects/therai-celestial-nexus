@@ -57,7 +57,7 @@ export const useAuthGuard = (pageName: string): UseAuthGuardResult => {
           setHasValidAuth(true);
           setError(null);
         }
-      } catch (error) {
+      } catch {
         if (mounted) {
           setHasValidAuth(false);
           setError('Authentication verification failed');

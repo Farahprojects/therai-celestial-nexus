@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { showToast } from "@/utils/notifications";
 import { useAuth } from "@/contexts/AuthContext";
@@ -156,9 +156,11 @@ export function useUserData() {
 
       // Sync TTS voice into chat store for conversation mode
       try {
-        const voice = (preferencesResult.data as any)?.tts_voice || getDefaultPreferences(user.id).tts_voice;
+        const voice = (preferencesResult.data as { tts_voice?: string })?.tts_voice || getDefaultPreferences(user.id).tts_voice;
         useChatStore.getState().setTtsVoice(voice);
-      } catch {}
+      } catch {
+        // Ignore errors when syncing TTS voice - use default
+      }
 
       setRetryCount(0);
     } catch (err) {
@@ -183,7 +185,7 @@ export function useUserData() {
     try {
       const { error } = await supabase
         .from('profiles')
-        .update({ display_name: newDisplayName } as any) // Type assertion until DB schema is updated
+        .update({ display_name: newDisplayName } as { display_name: string }) // Type assertion until DB schema is updated
         .eq('id', user.id);
 
       if (error) {
@@ -303,7 +305,7 @@ export function useUserData() {
     try {
       const { error } = await supabase
         .from('user_preferences')
-        .update({ tts_voice: voice } as any) // Type assertion until DB schema is updated
+        .update({ tts_voice: voice } as { tts_voice: string }) // Type assertion until DB schema is updated
         .eq('user_id', user.id);
 
       if (error) {
@@ -320,7 +322,9 @@ export function useUserData() {
       }));
 
       // Update chat store immediately so conversation mode picks it up
-      try { useChatStore.getState().setTtsVoice(voice); } catch {}
+      try { useChatStore.getState().setTtsVoice(voice); } catch {
+        // Ignore errors when updating chat store TTS voice
+      }
 
       if (options.showToast !== false) {
         showToast({

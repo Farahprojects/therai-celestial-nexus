@@ -7,11 +7,9 @@ import { useUniversalMic } from '@/hooks/microphone/useUniversalMic';
 import { VoiceWaveform } from './VoiceWaveform';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserData } from '@/hooks/useUserData';
-import { useSearchParams } from 'react-router-dom';
 import { useMode } from '@/contexts/ModeContext';
 import { useChatInputState } from '@/hooks/useChatInputState';
 import { useChatStore } from '@/core/store';
-import { useFeatureUsage } from '@/hooks/useFeatureUsage';
 import { useMessageStore } from '@/stores/messageStore';
 import { unifiedWebSocketService } from '@/services/websocket/UnifiedWebSocketService';
 import { supabase } from '@/integrations/supabase/client';
@@ -27,7 +25,6 @@ const StopIcon = () => (
 
 export const ChatInput = () => {
   const [text, setText] = useState('');
-  const [isMuted, setIsMuted] = useState(false);
   const [showUpgradeNotification, setShowUpgradeNotification] = useState(false);
   const [showSTTLimitNotification, setShowSTTLimitNotification] = useState(false);
   const [rateLimitExceeded, setRateLimitExceeded] = useState(false);
@@ -54,9 +51,6 @@ export const ChatInput = () => {
     isAssistantTyping,
     setAssistantTyping,
     chat_id,
-    addThread,
-    isPolling,
-    isReportReady,
     isConversationOpen,
     openConversation,
     closeConversation,
@@ -106,9 +100,6 @@ export const ChatInput = () => {
   // Auth detection (still needed for user-specific logic)
   const { user } = useAuth();
   const { displayName } = useUserData();
-  const { usage } = useFeatureUsage();
-  const [searchParams] = useSearchParams();
-  const userId = searchParams.get('user_id');
   const isAuthenticated = !!user;
 
   // Handle transcript ready - add to text area
@@ -267,7 +258,7 @@ export const ChatInput = () => {
             user_name: displayName || 'User',
             analyze: isAnalyzeMode // Pass analyze flag for Together Mode
           },
-          // @ts-ignore - signal is supported but not in types
+          // @ts-expect-error - signal is supported but not in types
           signal: abortController.signal
         }).catch((error) => {
           if (error.name === 'AbortError') {

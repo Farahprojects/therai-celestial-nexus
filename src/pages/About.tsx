@@ -1,8 +1,7 @@
 import { Link } from "react-router-dom";
-import { Button } from "@/components/ui/button";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { Star, Award, Rocket, Linkedin } from "lucide-react";
+import { Linkedin } from "lucide-react";
 import { normalizeStorageUrl } from "@/utils/storageUtils";
 import { SEO } from "@/components/SEO";
 

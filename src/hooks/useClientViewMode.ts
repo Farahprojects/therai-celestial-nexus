@@ -49,8 +49,8 @@ export function useClientViewMode(): UseClientViewModeReturn {
         const savedMode = data?.client_view_mode as ViewMode | null;
         setViewMode(savedMode);
       }
-    } catch (err: any) {
-      const errorMessage = err.message || "Failed to load view preference";
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : "Failed to load view preference";
       setError(errorMessage);
       console.error("Error loading client view mode:", err);
     } finally {
@@ -82,8 +82,8 @@ export function useClientViewMode(): UseClientViewModeReturn {
       setViewMode(newMode);
       
       return true;
-    } catch (err: any) {
-      const errorMessage = err.message || "Failed to save view preference";
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : "Failed to save view preference";
       setError(errorMessage);
       console.error("Error updating client view mode:", err);
       

@@ -2,6 +2,24 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useMode } from '@/contexts/ModeContext';
 import { ReportFormData } from '@/types/public-report';
 
+interface PersonData {
+  birth_date: string;
+  birth_time: string;
+  location: string;
+  latitude?: number;
+  longitude?: number;
+  name: string;
+  timezone?: string;
+  house_system?: string;
+}
+
+interface ReportPayload {
+  request: string;
+  reportType: string | null;
+  person_a: PersonData;
+  person_b?: PersonData;
+}
+
 export const useAstroReportPayload = () => {
   const { user } = useAuth();
   const { mode: contextMode } = useMode();
@@ -27,7 +45,7 @@ export const useAstroReportPayload = () => {
   };
 
   const buildReportPayload = (data: ReportFormData, selectedAstroType: string) => {
-    const personA: any = {
+    const personA: PersonData = {
       birth_date: validateDateFormat(data.birthDate, 'Birth date'),
       birth_time: data.birthTime,
       location: data.birthLocation,
@@ -39,7 +57,7 @@ export const useAstroReportPayload = () => {
     if (data.timezone) personA.timezone = data.timezone;
     if (data.houseSystem) personA.house_system = data.houseSystem;
 
-    const reportData: any = {
+    const reportData: ReportPayload = {
       request: data.request || selectedAstroType,
       reportType: data.reportType,
       person_a: personA,
@@ -47,7 +65,7 @@ export const useAstroReportPayload = () => {
 
     // Add person_b for compatibility requests
     if (selectedAstroType === 'sync' && data.secondPersonName) {
-      const personB: any = {
+      const personB: PersonData = {
         birth_date: validateDateFormat(data.secondPersonBirthDate, 'Second person birth date'),
         birth_time: data.secondPersonBirthTime,
         location: data.secondPersonBirthLocation,

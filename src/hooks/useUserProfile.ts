@@ -51,7 +51,7 @@ export const useUserProfile = () => {
     return user?.email?.split('@')[0] || 'User';
   };
 
-  const updateDisplayName = async (newDisplayName: string) => {
+  const updateDisplayName = async (): Promise<{ error?: string }> => {
     if (!user?.id) return { error: 'No user' };
 
     // display_name column was dropped - this function is now a no-op
