@@ -125,14 +125,6 @@ export const TypewriterText: React.FC<TypewriterTextProps> = ({
     typeNextWord();
   }, [text, msPerWord, onComplete, onInterrupt, showCursor, disabled, setAssistantTyping]);
 
-  // Stop typing (for interruptions)
-  const stopTyping = useCallback(() => {
-    isInterruptedRef.current = true;
-    setIsTyping(false);
-    setAssistantTyping(false); // Direct store communication - stop typing
-    cleanup();
-    onInterrupt?.();
-  }, [cleanup, onInterrupt, setAssistantTyping]);
 
   // Reset and start animation when text changes
   useEffect(() => {

@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { cn } from '@/lib/utils';
 
 interface SimpleTimePickerProps {
   value?: string; // HH:MM format
@@ -11,8 +10,7 @@ interface SimpleTimePickerProps {
 export const SimpleTimePicker: React.FC<SimpleTimePickerProps> = ({
   value,
   onChange,
-  onClose,
-  hasError = false
+  onClose
 }) => {
   const [hour, setHour] = useState(() => {
     if (value) {

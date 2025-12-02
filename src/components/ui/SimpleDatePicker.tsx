@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -12,8 +12,7 @@ interface SimpleDatePickerProps {
 export const SimpleDatePicker: React.FC<SimpleDatePickerProps> = ({
   value,
   onChange,
-  onClose,
-  hasError = false
+  onClose
 }) => {
   const [currentDate, setCurrentDate] = useState(() => {
     if (value) {

@@ -12,7 +12,6 @@ interface InlineDateTimeSelectorProps {
   value: string;
   onChange: (value: string) => void;
   onConfirm: () => void;
-  onCancel: () => void;
   isOpen: boolean;
   placeholder: string;
   hasError?: boolean;
@@ -24,7 +23,6 @@ const InlineDateTimeSelector = ({
   value,
   onChange,
   onConfirm,
-  onCancel,
   isOpen,
   placeholder,
   hasError = false,
@@ -134,36 +132,6 @@ const InlineDateTimeSelector = ({
     }
   };
 
-  const formatDisplayValue = (val: string) => {
-    if (!val || typeof val !== 'string') return placeholder;
-    
-    if (type === 'date') {
-      // Handle both ISO format (YYYY-MM-DD) and DD/MM/YYYY format
-      if (val.includes('/')) {
-        // Already in DD/MM/YYYY format
-        return val;
-      } else if (val.includes('-')) {
-        // ISO format (YYYY-MM-DD) - convert to DD/MM/YYYY for display
-        // Parse explicitly, never use new Date()
-        const isoMatch = val.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-        if (isoMatch) {
-          const year = isoMatch[1];
-          const month = isoMatch[2];
-          const day = isoMatch[3];
-          return `${day}/${month}/${year}`;
-        }
-        return val; // Return raw value if format doesn't match
-      } else {
-        return val; // Return as-is if unrecognized format
-      }
-    } else {
-      const [hours, minutes] = val.split(':');
-      const hour24 = parseInt(hours, 10);
-      const hour12 = hour24 === 0 ? 12 : hour24 > 12 ? hour24 - 12 : hour24;
-      const period = hour24 >= 12 ? 'PM' : 'AM';
-      return `${hour12}:${minutes} ${period}`;
-    }
-  };
 
   const getInputPlaceholder = () => {
     if (type === 'date') return 'DD/MM/YYYY';
