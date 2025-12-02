@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import PickerWheel from './PickerWheel';
-import { useDebounced } from '@/hooks/useDebounced';
 
 interface MobileDatePickerProps {
   value: string; // YYYY-MM-DD format

@@ -1,5 +1,5 @@
 import { ReportTypeOption } from '@/types/public-report';
-import { User, Heart, Target, Brain, Briefcase, Camera, Users } from 'lucide-react';
+import { User, Heart, Target, Briefcase, Users } from 'lucide-react';
 
 export const reportTypes: ReportTypeOption[] = [
   { value: 'sync', label: 'Compatibility Report' },

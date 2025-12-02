@@ -24,7 +24,6 @@ const InlineDateTimeSelector = ({
   onChange,
   onConfirm,
   isOpen,
-  placeholder,
   hasError = false,
   onOpen
 }: InlineDateTimeSelectorProps) => {
