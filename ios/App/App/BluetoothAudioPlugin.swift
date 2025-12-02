@@ -84,28 +84,72 @@ public class BluetoothAudioPlugin: CAPPlugin {
         }
     }
     
-    @objc func isBluetoothConnected(_ call: CAPPluginCall) {
+    
+    @objc func enableSpeaker(_ call: CAPPluginCall) {
         let audioSession = AVAudioSession.sharedInstance()
         
-        // Check if any Bluetooth audio device is connected
-        let hasBluetoothInput = audioSession.availableInputs?.contains(where: { 
-            $0.portType == .bluetoothHFP || $0.portType == .bluetoothA2DP 
-        }) ?? false
+        do {
+            print("[\(TAG)] Enabling speaker output")
+            
+            // Set category with defaultToSpeaker option
+            try audioSession.setCategory(.playAndRecord, mode: .voiceChat, options: [.defaultToSpeaker, .allowBluetooth])
+            try audioSession.setActive(true, options: [])
+            
+            print("[\(TAG)] Speaker output enabled successfully")
+            call.resolve(["success": true])
+            
+        } catch {
+            print("[\(TAG)] Error enabling speaker: \(error.localizedDescription)")
+            call.reject("Failed to enable speaker: \(error.localizedDescription)")
+        }
+    }
+    
+    @objc func disableSpeaker(_ call: CAPPluginCall) {
+        let audioSession = AVAudioSession.sharedInstance()
         
-        let hasBluetoothOutput = audioSession.currentRoute.outputs.contains(where: {
-            $0.portType == .bluetoothHFP || $0.portType == .bluetoothA2DP || $0.portType == .bluetoothLE
-        })
+        do {
+            print("[\(TAG)] Disabling speaker output, returning to default")
+            
+            // Remove defaultToSpeaker option, keep Bluetooth available
+            try audioSession.setCategory(.playAndRecord, mode: .voiceChat, options: [.allowBluetooth])
+            try audioSession.setActive(true, options: [])
+            
+            print("[\(TAG)] Speaker output disabled")
+            call.resolve(["success": true])
+            
+        } catch {
+            print("[\(TAG)] Error disabling speaker: \(error.localizedDescription)")
+            call.reject("Failed to disable speaker: \(error.localizedDescription)")
+        }
+    }
+    
+    @objc func getCurrentAudioRoute(_ call: CAPPluginCall) {
+        let audioSession = AVAudioSession.sharedInstance()
         
-        let connected = hasBluetoothInput || hasBluetoothOutput
+        // Check current output route
+        let currentRoute = audioSession.currentRoute
+        let outputs = currentRoute.outputs
         
-        if connected {
-            let devices = audioSession.availableInputs?.filter { 
-                $0.portType == .bluetoothHFP || $0.portType == .bluetoothA2DP 
-            }.map { $0.portName }.joined(separator: ", ") ?? "unknown"
-            print("[\(TAG)] Bluetooth devices connected: \(devices)")
+        var route = "unknown"
+        
+        if let output = outputs.first {
+            switch output.portType {
+            case .bluetoothHFP, .bluetoothA2DP, .bluetoothLE:
+                route = "bluetooth"
+            case .builtInSpeaker:
+                route = "speaker"
+            case .builtInReceiver:
+                route = "receiver"
+            case .headphones, .headsetMic:
+                route = "headphones"
+            default:
+                route = "unknown"
+            }
+            
+            print("[\(TAG)] Current audio route: \(route) (port: \(output.portName))")
         }
         
-        call.resolve(["connected": connected])
+        call.resolve(["route": route])
     }
 }
 

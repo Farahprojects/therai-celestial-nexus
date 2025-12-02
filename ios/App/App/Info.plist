@@ -64,5 +64,7 @@
 	<string>Microphone access is required for Conversation Mode.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
 	<string>Speech recognition is used to transcribe your voice in Conversation Mode.</string>
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>Bluetooth access is required for audio routing to wireless headphones and speakers during conversations.</string>
 </dict>
 </plist>

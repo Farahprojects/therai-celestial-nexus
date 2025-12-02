@@ -9,6 +9,7 @@ import { useUserData } from '@/hooks/useUserData';
 import { useMessageStore } from '@/stores/messageStore';
 // Old audio level hook removed - using AudioWorklet + WebWorker pipeline
 import { VoiceBubble } from './VoiceBubble';
+import { AudioRouteControls } from './AudioRouteControls';
 // Universal audio pipeline
 import { UniversalSTTRecorder } from '@/services/audio/UniversalSTTRecorder';
 import { ttsPlaybackService } from '@/services/voice/TTSPlaybackService';
@@ -34,13 +35,13 @@ export const ConversationOverlay: React.FC = () => {
   const addMessage = useMessageStore((state) => state.addMessage);
   const [state, setState] = useState<ConversationState>('connecting');
   const [showSTTLimitNotification, setShowSTTLimitNotification] = useState(false);
-  
+
   // Audio context management
   const { audioContext, isAudioUnlocked, initializeAudioContext, resumeAudioContext } = useAudioStore();
-  
+
   // Realtime level driven by worker (not React polling) - use ref for smooth animation
   const audioLevelRef = useRef<number>(0);
-  
+
   const hasStarted = useRef(false);
   const isShuttingDown = useRef(false);
   const connectionRef = useRef<WebSocket | null>(null);
@@ -53,19 +54,19 @@ export const ConversationOverlay: React.FC = () => {
 
   // 🚨 RESET TO TAP TO START - ROBUST cleanup with validation
   const resetToTapToStart = useCallback(async () => {
-    
+
     // 1. IMMEDIATE GUARDS - Stop all operations
     isShuttingDown.current = true;
     isProcessingRef.current = false;
     isStartingRef.current = false;
     isActiveRef.current = false;
     wasSubscribedRef.current = false;
-    
+
     // 2. DISABLE TTS MODE - Flush buffered messages back to text mode
     try {
       const { chatController } = await import('@/features/chat/ChatController');
       chatController.setTtsMode(false);
-      
+
       // 🔄 CRITICAL: Refetch messages after conversation mode to ensure UI consistency
       if (chat_id) {
         const { fetchMessages } = useMessageStore.getState();
@@ -77,7 +78,7 @@ export const ConversationOverlay: React.FC = () => {
     } catch (e) {
       console.error('[ConversationOverlay] Failed to disable TTS mode:', e);
     }
-    
+
     // Force cleanup all resources (fire-and-forget)
     ttsPlaybackService.destroy().catch((error) => {
       console.warn('[ConversationOverlay] Failed to destroy TTS playback service:', error);
@@ -85,7 +86,7 @@ export const ConversationOverlay: React.FC = () => {
     try { recorderRef.current?.dispose(); } catch (error) {
       console.warn('[ConversationOverlay] Failed to dispose recorder:', error);
     }
-    
+
     // Cleanup WebSocket connection
     if (connectionRef.current) {
       try {
@@ -95,7 +96,7 @@ export const ConversationOverlay: React.FC = () => {
       }
       connectionRef.current = null;
     }
-    
+
     // Reset audio arbitrator
     try {
       const { audioArbitrator } = await audioArbitratorImport();
@@ -103,7 +104,7 @@ export const ConversationOverlay: React.FC = () => {
     } catch {
       // Ignore arbitrator errors
     }
-    
+
     // Always return to tap-to-start state (no error UI)
     setState('connecting');
     hasStarted.current = false;
@@ -145,15 +146,15 @@ export const ConversationOverlay: React.FC = () => {
       console.error('[ConversationOverlay] ❌ No chat_id or user available for unified channel');
       return false;
     }
-    
+
     if (connectionRef.current) {
       return true;
     }
-    
+
     try {
       // Use unified channel - subscribe if not already subscribed
       await unifiedChannel.subscribe(user.id);
-      
+
       // Register voice event listeners
       const handleTTSReady = (payload: { audioBase64: string }) => {
         if (isShuttingDown.current) return;
@@ -183,13 +184,13 @@ export const ConversationOverlay: React.FC = () => {
           playAudioImmediately(payload.audioBytes);
         }
       };
-      
+
       const handleThinking = () => {
         if (!isShuttingDown.current) {
           setState('thinking');
         }
       };
-      
+
       const handleMessageInsert = (payload: { message?: unknown; chat_id?: string }) => {
         if (isShuttingDown.current) return;
         if (payload.message && payload.chat_id === chat_id) {
@@ -197,12 +198,12 @@ export const ConversationOverlay: React.FC = () => {
           addMessage(payload.message);
         }
       };
-      
+
       // Register listeners
       const unsubscribeTTS = unifiedChannel.on('voice-tts-ready', handleTTSReady);
       const unsubscribeThinking = unifiedChannel.on('voice-thinking', handleThinking);
       const unsubscribeMessageInsert = unifiedChannel.on('message-insert', handleMessageInsert);
-      
+
       // Store cleanup functions
       connectionRef.current = {
         cleanup: () => {
@@ -211,7 +212,7 @@ export const ConversationOverlay: React.FC = () => {
           unsubscribeMessageInsert();
         }
       };
-      
+
       wasSubscribedRef.current = true;
       return true;
     } catch (error) {
@@ -224,15 +225,15 @@ export const ConversationOverlay: React.FC = () => {
   // TTS playback
   const playAudioImmediately = useCallback(async (audioBytes: number[]) => {
     if (isShuttingDown.current) return;
-    
+
     try {
       // Set state to 'replying' immediately when TTS starts
       // Animation will be driven by actual audio output from TTS service
       setState('replying');
-      
+
       await ttsPlaybackService.play(audioBytes, () => {
         setState('listening');
-        
+
         // Resume mic for next turn
         if (!isShuttingDown.current) {
           setTimeout(() => {
@@ -264,10 +265,10 @@ export const ConversationOverlay: React.FC = () => {
       }
       return;
     }
-    
+
     isStartingRef.current = true;
     setState('establishing');
-    
+
     try {
       // 2. BLUETOOTH ROUTING - SESSION LEVEL (ONCE for entire conversation)
       if (Capacitor.isNativePlatform()) {
@@ -275,10 +276,10 @@ export const ConversationOverlay: React.FC = () => {
           console.log('[ConversationOverlay] 🔵 Starting Bluetooth SCO for conversation session...');
           const result = await BluetoothAudio.startBluetoothAudio();
           console.log('[ConversationOverlay] ✅ Bluetooth audio session established:', result);
-          
+
           // Wait for routing to stabilize
           await new Promise(resolve => setTimeout(resolve, 500));
-          
+
           const status = await BluetoothAudio.isBluetoothConnected();
           console.log('[ConversationOverlay] Bluetooth connection status:', status);
         } catch (error) {
@@ -286,7 +287,7 @@ export const ConversationOverlay: React.FC = () => {
           // Continue anyway - might not have Bluetooth connected
         }
       }
-      
+
       // 3. MIC PERMISSION PREFLIGHT - Android requires this before AudioContext
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -296,27 +297,27 @@ export const ConversationOverlay: React.FC = () => {
         console.error('[ConversationOverlay] Mic permission denied:', error);
         throw new Error('Microphone permission required for conversation mode');
       }
-      
+
       // 4. AUDIOCONTEXT UNLOCK - Ensure unlock happens within this user gesture
       const ctx = audioContext || initializeAudioContext();
       await resumeAudioContext();
-      
+
       // 3. STEP 1: Audio Warmup with validation
       const { ttsPlaybackService } = await import('@/services/voice/TTSPlaybackService');
       // Provide shared/unlocked AudioContext to TTS service
       ttsPlaybackService.setAudioContextProvider(() => ctx);
       await ttsPlaybackService.warmup();
-      
+
       // 4. STEP 2: WebSocket connection with validation
       const connectionEstablished = await establishConnection();
       if (!connectionEstablished) {
         throw new Error('Failed to establish TTS WebSocket connection');
       }
-      
+
       // 5. STEP 3: Enable TTS mode with validation (pauses DB realtime)
       const { chatController } = await import('@/features/chat/ChatController');
       chatController.setTtsMode(true);
-      
+
       // 6. STEP 4: Initialize Universal Recorder
       recorderRef.current = new UniversalSTTRecorder({
         chattype: 'voice',
@@ -342,30 +343,30 @@ export const ConversationOverlay: React.FC = () => {
           // Check if this is an STT limit exceeded error FIRST - don't log it
           if (error instanceof STTLimitExceededError) {
             console.log('[ConversationOverlay] STT limit exceeded, showing upgrade notification');
-            
+
             // Close overlay immediately
             closeConversation();
-            
+
             // Set flag to keep overlay closed
             setShouldKeepClosed(true);
-            
+
             // Show upgrade notification
             setShowSTTLimitNotification(true);
-            
+
             // Reset state
             resetToTapToStart();
             return;
           }
-          
+
           // Log other errors normally
           console.error('[ConversationOverlay] Audio recorder error:', error);
           resetToTapToStart();
         }
       });
-      
+
       // 7. STEP 5: Start recorder
       await recorderRef.current.start();
-      
+
       // 8. STEP 6: Final validation - All systems ready
       if (!connectionRef.current) {
         throw new Error('TTS WebSocket connection lost during setup');
@@ -373,12 +374,12 @@ export const ConversationOverlay: React.FC = () => {
       if (!recorderRef.current) {
         throw new Error('Audio recorder not initialized');
       }
-      
+
       // 9. SUCCESS - Mark active only after everything is ready
       isActiveRef.current = true;
       hasStarted.current = true;
       setState('listening');
-      
+
     } catch (error) {
       console.error('[ConversationOverlay] Start failed:', error);
       resetToTapToStart();
@@ -390,7 +391,7 @@ export const ConversationOverlay: React.FC = () => {
   // Cleanup on modal close - graceful release with fire-and-forget
   const handleModalClose = useCallback(async () => {
     isShuttingDown.current = true;
-    
+
     // IMMEDIATE audio stop - no race condition
     ttsPlaybackService.stop();
     ttsPlaybackService.destroy().catch((error) => {
@@ -401,7 +402,7 @@ export const ConversationOverlay: React.FC = () => {
     try { recorderRef.current?.dispose(); } catch {
       // eslint-disable-next-line no-empty
     }
-    
+
     // BLUETOOTH ROUTING - SESSION LEVEL CLEANUP (ONCE when conversation ends)
     if (Capacitor.isNativePlatform()) {
       try {
@@ -412,24 +413,24 @@ export const ConversationOverlay: React.FC = () => {
         console.warn('[ConversationOverlay] Bluetooth audio stop failed:', error);
       }
     }
-    
+
     // Fire-and-forget WebSocket cleanup
     if (connectionRef.current) {
       try {
         connectionRef.current.cleanup();
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
       } catch (_e) {
         // Ignore WebSocket cleanup errors
       }
       connectionRef.current = null;
     }
-    
+
     // ▶️ DISABLE TTS MODE: Flush buffered messages back to text mode
     // 🔥 FIX: Wait for TTS mode to disable, then refetch messages to ensure consistency
     try {
       const { chatController } = await import('@/features/chat/ChatController');
       chatController.setTtsMode(false);
-      
+
       // 🔄 CRITICAL: Refetch messages after conversation mode to ensure UI consistency
       // This handles any race conditions or missed messages during voice mode
       if (chat_id) {
@@ -442,12 +443,12 @@ export const ConversationOverlay: React.FC = () => {
     } catch (error) {
       console.error('[ConversationOverlay] Error during cleanup:', error);
     }
-    
+
     // Reset state
     setState('connecting');
     hasStarted.current = false;
     isShuttingDown.current = false;
-    
+
     closeConversation();
   }, [closeConversation, chat_id]);
 
@@ -495,7 +496,7 @@ export const ConversationOverlay: React.FC = () => {
       try { recorderRef.current?.dispose(); } catch {
         // eslint-disable-next-line no-empty
       }
-      ttsPlaybackService.destroy().catch(() => {});
+      ttsPlaybackService.destroy().catch(() => { });
     }
   }, [state]);
 
@@ -529,83 +530,86 @@ export const ConversationOverlay: React.FC = () => {
   return (
     <>
       {createPortal(
-    <div 
-      ref={overlayRef}
-      className="fixed inset-0 z-50 bg-white pt-safe pb-safe"
-      data-conversation-overlay
-    >
-      <div className="h-full w-full flex items-center justify-center px-6">
-        {state === 'connecting' ? (
-          <div className="text-center text-gray-800 flex flex-col items-center gap-4">
-            <div
-              className="flex flex-col items-center gap-4 cursor-pointer"
-              onClick={() => {
-                handleStart();
-              }}
-            >
-              <div className="w-24 h-24 rounded-full bg-gray-100 flex items-center justify-center transition-colors hover:bg-gray-200 relative">
-                <Mic className="w-10 h-10 text-gray-600" />
+        <div
+          ref={overlayRef}
+          className="fixed inset-0 z-50 bg-white pt-safe pb-safe"
+          data-conversation-overlay
+        >
+          <div className="h-full w-full flex items-center justify-center px-6">
+            {state === 'connecting' ? (
+              <div className="text-center text-gray-800 flex flex-col items-center gap-4">
+                <div
+                  className="flex flex-col items-center gap-4 cursor-pointer"
+                  onClick={() => {
+                    handleStart();
+                  }}
+                >
+                  <div className="w-24 h-24 rounded-full bg-gray-100 flex items-center justify-center transition-colors hover:bg-gray-200 relative">
+                    <Mic className="w-10 h-10 text-gray-600" />
+                  </div>
+                  <h2 className="text-2xl font-light">
+                    Tap to Start
+                  </h2>
+                </div>
+                <button
+                  onClick={handleModalClose}
+                  aria-label="Close conversation"
+                  className="w-10 h-10 bg-black rounded-full flex items-center justify-center text-white hover:bg-gray-800 transition-colors"
+                >
+                  ✕
+                </button>
               </div>
-              <h2 className="text-2xl font-light">
-                Tap to Start
-              </h2>
-            </div>
-            <button
-              onClick={handleModalClose}
-              aria-label="Close conversation"
-              className="w-10 h-10 bg-black rounded-full flex items-center justify-center text-white hover:bg-gray-800 transition-colors"
-            >
-              ✕
-            </button>
-          </div>
-        ) : state === 'establishing' ? (
-          <div className="text-center text-gray-800 flex flex-col items-center gap-4">
-            <div className="relative flex items-center justify-center">
-              {/* Slow single-rotation spinner ring around the grey circle */}
-              <div className="absolute -inset-2 rounded-full border-2 border-gray-300 border-t-gray-600" style={{ animation: 'spin 2s linear 1' }}></div>
-              <div className="w-24 h-24 rounded-full bg-gray-100 flex items-center justify-center relative z-10">
-                <Mic className="w-10 h-10 text-gray-600" />
+            ) : state === 'establishing' ? (
+              <div className="text-center text-gray-800 flex flex-col items-center gap-4">
+                <div className="relative flex items-center justify-center">
+                  {/* Slow single-rotation spinner ring around the grey circle */}
+                  <div className="absolute -inset-2 rounded-full border-2 border-gray-300 border-t-gray-600" style={{ animation: 'spin 2s linear 1' }}></div>
+                  <div className="w-24 h-24 rounded-full bg-gray-100 flex items-center justify-center relative z-10">
+                    <Mic className="w-10 h-10 text-gray-600" />
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
-        ) : (
-          <div className="flex flex-col items-center justify-center gap-6 relative">
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={state}
-                initial={{ opacity: 0, scale: 0.98 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.98 }}
-                transition={{ duration: 0.2, ease: 'easeInOut' }}
-              >
-                <VoiceBubble state={state} audioLevelRef={audioLevelRef} />
-              </motion.div>
-            </AnimatePresence>
+            ) : (
+              <div className="flex flex-col items-center justify-center gap-6 relative">
+                {/* Audio routing controls in top-right */}
+                <AudioRouteControls />
 
-            <div className="flex flex-col items-center gap-2">
-              <p className="text-gray-500 font-light">
-                {state === 'listening'
-                  ? 'Listening…'
-                  : state === 'thinking'
-                  ? 'Thinking…'
-                  : 'Speaking…'}
-              </p>
-            </div>
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={state}
+                    initial={{ opacity: 0, scale: 0.98 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.98 }}
+                    transition={{ duration: 0.2, ease: 'easeInOut' }}
+                  >
+                    <VoiceBubble state={state} audioLevelRef={audioLevelRef} />
+                  </motion.div>
+                </AnimatePresence>
 
-            <button
-              onClick={handleModalClose}
-              aria-label="Close conversation"
-              className="w-10 h-10 bg-black rounded-full flex items-center justify-center text-white hover:bg-gray-800 transition-colors"
-            >
-              ✕
-            </button>
+                <div className="flex flex-col items-center gap-2">
+                  <p className="text-gray-500 font-light">
+                    {state === 'listening'
+                      ? 'Listening…'
+                      : state === 'thinking'
+                        ? 'Thinking…'
+                        : 'Speaking…'}
+                  </p>
+                </div>
+
+                <button
+                  onClick={handleModalClose}
+                  aria-label="Close conversation"
+                  className="w-10 h-10 bg-black rounded-full flex items-center justify-center text-white hover:bg-gray-800 transition-colors"
+                >
+                  ✕
+                </button>
+              </div>
+            )}
           </div>
-        )}
-      </div>
-    </div>,
-    document.body
+        </div>,
+        document.body
       )}
-      
+
       {/* STT Limit Notification - pill-shaped popup above chat bar */}
       <UpgradeNotification
         isVisible={showSTTLimitNotification}

@@ -241,6 +241,112 @@ public class BluetoothAudioPlugin extends Plugin {
         }
     }
 
+    @PluginMethod
+    public void enableSpeaker(PluginCall call) {
+        try {
+            if (audioManager == null) {
+                call.reject("AudioManager not available");
+                return;
+            }
+
+            Log.d(TAG, "Enabling speaker output");
+            
+            // Turn off Bluetooth SCO if it's on
+            if (audioManager.isBluetoothScoOn()) {
+                audioManager.setBluetoothScoOn(false);
+                audioManager.stopBluetoothSco();
+            }
+            
+            // Enable speakerphone
+            audioManager.setSpeakerphoneOn(true);
+            
+            Log.d(TAG, "Speaker output enabled");
+            
+            JSObject ret = new JSObject();
+            ret.put("success", true);
+            call.resolve(ret);
+            
+        } catch (Exception e) {
+            Log.e(TAG, "Error enabling speaker", e);
+            call.reject("Failed to enable speaker: " + e.getMessage());
+        }
+    }
+
+    @PluginMethod
+    public void disableSpeaker(PluginCall call) {
+        try {
+            if (audioManager == null) {
+                call.reject("AudioManager not available");
+                return;
+            }
+
+            Log.d(TAG, "Disabling speaker output");
+            
+            // Disable speakerphone
+            audioManager.setSpeakerphoneOn(false);
+            
+            Log.d(TAG, "Speaker output disabled");
+            
+            JSObject ret = new JSObject();
+            ret.put("success", true);
+            call.resolve(ret);
+            
+        } catch (Exception e) {
+            Log.e(TAG, "Error disabling speaker", e);
+            call.reject("Failed to disable speaker: " + e.getMessage());
+        }
+    }
+
+    @PluginMethod
+    public void getCurrentAudioRoute(PluginCall call) {
+        try {
+            if (audioManager == null) {
+                call.reject("AudioManager not available");
+                return;
+            }
+
+            String route = "unknown";
+            
+            // Check if speakerphone is on
+            if (audioManager.isSpeakerphoneOn()) {
+                route = "speaker";
+            }
+            // Check if Bluetooth SCO is active
+            else if (audioManager.isBluetoothScoOn()) {
+                route = "bluetooth";
+            }
+            // Check for wired headphones/headset
+            else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                android.media.AudioDeviceInfo[] devices = audioManager.getDevices(AudioManager.GET_DEVICES_OUTPUTS);
+                for (android.media.AudioDeviceInfo device : devices) {
+                    int type = device.getType();
+                    if (type == android.media.AudioDeviceInfo.TYPE_WIRED_HEADPHONES ||
+                        type == android.media.AudioDeviceInfo.TYPE_WIRED_HEADSET ||
+                        type == android.media.AudioDeviceInfo.TYPE_USB_HEADSET) {
+                        route = "headphones";
+                        break;
+                    } else if (type == android.media.AudioDeviceInfo.TYPE_BUILTIN_EARPIECE) {
+                        route = "receiver";
+                    }
+                }
+            }
+            // Fallback for devices without detected route
+            else {
+                route = "receiver";
+            }
+            
+            Log.d(TAG, "Current audio route: " + route);
+            
+            JSObject ret = new JSObject();
+            ret.put("route", route);
+            call.resolve(ret);
+            
+        } catch (Exception e) {
+            Log.e(TAG, "Error getting current audio route", e);
+            call.reject("Failed to get current audio route: " + e.getMessage());
+        }
+    }
+
     @Override
     protected void handleOnDestroy() {
         // Clean up when plugin is destroyed

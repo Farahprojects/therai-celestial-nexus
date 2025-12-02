@@ -29,6 +29,11 @@ const config: CapacitorConfig = {
       style: "DARK",
       resizeOnFullScreen: true
     }
+  },
+  ios: {
+    contentInset: 'automatic',
+    allowsLinkPreview: false,
+    limitsNavigationsToAppBoundDomains: true
   }
 };
 
