@@ -17,7 +17,37 @@ import { AuthModalProvider } from '@/contexts/AuthModalContext'
 import { SubscriptionProvider } from '@/contexts/SubscriptionContext'
 import { OnboardingGuard } from '@/components/onboarding/OnboardingGuard'
 
-const queryClient = new QueryClient()
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      // Data stays fresh for 5 minutes, reducing unnecessary re-fetches
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      // Keep data in cache for 10 minutes even when unused
+      cacheTime: 10 * 60 * 1000, // 10 minutes
+      // Don't refetch when window regains focus (reduces API calls)
+      refetchOnWindowFocus: false,
+      // Refetch when reconnecting to network
+      refetchOnReconnect: true,
+      // Refetch on mount if data is stale
+      refetchOnMount: true,
+      // Custom retry logic: don't retry on 4xx errors, retry 3 times on others
+      retry: (failureCount, error: any) => {
+        // Don't retry on client errors (4xx)
+        if (error?.status >= 400 && error?.status < 500) {
+          return false;
+        }
+        // Retry up to 3 times for server errors or network issues
+        return failureCount < 3;
+      },
+      // Exponential backoff for retries
+      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+    },
+    mutations: {
+      // Don't retry mutations by default (they should be idempotent)
+      retry: false,
+    },
+  },
+})
 
 function AppProviders({ children }: { children: React.ReactNode }) {
   return (
