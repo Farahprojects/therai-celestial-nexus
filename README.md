@@ -38,7 +38,6 @@ therai-celestial-nexus/
 │   ├── database/         # Database and migration docs
 │   └── features/         # Feature implementation docs
 ├── scripts/              # Build and utility scripts
-├── admin-app/           # Admin interface
 ├── auth-app/            # Authentication interface
 └── public/              # Static assets and service worker
 ```
