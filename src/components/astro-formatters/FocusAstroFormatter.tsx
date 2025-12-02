@@ -9,27 +9,18 @@ interface Band {
   hours: number[];
 }
 
-interface HourlyGrid {
-  scores: number[];
-  notes?: string[];
-  bands?: Band[];
-}
-
-interface SwissData {
-  components?: {
-    hourly_grid?: HourlyGrid;
-  };
-  meta?: Record<string, unknown>;
-  subject?: Record<string, unknown>;
-}
-
-interface ReportData {
-  [key: string]: unknown;
-}
-
 interface FocusAstroFormatterProps {
-  swissData: SwissData;
-  reportData: ReportData;
+  swissData: Record<string, unknown>;
+  reportData: {
+    guest_report?: {
+      report_data?: {
+        birthDate?: string;
+        [key: string]: unknown;
+      };
+      [key: string]: unknown;
+    };
+    [key: string]: unknown;
+  };
   className?: string;
 }
 

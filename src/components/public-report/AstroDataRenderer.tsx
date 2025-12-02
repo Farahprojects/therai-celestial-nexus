@@ -13,28 +13,23 @@ interface AstroDataRendererProps {
   reportData: ReportData;
 }
 
-// New helper to detect the specific type of astro report
-  const getAstroReportType = (swissData: Record<string, unknown>): 'weekly' | 'monthly' | 'synastry' | 'focus' | 'individual' => {
-    if (!swissData) return 'individual'; // Fallback
-    
-    // Check for weekly data structure (block_type: "weekly")
-    if (swissData.block_type === 'weekly') {
-      return 'weekly';
-    }
-    
-    // Check for focus data structure (block_type: "focus")
-    if (swissData.block_type === 'focus') {
-      return 'focus';
-    }
-    
-    
-    const parsed = parseAstroData(swissData);
-    
-    if (parsed.monthly) return 'monthly';
-    if (parsed.natal_set?.personB) return 'synastry';
-    
-    return 'individual';
-  };
+// Helper to detect the specific type of astro report
+const getAstroReportType = (swissData: Record<string, unknown>): 'weekly' | 'monthly' | 'synastry' | 'focus' | 'individual' => {
+  if (!swissData) return 'individual';
+
+  // Check for weekly reports
+  if (swissData.block_type === 'weekly') return 'weekly';
+
+  // Check for focus reports
+  if (swissData.block_type === 'focus') return 'focus';
+
+  const parsed = parseAstroData(swissData);
+
+  if (parsed.monthly) return 'monthly';
+  if (parsed.natal_set?.personB) return 'synastry';
+
+  return 'individual';
+};
 
 export const AstroDataRenderer = ({ swissData, reportData }: AstroDataRendererProps) => {
   const reportType = getAstroReportType(swissData);

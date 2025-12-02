@@ -3,6 +3,13 @@
 export interface ReportData {
   report_content: string | null;
   swiss_data: unknown | null;
+  guest_report?: {
+    report_data?: {
+      birthDate?: string;
+      [key: string]: unknown;
+    };
+    [key: string]: unknown;
+  };
   metadata: {
     content_type: 'astro' | 'ai' | 'both' | 'none';
     has_ai_report: boolean;

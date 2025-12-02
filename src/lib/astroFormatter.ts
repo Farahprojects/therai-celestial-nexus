@@ -1,5 +1,6 @@
 // lib/astroFormatter.ts - Astrological data formatter for Swiss Ephemeris sync v1.1+
 import { ZODIAC_SIGNS } from './astroUtils';
+import { ParsedAstroData, NatalData, NatalSetData, TransitData, CompositeChartData, SynastryAspectsData } from './astro/types';
 
 type PlanetDetail = {
   deg: number;
@@ -116,7 +117,7 @@ const enrichAspects = (aspects: Aspect[]): EnrichedAspect[] => {
   });
 };
 
-const parseNatal = (block: Record<string, unknown>) => {
+const parseNatal = (block: Record<string, unknown>): NatalData | null => {
   if (!block) return null;
   const personData = block; // In single reports, the block is the person data
 
@@ -136,7 +137,7 @@ const parseNatal = (block: Record<string, unknown>) => {
   };
 };
 
-const parseNatalSet = (block: Record<string, unknown>) => {
+const parseNatalSet = (block: Record<string, unknown>): NatalSetData | null => {
   if (!block || !block.subjects) return null;
 
   const processPerson = (personData: Record<string, unknown>) => {
@@ -164,7 +165,7 @@ const parseNatalSet = (block: Record<string, unknown>) => {
   };
 };
 
-const parseTransits = (block: Record<string, unknown>) => {
+const parseTransits = (block: Record<string, unknown>): TransitData | null => {
   if (!block) return null;
 
   // For single-person transits, the data is at the root of the block.
@@ -177,13 +178,13 @@ const parseTransits = (block: Record<string, unknown>) => {
   };
 };
 
-const parseCompositeChart = (block: Record<string, unknown>) => {
+const parseCompositeChart = (block: Record<string, unknown>): CompositeChartData | null => {
   if (!block || !block.planets) return null;
   // Return the enriched planets array directly to match the expected data structure.
   return enrichPlanets(block.planets);
 };
 
-const parseSynastryAspects = (block: Record<string, unknown>) => {
+const parseSynastryAspects = (block: Record<string, unknown>): SynastryAspectsData | null => {
   if (!block || !block.pairs) return null;
   return {
     aspects: enrichAspects(block.pairs)
@@ -194,13 +195,13 @@ const parseSynastryAspects = (block: Record<string, unknown>) => {
  * New dynamic parser for swiss ephemeris sync data (v1.1+)
  * It dispatches parsing to dedicated functions based on `block_type`.
  */
-export const parseAstroData = (raw: Record<string, unknown>): Record<string, unknown> => {
+export const parseAstroData = (raw: Record<string, unknown>): ParsedAstroData => {
   if (!raw || typeof raw !== 'object') {
     console.warn('⚠️ [parseAstroData] received invalid or empty data');
     return {};
   }
 
-  const parsedData: Record<string, unknown> = {
+  const parsedData: ParsedAstroData = {
     meta: raw.meta ?? {},
     subject: raw.subject ?? {} // Carry over subject info
   };
