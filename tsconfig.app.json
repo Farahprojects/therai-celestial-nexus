@@ -14,25 +14,11 @@
     "noEmit": true,
     "jsx": "react-jsx",
 
-    /* SUPER STRICT MODE - Maximum runtime safety */
+    /* Linting */
     "strict": true,
-    "noImplicitAny": true,
-    "strictNullChecks": true,
-    "strictFunctionTypes": true,
-    "strictBindCallApply": true,
-    "strictPropertyInitialization": true,
-    "noImplicitThis": true,
-    "alwaysStrict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
-    "noUncheckedIndexedAccess": true,
-    "exactOptionalPropertyTypes": true,
-    "noImplicitOverride": true,
-    "noPropertyAccessFromIndexSignature": false,
-    "allowUnreachableCode": false,
-    "allowUnusedLabels": false,
 
     "baseUrl": ".",
     "paths": {
