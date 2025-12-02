@@ -37,6 +37,7 @@ class EnvironmentMonitor {
   private startTime: number;
   private errors: ErrorEvent[] = [];
   private isInitialized = false;
+  private isHandlingError = false; // Prevent circular logging
 
   constructor() {
     this.startTime = performance.now();
@@ -102,55 +103,42 @@ class EnvironmentMonitor {
       }
     });
 
-    // Monitor console methods in development
-    if (import.meta.env.DEV) {
-      this.monitorConsoleMethods();
-    }
+    // Console monitoring disabled - was causing false error reports
+    // if (import.meta.env.DEV) {
+    //   this.monitorConsoleMethods();
+    // }
   }
 
-  /**
-   * Monitor console methods for development insights
-   */
-  private monitorConsoleMethods(): void {
-    const originalConsole = { ...console };
-
-    ['log', 'warn', 'error', 'debug', 'info'].forEach(method => {
-      console[method as keyof Console] = (...args: any[]) => {
-        // Call original method
-        originalConsole[method as keyof Console](...args);
-
-        // Track console usage
-        this.handleError({
-          type: 'console',
-          message: `${method}: ${args.join(' ')}`,
-          timestamp: Date.now(),
-          environment: 'development'
-        });
-      };
-    });
-  }
 
   /**
    * Handle and log errors
    */
   private handleError(error: ErrorEvent): void {
-    this.errors.push(error);
+    // Prevent circular logging when console monitoring triggers this method
+    if (this.isHandlingError) return;
 
-    // Log based on environment
-    if (import.meta.env.DEV) {
-      console.error('🚨 Caught error:', error);
-    } else {
-      // In production, send to monitoring service (placeholder)
-      console.error('🚨 Production error logged:', {
-        message: error.message,
-        type: error.type,
-        timestamp: error.timestamp
-      });
-    }
+    this.isHandlingError = true;
+    try {
+      this.errors.push(error);
 
-    // Limit error storage to prevent memory leaks
-    if (this.errors.length > 100) {
-      this.errors = this.errors.slice(-50);
+      // Log based on environment
+      if (import.meta.env.DEV) {
+        console.error('🚨 Caught error:', error);
+      } else {
+        // In production, send to monitoring service (placeholder)
+        console.error('🚨 Production error logged:', {
+          message: error.message,
+          type: error.type,
+          timestamp: error.timestamp
+        });
+      }
+
+      // Limit error storage to prevent memory leaks
+      if (this.errors.length > 100) {
+        this.errors = this.errors.slice(-50);
+      }
+    } finally {
+      this.isHandlingError = false;
     }
   }
 
