@@ -7,6 +7,7 @@ import { showToast } from '@/utils/notifications';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserData } from '@/hooks/useUserData';
 import { useMode } from '@/contexts/ModeContext';
+import { useAudioStore } from '@/stores/audioStore';
 
 interface UseUniversalMicOptions {
   onTranscriptReady?: (transcript: string) => void;
@@ -25,6 +26,7 @@ export const useUniversalMic = (options: UseUniversalMicOptions = {}) => {
   const { user } = useAuth();
   const { displayName } = useUserData();
   const { mode } = useMode();
+  const { audioContext } = useAudioStore();
   const [audioLevel, setAudioLevel] = useState(0);
   const recorderRef = useRef<UniversalSTTRecorder | null>(null);
   const levelRef = useRef(0);
@@ -67,6 +69,7 @@ export const useUniversalMic = (options: UseUniversalMicOptions = {}) => {
       recorderRef.current = new UniversalSTTRecorder({
         chat_id: options.chat_id, // Pass through chat_id if provided
         chattype: resolvedChatType,
+        audioContextProvider: () => audioContext,
         onTranscriptReady: (transcript) => {
           
           // 1. First: Turn off browser mic (dispose recorder)

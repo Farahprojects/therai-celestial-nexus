@@ -11,6 +11,8 @@ import { chatController } from '@/features/chat/ChatController';
 import { ttsPlaybackService } from '@/services/voice/TTSPlaybackService';
 import { useAudioStore } from '@/stores/audioStore';
 import { audioArbitrator } from '@/services/audio/AudioArbitrator';
+import { environmentMonitor } from '@/utils/environmentMonitor';
+import { directBarsAnimationService } from '@/services/voice/DirectBarsAnimationService';
 
 const DEBUG = import.meta.env.DEV;
 
@@ -26,6 +28,7 @@ export async function cleanupAllServices(): Promise<void> {
     if (DEBUG) console.log('[MemoryCleanup] Stopping audio systems...');
     audioArbitrator.forceReleaseAll();
     await ttsPlaybackService.destroy().catch(() => {});
+    directBarsAnimationService.destroy();
     
     // 2. Close AudioContext
     if (DEBUG) console.log('[MemoryCleanup] Closing AudioContext...');
@@ -49,6 +52,14 @@ export async function cleanupAllServices(): Promise<void> {
       } catch (e) {
         console.error('[MemoryCleanup] Failed to cleanup auth listener:', e);
       }
+    }
+
+    // 6. Clean up environment monitor
+    if (DEBUG) console.log('[MemoryCleanup] Cleaning up EnvironmentMonitor...');
+    try {
+      environmentMonitor.cleanup();
+    } catch (e) {
+      console.error('[MemoryCleanup] Failed to cleanup EnvironmentMonitor:', e);
     }
     
     if (DEBUG) console.log('[MemoryCleanup] ✅ Global cleanup complete');

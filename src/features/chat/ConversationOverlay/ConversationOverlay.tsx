@@ -311,6 +311,7 @@ export const ConversationOverlay: React.FC = () => {
         silenceHangover: 600,
         user_id: user?.id,
         user_name: displayName || 'User',
+        audioContextProvider: () => audioContext,
         onTranscriptReady: (transcript: string) => {
           if (isShuttingDown.current || isProcessingRef.current) {
             return;
@@ -454,6 +455,16 @@ export const ConversationOverlay: React.FC = () => {
         } catch {}
         connectionRef.current = null;
       }
+
+      // Clean up ChatController resources
+      import('@/features/chat/ChatController').then(({ chatController }) => {
+        try {
+          chatController.cleanup();
+        } catch (e) {
+          console.error('[ConversationOverlay] Failed to cleanup ChatController:', e);
+        }
+      }).catch(() => {});
+
       try { recorderRef.current?.dispose(); } catch {}
       ttsPlaybackService.destroy().catch(() => {});
     }

@@ -35,6 +35,9 @@ export interface STTRecorderOptions {
   user_name?: string; // user name for message attribution
   chat_id?: string; // optional chat_id (e.g., for journal entries using folder_id)
 
+  // Audio context sharing (prevents multiple contexts)
+  audioContextProvider?: () => AudioContext | null;
+
   // Diagnostics
   debug?: boolean; // reduce logs in production (default: false)
 }
@@ -45,6 +48,8 @@ export class UniversalSTTRecorder {
 
   // Energy monitoring components
   private audioContext: AudioContext | null = null;
+  private audioContextProvider: (() => AudioContext | null) | null = null;
+  private isUsingExternalContext = false;
   private analyser: AnalyserNode | null = null;
   private animationFrame: number | null = null;
   private dataArray: Float32Array | null = null;
@@ -124,6 +129,9 @@ export class UniversalSTTRecorder {
       debug: false,
       ...options
     };
+
+    // Store audio context provider for shared context usage
+    this.audioContextProvider = this.options.audioContextProvider || null;
 
     this.debug = !!this.options.debug;
 
@@ -263,7 +271,22 @@ export class UniversalSTTRecorder {
       return;
     }
 
-    this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    // Prefer externally provided/unlocked context when available
+    if (this.audioContextProvider) {
+      const provided = this.audioContextProvider();
+      if (provided && provided.state !== 'closed') {
+        this.audioContext = provided;
+        this.isUsingExternalContext = true;
+        if (this.debug) console.log('[UniversalSTTRecorder] Using shared AudioContext');
+      }
+    }
+
+    // Create new context if no external context available
+    if (!this.audioContext || this.audioContext.state === 'closed') {
+      this.isUsingExternalContext = false;
+      this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      if (this.debug) console.log('[UniversalSTTRecorder] Created new AudioContext');
+    }
 
     const sourceNode = this.audioContext.createMediaStreamSource(this.mediaStream);
 
@@ -891,10 +914,12 @@ export class UniversalSTTRecorder {
       this.mediaStream = null;
     }
 
-    if (this.audioContext) {
+    // Only close AudioContext if we created it ourselves
+    if (this.audioContext && !this.isUsingExternalContext) {
       this.audioContext.close().catch(() => {});
-      this.audioContext = null;
     }
+    this.audioContext = null;
+    this.isUsingExternalContext = false;
 
     this.dataArray = null;
     this.freqData = null;

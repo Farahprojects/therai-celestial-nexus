@@ -5,6 +5,7 @@ import { useMessageStore } from '@/stores/messageStore';
 import { sttService } from '@/services/voice/stt';
 import { llmService } from '@/services/llm/chat';
 import { unifiedWebSocketService } from '@/services/websocket/UnifiedWebSocketService';
+import { unifiedChannel } from '@/services/websocket/UnifiedChannelService';
 import { Message } from '@/core/types';
 import { v4 as uuidv4 } from 'uuid';
 import { networkErrorHandler } from '@/utils/networkErrorHandler';
@@ -235,7 +236,10 @@ class ChatController {
     
     // Clean up unified WebSocket service
     unifiedWebSocketService.cleanup();
-    
+
+    // Clean up unified channel subscriptions
+    unifiedChannel.cleanup();
+
     this.isResetting = false;
     this.isUnlocked = false; // Lock on cleanup
     this.isInitializing = false; // Reset initialization guard

@@ -39,6 +39,8 @@ class EnvironmentMonitor {
   private errors: ErrorEvent[] = [];
   private isInitialized = false;
   private isHandlingError = false; // Prevent circular logging
+  private errorHandler: ((event: ErrorEvent) => void) | null = null;
+  private rejectionHandler: ((event: PromiseRejectionEvent) => void) | null = null;
 
   constructor() {
     this.startTime = performance.now();
@@ -74,8 +76,8 @@ class EnvironmentMonitor {
    * Setup global error handlers to catch all unhandled errors
    */
   private setupGlobalErrorHandlers(): void {
-    // Catch unhandled errors
-    window.addEventListener('error', (event) => {
+    // Store handler references for cleanup
+    this.errorHandler = (event: ErrorEvent) => {
       this.handleError({
         type: 'error',
         message: event.message,
@@ -90,10 +92,9 @@ class EnvironmentMonitor {
       if (import.meta.env.PROD) {
         event.preventDefault();
       }
-    });
+    };
 
-    // Catch unhandled promise rejections
-    window.addEventListener('unhandledrejection', (event) => {
+    this.rejectionHandler = (event: PromiseRejectionEvent) => {
       this.handleError({
         type: 'unhandledrejection',
         message: event.reason?.message || String(event.reason),
@@ -107,7 +108,13 @@ class EnvironmentMonitor {
       if (import.meta.env.PROD) {
         event.preventDefault();
       }
-    });
+    };
+
+    // Catch unhandled errors
+    window.addEventListener('error', this.errorHandler);
+
+    // Catch unhandled promise rejections
+    window.addEventListener('unhandledrejection', this.rejectionHandler);
 
     // Console monitoring disabled - was causing false error reports
     // if (import.meta.env.DEV) {
@@ -295,6 +302,24 @@ class EnvironmentMonitor {
    */
   public checkEnvironment(): EnvironmentStatus {
     return this.getEnvironmentStatus();
+  }
+
+  /**
+   * Cleanup global event listeners to prevent memory leaks
+   */
+  public cleanup(): void {
+    if (this.errorHandler) {
+      window.removeEventListener('error', this.errorHandler);
+      this.errorHandler = null;
+    }
+
+    if (this.rejectionHandler) {
+      window.removeEventListener('unhandledrejection', this.rejectionHandler);
+      this.rejectionHandler = null;
+    }
+
+    this.isInitialized = false;
+    log('info', '🧹 EnvironmentMonitor cleanup complete');
   }
 }
 
