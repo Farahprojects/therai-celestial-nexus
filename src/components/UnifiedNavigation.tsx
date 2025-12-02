@@ -51,13 +51,6 @@ interface UnifiedNavigationProps extends NavMessageMenuProps, WebsiteBuilderMenu
 }
 
 const UnifiedNavigation = ({
-  isMessagesPageMobile,
-  activeFilter,
-  unreadCount,
-  onFilterChange,
-  isWebsiteBuilderPageMobile,
-  onOpenModal,
-  onChangeTemplate,
   onPublish,
   isPublishing,
   isVisible = true,
@@ -83,7 +76,6 @@ const UnifiedNavigation = ({
   // Dashboard pages are now cleaned up - only calendar remains
   const isDashboardPageWithBurgerMenu = isCalendarPage;
   const isDashboardPage = isCalendarPage;
-  const isMessagesPage = false; // Messages removed
   const isWebsiteBuilderPage = false; // Website builder removed
 
   const toggleMenu = () => {

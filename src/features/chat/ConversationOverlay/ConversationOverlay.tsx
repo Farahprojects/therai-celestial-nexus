@@ -6,7 +6,6 @@ import { useAudioStore } from '@/stores/audioStore';
 import { useMode } from '@/contexts/ModeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserData } from '@/hooks/useUserData';
-import { useFeatureUsage } from '@/hooks/useFeatureUsage';
 import { useMessageStore } from '@/stores/messageStore';
 // Old audio level hook removed - using AudioWorklet + WebWorker pipeline
 import { VoiceBubble } from './VoiceBubble';
@@ -21,6 +20,8 @@ import { Mic } from 'lucide-react';
 import { UpgradeNotification } from '@/components/subscription/UpgradeNotification';
 import { Capacitor } from '@capacitor/core';
 import BluetoothAudio from '@/plugins/BluetoothAudio';
+// Lazy import for audio arbitrator to avoid circular dependencies
+const audioArbitratorImport = () => import('@/services/audio/AudioArbitrator');
 
 type ConversationState = 'listening' | 'thinking' | 'replying' | 'connecting' | 'establishing';
 
@@ -42,7 +43,7 @@ export const ConversationOverlay: React.FC = () => {
   
   const hasStarted = useRef(false);
   const isShuttingDown = useRef(false);
-  const connectionRef = useRef<any>(null);
+  const connectionRef = useRef<WebSocket | null>(null);
   const isProcessingRef = useRef<boolean>(false);
   const recorderRef = useRef<UniversalSTTRecorder | null>(null);
   const isStartingRef = useRef(false);
@@ -89,7 +90,7 @@ export const ConversationOverlay: React.FC = () => {
     if (connectionRef.current) {
       try {
         connectionRef.current.cleanup();
-      } catch (e) {
+      } catch {
         // Ignore WebSocket cleanup errors
       }
       connectionRef.current = null;
@@ -97,9 +98,9 @@ export const ConversationOverlay: React.FC = () => {
     
     // Reset audio arbitrator
     try {
-      const { audioArbitrator } = require('@/services/audio/AudioArbitrator');
+      const { audioArbitrator } = await audioArbitratorImport();
       audioArbitrator.forceReleaseAll();
-    } catch (e) {
+    } catch {
       // Ignore arbitrator errors
     }
     
@@ -115,8 +116,10 @@ export const ConversationOverlay: React.FC = () => {
 
     const handleUserGesture = async () => {
       // Initialize AudioContext if not exists
-      const ctx = audioContext || initializeAudioContext();
-      
+      if (!audioContext) {
+        initializeAudioContext();
+      }
+
       // Resume AudioContext
       const success = await resumeAudioContext();
       if (!success) {
@@ -152,7 +155,7 @@ export const ConversationOverlay: React.FC = () => {
       await unifiedChannel.subscribe(user.id);
       
       // Register voice event listeners
-      const handleTTSReady = (payload: any) => {
+      const handleTTSReady = (payload: { audioBase64: string }) => {
         if (isShuttingDown.current) return;
         if (payload.audioBase64) {
           setState('replying');
@@ -164,6 +167,7 @@ export const ConversationOverlay: React.FC = () => {
                   try {
                     recorderRef.current?.resumeInput();
                     recorderRef.current?.startNewRecording();
+                    // eslint-disable-next-line no-empty
                   } catch {}
                 }
               }, 200);
@@ -184,7 +188,7 @@ export const ConversationOverlay: React.FC = () => {
         }
       };
       
-      const handleMessageInsert = (payload: any) => {
+      const handleMessageInsert = (payload: { message?: unknown; chat_id?: string }) => {
         if (isShuttingDown.current) return;
         if (payload.message && payload.chat_id === chat_id) {
           console.log('[ConversationOverlay] Received message-insert, adding to store:', payload.message);
@@ -235,6 +239,7 @@ export const ConversationOverlay: React.FC = () => {
                 // Ensure mic input is on and immediately start a fresh recording segment
                 recorderRef.current?.resumeInput();
                 recorderRef.current?.startNewRecording();
+                // eslint-disable-next-line no-empty
               } catch {}
             }
           }, 200);
@@ -316,7 +321,8 @@ export const ConversationOverlay: React.FC = () => {
         user_id: user?.id,
         user_name: displayName || 'User',
         audioContextProvider: () => audioContext,
-        onTranscriptReady: (transcript: string) => {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        onTranscriptReady: (_transcript: string) => {
           if (isShuttingDown.current || isProcessingRef.current) {
             return;
           }
@@ -388,7 +394,9 @@ export const ConversationOverlay: React.FC = () => {
     });
 
     // Fire-and-forget microphone release
-    try { recorderRef.current?.dispose(); } catch {}
+    try { recorderRef.current?.dispose(); } catch {
+      // eslint-disable-next-line no-empty
+    }
     
     // BLUETOOTH ROUTING - SESSION LEVEL CLEANUP (ONCE when conversation ends)
     if (Capacitor.isNativePlatform()) {
@@ -405,7 +413,8 @@ export const ConversationOverlay: React.FC = () => {
     if (connectionRef.current) {
       try {
         connectionRef.current.cleanup();
-      } catch (e) {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      } catch (_e) {
         // Ignore WebSocket cleanup errors
       }
       connectionRef.current = null;
@@ -462,7 +471,9 @@ export const ConversationOverlay: React.FC = () => {
       if (connectionRef.current) {
         try {
           connectionRef.current.cleanup();
-        } catch {}
+        } catch {
+          // eslint-disable-next-line no-empty
+        }
         connectionRef.current = null;
       }
 
@@ -477,7 +488,9 @@ export const ConversationOverlay: React.FC = () => {
         console.warn('[ConversationOverlay] Failed to import ChatController for cleanup:', error);
       });
 
-      try { recorderRef.current?.dispose(); } catch {}
+      try { recorderRef.current?.dispose(); } catch {
+        // eslint-disable-next-line no-empty
+      }
       ttsPlaybackService.destroy().catch(() => {});
     }
   }, [state]);
@@ -488,10 +501,14 @@ export const ConversationOverlay: React.FC = () => {
 
     if (state === 'listening') {
       // Resume mic input so user can speak
-      try { recorderRef.current.resumeInput(); } catch {}
+      try { recorderRef.current.resumeInput(); } catch {
+        // eslint-disable-next-line no-empty
+      }
     } else {
       // Pause mic input during thinking/replying/connecting/establishing
-      try { recorderRef.current.pauseInput(); } catch {}
+      try { recorderRef.current.pauseInput(); } catch {
+        // eslint-disable-next-line no-empty
+      }
     }
   }, [state]);
 

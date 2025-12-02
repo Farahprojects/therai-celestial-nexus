@@ -10,8 +10,8 @@ import { parseAstroData } from '@/lib/astroFormatter';
 import { TransitMetadata } from './shared/TransitMetadata';
 
 interface IndividualAstroFormatterProps {
-  swissData: any;
-  reportData: any;
+  swissData: Record<string, unknown>;
+  reportData: Record<string, unknown>;
   className?: string;
 }
 

@@ -116,12 +116,12 @@ const enrichAspects = (aspects: Aspect[]): EnrichedAspect[] => {
   });
 };
 
-const parseNatal = (block: any) => {
+const parseNatal = (block: Record<string, unknown>) => {
   if (!block) return null;
   const personData = block; // In single reports, the block is the person data
 
   const anglesArray = personData.angles
-    ? Object.entries(personData.angles).map(([name, data]: [string, any]) => ({
+    ? Object.entries(personData.angles).map(([name, data]: [string, Record<string, unknown>]) => ({
         name,
         ...data
       }))
@@ -136,14 +136,14 @@ const parseNatal = (block: any) => {
   };
 };
 
-const parseNatalSet = (block: any) => {
+const parseNatalSet = (block: Record<string, unknown>) => {
   if (!block || !block.subjects) return null;
 
-  const processPerson = (personData: any) => {
+  const processPerson = (personData: Record<string, unknown>) => {
     if (!personData) return undefined;
 
     const anglesArray = personData.angles 
-      ? Object.entries(personData.angles).map(([name, data]: [string, any]) => ({
+      ? Object.entries(personData.angles).map(([name, data]: [string, Record<string, unknown>]) => ({
           name,
           ...data
         }))
@@ -164,7 +164,7 @@ const parseNatalSet = (block: any) => {
   };
 };
 
-const parseTransits = (block: any) => {
+const parseTransits = (block: Record<string, unknown>) => {
   if (!block) return null;
 
   // For single-person transits, the data is at the root of the block.
@@ -177,13 +177,13 @@ const parseTransits = (block: any) => {
   };
 };
 
-const parseCompositeChart = (block: any) => {
+const parseCompositeChart = (block: Record<string, unknown>) => {
   if (!block || !block.planets) return null;
   // Return the enriched planets array directly to match the expected data structure.
   return enrichPlanets(block.planets);
 };
 
-const parseSynastryAspects = (block: any) => {
+const parseSynastryAspects = (block: Record<string, unknown>) => {
   if (!block || !block.pairs) return null;
   return {
     aspects: enrichAspects(block.pairs)
@@ -194,13 +194,13 @@ const parseSynastryAspects = (block: any) => {
  * New dynamic parser for swiss ephemeris sync data (v1.1+)
  * It dispatches parsing to dedicated functions based on `block_type`.
  */
-export const parseAstroData = (raw: any): any => {
+export const parseAstroData = (raw: Record<string, unknown>): Record<string, unknown> => {
   if (!raw || typeof raw !== 'object') {
     console.warn('⚠️ [parseAstroData] received invalid or empty data');
     return {};
   }
 
-  const parsedData: any = {
+  const parsedData: Record<string, unknown> = {
     meta: raw.meta ?? {},
     subject: raw.subject ?? {} // Carry over subject info
   };
@@ -223,7 +223,7 @@ export const parseAstroData = (raw: any): any => {
   const dataRoot = raw.blocks || raw;
 
   for (const key in dataRoot) {
-    if (dataRoot.hasOwnProperty(key) && typeof dataRoot[key] === 'object' && dataRoot[key]?.block_type) {
+    if (Object.prototype.hasOwnProperty.call(dataRoot, key) && typeof dataRoot[key] === 'object' && dataRoot[key]?.block_type) {
       const block = dataRoot[key];
       switch (block.block_type) {
         case 'natal':
@@ -252,7 +252,7 @@ export const parseAstroData = (raw: any): any => {
 };
 
 // Helper to detect if data is synastry/sync format
-export const isSynastryData = (raw: any): boolean => {
+export const isSynastryData = (raw: Record<string, unknown>): boolean => {
   if (!raw) return false;
 
   // The new format is identifiable by the explicit `block_type` keys.

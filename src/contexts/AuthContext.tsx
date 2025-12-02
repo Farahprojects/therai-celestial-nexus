@@ -2,22 +2,20 @@ import React, { createContext, useContext, useEffect, useState, useRef, useCallb
 import { supabase } from '@/integrations/supabase/client';
 import type { User, Session } from '@supabase/supabase-js';
 import { useNavigationState } from '@/contexts/NavigationStateContext';
-import { getAbsoluteUrl } from '@/utils/urlUtils';
 import { log } from '@/utils/logUtils';
 import { getAuthManager } from '@/services/authManager';
 
-import { authService } from '@/services/authService';
 /**
  * Utility – logs enabled in production for debugging.
  */
-const debug = (...args: any[]) => {
+const debug = (...args: unknown[]) => {
   // Console logs enabled in production for debugging
   console.log(...args);
 };
 
 // Lightweight trace object
-if (typeof window !== 'undefined' && !(window as any).__authTrace) {
-  (window as any).__authTrace = {
+if (typeof window !== 'undefined' && !(window as { __authTrace?: unknown }).__authTrace) {
+  (window as { __authTrace?: unknown }).__authTrace = {
     providerMounts: 0,
     listeners: 0,
     initialSessionChecks: 0,
@@ -57,8 +55,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
-  // Email verification state removed - handled by custom system
-  const [isValidating, setIsValidating] = useState(false);
   const [pendingEmailAddress, setPendingEmailAddressState] = useState<string | undefined>(undefined);
   const [isPendingEmailCheck, setIsPendingEmailCheck] = useState(false);
   const { clearNavigationState } = useNavigationState();
@@ -91,14 +87,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (initializedRef.current) return;
     initializedRef.current = true;
 
-    if (typeof window !== 'undefined') (window as any).__authTrace.providerMounts++;
+    if (typeof window !== 'undefined') (window as { __authTrace?: { providerMounts: number } }).__authTrace!.providerMounts++;
     log('debug', 'Initializing AuthContext with enhanced session management', null, 'auth');
 
     // Set up auth state listener
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, supaSession) => {
-      if (typeof window !== 'undefined') (window as any).__authTrace.listeners++;
+      if (typeof window !== 'undefined') (window as { __authTrace?: { listeners: number } }).__authTrace!.listeners++;
       log('debug', 'Auth state change', { event, hasSession: !!supaSession }, 'auth');
       
       // Set user and session state - let features decide access based on email_confirmed_at
@@ -168,7 +164,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             // Navigate to the conversation
             try {
               window.location.replace(`/c/${pendingChatId}`);
-            } catch (_) {}
+            } catch {
+              // eslint-disable-next-line no-empty
+            }
           }
         } catch (e) {
           console.error('[AuthContext] Pending join failed:', e);
@@ -215,7 +213,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     /* ────────────────────────────
      * Bootstrap existing session ONLY ONCE
      * ────────────────────────────*/
-    if (typeof window !== 'undefined') (window as any).__authTrace.initialSessionChecks++;
+    if (typeof window !== 'undefined') (window as { __authTrace?: { initialSessionChecks: number } }).__authTrace!.initialSessionChecks++;
     supabase.auth.getSession().then(async ({ data: { session: supaSession } }) => {
       log('debug', 'Initial session check', { hasSession: !!supaSession }, 'auth');
       
@@ -444,7 +442,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
    * Resend confirmation link if the user deleted the first one.
    * Only succeeds when the account exists & is still unconfirmed.
    */
-  const resendVerificationEmail = useCallback(async (email: string) => {
+  const resendVerificationEmail = useCallback(async () => {
     try {
       // Get user ID for the email
       const { data: userData } = await supabase.auth.getUser();

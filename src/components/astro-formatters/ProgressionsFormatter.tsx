@@ -5,8 +5,8 @@ import { AspectTable } from './shared/AspectTable';
 import { PlanetaryPositions } from './shared/PlanetaryPositions';
 
 interface ProgressionsFormatterProps {
-  swissData: any;
-  reportData: any;
+  swissData: Record<string, unknown>;
+  reportData: Record<string, unknown>;
   className?: string;
 }
 

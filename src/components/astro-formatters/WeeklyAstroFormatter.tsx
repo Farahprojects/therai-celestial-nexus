@@ -6,9 +6,23 @@ import { Badge } from '@/components/ui/badge';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Calendar, TrendingUp, Activity } from 'lucide-react';
 
+interface TopEvent {
+  date: string;
+  transit: string;
+  aspect: string;
+  natal_target: string;
+  orb: number;
+}
+
+interface DailyScore {
+  date: string;
+  score: number;
+  events: string[];
+}
+
 interface WeeklyAstroFormatterProps {
-  swissData: any;
-  reportData: any;
+  swissData: Record<string, unknown>;
+  reportData: Record<string, unknown>;
   className?: string;
 }
 
@@ -24,7 +38,8 @@ const ScoreBadge = ({ score }: { score: number }) => {
 
 export const WeeklyAstroFormatter: React.FC<WeeklyAstroFormatterProps> = ({
   swissData,
-  reportData,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  reportData: _reportData,
   className = ''
 }) => {
   const components = swissData?.components;
@@ -106,7 +121,7 @@ export const WeeklyAstroFormatter: React.FC<WeeklyAstroFormatterProps> = ({
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {top_events.items.map((event: any, index: number) => (
+                    {top_events.items.map((event: TopEvent, index: number) => (
                       <TableRow key={index}>
                         <TableCell className="whitespace-nowrap text-xs md:text-sm">
                           {new Date(event.date).toLocaleDateString('default', { weekday: 'short', month: 'short', day: 'numeric' })}
@@ -140,7 +155,7 @@ export const WeeklyAstroFormatter: React.FC<WeeklyAstroFormatterProps> = ({
                 Your daily cosmic weather forecast for the week ahead.
               </p>
               <Accordion type="single" collapsible className="w-full">
-                {daily_index.scores.map((day: any, index: number) => (
+                {daily_index.scores.map((day: DailyScore, index: number) => (
                   <AccordionItem value={`item-${index}`} key={day.date}>
                     <AccordionTrigger className="hover:no-underline">
                       <div className="flex justify-between items-center w-full pr-4">

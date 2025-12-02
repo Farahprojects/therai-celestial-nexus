@@ -49,10 +49,11 @@ export async function cleanupAllServices(): Promise<void> {
     
     // 5. Clean up message store auth listener
     if (DEBUG) console.log('[MemoryCleanup] Cleaning up MessageStore auth listener...');
-    if ((window as any).__msgStoreAuthCleanup) {
+    const windowWithCleanup = window as Window & { __msgStoreAuthCleanup?: (() => void) | null };
+    if (windowWithCleanup.__msgStoreAuthCleanup) {
       try {
-        (window as any).__msgStoreAuthCleanup();
-        (window as any).__msgStoreAuthCleanup = null;
+        windowWithCleanup.__msgStoreAuthCleanup();
+        windowWithCleanup.__msgStoreAuthCleanup = null;
       } catch (e) {
         console.error('[MemoryCleanup] Failed to cleanup auth listener:', e);
       }
@@ -80,8 +81,9 @@ export function setupDevCleanup(): void {
   if (!DEBUG || typeof window === 'undefined') return;
   
   // Track if cleanup is already setup
-  if ((window as any).__cleanupHandlerInstalled) return;
-  (window as any).__cleanupHandlerInstalled = true;
+  const windowWithCleanup = window as Window & { __cleanupHandlerInstalled?: boolean };
+  if (windowWithCleanup.__cleanupHandlerInstalled) return;
+  windowWithCleanup.__cleanupHandlerInstalled = true;
   
   // Cleanup on page unload
   window.addEventListener('beforeunload', () => {
@@ -106,7 +108,7 @@ export function setupDevCleanup(): void {
 export function getMemoryStats(): object | null {
   if (!DEBUG || typeof window === 'undefined') return null;
   
-  const performance = (window as any).performance;
+  const performance = (window as Window & { performance?: { memory?: { usedJSHeapSize: number; totalJSHeapSize: number; jsHeapSizeLimit: number } } }).performance;
   if (!performance || !performance.memory) return null;
   
   const memory = performance.memory;

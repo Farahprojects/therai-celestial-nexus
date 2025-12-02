@@ -23,7 +23,7 @@ class TTSPlaybackService {
   // Safari detection for UI-only gain adjustments
   private isSafari(): boolean {
     const ua = navigator.userAgent || '';
-    const vendor = (navigator as any).vendor || '';
+    const vendor = (navigator as { vendor?: string }).vendor || '';
     const isSafariUA = /Safari/i.test(ua) && !/Chrome|CriOS|Chromium/i.test(ua);
     const isAppleVendor = /Apple/i.test(vendor);
     return isSafariUA && isAppleVendor;
@@ -77,9 +77,9 @@ class TTSPlaybackService {
     if (!this.audioContext || this.audioContext.state === 'closed') {
       this.isUsingExternalContext = false;
       try {
-        this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)({ latencyHint: 'playback' });
+        this.audioContext = new (window.AudioContext || (window as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext)({ latencyHint: 'playback' });
       } catch {
-        this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+        this.audioContext = new (window.AudioContext || (window as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext)();
       }
 
       // Tie animation pause/resume to playback context
@@ -211,7 +211,7 @@ class TTSPlaybackService {
       audioEl.preload = 'auto';
       audioEl.muted = false; // audible
       audioEl.volume = 1.0;
-      (audioEl as any).playsInline = true; // iOS inline
+      (audioEl as HTMLAudioElement & { playsInline?: boolean }).playsInline = true; // iOS inline
       audioEl.src = audioUrl;
 
       // Create audio processing chain for clean playback
@@ -278,7 +278,7 @@ class TTSPlaybackService {
           await new Promise<void>((resolve) => setTimeout(resolve, 50));
         }
         await audioEl.play();
-      } catch (e) {
+      } catch {
         // Autoplay restriction or other play error: try fallback decode path
         cleanupElement();
         await this.playWithBufferAudio(audioBytes, onEnded);
@@ -306,7 +306,7 @@ class TTSPlaybackService {
       audioEl.preload = 'auto';
       audioEl.muted = false;
       audioEl.volume = 1.0;
-      (audioEl as any).playsInline = true;
+      (audioEl as HTMLAudioElement & { playsInline?: boolean }).playsInline = true;
       audioEl.src = `data:audio/mpeg;base64,${audioBase64}`;
 
       const analyser = ctx.createAnalyser();
@@ -340,7 +340,7 @@ class TTSPlaybackService {
           await new Promise<void>((resolve) => setTimeout(resolve, 50));
         }
         await audioEl.play();
-      } catch (e) {
+      } catch {
         cleanupElement();
         finalize();
       }
@@ -353,7 +353,9 @@ class TTSPlaybackService {
 
   pause(): void {
     if (this.currentSource) {
-      try { this.currentSource.pause(); } catch {}
+      try { this.currentSource.pause(); } catch {
+        // eslint-disable-next-line no-empty
+      }
       this.isPaused = true;
       directBarsAnimationService.pause();
       this.notify();
@@ -362,7 +364,9 @@ class TTSPlaybackService {
 
   async resume(): Promise<void> {
     if (this.currentSource) {
-      try { await this.currentSource.play(); } catch {}
+      try { await this.currentSource.play(); } catch {
+        // eslint-disable-next-line no-empty
+      }
       this.isPaused = false;
       directBarsAnimationService.resume();
       this.notify();
@@ -374,15 +378,25 @@ class TTSPlaybackService {
     // Stop media element playback if present
     if (this.currentSource) {
       // Remove handlers BEFORE altering src to avoid triggering fallback onerror
-      try { this.currentSource.onended = null; } catch {}
-      try { (this.currentSource as any).onerror = null; } catch {}
-      try { this.currentSource.pause(); } catch {}
-      try { (this.currentSource as any).src = ''; } catch {}
+      try { this.currentSource.onended = null; } catch {
+        // eslint-disable-next-line no-empty
+      }
+      try { (this.currentSource as HTMLAudioElement & { onerror?: unknown }).onerror = null; } catch {
+        // eslint-disable-next-line no-empty
+      }
+      try { this.currentSource.pause(); } catch {
+        // eslint-disable-next-line no-empty
+      }
+      try { (this.currentSource as HTMLAudioElement & { src?: string }).src = ''; } catch {
+        // eslint-disable-next-line no-empty
+      }
     }
     // Stop buffer source playback if in fallback mode
     if (this.bufferSource) {
       this.bufferSource.onended = null; // Clear callback to prevent restart
-      try { this.bufferSource.stop(0); } catch {}
+      try { this.bufferSource.stop(0); } catch {
+        // eslint-disable-next-line no-empty
+      }
     }
     this.cleanupGraph();
     this.isStopping = false;
@@ -392,15 +406,21 @@ class TTSPlaybackService {
   private cleanupGraph(): void {
     this.stopAnimation();
     if (this.mediaElementNode) {
-      try { this.mediaElementNode.disconnect(); } catch {}
+      try { this.mediaElementNode.disconnect(); } catch {
+        // eslint-disable-next-line no-empty
+      }
     }
     this.mediaElementNode = null;
     if (this.analyser) {
-      try { this.analyser.disconnect(); } catch {}
+      try { this.analyser.disconnect(); } catch {
+        // eslint-disable-next-line no-empty
+      }
     }
     this.analyser = null;
     if (this.currentUrl) {
-      try { URL.revokeObjectURL(this.currentUrl); } catch {}
+      try { URL.revokeObjectURL(this.currentUrl); } catch {
+        // eslint-disable-next-line no-empty
+      }
     }
     this.currentUrl = null;
     this.currentSource = null;
@@ -437,9 +457,11 @@ class TTSPlaybackService {
     
     // 🔥 CLEANUP: Only close when we created/own the context. Never close a shared external context.
     if (this.audioContext && this.audioContext.state !== 'closed' && !this.isUsingExternalContext) {
-      try { 
-        await this.audioContext.close(); 
-      } catch {}
+      try {
+        await this.audioContext.close();
+      } catch {
+        // eslint-disable-next-line no-empty
+      }
     }
     this.audioContext = null;
     this.isUsingExternalContext = false;

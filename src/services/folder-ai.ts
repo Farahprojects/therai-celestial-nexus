@@ -6,7 +6,7 @@ export interface FolderAIMessage {
   user_id: string;
   role: 'user' | 'assistant' | 'system' | 'tool';
   content: string;
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
   created_at: string;
 }
 
@@ -86,7 +86,7 @@ export async function sendMessageToFolderAI(
     }
 
     return data as FolderAIResponse;
-  } catch (err: any) {
+  } catch (err) {
     console.error('[FolderAI] Error sending message:', err);
     throw err;
   }
@@ -108,7 +108,7 @@ export async function getFolderAIMessages(folderId: string): Promise<FolderAIMes
     }
 
     return (data || []) as unknown as FolderAIMessage[];
-  } catch (err: any) {
+  } catch (err) {
     console.error('[FolderAI] Error fetching messages:', err);
     throw err;
   }
@@ -159,7 +159,7 @@ export async function getFolderContext(folderId: string): Promise<FolderMap> {
 
     // Get reports associated with conversations in this folder
     const conversationIds = (conversations || []).map(c => c.id);
-    let reports: any[] = [];
+    let reports: Array<{ id: string; chat_id: string; report_type: string; created_at: string; status: string }> = [];
     
     if (conversationIds.length > 0) {
       const { data: reportsData, error: reportsError } = await supabase
@@ -181,7 +181,7 @@ export async function getFolderContext(folderId: string): Promise<FolderMap> {
       reports: reports || [],
       folderName: folder?.name || 'Untitled Folder'
     };
-  } catch (err: any) {
+  } catch (err) {
     console.error('[FolderAI] Error getting folder context:', err);
     throw err;
   }
@@ -201,7 +201,6 @@ export async function saveDraft(
     // Create a text file from the draft content
     const blob = new Blob([content], { type: 'text/markdown' });
     const fileName = `${title}.md`;
-    const file = new File([blob], fileName, { type: 'text/markdown' });
 
     // Create document record
     const { data: document, error: createError } = await supabase
@@ -231,7 +230,7 @@ export async function saveDraft(
     }
 
     return document.id;
-  } catch (err: any) {
+  } catch (err) {
     console.error('[FolderAI] Error saving draft:', err);
     throw err;
   }
@@ -326,7 +325,7 @@ export async function updateDocumentContent(
 
       if (updateError) throw updateError;
     }
-  } catch (err: any) {
+  } catch (err) {
     console.error('[FolderAI] Error updating document:', err);
     throw err;
   }
@@ -338,14 +337,14 @@ export async function updateDocumentContent(
 export async function clearFolderAIHistory(folderId: string): Promise<void> {
   try {
     const { error } = await supabase
-      .from('folder_ai_messages' as any)
+      .from('folder_ai_messages')
       .delete()
       .eq('folder_id', folderId);
 
     if (error) {
       throw new Error(error.message || 'Failed to clear history');
     }
-  } catch (err: any) {
+  } catch (err) {
     console.error('[FolderAI] Error clearing history:', err);
     throw err;
   }
@@ -409,7 +408,7 @@ export async function saveDocumentDraft(
       throw new Error(error.message || 'Failed to save document');
       }
     }
-  } catch (err: any) {
+  } catch (err) {
     console.error('[FolderAI] Error saving document:', err);
     throw err;
   }
@@ -425,7 +424,7 @@ export async function getFolderAIUsage(userId: string): Promise<{
 }> {
   try {
     const { data, error } = await supabase
-      .from('folder_ai_usage' as any)
+      .from('folder_ai_usage')
       .select('operation_count, last_reset_at')
       .eq('user_id', userId)
       .single();
@@ -441,7 +440,7 @@ export async function getFolderAIUsage(userId: string): Promise<{
       lastResetAt: typedData?.last_reset_at || new Date().toISOString(),
       limit: 50 // Free tier limit
     };
-  } catch (err: any) {
+  } catch (err) {
     console.error('[FolderAI] Error getting usage:', err);
     throw err;
   }

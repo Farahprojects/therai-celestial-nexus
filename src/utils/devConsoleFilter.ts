@@ -25,7 +25,7 @@ export function initDevConsoleFilter() {
     /🖼️.*Rendering image message:/i,
   ];
 
-  const shouldSuppress = (args: any[]): boolean => {
+  const shouldSuppress = (args: unknown[]): boolean => {
     try {
       const text = args
         .map((a) => (typeof a === 'string' ? a : a?.message || ''))
@@ -36,8 +36,8 @@ export function initDevConsoleFilter() {
     }
   };
 
-  const wrap = <T extends (...a: any[]) => void>(fn: T): T => {
-    const wrapped = ((...args: any[]) => {
+  const wrap = <T extends (...a: unknown[]) => void>(fn: T): T => {
+    const wrapped = ((...args: unknown[]) => {
       if (shouldSuppress(args)) return; // drop noisy messages
       fn(...args);
     }) as T;
@@ -60,7 +60,7 @@ export function initDevConsoleFilter() {
   console.debug = wrap(original.debug);
 
   // Best-effort: prevent default logging for specific global errors
-  const errorHandler = (messageOrEvent: any, source?: string) => {
+  const errorHandler = (messageOrEvent: unknown, source?: string) => {
     try {
       const text = typeof messageOrEvent === 'string'
         ? messageOrEvent
@@ -68,7 +68,9 @@ export function initDevConsoleFilter() {
       if (suppressedPatterns.some((re) => re.test(text)) || (source && /lovable-api\.com/i.test(source))) {
         return true; // prevent default logging
       }
-    } catch {}
+    } catch {
+      // eslint-disable-next-line no-empty
+    }
     return false;
   };
 
@@ -77,7 +79,7 @@ export function initDevConsoleFilter() {
   window.onerror = function (message, source, lineno, colno, error) {
     const suppressed = errorHandler(message, source);
     if (suppressed) return true;
-    if (typeof prevOnError === 'function') return (prevOnError as any).call(window, message, source, lineno, colno, error) as any;
+    if (typeof prevOnError === 'function') return prevOnError.call(window, message, source, lineno, colno, error);
     return false;
   };
 
@@ -87,9 +89,9 @@ export function initDevConsoleFilter() {
     const msg = (event.reason && (event.reason.message || String(event.reason))) || '';
     if (suppressedPatterns.some((re) => re.test(msg))) {
       event.preventDefault();
-      return true as any;
+      return true;
     }
-    if (typeof prevOnRejection === 'function') return (prevOnRejection as any).call(window, event) as any;
-    return false as any;
+    if (typeof prevOnRejection === 'function') return prevOnRejection.call(window, event);
+    return false;
   };
 }

@@ -67,7 +67,7 @@ export default function Beats() {
   // Initialize audio context with maximum precision
   const initializeAudio = () => {
     if (!audioContext) {
-      const ctx = new (window.AudioContext || (window as any).webkitAudioContext)({
+      const ctx = new (window.AudioContext || (window as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext)({
         latencyHint: 'interactive',
         sampleRate: 48000, // Standard high-quality sample rate
       });
@@ -103,18 +103,32 @@ export default function Beats() {
           // Stop exactly at the end of the fade; cleanup on end
           try {
             tone.oscillator.onended = () => {
-              try { tone.oscillator!.disconnect(); } catch {}
-              try { tone.gainNode!.disconnect(); } catch {}
-              try { tone.pannerNode!.disconnect(); } catch {}
+              try { tone.oscillator!.disconnect(); } catch {
+                // eslint-disable-next-line no-empty
+              }
+              try { tone.gainNode!.disconnect(); } catch {
+                // eslint-disable-next-line no-empty
+              }
+              try { tone.pannerNode!.disconnect(); } catch {
+                // eslint-disable-next-line no-empty
+              }
             };
             tone.oscillator.stop(stopTime);
           } catch {
             // Fallback in case stop scheduling fails
             setTimeout(() => {
-              try { tone.oscillator!.stop(); } catch {}
-              try { tone.oscillator!.disconnect(); } catch {}
-              try { tone.gainNode!.disconnect(); } catch {}
-              try { tone.pannerNode!.disconnect(); } catch {}
+              try { tone.oscillator!.stop(); } catch {
+                // eslint-disable-next-line no-empty
+              }
+              try { tone.oscillator!.disconnect(); } catch {
+                // eslint-disable-next-line no-empty
+              }
+              try { tone.gainNode!.disconnect(); } catch {
+                // eslint-disable-next-line no-empty
+              }
+              try { tone.pannerNode!.disconnect(); } catch {
+                // eslint-disable-next-line no-empty
+              }
             }, 40);
           }
         }
@@ -166,20 +180,6 @@ export default function Beats() {
     }));
   };
 
-  // Update volume
-  const updateVolume = (toneId: string, newVolume: number) => {
-    setTones(prev => prev.map(tone => {
-      if (tone.id !== toneId) return tone;
-      
-      if (tone.gainNode) {
-        const targetVolume = tone.isMuted ? 0 : newVolume;
-        // Smooth volume change to prevent clicks
-        tone.gainNode.gain.linearRampToValueAtTime(targetVolume, audioContext!.currentTime + 0.02);
-      }
-      
-      return { ...tone, volume: newVolume };
-    }));
-  };
 
   // Toggle mute
   const toggleMute = (toneId: string) => {
@@ -273,7 +273,9 @@ export default function Beats() {
           layer.gainNode.gain.setValueAtTime(current, now);
           layer.gainNode.gain.exponentialRampToValueAtTime(0.0001, now + 0.03);
           setTimeout(() => {
-            try { layer.audioElement!.pause(); } catch {}
+            try { layer.audioElement!.pause(); } catch {
+              // eslint-disable-next-line no-empty
+            }
           }, 35);
         } else {
           layer.audioElement.pause();
@@ -284,20 +286,6 @@ export default function Beats() {
     }));
   };
 
-  // Update audio layer volume (smooth to avoid zipper noise)
-  const updateLayerVolume = (layerId: string, newVolume: number) => {
-    setAudioLayers(prev => prev.map(layer => {
-      if (layer.id !== layerId) return layer;
-      
-      if (layer.gainNode) {
-        const now = audioContext!.currentTime;
-        const target = layer.isMuted ? 0 : newVolume;
-        layer.gainNode.gain.linearRampToValueAtTime(target, now + 0.02);
-      }
-      
-      return { ...layer, volume: newVolume };
-    }));
-  };
 
   // Toggle audio layer mute (smooth)
   const toggleLayerMute = (layerId: string) => {
@@ -352,6 +340,7 @@ export default function Beats() {
   // Auto-initialize audio on mount (may be blocked by browser, will retry on first interaction)
   useEffect(() => {
     initializeAudio();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Ensure audio context is ready before playing
@@ -365,6 +354,7 @@ export default function Beats() {
   };
 
   // Cleanup on unmount
+  /* eslint-disable react-hooks/exhaustive-deps */
   useEffect(() => {
     return () => {
       tones.forEach(tone => {

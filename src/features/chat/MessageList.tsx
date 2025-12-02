@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef, useEffect } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { useChatStore } from '@/core/store';
 import { useMessageStore } from '@/stores/messageStore';
 import { Message } from '@/core/types';
@@ -11,9 +11,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 // TypewriterText removed - keeping source field logic for future use
 import { useAuth } from '@/contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { networkAwareLoader } from '@/utils/storageUtils';
 
 // ⚡ MEMOIZED USER MESSAGE - Only re-renders when message data changes
 const UserMessage = React.memo(({ message, isOwn }: { message: Message; isOwn: boolean }) => (
@@ -42,7 +40,7 @@ const AssistantMessage = React.memo(({ message }: { message: Message }) => {
   const shouldAnimate = source === 'websocket';
   const { animatedText, isAnimating } = useWordAnimation(text || '', shouldAnimate);
   const displayText = isAnimating ? animatedText : text || '';
-  const metaData = meta as any;
+  const metaData = meta as Record<string, unknown>;
   const isTogetherModeAnalysis = metaData?.together_mode_analysis === true;
 
   return (
@@ -60,17 +58,17 @@ const AssistantMessage = React.memo(({ message }: { message: Message }) => {
             remarkPlugins={[remarkGfm]}
             components={{
               // Customize rendering to match your design system
-              p: ({node, ...props}) => <p className="mb-2 last:mb-0" {...props} />,
-              strong: ({node, ...props}) => <strong className="font-medium" {...props} />,
-              em: ({node, ...props}) => <em className="italic" {...props} />,
-              code: ({node, ...props}) => {
+              p: (props) => <p className="mb-2 last:mb-0" {...props} />,
+              strong: (props) => <strong className="font-medium" {...props} />,
+              em: (props) => <em className="italic" {...props} />,
+              code: (props) => {
                 const isInline = !props.className?.includes('language-');
-                return isInline ? 
+                return isInline ?
                   <code className="bg-gray-100 px-1 py-0.5 rounded text-sm" {...props} /> :
                   <code className="block bg-gray-100 p-2 rounded text-sm overflow-x-auto" {...props} />;
               },
-              ul: ({node, ...props}) => <ul className="list-disc ml-4 mb-2" {...props} />,
-              ol: ({node, ...props}) => <ol className="list-decimal ml-4 mb-2" {...props} />,
+              ul: (props) => <ul className="list-disc ml-4 mb-2" {...props} />,
+              ol: (props) => <ol className="list-decimal ml-4 mb-2" {...props} />,
             }}
           >
             {displayText}
@@ -84,8 +82,8 @@ const AssistantMessage = React.memo(({ message }: { message: Message }) => {
   );
 }, (prevProps, nextProps) => {
   // Re-render if text, id, source, or image meta changed
-  const prevMeta = prevProps.message.meta as any;
-  const nextMeta = nextProps.message.meta as any;
+  const prevMeta = prevProps.message.meta as Record<string, unknown>;
+  const nextMeta = nextProps.message.meta as Record<string, unknown>;
   return prevProps.message.id === nextProps.message.id && 
          prevProps.message.text === nextProps.message.text &&
          prevProps.message.pending === nextProps.message.pending &&
@@ -99,7 +97,7 @@ AssistantMessage.displayName = 'AssistantMessage';
 
 // Image component with loading state - uses same structure for smooth transition
 const ImageWithLoading = React.memo(({ message }: { message: Message }) => {
-  const metaData = message.meta as any;
+  const metaData = message.meta as Record<string, unknown>;
   const imageUrl = metaData?.image_url;
   const imagePrompt = metaData?.image_prompt;
   const imageVariants = metaData?.image_variants;
@@ -309,8 +307,8 @@ const ImageWithLoading = React.memo(({ message }: { message: Message }) => {
   );
 }, (prevProps, nextProps) => {
   // Re-render only if image URL or status changes
-  const prevMeta = prevProps.message.meta as any;
-  const nextMeta = nextProps.message.meta as any;
+  const prevMeta = prevProps.message.meta as Record<string, unknown>;
+  const nextMeta = nextProps.message.meta as Record<string, unknown>;
   return prevMeta?.image_url === nextMeta?.image_url &&
          prevMeta?.status === nextMeta?.status;
 });
@@ -318,7 +316,7 @@ ImageWithLoading.displayName = 'ImageWithLoading';
 
 
 // Simple message rendering - no complex turn grouping needed with message_number ordering
-const renderMessages = (messages: Message[], currentUserId?: string, chatId?: string) => {
+const renderMessages = (messages: Message[], currentUserId?: string) => {
   const elements: React.ReactNode[] = [];
   
   for (let i = 0; i < messages.length; i++) {
@@ -345,7 +343,7 @@ const renderMessages = (messages: Message[], currentUserId?: string, chatId?: st
     
     // Render assistant messages
     if (message.role === 'assistant') {
-      const metaData = message.meta as any;
+      const metaData = message.meta as Record<string, unknown>;
 
       // Debug log for ALL assistant messages (development only)
       if (import.meta.env.DEV) {
@@ -422,7 +420,6 @@ export const MessageList = () => {
   const { containerRef, bottomRef, onContentChange } = useAutoScroll();
   const [initialMessageCount, setInitialMessageCount] = useState<number | null>(null);
   const [hasUserSentMessage, setHasUserSentMessage] = useState(false);
-  const navigate = useNavigate();
   
   // Removed generatingImages state - using database message.meta.status === 'generating' instead
   

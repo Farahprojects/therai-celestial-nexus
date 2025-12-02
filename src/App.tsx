@@ -31,7 +31,7 @@ const queryClient = new QueryClient({
       // Refetch on mount if data is stale
       refetchOnMount: true,
       // Custom retry logic: don't retry on 4xx errors, retry 3 times on others
-      retry: (failureCount, error: any) => {
+      retry: (failureCount, error: { status?: number }) => {
         // Don't retry on client errors (4xx)
         if (error?.status >= 400 && error?.status < 500) {
           return false;

@@ -210,7 +210,7 @@ export class UniversalSTTRecorder {
       sampleRate: 48000
     };
     if (preferredDeviceId) {
-      (audioConstraints as any).deviceId = { exact: preferredDeviceId };
+      (audioConstraints as MediaTrackConstraints).deviceId = { exact: preferredDeviceId };
     }
 
     const stream = await navigator.mediaDevices.getUserMedia({ audio: audioConstraints });
@@ -286,7 +286,7 @@ export class UniversalSTTRecorder {
     // Create new context if no external context available
     if (!this.audioContext || this.audioContext.state === 'closed') {
       this.isUsingExternalContext = false;
-      this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      this.audioContext = new (window.AudioContext || (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext)();
       if (this.debug) console.log('[UniversalSTTRecorder] Created new AudioContext');
     }
 
@@ -441,7 +441,7 @@ export class UniversalSTTRecorder {
           console.error('[VAD] AUDIO INPUT IS ALL ZEROS');
           hasLoggedZeroWarning = true;
         }
-        if (zeroCheckCount > 60 && !attemptedDeadInputRecovery && !(window as any).Capacitor?.isNativePlatform?.()) {
+        if (zeroCheckCount > 60 && !attemptedDeadInputRecovery && !(window as Window & { Capacitor?: { isNativePlatform?: () => boolean } }).Capacitor?.isNativePlatform?.()) {
           attemptedDeadInputRecovery = true;
           try {
             if (this.mediaStream) {
@@ -839,7 +839,7 @@ export class UniversalSTTRecorder {
     if (inputSampleRate === targetRate) {
       const out = new Int16Array(input.length);
       for (let i = 0; i < input.length; i++) {
-        let s = Math.max(-1, Math.min(1, input[i]));
+        const s = Math.max(-1, Math.min(1, input[i]));
         out[i] = (s < 0 ? s * 0x8000 : s * 0x7FFF) | 0;
       }
       return out;

@@ -87,7 +87,7 @@ function PickerWheel<T extends string | number = string>({
     const idx = options.indexOf(value);
     if (idx !== -1) {
       const centerTop = (height - itemHeight) / 2;
-      let targetIndex = infinite
+      const targetIndex = infinite
         ? centerRepetitionStart + idx
         : idx;
 
@@ -142,7 +142,7 @@ function PickerWheel<T extends string | number = string>({
     (yPos: number) => {
       const centerTop = (height - itemHeight) / 2;
       const adjustedY = centerTop - yPos;
-      let virtualIndex = clamp(Math.round(adjustedY / itemHeight), 0, infiniteOptions.length - 1);
+      const virtualIndex = clamp(Math.round(adjustedY / itemHeight), 0, infiniteOptions.length - 1);
       
       // For infinite mode, map virtual index back to actual option index
       if (infinite) {
@@ -216,14 +216,6 @@ function PickerWheel<T extends string | number = string>({
     setDrag({ isDragging: false });
 
     if (infinite) {
-      const centerTop = (height - itemHeight) / 2;
-      const currentY = rawY.get();
-      const currentOffset = centerTop - currentY;
-      const currentIndex = Math.round(currentOffset / itemHeight);
-
-      const logicalIndex = currentIndex % options.length;
-      const distanceFromCenter = currentIndex - (centerRepetitionStart + logicalIndex);
-
       // Reduce momentum multiplier for Apple-like feel
       const projected = rawY.get() + info.velocity.y * 0.12;
       snapTo(projected, info.velocity.y);

@@ -6,9 +6,35 @@ import { Badge } from '@/components/ui/badge';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { parseAstroData } from '@/lib/astroFormatter';
 
+interface TopEvent {
+  date: string;
+  transit: string;
+  aspect: string;
+  natal_target: string;
+  orb: number;
+}
+
+interface DailyScore {
+  date: string;
+  score: number;
+  events?: string[];
+}
+
+interface MonthlyData {
+  peaks?: {
+    dates: string[];
+  };
+  top_events?: {
+    items: TopEvent[];
+  };
+  daily_index?: {
+    scores: DailyScore[];
+  };
+}
+
 interface MonthlyAstroFormatterProps {
-  swissData: any;
-  reportData: any;
+  swissData: Record<string, unknown>;
+  reportData: Record<string, unknown>;
   className?: string;
 }
 
@@ -23,7 +49,8 @@ const ScoreBadge = ({ score }: { score: number }) => {
 
 export const MonthlyAstroFormatter: React.FC<MonthlyAstroFormatterProps> = ({
   swissData,
-  reportData,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  reportData: _reportData,
   className = ''
 }) => {
   const parsed = parseAstroData(swissData);
@@ -39,9 +66,10 @@ export const MonthlyAstroFormatter: React.FC<MonthlyAstroFormatterProps> = ({
     );
   }
 
-  const { peaks, top_events, daily_index } = monthly as any;
-  
-  const monthStr = (meta as any).month;
+  const monthlyData = monthly as MonthlyData;
+  const { peaks, top_events, daily_index } = monthlyData;
+
+  const monthStr = (meta as Record<string, unknown>).month;
   const monthName = monthStr
     ? new Date(`${monthStr}-02`).toLocaleString('default', { month: 'long', year: 'numeric' })
     : new Date().toLocaleString('default', { month: 'long', year: 'numeric' });
@@ -91,7 +119,7 @@ export const MonthlyAstroFormatter: React.FC<MonthlyAstroFormatterProps> = ({
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {top_events.items.map((event: any, index: number) => (
+                    {top_events.items.map((event: TopEvent, index: number) => (
                       <TableRow key={index}>
                         <TableCell className="whitespace-nowrap text-xs md:text-sm">{new Date(event.date).toLocaleDateString('default', { month: 'short', day: 'numeric' })}</TableCell>
                         <TableCell className="text-xs md:text-sm">{`${event.transit} ${event.aspect} ${event.natal_target}`}</TableCell>
@@ -112,7 +140,7 @@ export const MonthlyAstroFormatter: React.FC<MonthlyAstroFormatterProps> = ({
             </CardHeader>
             <CardContent>
               <Accordion type="single" collapsible className="w-full">
-                {daily_index.scores.map((day: any, index: number) => (
+                {daily_index.scores.map((day: DailyScore, index: number) => (
                   <AccordionItem value={`item-${index}`} key={day.date}>
                     <AccordionTrigger className="hover:no-underline">
                       <div className="flex justify-between items-center w-full pr-4">

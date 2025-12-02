@@ -26,21 +26,6 @@ export const ThreadsProvider: React.FC<ThreadsProviderProps> = ({ children }) =>
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Clear threads when user logs out (MUST be called before any early returns)
-  useEffect(() => {
-    if (!isAuthenticated || !user) {
-      // Clear threads when user logs out
-      setThreads([]);
-      setError(null);
-    }
-  }, [isAuthenticated, user?.id]);
-
-  // If auth context is not ready, render children without threads functionality
-  // But do this AFTER all hooks are declared
-  if (!isAuthenticated) {
-    return <>{children}</>;
-  }
-
   const loadThreads = useCallback(async () => {
     if (!user) return;
 
@@ -141,6 +126,15 @@ export const ThreadsProvider: React.FC<ThreadsProviderProps> = ({ children }) =>
   }, [user]);
 
   const clearThreadsError = useCallback(() => setError(null), []);
+
+  // Clear threads when user logs out (MUST be called after all hooks are declared)
+  useEffect(() => {
+    if (!isAuthenticated || !user) {
+      // Clear threads when user logs out
+      setThreads([]);
+      setError(null);
+    }
+  }, [isAuthenticated, user?.id]);
 
   const value = useMemo(() => ({
     threads,

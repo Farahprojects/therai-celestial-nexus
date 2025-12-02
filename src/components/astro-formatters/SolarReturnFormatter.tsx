@@ -7,8 +7,8 @@ import { ChartAngles } from './shared/ChartAngles';
 import { PlanetaryPositions } from './shared/PlanetaryPositions';
 
 interface SolarReturnFormatterProps {
-  swissData: any;
-  reportData: any;
+  swissData: Record<string, unknown>;
+  reportData: Record<string, unknown>;
   className?: string;
 }
 
@@ -26,7 +26,7 @@ export const SolarReturnFormatter: React.FC<SolarReturnFormatterProps> = ({
   }
 
   // Solar Return data has flat structure: { planets, houses, angles, aspects, meta }
-  const { planets, houses, angles, aspects, meta, datetime_local, return_type } = swissData;
+  const { planets, houses, angles, aspects, meta, datetime_local } = swissData;
 
   // Extract return date
   let returnDate = '';

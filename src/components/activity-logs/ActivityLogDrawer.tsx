@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Download, X } from 'lucide-react';
-import { 
+import {
   Drawer,
   DrawerClose,
   DrawerContent,
-  DrawerHeader,
-  DrawerTitle
+  DrawerHeader
 } from "@/components/ui/drawer";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -29,8 +28,8 @@ type ActivityLogItem = {
   report_tier: string | null;
   total_cost_usd: number;
   processing_time_ms: number | null;
-  response_payload?: any;
-  request_payload?: any;
+  response_payload?: Record<string, unknown>;
+  request_payload?: Record<string, unknown>;
   error_message?: string;
   google_geo?: boolean;
 };
@@ -99,7 +98,7 @@ const ActivityLogDrawer = ({ isOpen, onClose, logData }: ActivityLogDrawerProps)
   }, [logData]);
 
   // Helper function to safely render a report using ReportRenderer
-  const renderReport = (report: any) => {
+  const renderReport = (report: Record<string, unknown>) => {
     // If report is a string, use ReportRenderer with adapter
     if (typeof report === 'string') {
       const reportData = createLegacyReportData(report);
@@ -135,12 +134,13 @@ const ActivityLogDrawer = ({ isOpen, onClose, logData }: ActivityLogDrawerProps)
   };
 
   // Helper function to get filtered response payload (without report field)
-  const getFilteredResponsePayload = (responsePayload: any) => {
+  const getFilteredResponsePayload = (responsePayload: Record<string, unknown>) => {
     if (!responsePayload || typeof responsePayload !== 'object') {
       return responsePayload;
     }
-    
-    const { report, ...filteredPayload } = responsePayload;
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { report: reportIgnored, ...filteredPayload } = responsePayload;
     return filteredPayload;
   };
 

@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Table, TableBody, TableCell, TableHeader, TableHead, TableRow } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -10,20 +9,26 @@ import { AspectTable } from './shared/AspectTable';
 import { ChartAngles } from './shared/ChartAngles';
 import { HouseCusps } from './shared/HouseCusps';
 import { PlanetaryPositions } from './shared/PlanetaryPositions';
-import { TransitMetadata } from './shared/TransitMetadata';
-import { formatPosDecimal } from '@/lib/astro/format';
 
 interface SynastryAstroFormatterProps {
-  swissData: any;
-  reportData: any;
+  swissData: Record<string, unknown>;
+  reportData: Record<string, unknown>;
   className?: string;
 }
 
 export const SynastryAstroFormatter: React.FC<SynastryAstroFormatterProps> = ({
   swissData,
-  reportData,
   className = ''
 }) => {
+  // Normalize raw payload first for UI consumption
+  const vm = normalizeSync(swissData);
+
+  // Use the dynamic parser for synastry/composite sections
+  const astroData = parseAstroData(swissData);
+  const { synastry_aspects, composite_chart } = astroData;
+
+  const [activeTab, setActiveTab] = useState<string>(vm.subjects[0]?.key ?? 'person_a');
+
   if (!swissData) {
     return (
       <div className={`text-center text-gray-500 py-16 ${className}`}>
@@ -31,13 +36,6 @@ export const SynastryAstroFormatter: React.FC<SynastryAstroFormatterProps> = ({
       </div>
     );
   }
-
-  // Normalize raw payload first for UI consumption
-  const vm = normalizeSync(swissData);
-  
-  // Use the dynamic parser for synastry/composite sections
-  const astroData = parseAstroData(swissData);
-  const { synastry_aspects, composite_chart } = astroData;
 
   return (
     <div className={`font-inter max-w-4xl mx-auto py-8 ${className}`}>
@@ -88,7 +86,7 @@ export const SynastryAstroFormatter: React.FC<SynastryAstroFormatterProps> = ({
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {composite_chart?.map((planet: any) => (
+                    {composite_chart?.map((planet: Record<string, unknown>) => (
                       <TableRow key={planet.name}>
                         <TableCell className="font-medium whitespace-nowrap text-xs md:text-sm">
                           <span className="mr-2">{planet.unicode}</span> {planet.name}
@@ -114,8 +112,6 @@ export const SynastryAstroFormatter: React.FC<SynastryAstroFormatterProps> = ({
             </CardHeader>
             <CardContent>
               {(() => {
-                const [activeTab, setActiveTab] = useState<string>(vm.subjects[0]?.key ?? 'person_a');
-                
                 return (
                   <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value)} className="w-full">
                     <TabsList className="grid w-full grid-cols-2">

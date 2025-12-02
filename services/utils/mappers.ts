@@ -1,6 +1,6 @@
 // Shared mapping utilities
 import { User as SupabaseUser } from '@supabase/supabase-js';
-import { User, Project, Item, ItemType } from '../../types';
+import { User, Project, Item, ItemType, Category, Platform } from '../../types';
 
 // Database types
 export interface DbProfile {
@@ -33,7 +33,7 @@ export interface DbProject {
   tech_stack?: string[] | null;
   completeness_score?: number | null;
   last_pushed_at?: string | null;
-  file_tree?: Record<string, any> | null;
+  file_tree?: Record<string, unknown> | null;
   processing_status?: 'pending' | 'completed' | 'failed' | null;
   processing_error?: string | null;
 }
@@ -63,15 +63,16 @@ export interface DbItemImplementation {
 
 // Map Supabase user to our User type
 export function mapSupabaseUser(supabaseUser: SupabaseUser, profile?: DbProfile): User {
+  const userMetadata = supabaseUser.user_metadata as Record<string, unknown> | undefined;
   return {
     id: supabaseUser.id,
     username:
       profile?.username ||
-      (supabaseUser.user_metadata as any)?.user_name ||
+      (userMetadata?.user_name as string) ||
       supabaseUser.email?.split('@')[0] ||
       'user',
     email: supabaseUser.email || '',
-    avatarUrl: profile?.avatar_url || (supabaseUser.user_metadata as any)?.avatar_url,
+    avatarUrl: profile?.avatar_url || (userMetadata?.avatar_url as string),
     bio: profile?.bio || undefined,
     isPublic: true, // All profiles are public
     displayName: profile?.display_name || undefined,
@@ -113,7 +114,7 @@ export function mapDbItem(dbItem: DbItem, implementations: DbItemImplementation[
     id: dbItem.id,
     title: dbItem.title,
     description: dbItem.description,
-    category: dbItem.category as any,
+    category: dbItem.category as Category,
     type: dbItem.type as ItemType,
     isVerified: dbItem.is_verified,
     author: {
@@ -130,7 +131,7 @@ export function mapDbItem(dbItem: DbItem, implementations: DbItemImplementation[
     createdAt: dbItem.created_at,
     downloads: dbItem.downloads,
     implementations: implementations.map((impl) => ({
-      platform: impl.platform as any,
+      platform: impl.platform as Platform,
       code: impl.code,
       documentation: impl.documentation,
     })),

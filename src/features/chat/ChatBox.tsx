@@ -1,22 +1,17 @@
-import React, { useEffect, useRef, Suspense, lazy, useState } from 'react';
+import React, { useEffect, Suspense, lazy, useState } from 'react';
 import { ChatInput } from './ChatInput';
 import { useChatStore } from '@/core/store';
 import { useAuth } from '@/contexts/AuthContext';
-import { chatController } from './ChatController';
 import { supabase } from '@/integrations/supabase/client';
 
-import { Menu, Sparkles, Share2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Menu, Share2 } from 'lucide-react';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { getChatTokens } from '@/services/auth/chatTokens';
 import { MotionConfig } from 'framer-motion';
-import { useConversationUIStore } from './conversation-ui-store';
 import { SignInPrompt } from '@/components/auth/SignInPrompt';
-import { useNavigate, useSearchParams, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { ShareConversationModal } from '@/components/chat/ShareConversationModal';
 import { ShareFolderModal } from '@/components/folders/ShareFolderModal';
 import { ChatCreationProvider } from '@/components/chat/ChatCreationProvider';
-import { useIsMobile } from '@/hooks/use-mobile';
 import { calculateSyncScore, getSyncScore } from '@/services/syncScores';
  
 
@@ -29,12 +24,6 @@ const NewChatButton = lazy(() => import('@/components/chat/NewChatButton').then(
 const ChatMenuButton = lazy(() => import('@/components/chat/ChatMenuButton').then(module => ({ default: module.ChatMenuButton })));
 const FolderView = lazy(() => import('@/components/folders/FolderView').then(module => ({ default: module.FolderView })));
 
-// Check if report is already generated for a chat_id (authenticated users only)
-async function checkReportGeneratedStatus(chatId: string): Promise<boolean> {
-  // For authenticated users, reports are handled differently
-  // This function is kept for compatibility but always returns false
-  return false;
-}
 
 interface ChatBoxProps {
   className?: string;
@@ -49,34 +38,17 @@ export const ChatBox: React.FC<ChatBoxProps> = ({ onDelete }) => {
   const [showFolderShareModal, setShowFolderShareModal] = useState(false);
   const [hasCheckedTogetherModeShare, setHasCheckedTogetherModeShare] = useState(false);
   const navigate = useNavigate();
-  const { uuid } = getChatTokens();
-  const isConversationOpen = useConversationUIStore((s) => s.isConversationOpen);
   const { folderId: urlFolderId } = useParams<{ folderId?: string }>();
-  const isMobile = useIsMobile();
   
   // Get chat_id from store for payment flow
-  const { chat_id, startConversation, setViewMode } = useChatStore();
+  const { chat_id, startConversation } = useChatStore();
   
-  // Get user type from URL parameters - authenticated users only
-  const [searchParams] = useSearchParams();
-  const userId = searchParams.get('user_id');
   
-  // Determine user type and ID
-  const isAuthenticated = !!userId;
-  const currentUserId = userId;
   
   // User detection complete - no logging needed
   
-  // Payment flow disabled for authenticated users
-  const [shouldEnablePaymentFlow, setShouldEnablePaymentFlow] = useState(false);
   
   
-  // ChatController methods for realtime updates (both text and conversation modes)
-  const initializeAudioPipeline = chatController.initializeAudioPipeline.bind(chatController);
-  const pauseMic = chatController.pauseMic.bind(chatController);
-  const unpauseMic = chatController.unpauseMic.bind(chatController);
-  // sendTextMessage removed - using unifiedWebSocketService.sendMessageDirect() directly
-  const cancelMic = chatController.cancelMic.bind(chatController);
   const [signInPrompt, setSignInPrompt] = useState<{ show: boolean; feature: string }>({ 
     show: false, 
     feature: '' 
@@ -332,7 +304,7 @@ export const ChatBox: React.FC<ChatBoxProps> = ({ onDelete }) => {
           duration: 0.6
         }}
       >
-        <div className="flex flex-row flex-1 bg-white w-full min-h-0 mobile-chat-container" style={{ scrollBehavior: 'smooth', overscrollBehavior: 'contain' as any }}>
+        <div className="flex flex-row flex-1 bg-white w-full min-h-0 mobile-chat-container" style={{ scrollBehavior: 'smooth', overscrollBehavior: 'contain' as CSSStyleDeclaration['overscrollBehavior'] }}>
           {/* Left Sidebar (Desktop) - extends to left edge */}
           <div className="hidden md:flex w-64 border-r border-gray-100 flex-col bg-white h-full">
             <div className="py-4 flex flex-col h-full">
@@ -421,7 +393,7 @@ export const ChatBox: React.FC<ChatBoxProps> = ({ onDelete }) => {
               </div>
 
               {/* Main Content Area - Conditionally render FolderView or MessageList */}
-              <div className="flex-1 min-h-0 mobile-messages-area" style={{ overflowAnchor: 'none' as any }}>
+              <div className="flex-1 min-h-0 mobile-messages-area" style={{ overflowAnchor: 'none' as CSSStyleDeclaration['overflowAnchor'] }}>
                 {viewMode === 'folder' && selectedFolderId ? (
                   <Suspense fallback={<MessageListSkeleton />}>
                     <FolderView

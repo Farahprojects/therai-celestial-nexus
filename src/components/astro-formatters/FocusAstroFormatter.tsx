@@ -4,9 +4,26 @@ import { ChartHeader } from './shared/ChartHeader';
 import { Badge } from '@/components/ui/badge';
 import { Clock, TrendingUp, List, CheckCircle2, Activity, AlertTriangle, Zap, Brain } from 'lucide-react';
 
+interface Band {
+  name: string;
+  hours: number[];
+}
+
+interface SwissData {
+  components?: {
+    hourly_grid?: unknown;
+  };
+  meta?: Record<string, unknown>;
+  subject?: Record<string, unknown>;
+}
+
+interface ReportData {
+  [key: string]: unknown;
+}
+
 interface FocusAstroFormatterProps {
-  swissData: any;
-  reportData: any;
+  swissData: SwissData;
+  reportData: ReportData;
   className?: string;
 }
 
@@ -16,6 +33,14 @@ interface TimeBlock {
   score: number;
   band: string | null;
   notes: string[];
+}
+
+interface CategoryData {
+  label: string;
+  icon: React.ComponentType;
+  color: string;
+  hours: number;
+  blocks: TimeBlock[];
 }
 
 const ScoreBadge = ({ score }: { score: number }) => {
@@ -67,7 +92,7 @@ const formatTimeRange = (startHour: number, endHour: number): string => {
 };
 
 // Get category for score
-const getCategoryForScore = (score: number): { label: string; icon: any; color: string } => {
+const getCategoryForScore = (score: number): { label: string; icon: React.ComponentType; color: string } => {
   if (score >= 2) {
     return { label: 'Deep Work', icon: TrendingUp, color: 'text-green-600' };
   } else if (score === 1) {
@@ -80,7 +105,7 @@ const getCategoryForScore = (score: number): { label: string; icon: any; color: 
 };
 
 // Group consecutive hours with same score into time blocks
-const groupTimeBlocks = (scores: number[], notes: string[], bands: any[]): TimeBlock[] => {
+const groupTimeBlocks = (scores: number[], notes: string[], bands: Band[]): TimeBlock[] => {
   const blocks: TimeBlock[] = [];
   
   const getBandForHour = (hour: number): string | null => {
@@ -130,7 +155,8 @@ const groupTimeBlocks = (scores: number[], notes: string[], bands: any[]): TimeB
 
 export const FocusAstroFormatter: React.FC<FocusAstroFormatterProps> = ({
   swissData,
-  reportData,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  reportData: _reportData,
   className = ''
 }) => {
   const components = swissData?.components;
@@ -174,7 +200,7 @@ export const FocusAstroFormatter: React.FC<FocusAstroFormatterProps> = ({
     acc[category.label].hours += hours;
     acc[category.label].blocks.push(block);
     return acc;
-  }, {} as Record<string, any>);
+  }, {} as Record<string, CategoryData>);
 
   return (
     <div className={`font-inter max-w-4xl mx-auto py-8 ${className}`}>
@@ -234,7 +260,7 @@ export const FocusAstroFormatter: React.FC<FocusAstroFormatterProps> = ({
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {Object.entries(categoryBreakdown).map(([label, data]: [string, any]) => {
+                {Object.entries(categoryBreakdown).map(([label, data]: [string, CategoryData]) => {
                   const Icon = data.icon;
                   return (
                     <div key={label} className="p-4 rounded-lg border border-gray-200 bg-gray-50/50">

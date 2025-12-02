@@ -1,6 +1,4 @@
 // src/services/websocket/UnifiedWebSocketService.ts
-import { supabase } from '@/integrations/supabase/client';
-import { Message } from '@/core/types';
 
 // Debug flag for production logging
 const DEBUG = import.meta.env.DEV;
@@ -70,14 +68,14 @@ class UnifiedWebSocketService {
   /**
    * Send message directly (stub for compatibility)
    */
-  sendMessageDirect(text: string, mode?: string) {
+  sendMessageDirect() {
     console.warn('[UnifiedWebSocket] sendMessageDirect should be implemented by the actual message sending service');
   }
 
   /**
    * Set TTS mode (stub for compatibility)
    */
-  setTtsMode(enabled: boolean) {
+  setTtsMode() {
     // This is a stub - TTS mode handling should be done elsewhere
   }
 
@@ -91,19 +89,25 @@ class UnifiedWebSocketService {
     if (this.visibilityListener) {
       try {
         document.removeEventListener('visibilitychange', this.visibilityListener);
-      } catch (_) {}
+      } catch {
+        // eslint-disable-next-line no-empty
+      }
       this.visibilityListener = null;
     }
     if (this.onlineListener) {
       try {
         window.removeEventListener('online', this.onlineListener);
-      } catch (_) {}
+      } catch {
+        // eslint-disable-next-line no-empty
+      }
       this.onlineListener = null;
     }
     if (this.focusListener) {
       try {
         window.removeEventListener('focus', this.focusListener);
-      } catch (_) {}
+      } catch {
+        // eslint-disable-next-line no-empty
+      }
       this.focusListener = null;
     }
     
