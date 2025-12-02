@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { Folder, ChevronRight, ChevronDown, MessageCircle, Sparkles, MoreHorizontal, Pencil, Trash2, Share2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -110,7 +109,7 @@ export const FoldersList: React.FC<FoldersListProps> = ({
             {/* Folder Header */}
             <div className="flex items-center gap-1 group">
               <button
-                onClick={(e) => {
+                onClick={() => {
                   // If onFolderClick is provided, call it instead of toggling
                   if (onFolderClick) {
                     onFolderClick(folder.id);

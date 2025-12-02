@@ -22,7 +22,6 @@ interface FolderModalsProps {
 
   // Edit Journal Dialog
   showEditJournalDialog: boolean;
-  editingJournal: any;
   editJournalTitle: string;
   editJournalText: string;
   isSavingJournal: boolean;
@@ -43,7 +42,6 @@ interface FolderModalsProps {
 
   // Folder Modal
   showFolderModal: boolean;
-  conversationToMoveToNewFolder: string | null;
   onCreateFolder: (name: string) => void;
   onCloseFolderModal: () => void;
 
@@ -58,8 +56,21 @@ interface FolderModalsProps {
 
   // Astro Form Modal
   showAstroForm: boolean;
-  folderProfile: any;
-  onAstroFormSubmit: (data: any) => void;
+  folderProfile: {
+    id: string;
+    profile_name: string;
+    name: string;
+    birth_date: string;
+    birth_time: string;
+    birth_location: string;
+    birth_latitude: number | null;
+    birth_longitude: number | null;
+    birth_place_id: string | null;
+    timezone: string | null;
+    house_system: string | null;
+    is_primary: boolean;
+  } | null;
+  onAstroFormSubmit: (data: unknown) => void;
   onCloseAstroForm: () => void;
 }
 
@@ -75,7 +86,6 @@ export const FolderModals: React.FC<FolderModalsProps> = ({
   onConfirmDeleteChat,
   onCloseDeleteDialog,
   showEditJournalDialog,
-  editingJournal,
   editJournalTitle,
   editJournalText,
   isSavingJournal,
@@ -90,7 +100,6 @@ export const FolderModals: React.FC<FolderModalsProps> = ({
   onConfirmDeleteDocument,
   onCloseDeleteDocumentDialog,
   showFolderModal,
-  conversationToMoveToNewFolder,
   onCreateFolder,
   onCloseFolderModal,
   shareConversationId,

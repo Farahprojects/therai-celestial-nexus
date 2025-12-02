@@ -1,14 +1,11 @@
 import React from 'react';
-import { Badge } from '@/components/ui/badge';
 import { EmailParser, ParsedEmailContent } from '@/utils/emailParser';
 
 interface CleanEmailRendererProps {
   body: string;
-  sentVia?: string;
-  direction: 'incoming' | 'outgoing';
 }
 
-export const CleanEmailRenderer = ({ body, sentVia, direction }: CleanEmailRendererProps) => {
+export const CleanEmailRenderer = ({ body }: CleanEmailRendererProps) => {
   const parsedContent: ParsedEmailContent = EmailParser.parseEmailContent(body);
   const formattedMainContent = EmailParser.formatText(parsedContent.mainContent);
 

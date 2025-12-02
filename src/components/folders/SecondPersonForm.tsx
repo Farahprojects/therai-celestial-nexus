@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
@@ -12,7 +11,6 @@ interface SecondPersonFormProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (profileData: SecondPersonData) => void;
-  folderId: string;
 }
 
 export interface SecondPersonData {
@@ -44,13 +42,12 @@ export const SecondPersonForm: React.FC<SecondPersonFormProps> = ({
   isOpen,
   onClose,
   onSubmit,
-  folderId,
 }) => {
   const { user } = useAuth();
   const [mode, setMode] = useState<'select' | 'manual'>('select');
   const [profiles, setProfiles] = useState<SavedProfile[]>([]);
   const [selectedProfileId, setSelectedProfileId] = useState<string>('');
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading] = useState(false);
   
   // Manual entry fields
   const [name, setName] = useState('');

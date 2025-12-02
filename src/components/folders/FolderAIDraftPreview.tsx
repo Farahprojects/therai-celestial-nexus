@@ -3,7 +3,6 @@ import { FileText, Check, Edit, X, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { saveDraft, updateDocumentContent, DraftDocument, DocumentUpdate } from '@/services/folder-ai';
 import { toast } from 'sonner';
-import { cn } from '@/lib/utils';
 
 interface FolderAIDraftPreviewProps {
   draft?: DraftDocument;
@@ -73,9 +72,10 @@ export const FolderAIDraftPreview: React.FC<FolderAIDraftPreviewProps> = ({
         setIsSaved(true);
         onUpdated?.();
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('[FolderAIDraftPreview] Error saving:', err);
-      toast.error(err.message || 'Failed to save');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to save';
+      toast.error(errorMessage);
     } finally {
       setIsSaving(false);
     }

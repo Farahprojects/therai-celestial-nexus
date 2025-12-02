@@ -1,11 +1,11 @@
-import { useCallback, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useChatStore } from '@/core/store';
 import { useAuth } from '@/contexts/AuthContext';
 import { updateConversationTitle, createConversation } from '@/services/conversations';
 import { moveConversationToFolder, createFolder, getUserFolders } from '@/services/folders';
 import { updateJournalEntry, deleteJournalEntry, JournalEntry } from '@/services/journal';
-import { deleteDocument, getDocuments } from '@/services/folder-documents';
+import { deleteDocument, getDocuments, FolderDocument } from '@/services/folder-documents';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -18,29 +18,25 @@ interface Conversation {
 
 interface UseFolderActionsProps {
   folderId: string;
-  folderName: string;
   conversations: Conversation[];
   journals: JournalEntry[];
-  documents: any[];
+  documents: FolderDocument[];
   updateConversations: (conversations: Conversation[]) => void;
   updateJournals: (journals: JournalEntry[]) => void;
-  updateDocuments: (documents: any[]) => void;
-  upsertConversation: (record: any) => void;
+  updateDocuments: (documents: FolderDocument[]) => void;
+  upsertConversation: (record: Conversation) => void;
   loadFolderData: () => void;
   onChatClick: (chatId: string) => void;
 }
 
 export const useFolderActions = ({
   folderId,
-  folderName,
   conversations,
   journals,
   documents,
   updateConversations,
   updateJournals,
   updateDocuments,
-  upsertConversation,
-  loadFolderData,
   onChatClick,
 }: UseFolderActionsProps) => {
   const navigate = useNavigate();

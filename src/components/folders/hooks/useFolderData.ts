@@ -18,7 +18,20 @@ interface FolderData {
   documents: FolderDocument[];
   folderName: string;
   folderProfileId: string | null;
-  folderProfile: any | null;
+  folderProfile: {
+    id: string;
+    profile_name: string;
+    name: string;
+    birth_date: string;
+    birth_time: string;
+    birth_location: string;
+    birth_latitude: number | null;
+    birth_longitude: number | null;
+    birth_place_id: string | null;
+    timezone: string | null;
+    house_system: string | null;
+    is_primary: boolean;
+  } | null;
   hasProfileSetup: boolean;
   folders: Array<{
     id: string;
@@ -43,7 +56,7 @@ export const useFolderData = (folderId: string) => {
     error: null,
   });
 
-  const upsertConversation = useCallback((record: any) => {
+  const upsertConversation = useCallback((record: Conversation) => {
     if (!record?.id) return;
     const normalized: Conversation = {
       id: record.id,

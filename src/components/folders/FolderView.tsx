@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { FolderProfileSetup } from './FolderProfileSetup';
 import { JournalEntryModal } from './JournalEntryModal';
@@ -60,7 +60,6 @@ export const FolderView: React.FC<FolderViewProps> = ({
     isDeleting,
     isSaving,
     editTitle,
-    editingConversationId,
     showFolderModal,
     conversationToMoveToNewFolder,
     shareConversationId,
@@ -70,9 +69,7 @@ export const FolderView: React.FC<FolderViewProps> = ({
     editJournalText,
     isSavingJournal,
     showDeleteJournalDialog,
-    deletingJournalId,
     showDeleteDocumentDialog,
-    deletingDocumentId,
     setShowEditDialog,
     setShowDeleteDialog,
     setEditTitle,
@@ -144,7 +141,7 @@ export const FolderView: React.FC<FolderViewProps> = ({
     await reloadProfileData();
   };
 
-  const handleAstroFormSubmit = async (data: any & {
+  const handleAstroFormSubmit = async (data: unknown & {
     chat_id?: string;
   }) => {
     if (!data.chat_id) return;

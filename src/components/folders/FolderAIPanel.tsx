@@ -1,10 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { X, Send, Sparkles, FileText, BookOpen, Loader2, ChevronDown, ChevronUp, MessageSquare, BarChart3, SquarePen, Mic, ArrowRight, Copy, Download } from 'lucide-react';
+import { X, Sparkles, FileText, BookOpen, Loader2, ChevronDown, ChevronUp, MessageSquare, BarChart3, SquarePen, Mic, ArrowRight, Copy, Download } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useFolderAI, ParsedMessage } from '@/hooks/useFolderAI';
-import { DraftDocument, saveDocumentDraft } from '@/services/folder-ai';
+import { DraftDocument } from '@/services/folder-ai';
 import { clearFolderAIHistory } from '@/services/folder-ai';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -30,8 +29,6 @@ interface FolderAIPanelProps {
   folderId: string;
   userId: string;
   folderName: string;
-  onDocumentCreated?: () => void;
-  onDocumentUpdated?: () => void;
   onOpenDocumentCanvas?: (draft: DraftDocument, documentId?: string) => void;
   initialMessage?: string; // Message to auto-send when panel opens
 }
@@ -42,8 +39,6 @@ export const FolderAIPanel: React.FC<FolderAIPanelProps> = ({
   folderId,
   userId,
   folderName,
-  onDocumentCreated,
-  onDocumentUpdated,
   onOpenDocumentCanvas,
   initialMessage
 }) => {
@@ -62,8 +57,7 @@ export const FolderAIPanel: React.FC<FolderAIPanelProps> = ({
     sendMessage,
     continueWithDocuments,
     hasPendingDocumentRequest,
-    loadMessages,
-    refreshContext
+    loadMessages
   } = useFolderAI(isOpen ? folderId : null, isOpen ? userId : null);
 
   // Auto-scroll to bottom when messages change
@@ -122,12 +116,6 @@ export const FolderAIPanel: React.FC<FolderAIPanelProps> = ({
     }
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
-    }
-  };
 
 
   const handleNewChat = async () => {
@@ -138,7 +126,7 @@ export const FolderAIPanel: React.FC<FolderAIPanelProps> = ({
       // Reload messages (will be empty now)
       await loadMessages();
       toast.success('New conversation started');
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('[FolderAIPanel] Error clearing history:', err);
       toast.error('Failed to start new conversation');
     }
@@ -440,15 +428,11 @@ export const FolderAIPanel: React.FC<FolderAIPanelProps> = ({
 // Message Bubble Component
 interface MessageBubbleProps {
   message: ParsedMessage;
-  folderId: string;
-  userId: string;
   onDraftSelect?: (draft: DraftDocument, documentId?: string) => void;
 }
 
 const MessageBubble: React.FC<MessageBubbleProps> = ({
   message,
-  folderId,
-  userId,
   onDraftSelect
 }) => {
   const isUser = message.role === 'user';

@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, User, Users, Briefcase, Heart, UserCheck, Users2, ArrowLeft } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { X, User, Users, Briefcase, Heart, Users2, ArrowLeft } from 'lucide-react';
 import { AstroDataForm } from '@/components/chat/AstroDataForm';
 import { ReportFormData } from '@/types/public-report';
 import { useAuth } from '@/contexts/AuthContext';
@@ -10,7 +9,20 @@ interface InsightsModalProps {
   isOpen: boolean;
   onClose: () => void;
   folderId?: string;
-  profileData?: any | null;
+  profileData?: {
+    id: string;
+    profile_name: string;
+    name: string;
+    birth_date: string;
+    birth_time: string;
+    birth_location: string;
+    birth_latitude: number | null;
+    birth_longitude: number | null;
+    birth_place_id: string | null;
+    timezone: string | null;
+    house_system: string | null;
+    is_primary: boolean;
+  } | null;
   onReportReady?: (insightId: string) => void;
   onReportCreated?: (conversation: { id: string; title: string; mode?: string | null; reportType?: string }) => void;
 }
@@ -25,7 +37,7 @@ const ReportCard: React.FC<ReportCardProps> = ({
   title,
   description,
   icon,
-  isDualPerson,
+  isDualPerson: _isDualPerson,
   onClick
 }) => {
   return <button onClick={onClick} className="w-full p-4 text-left bg-white border border-gray-200 rounded-xl hover:bg-gray-50 hover:border-gray-300 transition-all duration-200 group">
@@ -227,7 +239,7 @@ export const InsightsModal: React.FC<InsightsModalProps> = ({
                 <ArrowLeft className="w-5 h-5 text-gray-500" />
               </button>}
             <div>
-              <h2 className="text-2xl font-light text-gray-900">Insights - Generate and discover pattens </h2>
+              <h2 className="text-2xl font-light text-gray-900">Insights - Generate and discover patterns</h2>
               <p className="text-sm text-gray-500 mt-1">
             </p>
             </div>
@@ -253,7 +265,7 @@ export const InsightsModal: React.FC<InsightsModalProps> = ({
               <div className="space-y-3">
                 {/* Solo Reports */}
                 <div>
-                  <h3 className="text-sm font-medium text-gray-700 mb-2 uppercase tracking-wide">SINGLE INSIGHT </h3>
+                  <h3 className="text-sm font-medium text-gray-700 mb-2 uppercase tracking-wide">SINGLE INSIGHT</h3>
                   <div className="space-y-2">
                     <ReportCard title="Personal" description="Deep dive into your personality, strengths, and life patterns based on your birth chart." icon={<User className="w-6 h-6" />} isDualPerson={false} onClick={() => handleReportClick('essence_personal', 'essence', false)} />
                     
@@ -265,7 +277,7 @@ export const InsightsModal: React.FC<InsightsModalProps> = ({
 
                 {/* Dual Reports */}
                 <div className="pt-2">
-                  <h3 className="text-sm font-medium text-gray-700 mb-2 uppercase tracking-wide">COMPATIBILITY INSIGHT </h3>
+                  <h3 className="text-sm font-medium text-gray-700 mb-2 uppercase tracking-wide">COMPATIBILITY INSIGHT</h3>
                   <div className="space-y-2">
                     <ReportCard title="Compatibility" description="Analyze romantic compatibility, communication styles, and relationship dynamics between two people." icon={<Users className="w-6 h-6" />} isDualPerson={true} onClick={() => handleReportClick('sync_personal', 'sync', true)} />
                     
