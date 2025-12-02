@@ -20,7 +20,7 @@ export const useLandingPageImages = () => {
         .select('*')
         .order('created_at', { ascending: false })
         .limit(1)
-        .single();
+        .maybeSingle();
 
       if (error) {
         console.error('Error fetching landing page config:', error);
