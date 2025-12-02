@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, ReactNode, useCallback, useEffect } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { ReportSlideOver } from '@/components/public-report/ReportSlideOver';
 
