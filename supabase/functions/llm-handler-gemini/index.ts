@@ -583,26 +583,58 @@ Deno.serve(async (req: Request) => {
         assistantText = "Generating your image now...";
       }
 
-      // Fire-and-forget image generation
-      fetch(`${ENV.SUPABASE_URL}/functions/v1/image-generate`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${ENV.SUPABASE_SERVICE_ROLE_KEY}`,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ chat_id, prompt, user_id, mode, image_id: imageId })
-      }).catch((err) => console.error("[image-gen] failed:", err));
+      // 🔥 AWAIT image generation response to handle rate limit errors
+      try {
+        const imageGenResponse = await fetch(`${ENV.SUPABASE_URL}/functions/v1/image-generate`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${ENV.SUPABASE_SERVICE_ROLE_KEY}`,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ chat_id, prompt, user_id, mode, image_id: imageId })
+        });
 
-      // Increment image usage counter asynchronously
-      supabase.functions.invoke("check-rate-limit", {
-        body: {
-          user_id,
-          action: "image_generation",
-          increment: true
+        // Check if image generation was blocked by rate limits
+        if (imageGenResponse.status === 429) {
+          const errorData = await imageGenResponse.json().catch(() => ({}));
+          const limitErrorMessage = errorData.error || "Daily image generation limit reached. Upgrade for unlimited!";
+
+          console.warn(JSON.stringify({
+            event: "image_generation_blocked_by_image_generate_limits",
+            request_id: requestId,
+            user_id,
+            image_id: imageId,
+            error_message: limitErrorMessage
+          }));
+
+          // Update the placeholder message with the error
+          await supabase.from('messages').update({
+            text: limitErrorMessage,
+            status: 'error',
+            meta: {
+              status: 'failed',
+              error_type: 'rate_limit_exceeded',
+              image_prompt: prompt,
+              message_type: 'image'
+            }
+          }).eq('id', imageId);
+
+          // Broadcast the update to realtime subscribers
+          void supabase.channel(`user-realtime:${user_id}`).send({
+            type: 'broadcast',
+            event: 'message-update',
+            payload: { chat_id, message_id: imageId }
+          }).catch(() => {});
+        } else if (!imageGenResponse.ok) {
+          console.error(`[image-gen] failed with status ${imageGenResponse.status}`);
+          // For other errors, still proceed but log the issue
         }
-      }).catch((error) => {
-        console.error("[rate-limit] image increment failed:", error);
-      });
+      } catch (err) {
+        console.error("[image-gen] network error:", err);
+        // On network errors, the image generation might still succeed, so don't update the message
+      }
+
+      // ✅ USAGE TRACKING: Now handled by image-generate function (only increments on success)
     } else if (functionCall && !enableImageTool) {
       // 🔥 SAFETY: Function call happened but shouldn't have - ignore it and extract text
       console.warn("[gemini] unexpected function call ignored - user didn't request image");
