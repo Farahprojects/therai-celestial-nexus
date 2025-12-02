@@ -3,14 +3,11 @@ import React from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { 
-  Star, 
-  StarOff, 
-  Paperclip, 
-  Archive, 
+import {
+  Star,
+  StarOff,
+  Archive,
   Trash2,
-  ArrowDown,
-  ArrowUp,
   MoreHorizontal
 } from 'lucide-react';
 import { cn } from '@/lib/utils';

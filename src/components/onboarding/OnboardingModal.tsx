@@ -176,7 +176,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
 
       // Create conversation with profile_mode flag to generate chart data
       // Convert camelCase to snake_case and structure as person_a (same as buildReportPayload)
-      const { data: conversation, error: convError } = await supabase.functions.invoke(
+      const { error: convError } = await supabase.functions.invoke(
         'conversation-manager?action=create_conversation',
         {
           body: {

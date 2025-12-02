@@ -74,7 +74,7 @@ export const ReplyModal = ({ isOpen, onClose, originalMessage, onSend }: ReplyMo
     setIsSending(true);
     try {
       const formattedBody = formatBodyWithStyles();
-      const { data, error } = await supabase.functions.invoke('outbound-messenger', {
+      const { error } = await supabase.functions.invoke('outbound-messenger', {
         body: {
           to,
           subject,

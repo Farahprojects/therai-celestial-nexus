@@ -3,7 +3,7 @@ import { BrainCircuit } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 interface DeeperInsightsCardProps {
-  getPriceById: (id: string) => any;
+  getPriceById: (id: string) => { unit_price_usd?: number } | null;
   formatPrice: (price: number) => string;
 }
 

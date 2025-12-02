@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -31,7 +30,6 @@ const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
   loading
 }) => {
   const [isProcessing, setIsProcessing] = useState(false);
-  const { user } = useAuth();
   
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -140,10 +138,6 @@ const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
   const planTier = getPlanTier(plan);
   const isPopular = plan.id === '25_monthly' || plan.id === 'subscription_professional' || plan.name.toLowerCase().includes('premium');
   const isFreePlan = plan.id === 'free' || planTier === 'Free';
-  const isMonthlyPlan =
-    (plan.id && plan.id.includes('monthly')) ||
-    (plan.product_code && plan.product_code.includes('monthly')) ||
-    planTier !== 'Free';
 
   const handleCheckout = async () => {
     setIsProcessing(true);

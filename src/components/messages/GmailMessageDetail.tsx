@@ -80,7 +80,12 @@ export const GmailMessageDetail = ({
     setShowReplyModal(true);
   };
 
-  const handleReplySend = (replyData: any) => {
+  const handleReplySend = (replyData: {
+    to: string;
+    subject: string;
+    body: string;
+    attachments: { file: File; name: string; size: number; type: string }[];
+  }) => {
     console.log('Reply sent:', replyData);
     // Here you would typically send the reply via your email service
     onReply(); // Call the original onReply for any additional handling

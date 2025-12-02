@@ -30,14 +30,12 @@ interface ReportCardProps {
   title: string;
   description: string;
   icon: React.ReactNode;
-  isDualPerson: boolean;
   onClick: () => void;
 }
 const ReportCard: React.FC<ReportCardProps> = ({
   title,
   description,
   icon,
-  isDualPerson: _isDualPerson,
   onClick
 }) => {
   return <button onClick={onClick} className="w-full p-4 text-left bg-white border border-gray-200 rounded-xl hover:bg-gray-50 hover:border-gray-300 transition-all duration-200 group">
@@ -267,11 +265,11 @@ export const InsightsModal: React.FC<InsightsModalProps> = ({
                 <div>
                   <h3 className="text-sm font-medium text-gray-700 mb-2 uppercase tracking-wide">SINGLE INSIGHT</h3>
                   <div className="space-y-2">
-                    <ReportCard title="Personal" description="Deep dive into your personality, strengths, and life patterns based on your birth chart." icon={<User className="w-6 h-6" />} isDualPerson={false} onClick={() => handleReportClick('essence_personal', 'essence', false)} />
-                    
-                    <ReportCard title="Professional" description="Career guidance and professional development insights tailored to your astrological profile." icon={<Briefcase className="w-6 h-6" />} isDualPerson={false} onClick={() => handleReportClick('essence_professional', 'essence', false)} />
-                    
-                    <ReportCard title="Relationship" description="Understanding your relationship patterns, love language, and romantic compatibility." icon={<Heart className="w-6 h-6" />} isDualPerson={false} onClick={() => handleReportClick('essence_relationship', 'essence', false)} />
+                    <ReportCard title="Personal" description="Deep dive into your personality, strengths, and life patterns based on your birth chart." icon={<User className="w-6 h-6" />} onClick={() => handleReportClick('essence_personal', 'essence', false)} />
+
+                    <ReportCard title="Professional" description="Career guidance and professional development insights tailored to your astrological profile." icon={<Briefcase className="w-6 h-6" />} onClick={() => handleReportClick('essence_professional', 'essence', false)} />
+
+                    <ReportCard title="Relationship" description="Understanding your relationship patterns, love language, and romantic compatibility." icon={<Heart className="w-6 h-6" />} onClick={() => handleReportClick('essence_relationship', 'essence', false)} />
                   </div>
                 </div>
 
@@ -279,9 +277,9 @@ export const InsightsModal: React.FC<InsightsModalProps> = ({
                 <div className="pt-2">
                   <h3 className="text-sm font-medium text-gray-700 mb-2 uppercase tracking-wide">COMPATIBILITY INSIGHT</h3>
                   <div className="space-y-2">
-                    <ReportCard title="Compatibility" description="Analyze romantic compatibility, communication styles, and relationship dynamics between two people." icon={<Users className="w-6 h-6" />} isDualPerson={true} onClick={() => handleReportClick('sync_personal', 'sync', true)} />
-                    
-                    <ReportCard title="Co-working" description="Team dynamics, collaboration styles, and professional synergy between colleagues or partners." icon={<Users2 className="w-6 h-6" />} isDualPerson={true} onClick={() => handleReportClick('sync_professional', 'sync', true)} />
+                    <ReportCard title="Compatibility" description="Analyze romantic compatibility, communication styles, and relationship dynamics between two people." icon={<Users className="w-6 h-6" />} onClick={() => handleReportClick('sync_personal', 'sync', true)} />
+
+                    <ReportCard title="Co-working" description="Team dynamics, collaboration styles, and professional synergy between colleagues or partners." icon={<Users2 className="w-6 h-6" />} onClick={() => handleReportClick('sync_professional', 'sync', true)} />
                   </div>
                 </div>
               </div>

@@ -8,7 +8,6 @@ import { supabase } from '@/integrations/supabase/client';
 interface PaywallModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess?: () => void;
 }
 
 interface PricingPlan {
@@ -32,7 +31,7 @@ const isPricingPlan = (value: unknown): value is PricingPlan => {
   );
 };
 
-const PaywallModal: React.FC<PaywallModalProps> = ({ isOpen, onClose, onSuccess }) => {
+const PaywallModal: React.FC<PaywallModalProps> = ({ isOpen, onClose }) => {
   const [subscriptionPlans, setSubscriptionPlans] = React.useState<PricingPlan[]>([]);
   const [loadingPlans, setLoadingPlans] = React.useState(false);
   const [selectedPlanId, setSelectedPlanId] = React.useState<string | null>(null);

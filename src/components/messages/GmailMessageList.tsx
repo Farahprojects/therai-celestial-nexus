@@ -1,13 +1,11 @@
 import React from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
-import { 
-  Star, 
-  StarOff, 
-  Archive, 
-  Trash2,
-  MoreHorizontal,
-  Circle
+import {
+  Star,
+  StarOff,
+  Archive,
+  Trash2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { EmailMessage } from "@/types/email";
@@ -15,7 +13,6 @@ import type { EmailMessage } from "@/types/email";
 interface GmailMessageListProps {
   messages: EmailMessage[];
   selectedMessages: Set<string>;
-  selectedMessage: EmailMessage | null;
   onSelectMessage: (message: EmailMessage) => void;
   onSelectMessageCheckbox: (messageId: string, checked: boolean) => void;
   onSelectAll: (checked: boolean) => void;
@@ -28,7 +25,6 @@ interface GmailMessageListProps {
 export const GmailMessageList = ({
   messages,
   selectedMessages,
-  selectedMessage,
   onSelectMessage,
   onSelectMessageCheckbox,
   onSelectAll,

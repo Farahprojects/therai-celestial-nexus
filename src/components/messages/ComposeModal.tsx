@@ -120,7 +120,7 @@ export const ComposeModal = ({ isOpen, onClose, onSend }: ComposeModalProps) => 
     setIsSending(true);
     try {
       const formattedBody = formatBodyWithStyles();
-      const { data, error } = await supabase.functions.invoke('outbound-messenger', {
+      const { error } = await supabase.functions.invoke('outbound-messenger', {
         body: {
           to: to.trim(),
           subject: subject.trim() || 'No Subject',

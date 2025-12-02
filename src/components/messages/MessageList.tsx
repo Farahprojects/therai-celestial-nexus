@@ -3,11 +3,10 @@ import React from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { 
-  Star, 
-  StarOff, 
-  Paperclip, 
-  Archive, 
+import {
+  Star,
+  StarOff,
+  Archive,
   Trash2,
   ArrowDown,
   ArrowUp
@@ -74,7 +73,6 @@ export const MessageList = ({
   };
 
   const allSelected = messages.length > 0 && messages.every(m => selectedMessages.has(m.id));
-  const someSelected = messages.some(m => selectedMessages.has(m.id));
 
   return (
     <div className="w-96 border-r bg-white flex flex-col">
