@@ -6,6 +6,24 @@ import { HouseCusps } from './shared/HouseCusps';
 import { ChartAngles } from './shared/ChartAngles';
 import { PlanetaryPositions } from './shared/PlanetaryPositions';
 
+interface SwissData {
+  planets?: unknown;
+  houses?: unknown;
+  angles?: unknown;
+  aspects?: unknown;
+  meta?: unknown;
+  datetime_local?: string;
+}
+
+interface ReportData {
+  guest_report?: {
+    report_data?: {
+      name?: string;
+    };
+  };
+  name?: string;
+}
+
 interface SolarReturnFormatterProps {
   swissData: Record<string, unknown>;
   reportData: Record<string, unknown>;
@@ -26,7 +44,7 @@ export const SolarReturnFormatter: React.FC<SolarReturnFormatterProps> = ({
   }
 
   // Solar Return data has flat structure: { planets, houses, angles, aspects, meta }
-  const data = swissData as any;
+  const data = swissData as SwissData;
   const { planets, houses, angles, aspects, meta, datetime_local } = data;
 
   // Extract return date
@@ -43,8 +61,8 @@ export const SolarReturnFormatter: React.FC<SolarReturnFormatterProps> = ({
   }
 
   // Get name from reportData if available
-  const reportDataAny = reportData as any;
-  const name = reportDataAny?.guest_report?.report_data?.name || reportDataAny?.name || 'Your';
+  const reportDataTyped = reportData as ReportData;
+  const name = reportDataTyped?.guest_report?.report_data?.name || reportDataTyped?.name || 'Your';
   
   return (
     <div className={`font-inter max-w-4xl mx-auto py-4 md:py-8 px-4 md:px-0 ${className}`}>

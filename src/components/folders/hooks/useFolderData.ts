@@ -4,6 +4,7 @@ import { getJournalEntries, JournalEntry } from '@/services/journal';
 import { getDocuments, FolderDocument } from '@/services/folder-documents';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { Database } from '@/integrations/supabase/types';
 
 interface Conversation {
   id: string;
@@ -12,26 +13,15 @@ interface Conversation {
   mode: string | null;
 }
 
+type UserProfile = Database['public']['Tables']['user_profile_list']['Row'];
+
 interface FolderData {
   conversations: Conversation[];
   journals: JournalEntry[];
   documents: FolderDocument[];
   folderName: string;
   folderProfileId: string | null;
-  folderProfile: {
-    id: string;
-    profile_name: string;
-    name: string;
-    birth_date: string;
-    birth_time: string;
-    birth_location: string;
-    birth_latitude: number | null;
-    birth_longitude: number | null;
-    birth_place_id: string | null;
-    timezone: string | null;
-    house_system: string | null;
-    is_primary: boolean;
-  } | null;
+  folderProfile: UserProfile | null;
   hasProfileSetup: boolean;
   folders: Array<{
     id: string;
@@ -112,7 +102,7 @@ export const useFolderData = (folderId: string) => {
               folderName: folderWithProfile.folder.name,
               folderProfileId: folderWithProfile.folder.profile_id || null,
               hasProfileSetup: folderWithProfile.folder.has_profile_setup || false,
-              folderProfile: folderWithProfile.profile || null,
+              folderProfile: folderWithProfile.profile as UserProfile || null,
               conversations: conversationsData,
               journals: journalsData,
               documents: documentsData,
@@ -178,7 +168,7 @@ export const useFolderData = (folderId: string) => {
         ...prev,
         folderProfileId: folderWithProfile.folder.profile_id || null,
         hasProfileSetup: folderWithProfile.folder.has_profile_setup || false,
-        folderProfile: folderWithProfile.profile || null,
+        folderProfile: folderWithProfile.profile as UserProfile || null,
       }));
     } catch (error) {
       console.error('[useFolderData] Failed to reload folder profile:', error);
@@ -193,13 +183,13 @@ export const useFolderData = (folderId: string) => {
         schema: 'public',
         table: 'conversations',
         filter: `folder_id=eq.${folderId}`
-      }, payload => upsertConversation(payload.new))
+      }, payload => upsertConversation(payload.new as Conversation))
       .on('postgres_changes', {
         event: 'UPDATE',
         schema: 'public',
         table: 'conversations',
         filter: `folder_id=eq.${folderId}`
-      }, payload => upsertConversation(payload.new))
+      }, payload => upsertConversation(payload.new as Conversation))
       .on('postgres_changes', {
         event: 'DELETE',
         schema: 'public',
