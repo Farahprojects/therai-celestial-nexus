@@ -32,7 +32,7 @@ export function getAuthContext(req: Request): AuthContext {
     hasServiceRoleKey;
 
   return {
-    isInternalCall,
+    isInternalCall: Boolean(isInternalCall),
     authHeader,
     userId: null, // will be filled in if we decode JWT
   };

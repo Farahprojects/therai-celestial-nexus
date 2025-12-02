@@ -59,24 +59,6 @@ class LlmService {
       user_name
     } as unknown as Message;
 
-    // Handle rate limit result asynchronously
-    if (rateLimitCheck) {
-      rateLimitCheck.then(({ data: rateLimitResult }) => {
-        if (rateLimitResult && !rateLimitResult.allowed) {
-          // Rate limit exceeded - emit event to disable UI
-          window.dispatchEvent(new CustomEvent('rateLimitExceeded', {
-            detail: {
-              message: rateLimitResult.message,
-              limit: rateLimitResult.limit,
-              remaining: 0
-            }
-          }));
-        }
-      }).catch(() => {
-        // Rate limit check failed - allow message to proceed
-      });
-    }
-
     return optimisticMessage;
   }
 }
