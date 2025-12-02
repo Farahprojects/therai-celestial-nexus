@@ -109,9 +109,10 @@ export const CacheKeys = {
   conversationMetadata: (chatId: string) => `conv:meta:${chatId}`,
   conversationMode: (chatId: string) => `conv:mode:${chatId}`,
   userSubscription: (userId: string) => `user:sub:${userId}`,
-  featureUsage: (userId: string, featureKey: string, period: string) => 
+  featureUsage: (userId: string, featureKey: string, period: string) =>
     `feature:${userId}:${featureKey}:${period}`,
   profileData: (profileId: string) => `profile:${profileId}`,
+  primaryProfileId: (userId: string) => `primary:profile:${userId}`,
 };
 
 // Cache TTL constants (in milliseconds)
@@ -120,6 +121,7 @@ export const CacheTTL = {
   userSubscription: 600000,      // 10 minutes
   featureUsage: 60000,           // 1 minute
   profileData: 300000,           // 5 minutes
+  primaryProfileId: 300000,      // 5 minutes
 };
 
 /**
@@ -164,9 +166,24 @@ export async function getFeatureUsage<T>(
 ): Promise<T> {
   const key = CacheKeys.featureUsage(userId, featureKey, period);
   const result = await queryCache.get<T>(key, ttlMs, fetchFn);
-  
+
   // Should never be null since fetchFn is provided
   return result as T;
+}
+
+/**
+ * Helper: Get primary profile ID with caching
+ */
+export async function getPrimaryProfileIdCached(
+  userId: string,
+  fetchFn: () => Promise<string | null>,
+  ttlMs: number = CacheTTL.primaryProfileId
+): Promise<string | null> {
+  const key = CacheKeys.primaryProfileId(userId);
+  const result = await queryCache.get<string | null>(key, ttlMs, fetchFn);
+
+  // Return null if fetch failed, but don't throw
+  return result;
 }
 
 export { queryCache };

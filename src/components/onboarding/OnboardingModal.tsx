@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import type { Database, Tables, TablesUpdate } from '@/integrations/supabase/types';
 import { createFolder, moveConversationToFolder, updateFolderProfile } from '@/services/folders';
+import { clearPrimaryProfileIdCache } from '@/services/conversations';
 type ProfileRow = Tables<'profiles'>;
 type UserProfileRow = Tables<'user_profile_list'>;
 
@@ -159,6 +160,9 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
       }
 
       if (profileError) throw profileError;
+
+      // Clear primary profile ID cache since it may have changed
+      clearPrimaryProfileIdCache(userId);
 
       // Get the profile_id for memory linking
       const { data: createdProfile } = await supabase

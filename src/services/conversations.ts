@@ -2,29 +2,97 @@ import { supabase } from '@/integrations/supabase/client';
 import { Conversation } from '@/core/types';
 import { ReportData } from '@/core/store';
 
+// Simple in-memory cache for primary profile ID
+interface CacheEntry<T> {
+  data: T;
+  cachedAt: number;
+}
+
+class SimpleCache {
+  private cache: Map<string, CacheEntry<any>>;
+  private readonly ttlMs = 300000; // 5 minutes
+
+  constructor() {
+    this.cache = new Map();
+  }
+
+  async get<T>(key: string, fetchFn: () => Promise<T>): Promise<T> {
+    const entry = this.cache.get(key);
+
+    // Check if cached and not expired
+    if (entry && Date.now() - entry.cachedAt < this.ttlMs) {
+      return entry.data as T;
+    }
+
+    // Fetch and cache
+    const data = await fetchFn();
+    this.set(key, data);
+    return data;
+  }
+
+  set<T>(key: string, data: T): void {
+    this.cache.set(key, {
+      data,
+      cachedAt: Date.now()
+    });
+  }
+
+  delete(key: string): void {
+    this.cache.delete(key);
+  }
+
+  clear(): void {
+    this.cache.clear();
+  }
+}
+
+const primaryProfileIdCache = new SimpleCache();
+
 /**
  * Fetch user's primary profile ID for memory tracking
  * Returns null if no primary profile exists
+ * Uses in-memory caching to avoid N+1 database queries
  */
 export const getPrimaryProfileId = async (userId: string): Promise<string | null> => {
-  try {
-    const { data, error } = await supabase
-      .from('user_profile_list')
-      .select('id')
-      .eq('user_id', userId)
-      .eq('is_primary', true)
-      .maybeSingle();
+  const cacheKey = `primary_profile_${userId}`;
 
-    if (error) {
+  return primaryProfileIdCache.get(cacheKey, async () => {
+    try {
+      const { data, error } = await supabase
+        .from('user_profile_list')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('is_primary', true)
+        .maybeSingle();
+
+      if (error) {
+        console.error('[Conversations] Error fetching primary profile:', error);
+        return null;
+      }
+
+      return data?.id || null;
+    } catch (error) {
       console.error('[Conversations] Error fetching primary profile:', error);
       return null;
     }
+  });
+};
 
-    return data?.id || null;
-  } catch (error) {
-    console.error('[Conversations] Error fetching primary profile:', error);
-    return null;
-  }
+/**
+ * Clear primary profile ID cache for a user
+ * Call this when a user's primary profile changes
+ */
+export const clearPrimaryProfileIdCache = (userId: string): void => {
+  const cacheKey = `primary_profile_${userId}`;
+  primaryProfileIdCache.delete(cacheKey);
+};
+
+/**
+ * Clear all primary profile ID caches
+ * Useful for testing or when bulk operations affect multiple users
+ */
+export const clearAllPrimaryProfileIdCaches = (): void => {
+  primaryProfileIdCache.clear();
 };
 
 /**
