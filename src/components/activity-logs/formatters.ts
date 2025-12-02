@@ -9,6 +9,11 @@ export const formatTypeValue = (type: string | null): string => {
   return type.charAt(0).toUpperCase() + type.slice(1).toLowerCase();
 };
 
-export const hasValidReport = (log: any): boolean => {
+interface LogWithReport {
+  report_tier: string | null;
+  response_status: number;
+}
+
+export const hasValidReport = (log: LogWithReport): boolean => {
   return !!log.report_tier && !isFailedLog(log.response_status);
 };

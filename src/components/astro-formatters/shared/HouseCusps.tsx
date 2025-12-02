@@ -9,7 +9,7 @@ interface House {
 }
 
 interface HouseCuspsProps {
-  houses: House[] | Record<string, any>;
+  houses: House[] | Record<string, { sign?: string; degree?: number; deg?: number }>;
   title?: string;
 }
 
@@ -20,9 +20,9 @@ export const HouseCusps: React.FC<HouseCuspsProps> = ({
   if (!houses) return null;
 
   // Convert object format to array format if needed
-  const houseArray: House[] = Array.isArray(houses) 
-    ? houses 
-    : Object.entries(houses).map(([houseNum, data]: [string, any]) => ({
+  const houseArray: House[] = Array.isArray(houses)
+    ? houses
+    : Object.entries(houses).map(([houseNum, data]: [string, { sign?: string; degree?: number; deg?: number }]) => ({
         number: parseInt(houseNum),
         sign: data.sign || '',
         deg: data.degree || data.deg || 0

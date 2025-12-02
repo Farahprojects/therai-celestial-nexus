@@ -76,7 +76,7 @@ export const getGuestReportId = (): string | null => {
  * Comprehensive guest session reset for 404 errors
  * Clears all in-memory state, React Query cache, and storage
  */
-export const resetGuestSessionOn404 = async (): Promise<void> => {
+export const resetGuestSessionOn404 = async (queryClient?: any): Promise<void> => {
   console.warn('🔄 Resetting guest session due to 404 error...');
   
   try {
@@ -91,15 +91,17 @@ export const resetGuestSessionOn404 = async (): Promise<void> => {
     sessionStorage.removeItem("reportUrl");
 
     // Clear React Query cache for guest report data
-    try {
-      const { useQueryClient } = await import('@tanstack/react-query');
-      const queryClient = useQueryClient();
-      queryClient.removeQueries({ queryKey: ['guest-report-data'] });
-      queryClient.removeQueries({ queryKey: ['token-recovery'] });
-      queryClient.removeQueries({ queryKey: ['guest-report-data', null] });
-      console.log('✅ React Query cache cleared for guest report data');
-    } catch (error) {
-      console.log('⚠️ React Query not available for cache clearing');
+    if (queryClient) {
+      try {
+        queryClient.removeQueries({ queryKey: ['guest-report-data'] });
+        queryClient.removeQueries({ queryKey: ['token-recovery'] });
+        queryClient.removeQueries({ queryKey: ['guest-report-data', null] });
+        console.log('✅ React Query cache cleared for guest report data');
+      } catch (error) {
+        console.log('⚠️ Failed to clear React Query cache:', error);
+      }
+    } else {
+      console.log('⚠️ No queryClient provided for cache clearing');
     }
 
     // Clear URL parameters
@@ -129,7 +131,7 @@ export const clearGuestReportId = (): void => {
 /**
  * Enhanced comprehensive session clearing with React Query cache and state reset callbacks
  */
-export const clearAllSessionData = async (stateResetCallbacks?: (() => void)[]): Promise<void> => {
+export const clearAllSessionData = async (stateResetCallbacks?: (() => void)[], queryClient?: any): Promise<void> => {
   log('debug', 'Starting comprehensive session clearing', null, 'urlHelpers');
   
   try {
@@ -170,16 +172,14 @@ export const clearAllSessionData = async (stateResetCallbacks?: (() => void)[]):
     });
 
     // Clear React Query cache more comprehensively
-    try {
-      const { useQueryClient } = await import('@tanstack/react-query');
-      const queryClient = useQueryClient();
-      
-      // Clear all guest-related queries
-      queryClient.removeQueries({ queryKey: ['guest-report-data'] });
-      queryClient.removeQueries({ queryKey: ['token-recovery'] });
-      queryClient.removeQueries({ queryKey: ['guest-report-data', null] });
-      queryClient.removeQueries({ queryKey: ['temp-report-data'] });
-      queryClient.removeQueries({ queryKey: ['report-data'] });
+    if (queryClient) {
+      try {
+        // Clear all guest-related queries
+        queryClient.removeQueries({ queryKey: ['guest-report-data'] });
+        queryClient.removeQueries({ queryKey: ['token-recovery'] });
+        queryClient.removeQueries({ queryKey: ['guest-report-data', null] });
+        queryClient.removeQueries({ queryKey: ['temp-report-data'] });
+        queryClient.removeQueries({ queryKey: ['report-data'] });
       
       // Clear any cached report payloads
       queryClient.removeQueries({ queryKey: ['report-payload'] });
@@ -216,7 +216,7 @@ export const forceNavigationReset = async (stateResetCallbacks?: (() => void)[])
   
   try {
     // Clear all session data with state callbacks
-    await clearAllSessionData(stateResetCallbacks);
+    await clearAllSessionData(stateResetCallbacks, undefined);
     
     // Small delay to ensure clearing completes
     await new Promise(resolve => setTimeout(resolve, 100));

@@ -45,9 +45,12 @@ export default function CreditManagement() {
         setReason('');
         setMessage(null);
       }, 2000);
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error updating credits:', error);
-      setMessage({ type: 'error', text: error.message || 'Failed to update credits' });
+      setMessage({
+        type: 'error',
+        text: error instanceof Error ? error.message : 'Failed to update credits'
+      });
     } finally {
       setUpdating(false);
     }

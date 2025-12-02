@@ -11,7 +11,7 @@ interface Planet {
 }
 
 interface PlanetaryPositionsProps {
-  planets: Planet[] | Record<string, any>;
+  planets: Planet[] | Record<string, { sign?: string; degree?: number; deg?: number; house?: number; retrograde?: boolean; retro?: boolean }>;
   title?: string;
 }
 
@@ -22,9 +22,9 @@ export const PlanetaryPositions: React.FC<PlanetaryPositionsProps> = ({
   if (!planets) return null;
 
   // Convert object format to array format if needed
-  const planetArray: Planet[] = Array.isArray(planets) 
-    ? planets 
-    : Object.entries(planets).map(([name, data]: [string, any]) => ({
+  const planetArray: Planet[] = Array.isArray(planets)
+    ? planets
+    : Object.entries(planets).map(([name, data]: [string, { sign?: string; degree?: number; deg?: number; house?: number; retrograde?: boolean; retro?: boolean }]) => ({
         name,
         sign: data.sign || '',
         deg: data.degree || data.deg || 0,

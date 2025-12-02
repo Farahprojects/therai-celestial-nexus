@@ -1,4 +1,4 @@
-import React, { useEffect, Suspense, lazy, useState } from 'react';
+import React, { Suspense, lazy, useState } from 'react';
 import { useChatStore } from '@/core/store';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate, useSearchParams } from 'react-router-dom';

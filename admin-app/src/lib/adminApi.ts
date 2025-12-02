@@ -1,11 +1,30 @@
 import { supabase } from './supabase';
 
+// Admin API Response Types
+export interface AdminApiSuccessResponse<T = unknown> {
+  success: boolean;
+  message: string;
+  data?: T;
+  new_credits?: number;
+}
+
+export interface AdminApiDataResponse<T> {
+  data: T;
+}
+
+export interface AdminApiErrorResponse {
+  error: string;
+  success: false;
+}
+
+export type AdminApiResponse<T = unknown> = AdminApiSuccessResponse<T> | AdminApiDataResponse<T> | AdminApiErrorResponse;
+
 /**
  * Call admin operations edge function
  */
-export async function callAdminOperation<T = any>(
+export async function callAdminOperation<T = unknown>(
   action: string,
-  body: Record<string, any> = {}
+  body: Record<string, unknown> = {}
 ): Promise<T> {
   const { data, error } = await supabase.functions.invoke('admin-operations', {
     body: {
@@ -20,7 +39,8 @@ export async function callAdminOperation<T = any>(
 
   // Handle both direct response and nested data structure
   if (data && typeof data === 'object' && 'error' in data) {
-    throw new Error((data as any).error || 'Unknown error');
+    const errorResponse = data as AdminApiErrorResponse;
+    throw new Error(errorResponse.error || 'Unknown error');
   }
 
   return data as T;

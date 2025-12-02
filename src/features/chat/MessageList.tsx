@@ -1,8 +1,7 @@
-import React, { useRef, useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useChatStore } from '@/core/store';
 import { useMessageStore } from '@/stores/messageStore';
 import { Message } from '@/core/types';
-import { useConversationUIStore } from '@/features/chat/conversation-ui-store';
 import { RefreshCw, AlertTriangle, Sparkles, Share2, Download } from 'lucide-react';
 import { useAutoScroll } from '@/hooks/useAutoScroll';
 import { useWordAnimation } from '@/hooks/useWordAnimation';

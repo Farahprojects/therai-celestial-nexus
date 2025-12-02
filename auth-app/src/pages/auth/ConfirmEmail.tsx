@@ -211,9 +211,9 @@ const ConfirmEmail: React.FC = () => {
         window.location.href = 'https://therai.co/login';
       }, 2000);
 
-    } catch (error: any) {
+    } catch (error) {
       setStatus('error');
-      setMessage(error.message || 'Failed to update password. Please try again.');
+      setMessage(error instanceof Error ? error.message : 'Failed to update password. Please try again.');
     } finally {
       setIsUpdating(false);
     }
@@ -251,9 +251,9 @@ const ConfirmEmail: React.FC = () => {
           finishPasswordSuccess(token);
         }
 
-      } catch (err: any) {
+      } catch (err) {
         setStatus('error');
-        const msg = err?.message ?? 'Verification failed – link may have expired.';
+        const msg = err instanceof Error ? err.message : 'Verification failed – link may have expired.';
         setMessage(msg);
       }
     };

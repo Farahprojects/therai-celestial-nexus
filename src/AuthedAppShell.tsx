@@ -6,7 +6,6 @@ import Signup from './pages/Signup';
 import Auth from './pages/auth/Auth';
 import { AuthGuard } from './components/auth/AuthGuard';
 import { StrictAuthGuard } from './components/auth/StrictAuthGuard';
-import { PublicOnlyGuard } from './components/auth/PublicOnlyGuard';
 import Contact from './pages/Contact';
 import About from './pages/About';
 import Legal from './pages/Legal';
@@ -31,7 +30,6 @@ import { CheckoutSuccessPage } from './pages/CheckoutSuccessPage';
 // This shell contains all routes that can rely on context providers. Providers are now applied at the App root.
 const AuthedAppShell: React.FC = () => {
   const isMobile = useIsMobile();
-  const isNativeApp = useIsNativeApp();
 
   return (
     <Routes>

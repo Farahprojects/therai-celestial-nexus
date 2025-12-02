@@ -14,8 +14,8 @@ type ActivityLog = {
   report_tier: string | null;
   total_cost_usd: number;
   processing_time_ms: number | null;
-  response_payload?: any;
-  request_payload?: any;
+  response_payload?: unknown;
+  request_payload?: unknown;
   error_message?: string;
   google_geo?: boolean;
 };

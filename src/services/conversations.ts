@@ -1,5 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import { Conversation } from '@/core/types';
+import { ReportData } from '@/core/store';
 
 /**
  * Fetch user's primary profile ID for memory tracking
@@ -54,15 +55,10 @@ export const createConversationWithTitle = async (
  * Create a new conversation for an authenticated user using edge function
  */
 export const createConversation = async (
-  userId: string, 
-  mode: 'chat' | 'astro' | 'insight' | 'swiss' | 'together' | 'sync_score', 
+  userId: string,
+  mode: 'chat' | 'astro' | 'insight' | 'swiss' | 'together' | 'sync_score',
   title?: string,
-  reportData?: {
-    reportType?: string;
-    report_data?: any;
-    email?: string;
-    name?: string;
-  },
+  reportData?: ReportData,
   folderId?: string
 ): Promise<string> => {
   // ✅ sync_score can only be created from UI left panel (meme button) - NOT from folders

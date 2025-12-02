@@ -15,9 +15,6 @@ import { UniversalSTTRecorder } from '@/services/audio/UniversalSTTRecorder';
 import { ttsPlaybackService } from '@/services/voice/TTSPlaybackService';
 import { STTLimitExceededError } from '@/services/voice/stt';
 // llmService import removed - not used in this file
-import { v4 as uuidv4 } from 'uuid';
-import { supabase } from '@/integrations/supabase/client';
-import { SUPABASE_URL, SUPABASE_ANON_KEY } from '@/integrations/supabase/config';
 import { unifiedChannel } from '@/services/websocket/UnifiedChannelService';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Mic } from 'lucide-react';
@@ -33,7 +30,6 @@ export const ConversationOverlay: React.FC = () => {
   const { mode } = useMode();
   const { user } = useAuth();
   const { displayName } = useUserData();
-  const { usage } = useFeatureUsage();
   const addMessage = useMessageStore((state) => state.addMessage);
   const [state, setState] = useState<ConversationState>('connecting');
   const [showSTTLimitNotification, setShowSTTLimitNotification] = useState(false);
@@ -55,7 +51,7 @@ export const ConversationOverlay: React.FC = () => {
   const overlayRef = useRef<HTMLDivElement>(null);
 
   // 🚨 RESET TO TAP TO START - ROBUST cleanup with validation
-  const resetToTapToStart = useCallback(async (reason: string) => {
+  const resetToTapToStart = useCallback(async () => {
     
     // 1. IMMEDIATE GUARDS - Stop all operations
     isShuttingDown.current = true;
@@ -170,7 +166,7 @@ export const ConversationOverlay: React.FC = () => {
             }
           }).catch((e) => {
             console.error('[ConversationOverlay] ❌ TTS base64 playback failed:', e);
-            resetToTapToStart('TTS playback failed');
+            resetToTapToStart();
           });
         } else if (payload.audioBytes) {
           setState('replying');
@@ -210,7 +206,7 @@ export const ConversationOverlay: React.FC = () => {
       return true;
     } catch (error) {
       console.error('[ConversationOverlay] Connection failed:', error);
-      resetToTapToStart('WebSocket connection failed');
+      resetToTapToStart();
       return false;
     }
   }, [chat_id, user, addMessage]);
@@ -242,7 +238,7 @@ export const ConversationOverlay: React.FC = () => {
       });
     } catch (error) {
       console.error('[ConversationOverlay] ❌ TTS playback failed:', error);
-      resetToTapToStart('TTS playback failed');
+      resetToTapToStart();
     }
   }, []);
 
@@ -342,13 +338,13 @@ export const ConversationOverlay: React.FC = () => {
             setShowSTTLimitNotification(true);
             
             // Reset state
-            resetToTapToStart('STT limit exceeded');
+            resetToTapToStart();
             return;
           }
           
           // Log other errors normally
           console.error('[ConversationOverlay] Audio recorder error:', error);
-          resetToTapToStart('Audio recorder error');
+          resetToTapToStart();
         }
       });
       
@@ -370,7 +366,7 @@ export const ConversationOverlay: React.FC = () => {
       
     } catch (error) {
       console.error('[ConversationOverlay] Start failed:', error);
-      resetToTapToStart('Conversation start failed');
+      resetToTapToStart();
     } finally {
       isStartingRef.current = false;
     }
@@ -479,7 +475,7 @@ export const ConversationOverlay: React.FC = () => {
   // Cleanup on unmount to prevent WebSocket race condition
   useEffect(() => {
     return () => {
-      resetToTapToStart('Component unmounted');
+      resetToTapToStart();
     };
   }, [resetToTapToStart]);
 

@@ -41,10 +41,10 @@ const ForgotPasswordForm: React.FC<ForgotPasswordFormProps> = ({ onCancel }) => 
         setEmailSent(true);
         setResetLinkSent(true);
       }
-    } catch (err: any) {
-      showToast({ 
-        title: 'Error', 
-        description: err.message || 'Failed to send reset email',
+    } catch (err) {
+      showToast({
+        title: 'Error',
+        description: err instanceof Error ? err.message : 'Failed to send reset email',
         variant: 'destructive'
       });
     } finally {

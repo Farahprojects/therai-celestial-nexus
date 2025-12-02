@@ -3,6 +3,14 @@ import { Message, Conversation } from './types';
 import { useMessageStore } from '@/stores/messageStore';
 import { supabase } from '@/integrations/supabase/client';
 
+// Report data types
+export interface ReportData {
+  reportType?: string;
+  email?: string;
+  name?: string;
+  [key: string]: unknown; // Allow additional properties for different report types
+}
+
 export type ChatStatus =
   | 'idle'
   | 'recording'
@@ -32,7 +40,7 @@ interface ChatState {
   pendingInsightThreads: Map<string, { reportType: string; timestamp: number }>;
   
   // Real-time sync state
-  conversationChannel: any;
+  conversationChannel: ReturnType<typeof supabase.channel> | null;
   isConversationSyncActive: boolean;
 
   // View mode state
@@ -57,12 +65,7 @@ interface ChatState {
 
   // Thread actions
   loadThreads: (userId?: string) => Promise<void>;
-  addThread: (userId: string, mode: 'chat' | 'astro' | 'insight' | 'swiss' | 'together' | 'sync_score', title?: string, reportData?: {
-    reportType?: string;
-    report_data?: any;
-    email?: string;
-    name?: string;
-  }) => Promise<string>;
+  addThread: (userId: string, mode: 'chat' | 'astro' | 'insight' | 'swiss' | 'together' | 'sync_score', title?: string, reportData?: ReportData) => Promise<string>;
   removeThread: (threadId: string, userId: string) => Promise<void>;
   updateThreadTitle: (threadId: string, title: string, userId: string) => Promise<void>;
   clearThreadsError: () => void;
@@ -268,12 +271,7 @@ export const useChatStore = create<ChatState>()((set, get) => ({
     }
   },
 
-  addThread: async (userId: string, mode: 'chat' | 'astro' | 'insight' | 'swiss' | 'together' | 'sync_score', title?: string, reportData?: {
-    reportType?: string;
-    report_data?: any;
-    email?: string;
-    name?: string;
-  }) => {
+  addThread: async (userId: string, mode: 'chat' | 'astro' | 'insight' | 'swiss' | 'together' | 'sync_score', title?: string, reportData?: ReportData) => {
     set({ isLoadingThreads: true, threadsError: null });
     try {
       const { createConversation } = await import('@/services/conversations');

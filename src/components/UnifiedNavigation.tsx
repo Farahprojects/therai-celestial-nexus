@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Menu, X, Settings, User, Bell, LifeBuoy, LogOut, CreditCard, Eye, Globe, Calendar, Home, BookOpen, Users, Brain, Shield } from 'lucide-react';
+import { Menu, X, Settings, User, Bell, LifeBuoy, LogOut, CreditCard, Eye, Globe, Calendar, BookOpen, Users, Brain, Shield } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { UserAvatar } from '@/components/settings/UserAvatar';
 import Logo from '@/components/Logo';
@@ -20,7 +20,7 @@ import { LogoutConfirmationDialog } from '@/components/ui/logout-confirmation-di
 import { useAuthModal } from '@/contexts/AuthModalContext';
 import { AuthModal } from '@/components/auth/AuthModal';
 // Dashboard sidebar removed
-import { Sheet, SheetContent, SheetPortal } from '@/components/ui/sheet';
+import { Sheet, SheetPortal } from '@/components/ui/sheet';
 import * as SheetPrimitive from "@radix-ui/react-dialog";
 import { Input } from '@/components/ui/input';
 import { Search } from 'lucide-react';

@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { motion } from 'framer-motion';
 import { Mic } from 'lucide-react';
 import { SpeakingBarsOptimized } from './SpeakingBarsOptimized';

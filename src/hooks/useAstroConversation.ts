@@ -1,9 +1,8 @@
 import { useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useChatStore } from '@/core/store';
+import { useChatStore, ReportData } from '@/core/store';
 import { chatController } from '@/features/chat/ChatController';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
 
 export const useAstroConversation = () => {
   const { user } = useAuth();
@@ -15,7 +14,7 @@ export const useAstroConversation = () => {
       title: string,
       reportData: {
         reportType?: string;
-        report_data?: any;
+        report_data?: ReportData;
         email?: string;
         name?: string;
       }
@@ -38,7 +37,7 @@ export const useAstroConversation = () => {
 
       return conversationId;
     },
-    [user, addThread]
+    [user?.id, addThread]
   );
 
   const cleanupEmptyConversation = useCallback(

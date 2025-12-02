@@ -15,7 +15,7 @@ interface TestCardProps {
   mobileLayout?: 'text-first' | 'image-first';
 }
 
-export const TestCard = ({ title, description, subDescriptions, path, isActive, onHover, onExplore, icon: Icon, mobileLayout = 'text-first' }: TestCardProps) => {
+export const TestCard = ({ title, description, subDescriptions, isActive, onHover, onExplore }: TestCardProps) => {
   const [isHovered, setIsHovered] = useState(false);
   const isMobile = useIsMobile();
 

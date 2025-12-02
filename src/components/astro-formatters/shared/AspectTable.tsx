@@ -16,7 +16,7 @@ interface Aspect {
 }
 
 interface AspectTableProps {
-  aspects: Aspect[] | Record<string, any>;
+  aspects: Aspect[] | Record<string, Aspect>;
   title?: string;
 }
 
@@ -27,9 +27,9 @@ export const AspectTable: React.FC<AspectTableProps> = ({
   if (!aspects) return null;
 
   // Convert object format to array format if needed
-  const aspectArray: Aspect[] = Array.isArray(aspects) 
-    ? aspects 
-    : Object.entries(aspects).map(([key, data]: [string, any]) => ({
+  const aspectArray: Aspect[] = Array.isArray(aspects)
+    ? aspects
+    : Object.entries(aspects).map(([key, data]: [string, Aspect]) => ({
         ...data,
         key
       }));

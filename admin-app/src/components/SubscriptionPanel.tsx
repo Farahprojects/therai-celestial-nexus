@@ -36,9 +36,12 @@ export default function SubscriptionPanel() {
         setSelectedUserId('');
         setMessage(null);
       }, 2000);
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error updating subscription:', error);
-      setMessage({ type: 'error', text: error.message || 'Failed to update subscription' });
+      setMessage({
+        type: 'error',
+        text: error instanceof Error ? error.message : 'Failed to update subscription'
+      });
     } finally {
       setUpdating(false);
     }

@@ -9,7 +9,7 @@ interface Angle {
 }
 
 interface ChartAnglesProps {
-  angles: Angle[] | Record<string, any>;
+  angles: Angle[] | Record<string, { sign?: string; degree?: number; deg?: number }>;
   title?: string;
 }
 
@@ -20,9 +20,9 @@ export const ChartAngles: React.FC<ChartAnglesProps> = ({
   if (!angles) return null;
 
   // Convert object format to array format if needed
-  const angleArray: Angle[] = Array.isArray(angles) 
-    ? angles 
-    : Object.entries(angles).map(([name, data]: [string, any]) => ({
+  const angleArray: Angle[] = Array.isArray(angles)
+    ? angles
+    : Object.entries(angles).map(([name, data]: [string, { sign?: string; degree?: number; deg?: number }]) => ({
         name,
         sign: data.sign || '',
         deg: data.degree || data.deg || 0

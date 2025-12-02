@@ -36,9 +36,12 @@ export default function RoleManagement() {
       setTimeout(() => {
         setMessage(null);
       }, 2000);
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error updating role:', error);
-      setMessage({ type: 'error', text: error.message || 'Failed to update role' });
+      setMessage({
+        type: 'error',
+        text: error instanceof Error ? error.message : 'Failed to update role'
+      });
     } finally {
       setUpdating(false);
     }
