@@ -228,10 +228,13 @@ async function triggerLLM(
 ): Promise<void> {
   const llmStartTime = Date.now();
 
-  console.info(JSON.stringify({
-    event: "calling_llm",
+  console.warn(JSON.stringify({
+    event: "TRIGGERING_LLM_CALL",
     request_id: requestId,
     llm_handler: handlerName,
+    user_id: payload.user_id,
+    chat_id: payload.chat_id,
+    ALERT: "This should NOT happen if rate limiting is working!"
   }));
 
   try {
@@ -535,6 +538,13 @@ async function handleSingleMessageWithMode(
     // 🚨 RATE LIMIT CHECK for user messages
     if (payload.user_id) {
       const rateLimitCheck = await checkLimit(supabase, payload.user_id, "chat", 1);
+      console.log(`[chat-send] Rate limit check for user ${payload.user_id}:`, {
+        allowed: rateLimitCheck.allowed,
+        limit: rateLimitCheck.limit,
+        remaining: rateLimitCheck.remaining,
+        current_usage: rateLimitCheck.current_usage,
+        error_code: rateLimitCheck.error_code
+      });
       if (!rateLimitCheck.allowed) {
         console.warn(JSON.stringify({
           event: "chat_message_rate_limited",
