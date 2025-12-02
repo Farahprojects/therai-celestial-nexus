@@ -348,7 +348,7 @@ export async function updateFolderProfile(folderId: string, profileId: string | 
  */
 export async function getFolderWithProfile(folderId: string): Promise<{
   folder: ChatFolder;
-  profile: any | null;
+  profile: Record<string, unknown> | null;
 }> {
   const { data: folder, error: folderError } = await supabase
     .from('chat_folders')

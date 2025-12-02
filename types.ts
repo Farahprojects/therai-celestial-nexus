@@ -42,7 +42,7 @@ export interface Project {
   techStack?: string[];
   completenessScore?: number;
   lastPushedAt?: string;
-  fileTree?: Record<string, any>;
+  fileTree?: Record<string, unknown>;
   processingStatus?: 'pending' | 'completed' | 'failed';
   processingError?: string;
 }

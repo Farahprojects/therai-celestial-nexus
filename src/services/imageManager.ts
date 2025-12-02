@@ -136,7 +136,7 @@ export class ImageManager {
   }
 
   static async saveEditedImage(blob: Blob, options: ImageEditOptions): Promise<ImageData> {
-    const { userId, section, serviceIndex, originalImageData } = options;
+    const { originalImageData } = options;
     
     try {
       // Generate new file path for edited image

@@ -3,7 +3,7 @@
  * Deep comparison utility for detecting meaningful changes in objects
  * Handles common cases where JSON.stringify might give false positives
  */
-export function deepEqual(obj1: any, obj2: any): boolean {
+export function deepEqual(obj1: unknown, obj2: unknown): boolean {
   if (obj1 === obj2) return true;
   
   if (obj1 == null || obj2 == null) return obj1 === obj2;
@@ -39,16 +39,16 @@ export function deepEqual(obj1: any, obj2: any): boolean {
  * Normalize data to ensure consistent comparison
  * Removes undefined values and sorts arrays/objects consistently
  */
-export function normalizeForComparison(data: any): any {
+export function normalizeForComparison(data: unknown): unknown {
   if (data === null || data === undefined) return null;
-  
+
   if (typeof data !== 'object') return data;
-  
+
   if (Array.isArray(data)) {
     return data.map(normalizeForComparison).filter(item => item !== undefined);
   }
-  
-  const normalized: any = {};
+
+  const normalized: Record<string, unknown> = {};
   const keys = Object.keys(data).sort();
   
   for (const key of keys) {

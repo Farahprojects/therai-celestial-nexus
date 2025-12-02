@@ -21,7 +21,7 @@ interface PaymentMethod {
     exp_month: number;
     exp_year: number;
   } | null;
-  billing_details: any;
+  billing_details: Record<string, unknown>;
   is_default: boolean;
 }
 
@@ -122,7 +122,7 @@ const SubscriptionManagementPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
-  const [subscriptionData, setSubscriptionData] = useState<any>(null);
+  const [subscriptionData, setSubscriptionData] = useState<{ subscription_status?: string; subscription_next_charge?: string } | null>(null);
   const [showAddPaymentMethod, setShowAddPaymentMethod] = useState(false);
   const [setupIntentClientSecret, setSetupIntentClientSecret] = useState<string | null>(null);
   const [showCancelModal, setShowCancelModal] = useState(false);
@@ -130,7 +130,7 @@ const SubscriptionManagementPage: React.FC = () => {
   useEffect(() => {
     if (!user) return;
     fetchData();
-  }, [user]);
+  }, [user, fetchData]);
 
   const fetchData = async () => {
     if (!user) return;
@@ -315,7 +315,7 @@ const SubscriptionManagementPage: React.FC = () => {
                       </Button>
                     </div>
                     {STRIPE_PUBLISHABLE_KEY && stripePromise && (
-                      <Elements stripe={stripePromise} options={options as any}>
+                      <Elements stripe={stripePromise} options={options as Record<string, unknown>}>
                         <PaymentMethodForm
                           clientSecret={setupIntentClientSecret}
                           onSuccess={handlePaymentMethodAdded}

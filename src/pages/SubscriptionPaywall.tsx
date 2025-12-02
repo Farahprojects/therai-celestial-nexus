@@ -19,7 +19,6 @@ const SubscriptionPaywall: React.FC = () => {
   const [searchParams] = useSearchParams();
   const [loadingPlanId, setLoadingPlanId] = useState<string | null>(null);
   const [pricingPlans, setPricingPlans] = useState<PricingData[]>([]);
-  const [abTestGroup, setAbTestGroup] = useState<string | null>(null);
 
   const renderFeature = (feature: string) => {
     const isVoiceFeature = feature.toLowerCase().includes('voice');
@@ -139,7 +138,7 @@ const SubscriptionPaywall: React.FC = () => {
           console.error('Error fetching pricing:', error);
         } else {
           // Start with clean slate - build exactly what we want to show
-          const planMap = new Map<string, any>();
+          const planMap = new Map<string, PricingData>();
           
           // Add all fetched plans to map
           (data || []).forEach(plan => {
@@ -156,7 +155,7 @@ const SubscriptionPaywall: React.FC = () => {
             throw new Error('Missing free plan');
           }
 
-          let plusOrGrowthPlan: any | null = null;
+          let plusOrGrowthPlan: PricingData | null = null;
           if (shouldShowPlus) {
             plusOrGrowthPlan = planMap.get('8_monthly');
             if (!plusOrGrowthPlan) {

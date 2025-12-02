@@ -21,10 +21,13 @@ export const isValidImageUrl = (url: string): boolean => {
   return url.startsWith('data:image/') || imageExtensions.test(url);
 };
 
-export const getValidImageUrl = (imageData: any): string | null => {
+export const getValidImageUrl = (imageData: unknown): string | null => {
   // Handle new ImageData format
-  if (imageData && typeof imageData === 'object' && imageData.url) {
-    return isValidImageUrl(imageData.url) ? imageData.url : null;
+  if (imageData && typeof imageData === 'object' && imageData !== null && 'url' in imageData) {
+    const url = (imageData as { url: unknown }).url;
+    if (typeof url === 'string') {
+      return isValidImageUrl(url) ? url : null;
+    }
   }
   
   // Handle legacy string format
@@ -35,6 +38,6 @@ export const getValidImageUrl = (imageData: any): string | null => {
   return null;
 };
 
-export const hasValidImage = (imageData: any): boolean => {
+export const hasValidImage = (imageData: unknown): boolean => {
   return getValidImageUrl(imageData) !== null;
 };

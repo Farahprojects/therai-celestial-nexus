@@ -142,7 +142,7 @@ class AuthManager {
         redirectTo
       });
 
-      const { data, error } = await supabase.auth.signInWithOAuth({
+      const { error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
           // Redirect back to /therai with redirect param preserved

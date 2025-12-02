@@ -14,7 +14,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { getRedirectPath } from '@/utils/redirectUtils';
 
 // Debug utility - logs enabled in production for debugging
-const debug = (...args: any[]) => {
+const debug = (...args: unknown[]) => {
   console.log('[Signup]', ...args);
 };
 
@@ -35,7 +35,6 @@ const Signup = () => {
   const [errorMsg, setErrorMsg] = useState<React.ReactNode>('');
   const [signupSuccess, setSignupSuccess] = useState(false);
   const [verificationEmail, setVerificationEmail] = useState('');
-  const [currentUserId, setCurrentUserId] = useState('');
 
   const emailValid = validateEmail(email);
   const passwordValid = password.length >= 8;
@@ -73,7 +72,7 @@ const Signup = () => {
     try {
       debug('Attempting signup for:', email);
       
-      const { error, user: newUser } = await signUp(email, password);
+      const { error } = await signUp(email, password);
       
       if (error) {
         debug('Signup error:', error);
@@ -106,7 +105,7 @@ const Signup = () => {
       
       setVerificationEmail(email);
       setSignupSuccess(true);
-    } catch (err: any) {
+    } catch (err: unknown) {
       debug('Signup exception:', err);
       setErrorMsg('An unexpected error occurred. Please try again.');
     } finally {
@@ -123,7 +122,7 @@ const Signup = () => {
         debug('Google sign in error:', error);
         setErrorMsg(error.message || 'Google sign in failed');
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       debug('Google sign in exception:', err);
       setErrorMsg('An error occurred with Google sign in');
     }
@@ -138,7 +137,7 @@ const Signup = () => {
         debug('Apple sign in error:', error);
         setErrorMsg(error.message || 'Apple sign in failed');
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       debug('Apple sign in exception:', err);
       setErrorMsg('An error occurred with Apple sign in');
     }

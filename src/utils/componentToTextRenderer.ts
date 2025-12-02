@@ -58,19 +58,21 @@ const renderIndividualAsText = (reportData: ReportData): string => {
   text += '\n';
   if (natal?.angles?.length > 0) {
     text += 'CHART ANGLES\n------------\n';
-    natal.angles.forEach((angle: any) => {
-      const degInt = Math.floor(angle.deg || 0);
-      text += `${angle.name}: ${String(degInt)}' in ${angle.sign}\n`;
+    natal.angles.forEach((angle: unknown) => {
+      const angleObj = angle as { deg?: number; name?: string; sign?: string };
+      const degInt = Math.floor(angleObj.deg || 0);
+      text += `${angleObj.name || 'Unknown'}: ${String(degInt)}' in ${angleObj.sign || 'Unknown'}\n`;
     });
     text += '\n';
   }
 
   if (natal?.planets?.length > 0) {
     text += 'NATAL PLANETARY POSITIONS\n-------------------------\n';
-    natal.planets.forEach((planet: any) => {
-      const degInt = Math.floor(planet.deg || 0);
-      const sign = String(planet.sign || '').padEnd(10);
-      let line = `${(planet.name || '').padEnd(10)}: ${String(degInt).padStart(2, '0')}° ${sign}`;
+    natal.planets.forEach((planet: unknown) => {
+      const planetObj = planet as { deg?: number; sign?: string; name?: string };
+      const degInt = Math.floor(planetObj.deg || 0);
+      const sign = String(planetObj.sign || '').padEnd(10);
+      let line = `${(planetObj.name || '').padEnd(10)}: ${String(degInt).padStart(2, '0')}° ${sign}`;
       if (planet.house) line += ` (H${planet.house})`;
       if (planet.retrograde) line += ' R';
       text += line + '\n';
@@ -80,9 +82,10 @@ const renderIndividualAsText = (reportData: ReportData): string => {
 
   if (natal?.aspects?.length > 0) {
     text += 'NATAL ASPECTS\n-------------\n';
-    natal.aspects.forEach((aspect: any) => {
-      const orb = typeof aspect.orb === 'number' ? aspect.orb.toFixed(2) : 'N/A';
-      text += `${aspect.a} ${aspect.type} ${aspect.b} (Orb: ${orb}°)\n`;
+    natal.aspects.forEach((aspect: unknown) => {
+      const aspectObj = aspect as { orb?: number; a?: string; type?: string; b?: string };
+      const orb = typeof aspectObj.orb === 'number' ? aspectObj.orb.toFixed(2) : 'N/A';
+      text += `${aspectObj.a || ''} ${aspectObj.type || ''} ${aspectObj.b || ''} (Orb: ${orb}°)\n`;
     });
     text += '\n';
   }
@@ -106,13 +109,15 @@ const renderSynastryAsText = (reportData: ReportData): string => {
 
   text += `Compatibility Analysis between ${personA.name} and ${personB.name}\n\n`;
 
-  const renderPerson = (person: any) => {
-    let personText = `${person.name.toUpperCase()}'S NATAL DATA\n`;
-    personText += '-'.repeat(person.name.length + 12) + '\n\n';
-    if (person.planets?.length > 0) {
-      person.planets.forEach((planet: any) => {
-        let line = `${(planet.name || '').padEnd(10)}: ${String(Math.floor(planet.deg)).padStart(2, '0')}° ${planet.sign.padEnd(10)}`;
-        if (planet.house) line += ` (H${planet.house})`;
+  const renderPerson = (person: unknown) => {
+    const personObj = person as { name?: string; planets?: unknown[] };
+    let personText = `${(personObj.name || 'Unknown').toUpperCase()}'S NATAL DATA\n`;
+    personText += '-'.repeat((personObj.name || 'Unknown').length + 12) + '\n\n';
+    if (personObj.planets?.length > 0) {
+      personObj.planets.forEach((planet: unknown) => {
+        const planetObj = planet as { name?: string; deg?: number; sign?: string; house?: number };
+        let line = `${(planetObj.name || '').padEnd(10)}: ${String(Math.floor(planetObj.deg || 0)).padStart(2, '0')}° ${(planetObj.sign || '').padEnd(10)}`;
+        if (planetObj.house) line += ` (H${planetObj.house})`;
         if (planet.retrograde) line += ' R';
         personText += line + '\n';
       });
@@ -129,8 +134,9 @@ const renderSynastryAsText = (reportData: ReportData): string => {
   if (synastry_aspects?.aspects?.length > 0) {
     text += 'SYNASTRY ASPECTS\n';
     text += '----------------\n';
-    synastry_aspects.aspects.forEach((aspect: any) => {
-      text += `${aspect.a} ${aspect.type} ${aspect.b} (Orb: ${aspect.orb?.toFixed(2)}°)\n`;
+    synastry_aspects.aspects.forEach((aspect: unknown) => {
+      const aspectObj = aspect as { a?: string; type?: string; b?: string; orb?: number };
+      text += `${aspectObj.a || ''} ${aspectObj.type || ''} ${aspectObj.b || ''} (Orb: ${aspectObj.orb?.toFixed(2)}°)\n`;
     });
     text += '\n';
   }

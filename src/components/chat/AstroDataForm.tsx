@@ -260,7 +260,7 @@ export const AstroDataForm: React.FC<AstroDataFormProps> = ({
       if (explicitMode === 'insight' || mode === 'insight') {
         conversationMode = 'insight';
         // Use insight type name (Personal, Professional, Compatibility, etc.)
-        title = getInsightTitle(data.name, reportType || '', data.secondPersonName);
+        title = getInsightTitle(reportType || '');
       } else if (explicitMode === 'swiss') {
         conversationMode = 'swiss';
         const chartTypeName = getSwissChartDisplayName(selectedAstroType || '');

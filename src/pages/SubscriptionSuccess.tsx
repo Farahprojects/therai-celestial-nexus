@@ -84,14 +84,14 @@ const SubscriptionSuccess: React.FC = () => {
       if (data?.url) {
         window.open(data.url, '_blank');
       }
-    } catch (err) {
+    } catch (_err: unknown) {
       toast.error('Failed to open customer portal');
     }
   };
 
   useEffect(() => {
     checkSubscription();
-  }, []);
+  }, [checkSubscription]);
 
   if (loading) {
     return (

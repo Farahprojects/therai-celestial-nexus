@@ -45,13 +45,11 @@ export class EmailParser {
     ];
 
     let quotedStartIndex = -1;
-    let usedPattern = null;
 
     for (const pattern of quotedPatterns) {
       const match = cleanedBody.match(pattern);
       if (match && match.index !== undefined) {
         quotedStartIndex = match.index;
-        usedPattern = pattern;
         break;
       }
     }

@@ -57,7 +57,7 @@ export const getSyncScore = async (conversationId: string): Promise<MemeData | n
     return null;
   }
 
-  const syncMeme = (data?.meta as any)?.sync_meme;
+  const syncMeme = (data?.meta as { sync_meme?: string })?.sync_meme;
   return syncMeme || null;
 };
 
@@ -79,8 +79,8 @@ export const getConversationPersons = async (
   }
 
   // Extract names from meta - they should be stored during conversation creation
-  const meta = data?.meta as any;
-  
+  const meta = data?.meta as { person_a_name?: string; person_b_name?: string };
+
   return {
     personA: meta?.person_a_name || 'Person A',
     personB: meta?.person_b_name || 'Person B',

@@ -40,7 +40,7 @@ class AuthService {
         user: session.user,
         needsRefresh
       };
-    } catch (_error) {
+    } catch {
       return { isValid: false, session: null, user: null, needsRefresh: true };
     }
   }
@@ -69,7 +69,7 @@ class AuthService {
       }
 
       return session;
-    } catch (_error) {
+    } catch {
       return null;
     }
   }
@@ -109,7 +109,7 @@ class AuthService {
       }
 
       return true;
-    } catch (_error) {
+    } catch {
       return false;
     }
   }

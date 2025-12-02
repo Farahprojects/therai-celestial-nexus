@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import {
   Card,
   CardHeader,
@@ -147,16 +147,17 @@ const ResetPassword: React.FC = () => {
         // Call edge function to verify token
         finishSuccess(token);
 
-      } catch (err: any) {
+      } catch (err: unknown) {
+        const error = err as Error & { status?: number; code?: string };
         console.error(`[PASSWORD-VERIFY:${requestId}] ✗ VERIFICATION FAILED:`, {
-          message: err?.message,
-          status: err?.status,
-          code: err?.code,
-          details: err,
+          message: error?.message,
+          status: error?.status,
+          code: error?.code,
+          details: error,
         });
-        
+
         setStatus('error');
-        const msg = err?.message ?? 'Verification failed – link may have expired.';
+        const msg = error?.message ?? 'Verification failed – link may have expired.';
         setMessage(msg);
         showToast({ variant: 'destructive', title: 'Verification failed', description: msg });
       }

@@ -5,7 +5,7 @@ import Footer from '@/components/Footer';
 import { CategoryCard } from '@/components/support/CategoryCard';
 import { FAQSection } from '@/components/support/FAQSection';
 import { Button } from '@/components/ui/button';
-import { supportCategories, faqData, SupportCategory, FAQItem } from '@/constants/supportContent';
+import { supportCategories, faqData, SupportCategory } from '@/constants/supportContent';
 import { HelpCircle } from 'lucide-react';
 import { SEO } from '@/components/SEO';
 

@@ -138,12 +138,13 @@ export const insightsService = {
       console.log('🚀 SERVICE: Response error:', error);
       
       if (error) {
+        const errorDetails = error as Error & { status?: number; statusText?: string; details?: unknown };
         console.error('🚀 SERVICE: Edge function error details:', {
           message: error.message,
           name: error.name,
-          status: (error as any).status,
-          statusText: (error as any).statusText,
-          details: (error as any).details
+          status: errorDetails.status,
+          statusText: errorDetails.statusText,
+          details: errorDetails.details
         });
         return {
           success: false,

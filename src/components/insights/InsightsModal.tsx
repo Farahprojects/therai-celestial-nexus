@@ -162,7 +162,7 @@ export const InsightsModal: React.FC<InsightsModalProps> = ({
         };
 
         // Create title using same logic as AstroDataForm
-        const title = getInsightTitle(profileData.name, reportType, undefined);
+        const title = getInsightTitle(reportType);
 
         // Import conversation creation
         const { createConversation } = await import('@/services/conversations');
@@ -209,7 +209,7 @@ export const InsightsModal: React.FC<InsightsModalProps> = ({
   
   const handleFormSubmit = (data: ReportFormData & { chat_id?: string }) => {
     if (data.chat_id && selectedReportType) {
-      const fallbackTitle = getInsightTitle(data.name || '', selectedReportType, data.secondPersonName);
+      const fallbackTitle = getInsightTitle(selectedReportType);
       onReportCreated?.({
         id: data.chat_id,
         title: fallbackTitle,

@@ -132,7 +132,7 @@ export class ImageCacheManager {
     if ('serviceWorker' in navigator && 'caches' in window) {
       try {
         // Register service worker for image caching
-        const registration = await navigator.serviceWorker.register('/sw.js');
+        await navigator.serviceWorker.register('/sw.js');
         console.log('Service Worker registered for image caching');
 
         // Clean up old caches

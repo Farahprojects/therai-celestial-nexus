@@ -12,7 +12,7 @@ export interface FolderDocument {
   content_text: string | null;
   upload_status: 'pending' | 'processing' | 'completed' | 'failed';
   error_message: string | null;
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
   created_at: string;
   updated_at: string;
 }
@@ -25,7 +25,7 @@ export async function uploadDocument(
   userId: string,
   folderId: string,
   file: File,
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
 ): Promise<FolderDocument> {
   // Extract file information
   const fileExtension = file.name.split('.').pop()?.toLowerCase() || '';
@@ -157,7 +157,6 @@ export async function uploadFileToStorage(
   folderId: string,
   file: File
 ): Promise<string> {
-  const fileExtension = file.name.split('.').pop()?.toLowerCase() || '';
   const fileName = `${userId}/${folderId}/${Date.now()}_${file.name}`;
 
   const { data, error } = await supabase.storage

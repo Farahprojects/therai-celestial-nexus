@@ -52,7 +52,6 @@ const Pricing: React.FC = () => {
   };
 
   const getPlanFeatures = (plan: PricingData) => {
-    const planId = plan.id;
     const planName = plan.name || '';
 
     const freeFeatures = [
@@ -139,7 +138,7 @@ const Pricing: React.FC = () => {
           console.error('Error fetching pricing:', error);
         } else {
           // Start with clean slate - build exactly what we want to show
-          const planMap = new Map<string, any>();
+          const planMap = new Map<string, PricingData>();
           
           // Add all fetched plans to map
           (data || []).forEach(plan => {
@@ -156,7 +155,7 @@ const Pricing: React.FC = () => {
             throw new Error('Missing free plan');
           }
 
-          let plusOrGrowthPlan: any | null = null;
+          let plusOrGrowthPlan: PricingData | null = null;
           if (shouldShowPlus) {
             plusOrGrowthPlan = planMap.get('8_monthly');
             if (!plusOrGrowthPlan) {
