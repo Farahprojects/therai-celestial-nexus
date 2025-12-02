@@ -12,7 +12,6 @@ import Legal from './pages/Legal';
 import Pricing from './pages/Pricing';
 import Support from './pages/Support';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { useIsNativeApp } from '@/hooks/use-native-app';
 import SubscriptionPaywall from './pages/SubscriptionPaywall';
 import SubscriptionSuccess from './pages/SubscriptionSuccess';
 import Blog from './pages/Blog';

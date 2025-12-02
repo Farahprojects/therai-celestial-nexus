@@ -5,8 +5,6 @@ import { supabase } from '@/integrations/supabase/client';
 import EmailInput from '@/components/auth/EmailInput';
 import { validateEmail } from '@/utils/authValidation';
 import { ArrowLeft, CheckCircle } from 'lucide-react';
-import { Link } from 'react-router-dom';
-import { getAbsoluteUrl } from '@/utils/urlUtils';
 
 interface ForgotPasswordFormProps {
   onCancel: () => void;

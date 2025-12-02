@@ -54,7 +54,7 @@ const isToday = (d: Date) => {
   return d?.toDateString() === now.toDateString();
 };
 
-const MobileMonthView = ({ date, sessions, onSessionClick, onDayClick }: Props) => {
+const MobileMonthView = ({ date, sessions, onDayClick }: Props) => {
   const grid = getMonthGrid(date);
   const viewMonth = date.getMonth();
 

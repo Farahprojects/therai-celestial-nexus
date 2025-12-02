@@ -14,14 +14,12 @@ interface ShareImageModalProps {
   isOpen: boolean;
   onClose: () => void;
   imageUrl: string;
-  imagePrompt?: string;
 }
 
 export const ShareImageModal: React.FC<ShareImageModalProps> = ({
   isOpen,
   onClose,
   imageUrl,
-  imagePrompt,
 }) => {
   const handleCopyLink = async () => {
     try {

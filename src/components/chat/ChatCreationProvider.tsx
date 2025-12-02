@@ -10,6 +10,21 @@ import { InsightsModal } from '@/components/insights/InsightsModal';
 import { AstroChartSelector } from '@/components/chat/AstroChartSelector';
 import { AstroDataForm } from '@/components/chat/AstroDataForm';
 import { ProfileSelectorModal } from '@/components/sync/ProfileSelectorModal';
+
+interface Profile {
+  id: string;
+  profile_name: string;
+  name: string;
+  birth_date: string;
+  birth_time: string;
+  birth_location: string;
+  birth_latitude: number | null;
+  birth_longitude: number | null;
+  birth_place_id: string | null;
+  timezone: string | null;
+  house_system: string | null;
+  is_primary: boolean;
+}
 import { ReportFormData } from '@/types/public-report';
 import { AuthModal } from '@/components/auth/AuthModal';
 import { supabase } from '@/integrations/supabase/client';
@@ -127,7 +142,7 @@ export const ChatCreationProvider: React.FC<ChatCreationProviderProps> = ({
     setShowSyncScoreModal(true);
   }, [requireEligibleUser]);
 
-  const handleProfileSelect = useCallback(async (selectedProfile: any) => {
+  const handleProfileSelect = useCallback(async (selectedProfile: Profile) => {
     if (!user) return;
 
     try {

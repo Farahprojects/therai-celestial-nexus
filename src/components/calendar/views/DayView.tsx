@@ -2,9 +2,7 @@
 import React from "react";
 import { CalendarSession } from "@/types/calendar";
 import { EventCard } from "../EventCard";
-import EmptySlot from "../EmptySlot";
 
-const BUSINESS_START = 9, BUSINESS_END = 17;
 const TIMEBLOCKS = Array.from({ length: 13 }, (_, i) => 8 + i); // 8:00–20:00
 
 type Props = {
@@ -14,10 +12,6 @@ type Props = {
   onMoveSession: (id: string, newStart: Date, newEnd: Date) => void;
 };
 
-const isToday = (date: Date) => {
-  const now = new Date();
-  return now.toDateString() === date.toDateString();
-};
 
 const DayView = ({ date, sessions, onSessionClick }: Props) => {
   const slotHeight = 40;

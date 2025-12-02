@@ -66,7 +66,7 @@ export const ImageGallery = ({
   useEffect(() => {
     if (!isOpen || !user) return;
 
-    const handleImageInsert = (payload: any) => {
+    const handleImageInsert = (payload: { image: { id: string; chat_id?: string; created_at: string; image_url: string; image_prompt: string; image_path: string } }) => {
       const { image } = payload;
       
       if (image) {
@@ -122,7 +122,7 @@ export const ImageGallery = ({
         if (!loadMore) setImages([]);
       } else {
         // Transform user_images format to ImageMessage format for compatibility
-        const transformedImages: ImageMessage[] = (data || []).map((img: any) => ({
+        const transformedImages: ImageMessage[] = (data || []).map((img: { id: string; chat_id?: string; created_at: string; image_url: string; image_prompt: string; image_path: string }) => ({
           id: img.id,
           chat_id: img.chat_id || '',
           created_at: img.created_at,
@@ -346,12 +346,6 @@ export const ImageGallery = ({
   }
 
   // Single Image View
-  const currentIndex = images.findIndex(img => img.id === selectedImage.id);
-  const selectImageByIndex = (index: number) => {
-    if (index >= 0 && index < images.length) {
-      setSelectedImage(images[index]);
-    }
-  };
 
   // Desktop Single Image View
   if (!isMobile) {

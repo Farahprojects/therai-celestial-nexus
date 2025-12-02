@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { User, CalendarDays, Target, Users, ChevronRight, X } from 'lucide-react';
+import { User, CalendarDays, Users, ChevronRight, X } from 'lucide-react';
 
 interface ChartType {
   id: string;

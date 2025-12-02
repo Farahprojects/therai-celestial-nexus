@@ -11,7 +11,7 @@ import { updateConversationTitle } from '@/services/conversations';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { getUserFolders, getFolderConversations, moveConversationToFolder, createFolder } from '@/services/folders';
+import { getUserFolders, moveConversationToFolder, createFolder } from '@/services/folders';
 import { FolderModal } from '@/components/folders/FolderModal';
 import type { Tables } from '@/integrations/supabase/types';
 
@@ -74,7 +74,7 @@ export const ChatMenuButton: React.FC<ChatMenuButtonProps> = ({
     if (onEditStart) onEditStart();
   };
 
-  const handleDelete = async (conversationId: string) => {
+  const handleDelete = async () => {
     setShowDeleteDialog(true);
     if (onDeleteStart) onDeleteStart();
   };

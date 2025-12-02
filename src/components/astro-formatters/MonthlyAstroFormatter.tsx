@@ -14,6 +14,11 @@ interface TopEvent {
   orb: number;
 }
 
+interface Subject {
+  name?: string;
+  [key: string]: unknown;
+}
+
 interface DailyScore {
   date: string;
   score: number;
@@ -56,7 +61,7 @@ export const MonthlyAstroFormatter: React.FC<MonthlyAstroFormatterProps> = ({
   const parsed = parseAstroData(swissData);
   const monthly = parsed?.monthly ?? swissData?.monthly;
   const meta = parsed?.meta ?? swissData?.meta ?? {};
-  const subject = parsed?.subject ?? swissData?.subject ?? {};
+  const subject = (parsed?.subject ?? swissData?.subject ?? {}) as Subject;
 
   if (!monthly) {
     return (
@@ -150,7 +155,7 @@ export const MonthlyAstroFormatter: React.FC<MonthlyAstroFormatterProps> = ({
                     </AccordionTrigger>
                     <AccordionContent>
                       <ul className="list-disc pl-5 text-gray-600 text-sm space-y-1">
-                        {day.events.map((event: string, i: number) => (
+                        {day.events?.map((event: string, i: number) => (
                           <li key={i}>{event}</li>
                         ))}
                       </ul>

@@ -78,11 +78,12 @@ const PasswordResetForm: React.FC<PasswordResetFormProps> = ({ onSuccess }) => {
         onSuccess();
       }, 2000);
 
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to update password. Please try again.';
       showToast({
         variant: 'destructive',
         title: 'Update Failed',
-        description: error.message || 'Failed to update password. Please try again.'
+        description: errorMessage
       });
     } finally {
       setIsUpdating(false);

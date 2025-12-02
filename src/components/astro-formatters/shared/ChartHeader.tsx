@@ -23,12 +23,11 @@ export const ChartHeader: React.FC<ChartHeaderProps> = ({
   subtitle
 }) => {
   const coordinates = latitude && longitude ? `${latitude}°, ${longitude}°` : '';
-  const displayTitle = title || `${name}'s Astro Data`;
   
   return (
     <div className="text-center mb-6 md:mb-12 pb-4 md:pb-8 border-b border-gray-200">
       <h1 className="text-3xl md:text-4xl font-light text-gray-900 mb-6 md:mb-8 tracking-tight">
-        {name}
+        {title || `${name}'s Astro Data`}
       </h1>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 md:gap-x-8 gap-y-4 text-sm md:text-sm text-gray-700 max-w-lg mx-auto">
         <div className="md:text-right">

@@ -81,9 +81,10 @@ const SignupModal: React.FC<SignupModalProps> = ({ onSuccess }) => {
         // Redirect to paywall instead of showing verification screen
         navigate('/subscription-paywall');
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.log('[SignupModal] Signup exception:', error);
-      setErrorMsg(error.message || 'An unexpected error occurred. Please try again.');
+      const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred. Please try again.';
+      setErrorMsg(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -96,7 +97,7 @@ const SignupModal: React.FC<SignupModalProps> = ({ onSuccess }) => {
         // Social login successful, redirect to paywall
         navigate('/subscription-paywall');
       }
-    } catch (error) {
+    } catch {
       showToast({
         title: 'Sign up failed',
         description: 'Unable to sign up with Google. Please try again.',
@@ -112,7 +113,7 @@ const SignupModal: React.FC<SignupModalProps> = ({ onSuccess }) => {
         // Social login successful, redirect to paywall
         navigate('/subscription-paywall');
       }
-    } catch (error) {
+    } catch {
       showToast({
         title: 'Sign up failed',
         description: 'Unable to sign up with Apple. Please try again.',
@@ -133,7 +134,7 @@ const SignupModal: React.FC<SignupModalProps> = ({ onSuccess }) => {
           description: 'Please check your inbox and click the verification link.',
         });
       }
-    } catch (err) {
+    } catch {
       showToast({
         title: 'Error',
         description: 'An error occurred while resending the email.',

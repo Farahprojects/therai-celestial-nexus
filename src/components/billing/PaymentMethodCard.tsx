@@ -26,7 +26,7 @@ export const PaymentMethodCard: React.FC<PaymentMethodCardProps> = ({ brand, las
       if (data?.url) {
         window.open(data.url, '_blank');
       }
-    } catch (err) {
+    } catch {
       toast.error('Failed to open billing portal');
     } finally {
       setLoading(false);

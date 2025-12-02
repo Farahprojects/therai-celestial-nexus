@@ -24,7 +24,7 @@ export const CancelSubscriptionModal: React.FC<CancelSubscriptionModalProps> = (
   const handleCancel = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('cancel-subscription', {
+      const { error } = await supabase.functions.invoke('cancel-subscription', {
         body: { cancelImmediately },
       });
 

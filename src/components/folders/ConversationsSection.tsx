@@ -1,6 +1,6 @@
 import React from 'react';
 import { Sparkles, MoreHorizontal } from 'lucide-react';
-import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent } from '@/components/ui/dropdown-menu';
+import { DropdownMenu, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { ConversationActionsMenuContent } from '@/components/chat/ConversationActionsMenu';
 
 interface Conversation {

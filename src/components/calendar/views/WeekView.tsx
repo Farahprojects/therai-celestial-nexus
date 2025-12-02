@@ -47,7 +47,6 @@ export default function WeekView({ date, sessions, onSessionClick }: Props) {
 
       <div className="grid grid-cols-7 min-h-[200px] relative border-t border-gray-100">
         {days.map((day, index) => {
-          const dayIsToday = isToday(day);
           const dayBg = "bg-white";
           const daySessions = sessions.filter(sess => sess.start_time.toDateString() === day.toDateString());
           return (

@@ -54,7 +54,7 @@ export const MobileDaySelector: React.FC<Props> = ({
 
   return (
     <div className="flex justify-between mb-2 px-1">
-      {days.map((date, i) => {
+      {days.map((date) => {
         const key = date.toISOString().slice(0, 10);
         const selected = isSameDay(date, selectedDay);
         const isToday = isSameDay(date, today);

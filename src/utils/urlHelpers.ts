@@ -20,15 +20,15 @@ export const getGuestReportIdFromStorage = (): string | null => {
 /**
  * Set guest report ID in sessionStorage (no longer in URL)
  */
-export const setGuestReportIdInStorage = (guestReportId: string): void => {
+export const setGuestReportIdInStorage = (): void => {
   // Guest report ID is no longer stored in sessionStorage
 };
 
 /**
  * @deprecated Use setGuestReportIdInStorage instead
  */
-export const setGuestReportIdInUrl = (guestReportId: string): void => {
-  setGuestReportIdInStorage(guestReportId);
+export const setGuestReportIdInUrl = (): void => {
+  setGuestReportIdInStorage();
 };
 
 /**
@@ -76,7 +76,7 @@ export const getGuestReportId = (): string | null => {
  * Comprehensive guest session reset for 404 errors
  * Clears all in-memory state, React Query cache, and storage
  */
-export const resetGuestSessionOn404 = async (queryClient?: any): Promise<void> => {
+export const resetGuestSessionOn404 = async (queryClient?: unknown): Promise<void> => {
   console.warn('🔄 Resetting guest session due to 404 error...');
   
   try {
@@ -131,10 +131,9 @@ export const clearGuestReportId = (): void => {
 /**
  * Enhanced comprehensive session clearing with React Query cache and state reset callbacks
  */
-export const clearAllSessionData = async (stateResetCallbacks?: (() => void)[], queryClient?: any): Promise<void> => {
-  log('debug', 'Starting comprehensive session clearing', null, 'urlHelpers');
-  
+export const clearAllSessionData = async (stateResetCallbacks?: (() => void)[], queryClient?: unknown): Promise<void> => {
   try {
+    log('debug', 'Starting comprehensive session clearing', null, 'urlHelpers');
     // Execute state reset callbacks first (before clearing storage)
     if (stateResetCallbacks && stateResetCallbacks.length > 0) {
       console.log('🔄 Executing state reset callbacks...');
@@ -172,7 +171,7 @@ export const clearAllSessionData = async (stateResetCallbacks?: (() => void)[], 
     });
 
     // Clear React Query cache more comprehensively
-    if (queryClient) {
+    if (queryClient && typeof queryClient === 'object' && 'removeQueries' in queryClient) {
       try {
         // Clear all guest-related queries
         queryClient.removeQueries({ queryKey: ['guest-report-data'] });
@@ -180,12 +179,12 @@ export const clearAllSessionData = async (stateResetCallbacks?: (() => void)[], 
         queryClient.removeQueries({ queryKey: ['guest-report-data', null] });
         queryClient.removeQueries({ queryKey: ['temp-report-data'] });
         queryClient.removeQueries({ queryKey: ['report-data'] });
-      
+
       // Clear any cached report payloads
       queryClient.removeQueries({ queryKey: ['report-payload'] });
-      
+
       console.log('✅ React Query cache cleared comprehensively');
-    } catch (error) {
+    } catch {
       console.log('⚠️ React Query not available for cache clearing');
     }
 
@@ -195,14 +194,15 @@ export const clearAllSessionData = async (stateResetCallbacks?: (() => void)[], 
     // Force garbage collection if available (Chrome only)
     if (typeof window !== 'undefined' && 'gc' in window) {
       try {
-        (window as any).gc();
+        (window as { gc?: () => void }).gc?.();
         console.log('🗑️ Garbage collection triggered');
-      } catch (error) {
+      } catch {
         console.log('⚠️ Garbage collection not available');
       }
     }
 
     console.log('✅ Comprehensive session clearing completed');
+  }
   } catch (error) {
     console.error('❌ Error during comprehensive session clearing:', error);
   }

@@ -1,8 +1,6 @@
 import React from "react";
 import { CalendarSession } from "@/types/calendar";
 
-// Dots will use color_tag, fallback is a nice color
-const getDotColor = (tag?: string) => tag || "#a5b4fc";
 
 type Props = {
   date: Date;

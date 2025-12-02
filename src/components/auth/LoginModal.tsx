@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button';
 import { showToast } from '@/utils/notifications';
 import EmailInput from '@/components/auth/EmailInput';
 import PasswordInput from '@/components/auth/PasswordInput';
-import SocialLogin from '@/components/auth/SocialLogin';
 import { CapacitorSocialLogin } from '@/components/auth/CapacitorSocialLogin';
 import { validateEmail } from '@/utils/authValidation';
 import { FcGoogle } from 'react-icons/fc';
@@ -33,7 +32,6 @@ const LoginModal: React.FC<LoginModalProps> = ({ onSuccess, showAsPage = false }
     loading: authLoading,
     pendingEmailAddress,
     isPendingEmailCheck,
-    clearPendingEmail,
   } = useAuth();
 
   // ————————————————————————————————————————————————
@@ -83,7 +81,7 @@ const LoginModal: React.FC<LoginModalProps> = ({ onSuccess, showAsPage = false }
       if (result.error) {
         setErrorMsg(result.error.message || 'Sign in failed');
       }
-    } catch (error) {
+    } catch {
       setErrorMsg('An unexpected error occurred. Please try again.');
     } finally {
       setLoading(false);
@@ -96,7 +94,7 @@ const LoginModal: React.FC<LoginModalProps> = ({ onSuccess, showAsPage = false }
   const handleGoogleSignIn = async () => {
     try {
       await signInWithGoogle();
-    } catch (error) {
+    } catch {
       showToast({
         title: 'Sign in failed',
         description: 'Unable to sign in with Google. Please try again.',
@@ -108,7 +106,7 @@ const LoginModal: React.FC<LoginModalProps> = ({ onSuccess, showAsPage = false }
   const handleAppleSignIn = async () => {
     try {
       await signInWithApple();
-    } catch (error) {
+    } catch {
       showToast({
         title: 'Sign in failed',
         description: 'Unable to sign in with Apple. Please try again.',
@@ -125,7 +123,7 @@ const LoginModal: React.FC<LoginModalProps> = ({ onSuccess, showAsPage = false }
     
     try {
       // Use the same resend verification function as signup flow
-      const { data, error } = await supabase.functions.invoke('resend-verification', {
+      const { error } = await supabase.functions.invoke('resend-verification', {
         body: { email }
       });
 
@@ -142,7 +140,7 @@ const LoginModal: React.FC<LoginModalProps> = ({ onSuccess, showAsPage = false }
       
       // Reset to idle after 3 seconds
       setTimeout(() => setResendState('idle'), 3000);
-    } catch (error: any) {
+    } catch (error: unknown) {
       setResendState('idle');
       showToast({
         title: 'Error',
@@ -152,15 +150,6 @@ const LoginModal: React.FC<LoginModalProps> = ({ onSuccess, showAsPage = false }
     }
   };
 
-  const handleVerificationFinished = () => {
-    setShowVerificationModal(false);
-    onSuccess?.();
-  };
-
-  const handleVerificationCancelled = () => {
-    setShowVerificationModal(false);
-    clearPendingEmail();
-  };
 
   // ————————————————————————————————————————————————
   // Render

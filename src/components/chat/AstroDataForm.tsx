@@ -9,7 +9,6 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { useMode } from '@/contexts/ModeContext';
-import { useLocation, useNavigate } from 'react-router-dom';
 import { getSwissChartDisplayName } from '@/constants/swissEndpoints';
 import { getAstroTitle, getInsightTitle } from '@/utils/reportTitles';
 import { astroRequestCategories } from '@/constants/report-types';
@@ -19,8 +18,6 @@ import { useAstroConversation } from '@/hooks/useAstroConversation';
 import { useAstroFormValidation } from '@/hooks/useAstroFormValidation';
 import { useAstroReportPayload } from '@/hooks/useAstroReportPayload';
 import { useProfileSaver } from '@/hooks/useProfileSaver';
-import { createFolder, moveConversationToFolder } from '@/services/folders';
-import { createConversation as createConversationService } from '@/services/conversations';
 
 // Step components
 import { AstroTypeStep } from './AstroForm/AstroTypeStep';
@@ -33,7 +30,6 @@ interface AstroDataFormProps {
   onBack?: () => void;
   preselectedType?: ReportType;
   reportType?: ReportType;
-  contextId?: string;
   isProfileFlow?: boolean;
   variant?: 'standalone' | 'insights';
   mode?: 'chat' | 'astro' | 'insight' | 'swiss' | 'together' | 'sync_score';
@@ -82,7 +78,6 @@ export const AstroDataForm: React.FC<AstroDataFormProps> = ({
   onBack,
   preselectedType,
   reportType,
-  contextId,
   isProfileFlow = false,
   variant = 'standalone',
   mode: explicitMode,
@@ -105,16 +100,13 @@ export const AstroDataForm: React.FC<AstroDataFormProps> = ({
   // Hooks
   const isMobile = useIsMobile();
   const { user } = useAuth();
-  const location = useLocation();
-  const navigate = useNavigate();
   const { mode: contextMode } = useMode();
-  const { createConversation: createAstroConversation, cleanupEmptyConversation } = useAstroConversation();
+  const { createConversation: createAstroConversation } = useAstroConversation();
   const { validatePrimaryPerson, validateSecondPerson } = useAstroFormValidation();
   const { buildReportPayload } = useAstroReportPayload();
   const { saveProfile } = useProfileSaver();
 
   const mode = explicitMode || contextMode;
-  const isAuthenticated = location.pathname.startsWith('/c/');
   const shouldDisableAnimations = isProfileFlow;
 
   // Form setup
@@ -123,7 +115,7 @@ export const AstroDataForm: React.FC<AstroDataFormProps> = ({
     defaultValues: { ...DEFAULT_FORM_VALUES, request: initialRequest, reportType },
   });
 
-  const { register, handleSubmit, setValue, setError, watch, formState: { errors } } = form;
+  const { register, setValue, setError, watch, formState: { errors } } = form;
   const formValues = watch();
 
   // Pre-fill name if provided (for onboarding flow)
@@ -323,7 +315,9 @@ export const AstroDataForm: React.FC<AstroDataFormProps> = ({
         }
         document.body.classList.remove('astro-form-open');
       }
-    } catch {}
+    } catch {
+      // Intentionally ignore errors during form close
+    }
     
     onClose();
   };
