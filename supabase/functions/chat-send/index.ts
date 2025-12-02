@@ -549,38 +549,104 @@ async function handleSingleMessageWithMode(
           ? "Your free trial has ended. Upgrade to Growth ($10/month) for unlimited AI conversations! 🚀"
           : `You've used your ${rateLimitCheck.limit} free messages today. Upgrade to Growth for unlimited chats!`;
 
-        throw new HttpError(429, limitMessage);
+        // 🚫 BLOCKED: Save user message AND create assistant response with limit message
+        // Don't trigger LLM processing
+
+        const userMessage = {
+          ...message,
+          status: "complete"
+        };
+
+        const assistantMessage = {
+          chat_id: payload.chat_id,
+          role: "assistant" as const,
+          text: limitMessage,
+          client_msg_id: crypto.randomUUID(),
+          status: "complete",
+          mode: payload.mode,
+          user_id: null,
+          user_name: null,
+          meta: {
+            message_type: "rate_limit_response",
+            error_code: rateLimitCheck.error_code,
+            limit: rateLimitCheck.limit,
+            remaining: rateLimitCheck.remaining
+          }
+        };
+
+        // Insert both messages synchronously
+        const [userResult, assistantResult] = await Promise.all([
+          supabase.from("messages").insert(userMessage).select("*").single(),
+          supabase.from("messages").insert(assistantMessage).select("*").single()
+        ]);
+
+        if (userResult.error || assistantResult.error) {
+          console.error("Failed to save rate limit messages:", {
+            userError: userResult.error,
+            assistantError: assistantResult.error
+          });
+          throw new HttpError(500, "Failed to save messages");
+        }
+
+        // Broadcast both messages
+        await Promise.all([
+          broadcastMessageInsert(payload.chat_id, userResult.data, payload.user_id, requestId),
+          broadcastMessageInsert(payload.chat_id, assistantResult.data, payload.user_id, requestId)
+        ]);
+
+        // Return messages (don't trigger LLM)
+        return {
+          messages: [userResult.data, assistantResult.data],
+          processing_time_ms: Date.now() - startTime
+        };
       }
     }
 
-    // Fire-and-forget for user messages
-    supabase
+    // ✅ ALLOWED: Proceed with normal message handling
+    // Insert user message synchronously (not fire-and-forget)
+    const { data: insertedMessage, error: insertError } = await supabase
       .from("messages")
       .insert(message)
       .select("*")
-      .single()
-      .then(({ data, error: dbError }) => {
-        if (dbError) {
-          console.error(JSON.stringify({
-            event: "chat_send_db_insert_failed",
-            request_id: requestId,
-            error: dbError.message,
-            role: "user"
-          }));
-          return;
-        }
+      .single();
 
-        console.info(JSON.stringify({
-          event: "chat_send_db_insert_complete",
-          request_id: requestId,
-          duration_ms: Date.now() - startTime,
-          role: "user"
-        }));
+    if (insertError) {
+      console.error(JSON.stringify({
+        event: "message_insert_failed",
+        request_id: requestId,
+        error: insertError.message
+      }));
+      throw new HttpError(500, "Failed to save message");
+    }
 
-        if (data) {
-          broadcastMessageInsert(payload.chat_id, data, payload.user_id, requestId);
-        }
-      });
+    // Continue with normal LLM triggering logic
+    const { shouldStart: shouldStartLLM, handlerName } = await shouldTriggerLLM(
+      role,
+      payload.chattype,
+      conversationMode
+    );
+
+    if (shouldStartLLM && handlerName) {
+      // Broadcast thinking state
+      broadcastAssistantThinking(payload.chat_id, payload.user_id, requestId)
+        .catch(() => { /* already logged */ });
+
+      // Trigger LLM (fire-and-forget)
+      triggerLLM(handlerName, {
+        chat_id: payload.chat_id,
+        text: payload.text,
+        mode: payload.mode,
+        user_id: payload.user_id,
+        user_name: payload.user_name,
+        analyze: payload.analyze
+      }, requestId);
+    }
+
+    // Return the user message
+    return {
+      messages: [insertedMessage],
+      processing_time_ms: Date.now() - startTime
+    };
   } else {
     // Await for assistant messages
     const { data, error: dbError } = await supabase
