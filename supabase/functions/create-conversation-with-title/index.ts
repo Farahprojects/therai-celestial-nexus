@@ -1,12 +1,7 @@
 // @ts-nocheck - Deno runtime
 // create-conversation-with-title: Generate smart title using Gemini 2.0 Flash and create conversation
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-
-const CORS_HEADERS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-};
+import { withStandardHandling, withAuth, HttpError } from '../_shared/authHelper.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
 const SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
@@ -20,7 +15,7 @@ if (!SUPABASE_URL || !SERVICE_ROLE_KEY || !ANON_KEY || !GOOGLE_API_KEY) {
 function jsonResponse(data: any, status = 200) {
   return new Response(JSON.stringify(data), {
     status,
-    headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json' },
   });
 }
 
@@ -83,88 +78,68 @@ Title:`;
   }
 }
 
-async function getAuthUserId(req: Request): Promise<string> {
-  const auth = req.headers.get('Authorization');
-  if (!auth) throw new Error('Missing Authorization header');
+// Core handler logic - separated from auth concerns
+async function createConversationHandler(req: Request, authCtx: any): Promise<Response> {
+  // Parse request body
+  const body = await req.json();
+  const { message, mode = 'chat', report_data } = body;
 
-  const supabase = createClient(SUPABASE_URL, ANON_KEY, {
-    global: { headers: { Authorization: auth } },
-    auth: { persistSession: false, autoRefreshToken: false },
+  if (!message || typeof message !== 'string') {
+    throw new HttpError(400, 'message is required');
+  }
+
+  // Generate title using Gemini 2.0 Flash
+  console.log('[Title Gen] Generating title for message:', message.slice(0, 50));
+  const title = await generateTitle(message);
+  console.log('[Title Gen] Generated title:', title);
+
+  // Create conversation with generated title
+  const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
+    auth: { persistSession: false },
   });
 
-  const { data, error } = await supabase.auth.getUser();
-  if (error || !data?.user) throw new Error('Invalid or expired token');
-  return data.user.id;
+  const conversationData: any = {
+    user_id: authCtx.userId,
+    owner_user_id: authCtx.userId,
+    title,
+    mode,
+    // profile_id will be looked up by extract-user-memory if needed
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  };
+
+  // Include report_data if provided (for astro/swiss modes)
+  if (report_data) {
+    conversationData.meta = { report_data };
+  }
+
+  const { data: conversation, error: convError } = await admin
+    .from('conversations')
+    .insert(conversationData)
+    .select('id')
+    .single();
+
+  if (convError) {
+    console.error('[Title Gen] Failed to create conversation:', convError);
+    throw new HttpError(500, 'Failed to create conversation');
+  }
+
+  console.log('[Title Gen] Created conversation:', conversation.id);
+
+  return jsonResponse({
+    success: true,
+    conversation_id: conversation.id,
+    title,
+  });
 }
 
 Deno.serve(async (req: Request) => {
-  // Handle CORS
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: CORS_HEADERS });
-  }
-
-  try {
-    // Authenticate user
-    const userId = await getAuthUserId(req);
-
-    // Parse request body
-    const body = await req.json();
-    const { message, mode = 'chat', report_data } = body;
-
-    if (!message || typeof message !== 'string') {
-      return jsonResponse({ error: 'message is required' }, 400);
+  return withStandardHandling(req, async () => {
+    if (req.method !== 'POST') {
+      throw new HttpError(405, 'Method not allowed');
     }
 
-    // Generate title using Gemini 2.0 Flash
-    console.log('[Title Gen] Generating title for message:', message.slice(0, 50));
-    const title = await generateTitle(message);
-    console.log('[Title Gen] Generated title:', title);
-
-    // Create conversation with generated title
-    const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
-      auth: { persistSession: false },
-    });
-
-    const conversationData: any = {
-      user_id: userId,
-      owner_user_id: userId,
-      title,
-      mode,
-      // profile_id will be looked up by extract-user-memory if needed
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
-
-    // Include report_data if provided (for astro/swiss modes)
-    if (report_data) {
-      conversationData.meta = { report_data };
-    }
-
-    const { data: conversation, error: convError } = await admin
-      .from('conversations')
-      .insert(conversationData)
-      .select('id')
-      .single();
-
-    if (convError) {
-      console.error('[Title Gen] Failed to create conversation:', convError);
-      return jsonResponse({ error: 'Failed to create conversation' }, 500);
-    }
-
-    console.log('[Title Gen] Created conversation:', conversation.id);
-
-    return jsonResponse({
-      success: true,
-      conversation_id: conversation.id,
-      title,
-    });
-
-  } catch (error) {
-    console.error('[Title Gen] Error:', error);
-    return jsonResponse(
-      { error: error instanceof Error ? error.message : 'Internal server error' },
-      500
-    );
-  }
+    return withAuth(req, (authCtx) => createConversationHandler(req, authCtx));
+  });
 });
 

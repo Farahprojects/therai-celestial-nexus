@@ -3,6 +3,7 @@
 // ============================================================================
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { getSecureCorsHeaders } from "./secureCors.ts";
 
 export interface AuthContext {
   isInternalCall: boolean;
@@ -120,4 +121,135 @@ export function parseJsonBody(req: Request): Promise<any> {
   return req.json().catch(() => {
     throw new HttpError(400, "Invalid JSON body");
   });
+}
+
+// ============================================================================
+// MIDDLEWARE FUNCTIONS
+// ============================================================================
+
+/**
+ * Auth middleware that validates user authentication and provides auth context
+ */
+export async function withAuth(
+  req: Request,
+  handler: (authCtx: AuthContext) => Promise<Response>
+): Promise<Response> {
+  try {
+    const authCtx = getAuthContext(req);
+
+    // For non-internal calls, validate the auth token
+    if (!authCtx.isInternalCall) {
+      await authenticateUserIfNeeded(authCtx, undefined, crypto.randomUUID().substring(0, 8));
+    }
+
+    return await handler(authCtx);
+  } catch (err) {
+    if (err instanceof HttpError) {
+      return new Response(JSON.stringify({ error: err.message }), {
+        status: err.status,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+    console.error("Auth middleware error:", err);
+    return new Response(JSON.stringify({ error: "Authentication failed" }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+}
+
+/**
+ * Auth middleware that validates conversation access
+ */
+export async function withConversationAuth(
+  req: Request,
+  chatId: string,
+  handler: (authCtx: AuthContext, conversation: { conversationExists: boolean; mode?: string }) => Promise<Response>
+): Promise<Response> {
+  try {
+    const authCtx = getAuthContext(req);
+
+    // Authenticate user (skip for internal calls)
+    if (!authCtx.isInternalCall) {
+      await authenticateUserIfNeeded(authCtx, undefined, crypto.randomUUID().substring(0, 8));
+    }
+
+    // Check conversation access
+    const conversationResult = await ensureConversationAccess(authCtx, chatId, crypto.randomUUID().substring(0, 8));
+
+    return await handler(authCtx, conversationResult);
+  } catch (err) {
+    if (err instanceof HttpError) {
+      return new Response(JSON.stringify({ error: err.message }), {
+        status: err.status,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+    console.error("Conversation auth middleware error:", err);
+    return new Response(JSON.stringify({ error: "Authentication or access check failed" }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+}
+
+/**
+ * Standard CORS response for preflight requests
+ */
+export function handleCorsPreflight(req: Request): Response | null {
+  if (req.method === "OPTIONS") {
+    return new Response(null, {
+      headers: getSecureCorsHeaders(req),
+    });
+  }
+  return null;
+}
+
+/**
+ * Wrap a handler with standard error handling and CORS
+ */
+export async function withStandardHandling(
+  req: Request,
+  handler: () => Promise<Response>
+): Promise<Response> {
+  // Handle CORS preflight
+  const corsResponse = handleCorsPreflight(req);
+  if (corsResponse) return corsResponse;
+
+  try {
+    const response = await handler();
+
+    // Add CORS headers to the response
+    const corsHeaders = getSecureCorsHeaders(req);
+    const responseHeaders = new Headers(response.headers);
+
+    Object.entries(corsHeaders).forEach(([key, value]) => {
+      responseHeaders.set(key, value);
+    });
+
+    return new Response(response.body, {
+      status: response.status,
+      statusText: response.statusText,
+      headers: responseHeaders,
+    });
+  } catch (err) {
+    if (err instanceof HttpError) {
+      return new Response(JSON.stringify({ error: err.message }), {
+        status: err.status,
+        headers: {
+          "Content-Type": "application/json",
+          ...getSecureCorsHeaders(req),
+        },
+      });
+    }
+
+    console.error("Handler error:", err);
+    return new Response(JSON.stringify({ error: "Internal server error" }), {
+      status: 500,
+      headers: {
+        "Content-Type": "application/json",
+        ...getSecureCorsHeaders(req),
+      },
+    });
+  }
 }
