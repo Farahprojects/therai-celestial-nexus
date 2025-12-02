@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { showToast } from "@/utils/notifications";
 import { useAuth } from "@/contexts/AuthContext";
@@ -342,7 +342,8 @@ export function useUserData() {
   // UTILITY FUNCTIONS
   // ============================================================================
 
-  const getDisplayName = useCallback(() => {
+  // Memoize displayName computation to avoid expensive calculations on every render
+  const displayName = useMemo(() => {
     if (!data.profile) return user?.email?.split('@')[0] || 'User';
     return data.profile.display_name || user?.email?.split('@')[0] || 'User';
   }, [data.profile, user?.email]);
@@ -378,16 +379,16 @@ export function useUserData() {
   return {
     // Data
     ...data,
-    
+
     // Computed values
-    displayName: getDisplayName(),
-    
+    displayName,
+
     // Update functions
     updateDisplayName,
     updateMainNotificationsToggle,
     updateClientViewMode,
     updateTtsVoice,
-    
+
     // Utility functions
     refresh,
     fetchData: fetchUserData,
