@@ -210,7 +210,7 @@ async function shouldTriggerLLM(
 
   return {
     shouldStart: true,
-    handlerName: await getLLMHandler(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY),
+    handlerName: await getLLMHandler(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!),
   };
 }
 

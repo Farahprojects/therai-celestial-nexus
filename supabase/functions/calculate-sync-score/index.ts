@@ -532,14 +532,16 @@ Deno.serve(async (req) => {
 
     // Fire-and-forget: Create placeholder and broadcast
     getOrCreatePlaceholderMessage(chat_id, userId, targetMessageId)
-      .then((msg) => {
-        if (!message_id) {
-          return broadcastMessage(userId, chat_id, msg);
+      .then(
+        (msg) => {
+          if (!message_id) {
+            return broadcastMessage(userId, chat_id, msg);
+          }
+        },
+        (error) => {
+          console.error('[Message] Background creation failed:', error);
         }
-      })
-      .catch((error) => {
-        console.error('[Message] Background creation failed:', error);
-      });
+      );
 
     // ========================================================================
     // STEP 5: FIRE-AND-FORGET ASYNC TASKS
