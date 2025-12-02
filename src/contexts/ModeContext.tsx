@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { useMessageStore } from '@/stores/messageStore';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './AuthContext';
@@ -91,21 +91,28 @@ export const ModeProvider: React.FC<ModeProviderProps> = ({ children }) => {
     }
   }, [chat_id, messages]);
 
-  const handleSetMode = (newMode: ChatMode) => {
+  const handleSetMode = useCallback((newMode: ChatMode) => {
     // Mode is immutable after creation (locked after first message)
     // No need to save changes since dropdown is disabled when locked
     if (!isModeLocked) {
       setMode(newMode);
     }
-  };
+  }, [isModeLocked]);
+
+  const contextValue = useMemo(() => ({
+    mode,
+    setMode: handleSetMode,
+    isModeLocked,
+    isLoading
+  }), [
+    mode,
+    handleSetMode,
+    isModeLocked,
+    isLoading
+  ]);
 
   return (
-    <ModeContext.Provider value={{ 
-      mode, 
-      setMode: handleSetMode, 
-      isModeLocked,
-      isLoading
-    }}>
+    <ModeContext.Provider value={contextValue}>
       {children}
     </ModeContext.Provider>
   );

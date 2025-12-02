@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useMemo } from 'react';
 import { log } from '@/utils/logUtils';
 
 interface StripeSuccessState {
@@ -43,7 +43,7 @@ export const StripeSuccessProvider: React.FC<StripeSuccessProviderProps> = ({ ch
 
 
 
-  const clearStripeSuccess = () => {
+  const clearStripeSuccess = useCallback(() => {
     log('info', '🔄 Clearing Stripe success state', null, 'stripeSuccess');
     setStripeSuccess({
       showSuccessModal: false,
@@ -53,9 +53,9 @@ export const StripeSuccessProvider: React.FC<StripeSuccessProviderProps> = ({ ch
       isProcessing: false,
       showOriginalSuccessScreen: false
     });
-  };
+  }, []);
 
-  const proceedToReport = () => {
+  const proceedToReport = useCallback(() => {
     log('info', '🔄 Proceeding to original success screen', { guestId: stripeSuccess.guestId }, 'stripeSuccess');
     setStripeSuccess(prev => ({
       ...prev,
@@ -63,15 +63,22 @@ export const StripeSuccessProvider: React.FC<StripeSuccessProviderProps> = ({ ch
       isProcessing: false,
       showOriginalSuccessScreen: true
     }));
-  };
+  }, [stripeSuccess.guestId]);
+
+  const contextValue = useMemo(() => ({
+    stripeSuccess,
+    setStripeSuccess,
+    clearStripeSuccess,
+    proceedToReport
+  }), [
+    stripeSuccess,
+    setStripeSuccess,
+    clearStripeSuccess,
+    proceedToReport
+  ]);
 
   return (
-    <StripeSuccessContext.Provider value={{
-      stripeSuccess,
-      setStripeSuccess,
-      clearStripeSuccess,
-      proceedToReport
-    }}>
+    <StripeSuccessContext.Provider value={contextValue}>
       {children}
     </StripeSuccessContext.Provider>
   );

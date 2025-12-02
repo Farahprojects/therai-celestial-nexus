@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSubscriptionStatus } from '@/hooks/useSubscriptionStatus';
@@ -90,23 +90,31 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
     }
   }, [user, isActive, loading, location.pathname, location.search]);
 
-  const dismissToast = () => {
+  const dismissToast = useCallback(() => {
     setShowToast(false);
     localStorage.setItem(TOAST_DISMISS_KEY, Date.now().toString());
-  };
+  }, []);
+
+  const contextValue = useMemo(() => ({
+    showToast,
+    dismissToast,
+    isSubscriptionActive: isActive, // Use actual subscription status
+    subscriptionPlan: plan,
+    loading,
+    isPastDue,
+    daysUntilCancellation
+  }), [
+    showToast,
+    dismissToast,
+    isActive,
+    plan,
+    loading,
+    isPastDue,
+    daysUntilCancellation
+  ]);
 
   return (
-    <SubscriptionContext.Provider
-      value={{
-        showToast,
-        dismissToast,
-        isSubscriptionActive: isActive, // Use actual subscription status
-        subscriptionPlan: plan,
-        loading,
-        isPastDue,
-        daysUntilCancellation
-      }}
-    >
+    <SubscriptionContext.Provider value={contextValue}>
       {children}
       
       {/* Show different toast based on subscription status */}

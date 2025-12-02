@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { useLocation } from 'react-router-dom';
 import { isPasswordResetUrl } from '@/utils/urlUtils';
 
@@ -131,7 +131,7 @@ const NavigationStateProvider: React.FC<NavigationStateProviderProps> = ({ child
   }, [location.pathname, location.search]);
 
   // Clear navigation state (used on signout)
-  const clearNavigationState = () => {
+  const clearNavigationState = useCallback(() => {
     try {
       if (typeof window !== 'undefined') {
         localStorage.removeItem('last_route');
@@ -142,14 +142,14 @@ const NavigationStateProvider: React.FC<NavigationStateProviderProps> = ({ child
     } catch (e) {
       console.error('Error clearing navigation state:', e);
     }
-  };
+  }, []);
 
   // More robust safe redirect path retrieval
-  const getSafeRedirectPath = (): string => {
+  const getSafeRedirectPath = useCallback((): string => {
     try {
       let storedPath = '/';
       let storedParams = '';
-      
+
       // Try to get from state first (most recent)
       if (lastRoute && !isDashboardPath(lastRoute)) {
         storedPath = lastRoute;
@@ -167,25 +167,32 @@ const NavigationStateProvider: React.FC<NavigationStateProviderProps> = ({ child
           }
         }
       }
-      
+
       return `${storedPath}${storedParams}`;
     } catch (e) {
       console.error('Error in getSafeRedirectPath:', e);
       return '/';
     }
-  };
+  }, [lastRoute, lastRouteParams]);
+
+  const contextValue = useMemo(() => ({
+    lastRoute,
+    setLastRoute,
+    lastRouteParams,
+    setLastRouteParams,
+    clearNavigationState,
+    getSafeRedirectPath
+  }), [
+    lastRoute,
+    setLastRoute,
+    lastRouteParams,
+    setLastRouteParams,
+    clearNavigationState,
+    getSafeRedirectPath
+  ]);
 
   return (
-    <NavigationStateContext.Provider 
-      value={{ 
-        lastRoute, 
-        setLastRoute, 
-        lastRouteParams, 
-        setLastRouteParams,
-        clearNavigationState,
-        getSafeRedirectPath
-      }}
-    >
+    <NavigationStateContext.Provider value={contextValue}>
       {children}
     </NavigationStateContext.Provider>
   );
