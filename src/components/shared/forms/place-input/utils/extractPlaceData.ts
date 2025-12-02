@@ -7,7 +7,12 @@ export interface PlaceData {
   placeId?: string;
 }
 
-export const extractPlaceData = (place: any): PlaceData => {
+export const extractPlaceData = (place: {
+  displayName?: { text?: string };
+  formattedAddress?: string;
+  location?: { latitude?: number; longitude?: number };
+  id?: string;
+}): PlaceData => {
   const placeData: PlaceData = {
     name: '',
   };

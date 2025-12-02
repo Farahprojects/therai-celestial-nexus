@@ -1,11 +1,12 @@
 import React from 'react';
 import { Input } from '@/components/ui/input';
+import { PlaceData } from '../utils/extractPlaceData';
 
 interface ClientAutocompleteProps {
   id: string;
   value: string;
   onChange: (value: string) => void;
-  onPlaceSelect?: (placeData: any) => void;
+  onPlaceSelect?: (placeData: PlaceData) => void;
   placeholder: string;
   disabled: boolean;
   className?: string;

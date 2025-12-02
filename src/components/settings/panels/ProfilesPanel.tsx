@@ -19,7 +19,6 @@ export const ProfilesPanel = () => {
   const isMobile = useIsMobile();
   const [profiles, setProfiles] = useState<SavedProfile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [profileToDelete, setProfileToDelete] = useState<string | null>(null);
@@ -27,7 +26,6 @@ export const ProfilesPanel = () => {
   const [isSaving, setIsSaving] = useState(false);
   
   // Form state
-  const [profileName, setProfileName] = useState('');
   const [name, setName] = useState('');
   const [birthDate, setBirthDate] = useState('');
   const [birthTime, setBirthTime] = useState('');

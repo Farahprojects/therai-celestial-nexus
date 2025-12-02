@@ -4,10 +4,9 @@ import { FAQItem } from '@/constants/supportContent';
 
 interface FAQSectionProps {
   faqs: FAQItem[];
-  searchQuery: string;
 }
 
-export const FAQSection: React.FC<FAQSectionProps> = ({ faqs, searchQuery }) => {
+export const FAQSection: React.FC<FAQSectionProps> = ({ faqs }) => {
   if (faqs.length === 0) {
     return (
       <div className="text-center py-16">

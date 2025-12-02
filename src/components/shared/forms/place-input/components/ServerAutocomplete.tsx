@@ -92,7 +92,7 @@ export const ServerAutocomplete: React.FC<ServerAutocompleteProps> = ({
     // Set new debounce timer
     debounceRef.current = setTimeout(() => {
       searchPlaces(newValue);
-    }, 300) as any;
+    }, 300);
   };
 
   const handlePlaceSelect = async (prediction: Prediction) => {

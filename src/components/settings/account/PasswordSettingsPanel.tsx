@@ -158,21 +158,19 @@ export const PasswordSettingsPanel = () => {
       setResetEmailSent(false);
       
       // Use password_token edge function to reset password
-      const { data, error } = await supabase.functions.invoke('password_token', {
+      const { error } = await supabase.functions.invoke('password_token', {
         body: {
           email: userEmail
         }
       });
 
-      const success = data?.success;
-      
-      if (!success) {
+      if (error) {
         return;
       }
       
       // Show inline success message instead of toast
       setResetEmailSent(true);
-    } catch (error: any) {
+    } catch {
       // Error handled silently
     }
   };

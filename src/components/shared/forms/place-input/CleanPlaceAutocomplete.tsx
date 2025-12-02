@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Loader2, MapPin, X, ArrowLeft } from 'lucide-react';
+import { Loader2, MapPin, ArrowLeft } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { PlaceData } from './utils/extractPlaceData';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -29,8 +29,7 @@ export const CleanPlaceAutocomplete = ({
   value = "", 
   onChange, 
   onPlaceSelect, 
-  placeholder = "Enter a location", 
-  required = false, 
+  placeholder = "Enter a location",
   className = "", 
   id = "placeAutocomplete",
   disabled = false,
@@ -115,7 +114,7 @@ export const CleanPlaceAutocomplete = ({
       // Set new debounce
       debounceRef.current = setTimeout(() => {
         searchPlaces(newValue);
-      }, 300) as any;
+      }, 300);
     };
 
     const handlePlaceSelect = async (prediction: Prediction) => {
@@ -322,7 +321,7 @@ export const CleanPlaceAutocomplete = ({
               {/* Results */}
               <div className="flex-1 overflow-auto">
                 {predictions.length > 0 ? (
-                  predictions.map((prediction, index) => (
+                  predictions.map((prediction) => (
                     <div
                       key={prediction.place_id}
                       className="px-4 py-4 border-b border-border cursor-pointer hover:bg-muted transition-colors active:bg-muted"

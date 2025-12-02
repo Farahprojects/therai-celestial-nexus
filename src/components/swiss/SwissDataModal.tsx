@@ -8,7 +8,7 @@ interface SwissDataModalProps {
   isOpen: boolean;
   onClose: () => void;
   onViewData?: () => void;
-  swissData: any | null;
+  swissData: Record<string, unknown> | null;
   isLoading: boolean;
   error: string | null;
   chartType?: string;
@@ -122,7 +122,7 @@ export const SwissDataModal: React.FC<SwissDataModalProps> = ({
       
       // Reset copied state after 2 seconds
       setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
+    } catch {
       toast.error('Failed to copy data');
     }
   };
