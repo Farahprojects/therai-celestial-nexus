@@ -56,43 +56,7 @@ export const ImageGallery = ({
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
-  useEffect(() => {
-    if (isOpen && user) {
-      loadImages();
-    }
-  }, [isOpen, user, loadImages]);
 
-  // Listen for real-time image inserts
-  useEffect(() => {
-    if (!isOpen || !user) return;
-
-    const handleImageInsert = (payload: { image: { id: string; chat_id?: string; created_at: string; image_url: string; image_prompt: string; image_path: string } }) => {
-      const { image } = payload;
-      
-      if (image) {
-        // Transform to ImageMessage format and prepend to list
-        const newImage: ImageMessage = {
-          id: image.id,
-          chat_id: image.chat_id || '',
-          created_at: image.created_at,
-          meta: {
-            image_url: image.image_url,
-            image_prompt: image.prompt || '',
-            image_path: image.image_path || ''
-          }
-        };
-        
-        setImages(prev => [newImage, ...prev]);
-      }
-    };
-
-    // Subscribe to unified channel image-insert events
-    const unsubscribe = unifiedChannel.on('image-insert', handleImageInsert);
-
-    return () => {
-      if (unsubscribe) unsubscribe();
-    };
-  }, [isOpen, user]);
   const loadImages = useCallback(async (loadMore = false) => {
     if (!user?.id) return;
     if (loadMore) {
@@ -154,6 +118,44 @@ export const ImageGallery = ({
       setLoadingMore(false);
     }
   }, [user?.id, images.length]);
+
+  useEffect(() => {
+    if (isOpen && user) {
+      loadImages();
+    }
+  }, [isOpen, user, loadImages]);
+
+  // Listen for real-time image inserts
+  useEffect(() => {
+    if (!isOpen || !user) return;
+
+    const handleImageInsert = (payload: { image: { id: string; chat_id?: string; created_at: string; image_url: string; image_prompt: string; image_path: string } }) => {
+      const { image } = payload;
+      
+      if (image) {
+        // Transform to ImageMessage format and prepend to list
+        const newImage: ImageMessage = {
+          id: image.id,
+          chat_id: image.chat_id || '',
+          created_at: image.created_at,
+          meta: {
+            image_url: image.image_url,
+            image_prompt: image.prompt || '',
+            image_path: image.image_path || ''
+          }
+        };
+        
+        setImages(prev => [newImage, ...prev]);
+      }
+    };
+
+    // Subscribe to unified channel image-insert events
+    const unsubscribe = unifiedChannel.on('image-insert', handleImageInsert);
+
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
+  }, [isOpen, user]);
   const handleOpenChat = (image: ImageMessage) => {
     if (image.chat_id) {
       navigate(`/c/${image.chat_id}`);
