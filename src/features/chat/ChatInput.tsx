@@ -15,7 +15,7 @@ import { unifiedWebSocketService } from '@/services/websocket/UnifiedWebSocketSe
 import { supabase } from '@/integrations/supabase/client';
 import { Message } from '@/core/types';
 import { UpgradeNotification } from '@/components/subscription/UpgradeNotification';
-import { STTLimitExceededError } from '@/services/voice/stt';
+import { STTLimitExceededError } from '@/services/voice/stt-errors';
 // Using unified message store for all message management
 
 // Stop icon component

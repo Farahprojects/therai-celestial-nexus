@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { UniversalSTTRecorder } from '@/services/audio/UniversalSTTRecorder';
-import { STTLimitExceededError } from '@/services/voice/stt';
+import { STTLimitExceededError } from '@/services/voice/stt-errors';
 import { showToast } from '@/utils/notifications';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserData } from '@/hooks/useUserData';

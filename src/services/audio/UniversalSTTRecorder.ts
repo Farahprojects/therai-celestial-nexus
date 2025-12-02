@@ -1,6 +1,6 @@
 // Simple Universal STT Recorder - production-hardened
 
-import { STTLimitExceededError } from '@/services/voice/stt';
+import { STTLimitExceededError } from '@/services/voice/stt-errors';
 import { Capacitor } from '@capacitor/core';
 import BluetoothAudio from '@/plugins/BluetoothAudio';
 
@@ -785,11 +785,11 @@ export class UniversalSTTRecorder {
   private async sendToSTT(audioBlob: Blob): Promise<void> {
     try {
       const sttModule = await import('@/services/voice/stt');
-      const storeModule = await import('@/core/store');
+      const storeUtils = await import('@/core/store-utils');
       const { sttService } = sttModule;
-      
+
       // Use provided chat_id from options, or fall back to store
-      const chat_id = this.options.chat_id || storeModule.useChatStore.getState().chat_id;
+      const chat_id = this.options.chat_id || storeUtils.getCurrentChatId();
 
       if (!chat_id) {
         throw new Error('No chat_id available for STT');

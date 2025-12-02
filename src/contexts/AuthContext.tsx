@@ -179,10 +179,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         
         // Clear chat stores when user signs out (downstream cleanup)
         try {
-          const { triggerMessageStoreSelfClean } = await import('@/stores/messageStore');
-          const { useChatStore } = await import('@/core/store');
+          const { triggerMessageStoreSelfClean } = await import('@/stores/messageStore-utils');
+          const storeUtils = await import('@/core/store-utils');
           await triggerMessageStoreSelfClean();
-          useChatStore.getState().clearAllData();
+          storeUtils.getCurrentChatState().clearAllData();
         } catch (error) {
           console.warn('Could not clear chat stores on sign out:', error);
         }

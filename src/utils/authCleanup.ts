@@ -5,12 +5,12 @@ export const cleanupAuthState = async () => {
   // Clear chat stores first (downstream from auth)
   try {
     // Clear message store using dynamic import (works in browser)
-    const { triggerMessageStoreSelfClean } = await import('@/stores/messageStore');
+    const { triggerMessageStoreSelfClean } = await import('@/stores/messageStore-utils');
     await triggerMessageStoreSelfClean();
     
     // Clear chat store using dynamic import (works in browser)
-    const { useChatStore } = await import('@/core/store');
-    useChatStore.getState().clearAllData();
+    const storeUtils = await import('@/core/store-utils');
+    storeUtils.getCurrentChatState().clearAllData();
   } catch (error) {
     console.warn('Could not clear chat stores during auth cleanup:', error);
   }

@@ -31,7 +31,7 @@ import { HIDDEN_SETTINGS_PANELS, useSettingsModal, type SettingsPanelType } from
 import { ConversationActionsMenuContent } from '@/components/chat/ConversationActionsMenu';
 import { ShareConversationModal } from '@/components/chat/ShareConversationModal';
 import { ShareFolderModal } from '@/components/folders/ShareFolderModal';
-import { getConversation, updateConversationTitle } from '@/services/conversations';
+import { getConversation, updateConversationTitle } from '@/services/conversations-static';
 import { getUserFolders, createFolder, updateFolderName, deleteFolder, getFolderConversations, getSharedFolder, moveConversationToFolder } from '@/services/folders';
 import { supabase } from '@/integrations/supabase/client';
 import { PullToRefresh } from '@/components/ui/PullToRefresh';

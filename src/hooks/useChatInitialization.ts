@@ -46,8 +46,8 @@ export const useChatInitialization = () => {
         // Load the chat when on a folder route with chat_id query param
         const loadThread = async () => {
           try {
-            const { useMessageStore } = await import('@/stores/messageStore');
-            useMessageStore.getState().setChatId(chatIdFromQuery);
+            const { getMessageStoreState } = await import('@/stores/messageStore-utils');
+            getMessageStoreState().setChatId(chatIdFromQuery);
             startConversation(chatIdFromQuery);
             await chatController.switchToChat(chatIdFromQuery);
           } catch (error) {
@@ -67,8 +67,8 @@ export const useChatInitialization = () => {
       const loadThread = async () => {
         try {
           // Use the same direct flow as handleSwitchToChat
-          const { useMessageStore } = await import('@/stores/messageStore');
-          useMessageStore.getState().setChatId(routeChatId);
+          const { getMessageStoreState } = await import('@/stores/messageStore-utils');
+          getMessageStoreState().setChatId(routeChatId);
           startConversation(routeChatId);
           await chatController.switchToChat(routeChatId);
         } catch (error) {

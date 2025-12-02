@@ -119,8 +119,8 @@ const ConfirmEmail: React.FC = () => {
 
         // OTP Flow
         const token = hash.get('token') || search.get('token');
-        const tokenType = hash.get('type') || search.get('type');
-        const email = hash.get('email') || search.get('email');
+        const tokenType: string | null = hash.get('type') || search.get('type');
+        const email: string | null = hash.get('email') || search.get('email');
 
         console.log(`[EMAIL-VERIFY:${requestId}] → Flow: OTP method`);
         console.log(`[EMAIL-VERIFY:${requestId}] OTP params - token: ${!!token}, type: ${tokenType}, email: ${email}`);
@@ -145,7 +145,7 @@ const ConfirmEmail: React.FC = () => {
         // Call edge function to verify token and update profile
         finishSuccess(tokenType.startsWith('sign') ? 'signup' : 'email_change', token, email);
 
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error(`[EMAIL-VERIFY:${requestId}] ✗ VERIFICATION FAILED:`, {
           message: err?.message,
           status: err?.status,

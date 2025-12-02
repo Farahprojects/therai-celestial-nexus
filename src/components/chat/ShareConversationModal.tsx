@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, Copy, Check, Link } from 'lucide-react';
-import { shareConversation, unshareConversation } from '@/services/conversations';
+import { shareConversation, unshareConversation } from '@/services/conversations-static';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 

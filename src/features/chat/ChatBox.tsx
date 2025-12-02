@@ -180,7 +180,7 @@ export const ChatBox: React.FC<ChatBoxProps> = ({ onDelete }) => {
             
             // ✅ Create optimistic placeholder message immediately (instant canvas loader)
             const placeholderMessageId = crypto.randomUUID();
-            const { addOptimisticMessage } = await import('@/stores/messageStore').then(m => m.useMessageStore.getState());
+            const { addOptimisticMessage } = await import('@/stores/messageStore-utils');
             addOptimisticMessage({
               id: placeholderMessageId,
               chat_id: chat_id,
@@ -240,7 +240,7 @@ export const ChatBox: React.FC<ChatBoxProps> = ({ onDelete }) => {
           if (dataReady) {
             // ✅ Create optimistic placeholder message immediately (instant canvas loader)
             const placeholderMessageId = crypto.randomUUID();
-            const { addOptimisticMessage } = await import('@/stores/messageStore').then(m => m.useMessageStore.getState());
+            const { addOptimisticMessage } = await import('@/stores/messageStore-utils');
             addOptimisticMessage({
               id: placeholderMessageId,
               chat_id: chat_id,

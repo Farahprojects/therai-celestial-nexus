@@ -12,7 +12,7 @@ import { VoiceBubble } from './VoiceBubble';
 // Universal audio pipeline
 import { UniversalSTTRecorder } from '@/services/audio/UniversalSTTRecorder';
 import { ttsPlaybackService } from '@/services/voice/TTSPlaybackService';
-import { STTLimitExceededError } from '@/services/voice/stt';
+import { STTLimitExceededError } from '@/services/voice/stt-errors';
 // llmService import removed - not used in this file
 import { unifiedChannel } from '@/services/websocket/UnifiedChannelService';
 import { motion, AnimatePresence } from 'framer-motion';

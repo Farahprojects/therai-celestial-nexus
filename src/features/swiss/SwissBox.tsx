@@ -53,7 +53,7 @@ export const SwissBox: React.FC<SwissBoxProps> = ({ onDelete }) => {
     setSelectedChartType(null);
   };
 
-  const handleFormSubmit = async (data: any) => {
+  const handleFormSubmit = async (data: { chat_id: string }) => {
     if (!user) return;
 
     try {
@@ -78,7 +78,7 @@ export const SwissBox: React.FC<SwissBoxProps> = ({ onDelete }) => {
       // Close form
       setShowAstroForm(false);
       setSelectedChartType(null);
-    } catch (error) {
+    } catch (error: unknown) {
       // Handle error silently or show user-friendly message
     }
   };

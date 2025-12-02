@@ -10,7 +10,7 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import type { Database, Tables, TablesUpdate } from '@/integrations/supabase/types';
 import { createFolder, moveConversationToFolder, updateFolderProfile } from '@/services/folders';
-import { clearPrimaryProfileIdCache } from '@/services/conversations';
+import { clearPrimaryProfileIdCache } from '@/services/conversations-static';
 type ProfileRow = Tables<'profiles'>;
 type UserProfileRow = Tables<'user_profile_list'>;
 

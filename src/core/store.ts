@@ -198,8 +198,8 @@ export const useChatStore = create<ChatState>()((set, get) => ({
 
   clearChat: () => {
     // Clear message store when clearing chat
-    import('@/stores/messageStore').then(({ useMessageStore }) => {
-      useMessageStore.getState().clearMessages();
+    import('@/stores/messageStore-utils').then(({ getMessageStoreState }) => {
+      getMessageStoreState().clearMessages();
     });
 
     // Clean up memory when clearing chat

@@ -1,23 +1,7 @@
 // src/services/voice/stt.ts
 import { supabase } from '@/integrations/supabase/client';
 import { useChatStore } from '@/core/store';
-
-// Custom error class for STT limit exceeded
-export class STTLimitExceededError extends Error {
-  errorCode: string;
-  currentUsage: number;
-  limit: number;
-  remaining: number;
-
-  constructor(message: string, errorCode: string, currentUsage: number, limit: number, remaining: number) {
-    super(message);
-    this.name = 'STTLimitExceededError';
-    this.errorCode = errorCode;
-    this.currentUsage = currentUsage;
-    this.limit = limit;
-    this.remaining = remaining;
-  }
-}
+import { STTLimitExceededError } from './stt-errors';
 
 class SttService {
   async transcribe(audioBlob: Blob, chat_id?: string, meta?: Record<string, any>, chattype?: string, mode?: string, user_id?: string, user_name?: string): Promise<{ transcript: string }> {

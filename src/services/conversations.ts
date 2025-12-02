@@ -2,6 +2,16 @@ import { supabase } from '@/integrations/supabase/client';
 import { Conversation } from '@/core/types';
 import { ReportData } from '@/core/store';
 
+// Re-export commonly used functions to avoid dynamic import warnings
+export {
+  getConversation,
+  updateConversationTitle,
+  shareConversation,
+  unshareConversation,
+  clearPrimaryProfileIdCache,
+  getPrimaryProfileId
+} from './conversations-static';
+
 // Simple in-memory cache for primary profile ID
 interface CacheEntry<T> {
   data: T;
@@ -48,44 +58,6 @@ class SimpleCache {
 
 const primaryProfileIdCache = new SimpleCache();
 
-/**
- * Fetch user's primary profile ID for memory tracking
- * Returns null if no primary profile exists
- * Uses in-memory caching to avoid N+1 database queries
- */
-export const getPrimaryProfileId = async (userId: string): Promise<string | null> => {
-  const cacheKey = `primary_profile_${userId}`;
-
-  return primaryProfileIdCache.get(cacheKey, async () => {
-    try {
-      const { data, error } = await supabase
-        .from('user_profile_list')
-        .select('id')
-        .eq('user_id', userId)
-        .eq('is_primary', true)
-        .maybeSingle();
-
-      if (error) {
-        console.error('[Conversations] Error fetching primary profile:', error);
-        return null;
-      }
-
-      return data?.id || null;
-    } catch (error) {
-      console.error('[Conversations] Error fetching primary profile:', error);
-      return null;
-    }
-  });
-};
-
-/**
- * Clear primary profile ID cache for a user
- * Call this when a user's primary profile changes
- */
-export const clearPrimaryProfileIdCache = (userId: string): void => {
-  const cacheKey = `primary_profile_${userId}`;
-  primaryProfileIdCache.delete(cacheKey);
-};
 
 /**
  * Clear all primary profile ID caches
@@ -170,23 +142,6 @@ export const createConversation = async (
   return data?.data?.id || data?.id;
 };
 
-/**
- * Get a single conversation by ID (works for public conversations or authenticated users)
- */
-export const getConversation = async (conversationId: string): Promise<Conversation | null> => {
-  const { data, error } = await supabase
-    .from('conversations')
-    .select('*')
-    .eq('id', conversationId)
-    .maybeSingle();
-
-  if (error) {
-    console.error('[Conversations] Error fetching conversation:', error);
-    return null;
-  }
-
-  return data;
-};
 
 /**
  * List all conversations for an authenticated user using edge function
@@ -229,59 +184,7 @@ export const deleteConversation = async (conversationId: string, userId: string)
   }
 };
 
-/**
- * Update conversation title using edge function
- */
-export const updateConversationTitle = async (conversationId: string, title: string, userId: string): Promise<void> => {
-  const { error } = await supabase.functions.invoke('conversation-manager?action=update_conversation_title', {
-    body: {
-      user_id: userId,
-      conversation_id: conversationId,
-      title
-    }
-  });
 
-  if (error) {
-    console.error('[Conversations] Error updating conversation title:', error);
-    throw new Error('Failed to update conversation title');
-  }
-};
-
-/**
- * Share a conversation publicly using edge function
- */
-export const shareConversation = async (conversationId: string, userId: string): Promise<void> => {
-  const { data, error } = await supabase.functions.invoke('conversation-manager?action=share_conversation', {
-    body: {
-      user_id: userId,
-      conversation_id: conversationId
-    }
-  });
-
-  if (error) {
-    console.error('[Conversations] Error sharing conversation:', error);
-    throw new Error('Failed to share conversation');
-  }
-
-  return data;
-};
-
-/**
- * Stop sharing a conversation using edge function
- */
-export const unshareConversation = async (conversationId: string, userId: string): Promise<void> => {
-  const { error } = await supabase.functions.invoke('conversation-manager?action=unshare_conversation', {
-    body: {
-      user_id: userId,
-      conversation_id: conversationId
-    }
-  });
-
-  if (error) {
-    console.error('[Conversations] Error unsharing conversation:', error);
-    throw new Error('Failed to unshare conversation');
-  }
-};
 
 /**
  * Join a public conversation using edge function
