@@ -9,9 +9,15 @@ interface Band {
   hours: number[];
 }
 
+interface HourlyGrid {
+  scores: number[];
+  notes?: string[];
+  bands?: Band[];
+}
+
 interface SwissData {
   components?: {
-    hourly_grid?: unknown;
+    hourly_grid?: HourlyGrid;
   };
   meta?: Record<string, unknown>;
   subject?: Record<string, unknown>;
