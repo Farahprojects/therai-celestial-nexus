@@ -26,7 +26,8 @@ export const SolarReturnFormatter: React.FC<SolarReturnFormatterProps> = ({
   }
 
   // Solar Return data has flat structure: { planets, houses, angles, aspects, meta }
-  const { planets, houses, angles, aspects, meta, datetime_local } = swissData;
+  const data = swissData as any;
+  const { planets, houses, angles, aspects, meta, datetime_local } = data;
 
   // Extract return date
   let returnDate = '';
@@ -42,7 +43,8 @@ export const SolarReturnFormatter: React.FC<SolarReturnFormatterProps> = ({
   }
 
   // Get name from reportData if available
-  const name = reportData?.guest_report?.report_data?.name || reportData?.name || 'Your';
+  const reportDataAny = reportData as any;
+  const name = reportDataAny?.guest_report?.report_data?.name || reportDataAny?.name || 'Your';
   
   return (
     <div className={`font-inter max-w-4xl mx-auto py-4 md:py-8 px-4 md:px-0 ${className}`}>

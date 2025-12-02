@@ -36,8 +36,8 @@ export function buildLogQuery(userId: string, filters: ActivityLogsFilterState) 
     query = query.lte('created_at', endOfDay.toISOString());
   }
   
-  if (filters.reportType) {
-    query = query.eq('report_tier' as never, filters.reportType as TranslatorLogsRow['report_tier']);
+  if (filters.reportType && filters.reportType !== null) {
+    query = query.eq('report_tier', filters.reportType);
   }
   
   if (filters.status) {

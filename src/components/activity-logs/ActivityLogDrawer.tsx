@@ -17,7 +17,6 @@ import {
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 // PDF functionality removed to reduce bundle size
 import { ReportRenderer } from '@/components/shared/ReportRenderer';
-import { ReportData } from '@/utils/reportContentExtraction';
 
 // Strict types for report data structures
 interface StructuredReport {
@@ -30,7 +29,7 @@ interface LegacyReportData {
   report_content: string;
   swiss_data: null;
   metadata: {
-    content_type: string;
+    content_type: 'ai' | 'astro' | 'both' | 'none';
     has_ai_report: boolean;
     has_swiss_data: boolean;
     is_ready: boolean;
@@ -38,7 +37,7 @@ interface LegacyReportData {
   };
 }
 
-type ReportData = string | StructuredReport | Record<string, unknown>;
+type ActivityReportData = string | StructuredReport | Record<string, unknown>;
 
 type ActivityLogItem = {
   id: string;
@@ -62,11 +61,11 @@ interface ActivityLogDrawerProps {
 }
 
 // Type guards for report data validation
-const isStringReport = (report: ReportData): report is string => {
+const isStringReport = (report: ActivityReportData): report is string => {
   return typeof report === 'string';
 };
 
-const isStructuredReport = (report: ReportData): report is StructuredReport => {
+const isStructuredReport = (report: ActivityReportData): report is StructuredReport => {
   return (
     report !== null &&
     typeof report === 'object' &&
@@ -127,11 +126,11 @@ const ActivityLogDrawer = ({ isOpen, onClose, logData }: ActivityLogDrawerProps)
   // PDF download functionality removed to reduce bundle size
 
   // Helper function to safely extract report data
-  const getReportData = (): ReportData | null => {
+  const getReportData = (): ActivityReportData | null => {
     if (!logData?.response_payload?.report) {
       return null;
     }
-    return logData.response_payload.report as ReportData;
+    return logData.response_payload.report as ActivityReportData;
   };
 
   // Determine which view to show by default
@@ -143,7 +142,7 @@ const ActivityLogDrawer = ({ isOpen, onClose, logData }: ActivityLogDrawerProps)
   }, [logData]);
 
   // Helper function to safely render a report using ReportRenderer
-  const renderReport = (report: ReportData) => {
+  const renderReport = (report: ActivityReportData) => {
     // Handle string reports (legacy format)
     if (isStringReport(report)) {
       const reportData = createLegacyReportData(report);
