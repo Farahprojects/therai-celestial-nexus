@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { showToast } from "@/utils/notifications";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Check, Loader, Eye, EyeOff, CheckCircle } from "lucide-react";
@@ -33,7 +32,6 @@ export const PasswordSettingsPanel = () => {
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [resetEmailSent, setResetEmailSent] = useState(false);
   const [invalidPasswordError, setInvalidPasswordError] = useState(false);
-  const [updateSuccess, setUpdateSuccess] = useState(false);
   const [showSuccessButton, setShowSuccessButton] = useState(false);
   // Password management functions using edge functions
 
@@ -96,7 +94,7 @@ export const PasswordSettingsPanel = () => {
       // Password verified, move to next step
       setPasswordStep('create');
       setIsUpdatingPassword(false);
-    } catch (error: any) {
+    } catch {
       setIsUpdatingPassword(false);
     }
   };
@@ -143,7 +141,7 @@ export const PasswordSettingsPanel = () => {
         setPasswordStep('verify');
       }, 3000);
       
-    } catch (error: any) {
+    } catch {
       setIsUpdatingPassword(false);
     }
   };

@@ -16,7 +16,7 @@ const TYPE_LABELS: Record<string, string> = {
 };
 
 export function MemoryPanel() {
-  const { memories, summaries, loading, refetch } = useUserMemory();
+  const { memories, summaries, loading } = useUserMemory();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<string>('all');
   // Optimistic updates: track deleted IDs to hide them immediately

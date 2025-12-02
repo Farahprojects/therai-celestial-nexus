@@ -7,7 +7,7 @@ import { Loader, Check } from 'lucide-react';
 import { toast } from 'sonner';
 
 const DisplayNamePanel: React.FC = () => {
-  const { profile, displayName, updateDisplayName, loading } = useUserData();
+  const { profile, updateDisplayName, loading } = useUserData();
   const [newDisplayName, setNewDisplayName] = useState(profile?.display_name || '');
   const [saving, setSaving] = useState(false);
 
@@ -22,7 +22,7 @@ const DisplayNamePanel: React.FC = () => {
       } else {
         toast.success('Display name updated successfully');
       }
-    } catch (err) {
+    } catch {
       toast.error('Failed to update display name');
     } finally {
       setSaving(false);

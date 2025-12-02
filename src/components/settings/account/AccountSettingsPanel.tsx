@@ -1,6 +1,4 @@
 
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle } from "lucide-react";
 // import { EmailSettingsPanel } from "./EmailSettingsPanel"; // Removed - no longer needed
 import { PasswordSettingsPanel } from "./PasswordSettingsPanel";
 
