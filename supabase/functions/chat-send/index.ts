@@ -510,29 +510,6 @@ async function handleSingleMessageWithMode(
     meta: payload.meta || {}
   };
 
-  // Check if we should trigger LLM
-  const { shouldStart: shouldStartLLM, handlerName } = await shouldTriggerLLM(
-    role,
-    payload.chattype,
-    conversationMode
-  );
-
-  if (shouldStartLLM && handlerName) {
-    // Fire-and-forget: Broadcast thinking state to all participants
-    broadcastAssistantThinking(payload.chat_id, payload.user_id, requestId)
-      .catch(() => { /* already logged inside */ });
-
-    // Trigger LLM (fire-and-forget)
-    triggerLLM(handlerName, {
-      chat_id: payload.chat_id,
-      text: payload.text,
-      mode: payload.mode,
-      user_id: payload.user_id,
-      user_name: payload.user_name,
-      analyze: payload.analyze
-    }, requestId);
-  }
-
   // Handle DB insertion differently for user vs assistant messages
   if (role === "user") {
     // 🚨 RATE LIMIT CHECK for user messages
