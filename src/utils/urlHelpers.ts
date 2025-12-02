@@ -179,13 +179,12 @@ export const clearAllSessionData = async (stateResetCallbacks?: (() => void)[], 
         queryClient.removeQueries({ queryKey: ['guest-report-data', null] });
         queryClient.removeQueries({ queryKey: ['temp-report-data'] });
         queryClient.removeQueries({ queryKey: ['report-data'] });
-
-      // Clear any cached report payloads
-      queryClient.removeQueries({ queryKey: ['report-payload'] });
-
-      console.log('✅ React Query cache cleared comprehensively');
-    } catch {
-      console.log('⚠️ React Query not available for cache clearing');
+        // Clear any cached report payloads
+        queryClient.removeQueries({ queryKey: ['report-payload'] });
+        console.log('✅ React Query cache cleared comprehensively');
+      } catch {
+        console.log('⚠️ React Query not available for cache clearing');
+      }
     }
 
     // Clear URL parameters
@@ -202,7 +201,6 @@ export const clearAllSessionData = async (stateResetCallbacks?: (() => void)[], 
     }
 
     console.log('✅ Comprehensive session clearing completed');
-  }
   } catch (error) {
     console.error('❌ Error during comprehensive session clearing:', error);
   }
