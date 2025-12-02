@@ -87,6 +87,63 @@ These files contain the optimized, consolidated RLS policies for reference purpo
 - **Covers all major tables**: calendar_sessions, user profiles, AI features, conversations, folders
 - **Includes complex realtime messaging policies**
 
+### `voice_usage_policies.sql`
+- Voice usage tracking with user isolation
+- Users can view their own voice usage statistics
+- Service role has full management access
+- Idempotent policy creation with safe cleanup
+
+### `user_memory_monthly_summaries_policies.sql`
+- Monthly memory summary access with user isolation
+- Users can SELECT and DELETE their own monthly summaries
+- Service role has full management access for automated generation
+- Controlled user deletion with service oversight
+
+### `plan_limits_policies.sql`
+- Subscription plan limits configuration
+- Public read access for all users (anon + authenticated) to view available plans
+- Service role has exclusive management access
+- Essential for subscription/billing system transparency
+
+### `system_prompts_policies.sql` 🔒
+- **Critical security**: AI system prompts locked down to service role only
+- **Complete policy reset**: Drops ALL existing policies for clean slate
+- **Edge Functions access**: Only service operations can manage AI prompts
+- **Zero user access**: No authenticated or anonymous access to system prompts
+- **AI security foundation**: Protects sensitive prompt engineering data
+
+### `conversation_activity_policies.sql` 📊
+- **Operational analytics**: Conversation activity data for internal use only
+- **Service-exclusive access**: Only backend operations can track activity
+- **Complete policy reset**: Removes any user-facing policies
+- **Analytics foundation**: Supports conversation monitoring and insights
+
+### `password_reset_tokens_policies_v2.sql` 🔐
+- **Security enhancement**: Moved from public SELECT to service-only access
+- **Backend verification**: Token validation now handled server-side only
+- **Complete lockdown**: No direct database access for token checking
+- **Security best practice**: Prevents token enumeration attacks
+
+### `folder_documents_policies.sql` 📁
+- **Double-verification security**: Document ownership + folder ownership required
+- **Strict update controls**: Users can only modify documents they own in folders they own
+- **Prevents cross-folder access**: Cannot update documents in shared or foreign folders
+- **Granular permission model**: Fine-grained access control for collaborative documents
+
+### `user_images_policies.sql` 🖼️
+- **User image management**: Update access for personal images
+- **Conditional creation**: Only creates policy if it doesn't exist
+- **Safe deployment**: Idempotent policy creation pattern
+- **Personal content control**: Users can modify their own image uploads
+
+### `admin_role_management.sql` 👑
+- **Complete admin system**: Role-based access control for administrators
+- **Helper function**: `is_admin()` checks current user's admin status
+- **Security definer**: Function runs with elevated privileges
+- **Admin-only policies**: Full CRUD on user_roles table for admins only
+- **Performance indexes**: Optimized queries for role checks
+- **Conditional creation**: Safe, idempotent policy deployment
+
 ## 🚀 Performance Optimizations
 
 All policies use:
