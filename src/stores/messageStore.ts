@@ -378,8 +378,8 @@ export const triggerMessageStoreSelfClean = async () => {
 };
 
 // 🔒 Initialize message store - listen for unified channel events (one-time guard)
-if (typeof window !== 'undefined' && !(window as any).__msgStoreListenerInstalled) {
-  (window as any).__msgStoreListenerInstalled = true;
+if (typeof window !== 'undefined' && !(window as typeof window & { __msgStoreListenerInstalled?: boolean }).__msgStoreListenerInstalled) {
+  (window as typeof window & { __msgStoreListenerInstalled?: boolean }).__msgStoreListenerInstalled = true;
   
   // Subscribe to unified channel when user is available
   const initializeUnifiedChannel = () => {
@@ -407,7 +407,7 @@ if (typeof window !== 'undefined' && !(window as any).__msgStoreListenerInstalle
   });
   
   // Store cleanup function globally for cleanup
-  (window as any).__msgStoreAuthCleanup = authListener?.subscription.unsubscribe.bind(authListener.subscription);
+  (window as typeof window & { __msgStoreAuthCleanup?: () => void }).__msgStoreAuthCleanup = authListener?.subscription.unsubscribe.bind(authListener.subscription);
   
   // Listen for message-insert events from unified channel
   unifiedChannel.on('message-insert', (payload: MessageInsertPayload) => {

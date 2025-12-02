@@ -122,9 +122,9 @@ export const SearchModal: React.FC<SearchModalProps> = ({
     }, 300);
 
     return () => clearTimeout(searchTimeout);
-  }, [query, user, isOpen, recentConversations.length, fetchRecentConversations]);
+  }, [query, user, isOpen, recentConversations.length, fetchRecentConversations, performSearch]);
 
-  const performSearch = async (searchQuery: string) => {
+  const performSearch = useCallback(async (searchQuery: string) => {
     setIsLoading(true);
     try {
       // First, get all user's conversations (excluding Profile conversations)
@@ -220,7 +220,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [user?.id]);
 
   const createSnippet = (text: string, query: string, maxLength = 120) => {
     const queryIndex = text.toLowerCase().indexOf(query.toLowerCase());

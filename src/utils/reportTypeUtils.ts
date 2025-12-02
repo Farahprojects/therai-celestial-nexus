@@ -4,7 +4,7 @@
 
 export interface ReportDetectionData {
   reportContent?: string;
-  swissData?: any;
+  swissData?: unknown;
   swissBoolean?: boolean;
   reportType?: string;
   hasReport?: boolean;

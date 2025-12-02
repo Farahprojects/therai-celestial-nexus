@@ -199,7 +199,7 @@ class UnifiedChannelService {
       try {
         document.removeEventListener('visibilitychange', this.visibilityChangeHandler);
         // eslint-disable-next-line no-empty
-      } catch (_) {
+      } catch {
         // Silently ignore cleanup errors
       }
       this.visibilityChangeHandler = null;

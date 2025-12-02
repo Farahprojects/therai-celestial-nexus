@@ -43,7 +43,7 @@ const getLogConfig = (): LogConfig => {
     if (stored) {
       return { ...defaultConfig, ...JSON.parse(stored) };
     }
-  } catch (error) {
+  } catch {
     console.warn('Failed to parse log config from localStorage');
   }
   
@@ -148,15 +148,15 @@ export const disableVerboseLogging = () => {
 
 // Export for global access in development
 if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
-  (window as any).logUtils = {
+  (window as typeof window & { logUtils?: unknown; toggleLogs?: () => void }).logUtils = {
     enableVerboseLogging,
     disableVerboseLogging,
     setLogConfig,
     getLogConfig,
   };
-  
+
   // Add a simple toggle function for quick testing
-  (window as any).toggleLogs = () => {
+  (window as typeof window & { toggleLogs?: () => void }).toggleLogs = () => {
     const config = getLogConfig();
     if (config.components.ReportForm || config.components.SuccessScreen) {
       disableVerboseLogging();

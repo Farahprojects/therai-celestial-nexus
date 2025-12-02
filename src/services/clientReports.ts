@@ -35,7 +35,7 @@ export interface ClientReportRequest {
 export interface ClientReportResponse {
   success: boolean;
   reportType: string;
-  data: any;
+  data: unknown;
   generatedAt: string;
 }
 

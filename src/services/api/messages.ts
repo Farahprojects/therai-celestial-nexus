@@ -29,7 +29,7 @@ export const appendMessage = async (message: Omit<Message, 'id' | 'createdAt'>):
     // audioUrl removed
     // timings removed
     createdAt: data.created_at,
-    meta: (data.meta as Record<string, any>) || {},
+    meta: (data.meta as Record<string, unknown>) || {},
     client_msg_id: data.client_msg_id,
     status: (data.status as Message['status']) || 'complete'
   } as Message;
@@ -51,7 +51,7 @@ export const updateMessage = async (id: string, updates: Partial<Message>): Prom
     role: data.role as Message['role'],
     text: data.text,
     createdAt: data.created_at,
-    meta: (data.meta as Record<string, any>) || {},
+    meta: (data.meta as Record<string, unknown>) || {},
     client_msg_id: data.client_msg_id,
     status: (data.status as Message['status']) || 'complete'
   } as Message;

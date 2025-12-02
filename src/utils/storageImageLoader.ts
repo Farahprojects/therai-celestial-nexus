@@ -38,7 +38,7 @@ export const loadImagesFromStorage = async (userId: string): Promise<StorageImag
           }
         }
       }
-    } catch (error) {
+    } catch {
       console.log('No header folder found or error accessing it');
     }
 
@@ -67,7 +67,7 @@ export const loadImagesFromStorage = async (userId: string): Promise<StorageImag
           }
         }
       }
-    } catch (error) {
+    } catch {
       console.log('No about folder found or error accessing it');
     }
 
@@ -97,7 +97,7 @@ export const loadImagesFromStorage = async (userId: string): Promise<StorageImag
             }
           }
         }
-      } catch (error) {
+      } catch {
         // Continue to next service index if this one doesn't exist
         continue;
       }

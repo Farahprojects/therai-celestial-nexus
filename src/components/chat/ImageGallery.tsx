@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -60,7 +60,7 @@ export const ImageGallery = ({
     if (isOpen && user) {
       loadImages();
     }
-  }, [isOpen, user]);
+  }, [isOpen, user, loadImages]);
 
   // Listen for real-time image inserts
   useEffect(() => {
@@ -93,7 +93,7 @@ export const ImageGallery = ({
       if (unsubscribe) unsubscribe();
     };
   }, [isOpen, user]);
-  const loadImages = async (loadMore = false) => {
+  const loadImages = useCallback(async (loadMore = false) => {
     if (!user?.id) return;
     if (loadMore) {
       setLoadingMore(true);
@@ -153,7 +153,7 @@ export const ImageGallery = ({
       setLoading(false);
       setLoadingMore(false);
     }
-  };
+  }, [user?.id, images.length]);
   const handleOpenChat = (image: ImageMessage) => {
     if (image.chat_id) {
       navigate(`/c/${image.chat_id}`);

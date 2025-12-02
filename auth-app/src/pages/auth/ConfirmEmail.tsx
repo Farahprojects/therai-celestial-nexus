@@ -111,15 +111,16 @@ const ConfirmEmail: React.FC = () => {
 
       if (error) {
         console.error('[PASSWORD-VERIFY] Edge function error:', error);
+        const errorDetails = error as Error & { status?: number; statusText?: string };
         console.error('[PASSWORD-VERIFY] Error details:', {
           message: error.message,
           name: error.name,
-          status: (error as any).status,
-          statusText: (error as any).statusText
+          status: errorDetails.status,
+          statusText: errorDetails.statusText
         });
-        
+
         // Handle different types of edge function errors
-        if (error.message?.includes('non-2xx status code') || (error as any).status === 401) {
+        if (error.message?.includes('non-2xx status code') || errorDetails.status === 401) {
           throw new Error('Token verification failed. Please try again or request a new reset link.');
         } else if (error.message?.includes('FunctionsHttpError')) {
           throw new Error('Unable to verify token. Please try again or request a new reset link.');
@@ -145,7 +146,7 @@ const ConfirmEmail: React.FC = () => {
         }
       }
 
-    } catch (error) {
+    } catch {
       setStatus('error');
       setMessage('Failed to verify your password reset link. Please try again or contact support.');
       return;

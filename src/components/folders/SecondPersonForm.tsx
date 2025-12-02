@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
@@ -63,21 +63,21 @@ export const SecondPersonForm: React.FC<SecondPersonFormProps> = ({
     if (isOpen && user?.id) {
       loadProfiles();
     }
-  }, [isOpen, user?.id]);
+  }, [isOpen, user?.id, loadProfiles]);
 
-  const loadProfiles = async () => {
+  const loadProfiles = useCallback(async () => {
     if (!user?.id) return;
-    
+
     const { data, error } = await supabase
       .from('user_profile_list')
       .select('*')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false });
-    
+
     if (!error && data) {
       setProfiles(data);
     }
-  };
+  }, [user?.id]);
 
   const handleLocationSelect = (placeData: {
     name: string;

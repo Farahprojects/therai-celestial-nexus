@@ -34,7 +34,7 @@ const SwissContainerContent: React.FC = () => {
       style={{ 
         height: '100dvh', 
         minHeight: '100vh', 
-        overscrollBehavior: 'contain' as any,
+        overscrollBehavior: 'contain' as React.CSSProperties['overscrollBehavior'],
         paddingTop: 'env(safe-area-inset-top)',
         paddingBottom: 'env(safe-area-inset-bottom)',
       }}

@@ -25,8 +25,8 @@ export class NetworkErrorHandler {
   /**
    * Handle network errors and show user-friendly popups
    */
-  handleError(error: any, context?: string): void {
-    const networkError = this.parseError(error, context);
+  handleError(error: unknown): void {
+    const networkError = this.parseError(error);
     
     // Add to queue if we're already showing an error
     if (this.isShowingError) {
@@ -40,7 +40,7 @@ export class NetworkErrorHandler {
   /**
    * Parse different types of network errors
    */
-  private parseError(error: any, context?: string): NetworkError {
+  private parseError(error: unknown): NetworkError {
     const errorMessage = error?.message || error?.toString() || 'Unknown error';
     
     // Network connection issues

@@ -211,7 +211,7 @@ const Pricing: React.FC = () => {
     fetchPricing();
   }, []);
 
-  const handleGetStarted = (planId: string) => {
+  const handleGetStarted = () => {
     // Redirect to login page instead of checkout
     navigate('/login');
   };
@@ -316,7 +316,7 @@ const Pricing: React.FC = () => {
                         className="pt-2"
                         >
                          <Button
-                           onClick={() => handleGetStarted(plan.id)}
+                           onClick={() => handleGetStarted()}
                            className="w-full bg-gray-900 hover:bg-gray-800 text-white font-light py-3 rounded-full text-base transition-all duration-200 shadow-sm hover:shadow-md"
                          >
                            {getButtonText(plan)}

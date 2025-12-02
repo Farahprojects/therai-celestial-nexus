@@ -12,7 +12,7 @@ export const isIos = (): boolean => /iPhone|iPad|iPod/i.test(navigator.userAgent
  * Applies a small buffer on Samsung Internet to account for persistent nav bars.
  */
 export function getViewportHeight(): number {
-  const vv = (window as any).visualViewport as VisualViewport | undefined;
+  const vv = (window as typeof window & { visualViewport?: VisualViewport }).visualViewport as VisualViewport | undefined;
   let height = vv?.height ?? window.innerHeight;
   if (isSamsungInternet()) {
     // Conservative buffer for gesture/navigation bars that overlay content
@@ -81,7 +81,7 @@ export function onReachBottom(
  * Subscribe to viewport changes (visual viewport where available). Returns cleanup fn.
  */
 export function onViewportChange(handler: () => void): () => void {
-  const vv = (window as any).visualViewport as VisualViewport | undefined;
+  const vv = (window as typeof window & { visualViewport?: VisualViewport }).visualViewport as VisualViewport | undefined;
   if (vv) {
     vv.addEventListener('resize', handler);
     vv.addEventListener('scroll', handler);

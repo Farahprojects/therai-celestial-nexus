@@ -19,7 +19,8 @@ export const useAudioStore = create<AudioState>((set, get) => ({
     const { audioContext } = get();
     if (audioContext) return audioContext;
     
-    const newAudioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const AudioContextClass = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    const newAudioContext = new AudioContextClass();
     set({ audioContext: newAudioContext });
     return newAudioContext;
   },

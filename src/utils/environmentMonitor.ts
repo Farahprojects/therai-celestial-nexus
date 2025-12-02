@@ -282,7 +282,7 @@ class EnvironmentMonitor {
    */
   private getMemoryUsage(): { usedJSHeapSize: number; totalJSHeapSize: number; jsHeapSizeLimit: number } | null {
     if ('memory' in performance) {
-      return (performance as any).memory;
+      return (performance as typeof performance & { memory?: { usedJSHeapSize: number; totalJSHeapSize: number; jsHeapSizeLimit: number } }).memory;
     }
     return null;
   }

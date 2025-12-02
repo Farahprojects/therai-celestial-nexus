@@ -9,8 +9,8 @@ import { authService } from '@/services/authService';
 class SupabaseWithAuth {
   async query<T>(
     tableName: string,
-    queryFn: (client: typeof supabase) => any
-  ): Promise<{ data: T | null; error: any }> {
+    queryFn: (client: typeof supabase) => unknown
+  ): Promise<{ data: T | null; error: unknown }> {
     try {
       // Ensure we have valid authentication
       const session = await authService.ensureValidSession();

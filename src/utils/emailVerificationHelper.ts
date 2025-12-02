@@ -49,7 +49,7 @@ export const checkEmailVerificationStatus = async (userId: string): Promise<Emai
  * Legacy function for checking Supabase's email_confirmed_at field
  * Used for email change verification (when user changes email while signed in)
  */
-export const checkLegacyEmailVerification = (user: any): EmailVerificationStatus => {
+export const checkLegacyEmailVerification = (user: Record<string, unknown>): EmailVerificationStatus => {
   const isVerified = user?.email_confirmed_at !== null;
   
   return {
@@ -65,7 +65,7 @@ export const checkLegacyEmailVerification = (user: any): EmailVerificationStatus
  * - Email changes: Use legacy auth.users.email_confirmed_at
  */
 export const getEmailVerificationStatus = async (
-  user: any, 
+  user: Record<string, unknown>, 
   context: 'signup' | 'email_change' = 'signup'
 ): Promise<EmailVerificationStatus> => {
   if (context === 'email_change') {

@@ -2,7 +2,7 @@
 // Content extraction helpers for raw report data
 export interface ReportData {
   report_content: string | null;
-  swiss_data: any | null;
+  swiss_data: unknown | null;
   metadata: {
     content_type: 'astro' | 'ai' | 'both' | 'none';
     has_ai_report: boolean;

@@ -3,7 +3,6 @@
  * This ensures fast message fetching without cold start delays
  */
 
-import { useMessageStore } from './messageStore';
 
 /**
  * App initialization - WebSocket will be initialized when chat session starts

@@ -26,7 +26,7 @@ export function sortByTime(a: CalendarSession, b: CalendarSession) {
 /**
  * Safely map a DB row to a CalendarSession object.
  */
-export function mapRowToCalendarSession(s: any): CalendarSession {
+export function mapRowToCalendarSession(s: unknown): CalendarSession {
   return {
     id: s.id,
     title: s.title,
