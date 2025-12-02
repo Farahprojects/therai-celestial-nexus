@@ -44,59 +44,6 @@ export type Database = {
         }
         Relationships: []
       }
-      api_usage: {
-        Row: {
-          created_at: string | null
-          endpoint: string
-          geo_price_usd: number | null
-          id: string
-          report_price_usd: number | null
-          report_tier: string | null
-          request_params: Json | null
-          total_cost_usd: number
-          translator_log_id: string
-          unit_price_usd: number
-          used_geo_lookup: boolean | null
-          user_id: string
-        }
-        Insert: {
-          created_at?: string | null
-          endpoint: string
-          geo_price_usd?: number | null
-          id?: string
-          report_price_usd?: number | null
-          report_tier?: string | null
-          request_params?: Json | null
-          total_cost_usd: number
-          translator_log_id: string
-          unit_price_usd: number
-          used_geo_lookup?: boolean | null
-          user_id: string
-        }
-        Update: {
-          created_at?: string | null
-          endpoint?: string
-          geo_price_usd?: number | null
-          id?: string
-          report_price_usd?: number | null
-          report_tier?: string | null
-          request_params?: Json | null
-          total_cost_usd?: number
-          translator_log_id?: string
-          unit_price_usd?: number
-          used_geo_lookup?: boolean | null
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "api_usage_translator_log_id_fkey"
-            columns: ["translator_log_id"]
-            isOneToOne: false
-            referencedRelation: "translator_logs"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       blog_posts: {
         Row: {
           author_name: string | null
@@ -1739,27 +1686,6 @@ export type Database = {
         }
         Relationships: []
       }
-      temp_audio: {
-        Row: {
-          audio_data: string
-          chat_id: string
-          created_at: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          audio_data: string
-          chat_id: string
-          created_at?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          audio_data?: string
-          chat_id?: string
-          created_at?: string | null
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
       temp_report_data: {
         Row: {
           chat_hash: string | null
@@ -1999,48 +1925,6 @@ export type Database = {
           credits?: number
           last_updated?: string | null
           user_id?: string
-        }
-        Relationships: []
-      }
-      user_errors: {
-        Row: {
-          case_number: string
-          created_at: string
-          email: string
-          error_message: string | null
-          error_type: string
-          guest_report_id: string | null
-          id: string
-          metadata: Json | null
-          price_paid: number | null
-          resolved: boolean
-          resolved_at: string | null
-        }
-        Insert: {
-          case_number?: string
-          created_at?: string
-          email: string
-          error_message?: string | null
-          error_type?: string
-          guest_report_id?: string | null
-          id?: string
-          metadata?: Json | null
-          price_paid?: number | null
-          resolved?: boolean
-          resolved_at?: string | null
-        }
-        Update: {
-          case_number?: string
-          created_at?: string
-          email?: string
-          error_message?: string | null
-          error_type?: string
-          guest_report_id?: string | null
-          id?: string
-          metadata?: Json | null
-          price_paid?: number | null
-          resolved?: boolean
-          resolved_at?: string | null
         }
         Relationships: []
       }

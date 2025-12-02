@@ -17,7 +17,6 @@ export function buildLogQuery(userId: string, filters: ActivityLogsFilterState) 
     .from('translator_logs')
     .select(`
       *,
-      api_usage!translator_log_id(total_cost_usd),
       insights(user_id)
     `)
     .eq('insights.user_id' as never, userId)

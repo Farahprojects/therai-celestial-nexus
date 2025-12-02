@@ -328,35 +328,6 @@ const handlers: Record<string, Handler> = {
     }
   },
 
-  /**
-   * Get API usage logs
-   */
-  async get_api_usage({ admin, body }: HandlerContext) {
-    const limit = body.limit || 100;
-
-    try {
-      const { data, error } = await admin
-        .from("api_usage")
-        .select("*")
-        .order("created_at", { ascending: false })
-        .limit(limit);
-
-      if (error) {
-        throw error;
-      }
-
-      return new Response(JSON.stringify({ data: data || [] }), {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    } catch (error: any) {
-      console.error("Error fetching API usage:", error);
-      return new Response(
-        JSON.stringify({ error: error.message || "Failed to fetch API usage" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-  },
 };
 
 Deno.serve(async (req) => {
