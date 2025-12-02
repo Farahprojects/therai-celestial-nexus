@@ -163,9 +163,11 @@ Show one-line "why" tying emotional/psychological pattern back to user when appl
 
 ##You have access to memory, use it to gain clarity when you need more context from user ##
 
-****IMPORTANT : End with a line that naturally fits the flow with questions that leads to conversation, pick one that suits :** 
+****IMPORTANT LIMITS: If user requests image generation and limits are exceeded, respond with EXACTLY: "Daily image limit exceeded. Please upgrade your plan." Do not add extra text, explanations, or suggestions.
+
+****IMPORTANT : End with a line that naturally fits the flow with questions that leads to conversation, pick one that suits :**
 1. Calm short Closure + Invitation to Reframe.
-2. Short Summary + Question of Focus with 
+2. Short Summary + Question of Focus with
 **`;
 
 /* ----------------------------- Image Tool Def ---------------------------- */
@@ -467,36 +469,49 @@ Deno.serve(async (req: Request) => {
     if (functionCall && functionCall.name === "generate_image" && enableImageTool) {
       const prompt = functionCall.args?.prompt || "";
 
-      // Check image limits asynchronously - ping the rate limit service (don't block)
-      supabase.functions.invoke("check-rate-limit", {
-        body: {
-          user_id,
-          action: "image_generation"
-        }
-      }).then(({ data: limitResult }) => {
-        if (limitResult && !limitResult.allowed) {
-          // Send a limit exceeded message asynchronously
-          const limitText = limitResult.limit ? `${limitResult.limit} images` : 'images';
-          const limitMessage = `Daily limit of ${limitText} reached. Upgrade to Growth for unlimited images!`;
+      // 🚨 HARD RULE: Synchronous limit check - override LLM response if exceeded
+      try {
+        const { data: limitResult, error: limitError } = await supabase.functions.invoke("check-rate-limit", {
+          body: {
+            user_id,
+            action: "image_generation"
+          }
+        });
 
-          // Send limit message to chat
-          supabase.functions.invoke("chat-send", {
-            body: {
-              chat_id,
-              text: limitMessage,
-              role: "assistant",
-              mode: mode || 'chat',
-              user_id,
-              user_name,
-              chattype
-            }
-          }).catch(() => {});
-        }
-      }).catch((error) => {
-        console.error("[rate-limit] async image check failed:", error);
-      });
+        if (limitError || !limitResult || !limitResult.allowed) {
+          // 🚫 BLOCKED: Override entire LLM response with blunt error message
+          const limitMessage = limitResult?.error_code === 'TRIAL_EXPIRED'
+            ? "Free trial ended. Upgrade to Growth for unlimited AI conversations."
+            : "Daily image limit exceeded. Please upgrade your plan.";
 
-      // Always proceed with image generation (limits handled asynchronously)
+          console.warn(JSON.stringify({
+            event: "image_generation_hard_blocked",
+            request_id: requestId,
+            user_id,
+            limit: limitResult?.limit,
+            remaining: limitResult?.remaining,
+            error_code: limitResult?.error_code,
+            original_llm_response: assistantText?.substring(0, 100) + "..."
+          }));
+
+          // Return blunt error message instead of LLM's image generation response
+          return JSON_RESPONSE(200, {
+            text: limitMessage,
+            usage: {
+              total_tokens: geminiResponseJson?.usageMetadata?.totalTokenCount ?? null,
+              input_tokens: geminiResponseJson?.usageMetadata?.promptTokenCount ?? null,
+              output_tokens: geminiResponseJson?.usageMetadata?.candidatesTokenCount ?? null,
+              cached_tokens: geminiResponseJson?.usageMetadata?.cachedContentTokenCount ?? null
+            },
+            total_latency_ms: Date.now() - startMs
+          });
+        }
+      } catch (error) {
+        console.error("[rate-limit] synchronous image check failed:", error);
+        // On error, allow image generation to proceed (fail-open)
+      }
+
+      // ✅ Limits OK: Proceed with normal image generation flow
       const imageId = crypto.randomUUID();
 
       const { data: placeholderMessage } = await supabase.from('messages').insert({
