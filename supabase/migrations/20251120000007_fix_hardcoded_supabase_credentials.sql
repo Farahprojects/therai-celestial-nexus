@@ -108,7 +108,7 @@ BEGIN
     FROM vault.decrypted_secrets
     WHERE name = 'service_role_key'
     LIMIT 1;
-
+    
     IF key IS NOT NULL AND key != '' THEN
       RETURN key;
     END IF;
@@ -200,6 +200,6 @@ COMMENT ON FUNCTION public.get_supabase_url() IS
 COMMENT ON FUNCTION public.get_anon_key() IS
 'Gets anon key from Supabase Vault. Configure via: SELECT vault.create_secret(''your-anon-key'', ''anon_key'')';
 
-COMMENT ON FUNCTION public.get_service_role_key() IS
+COMMENT ON FUNCTION public.get_service_role_key() IS 
 'Gets service role key from Supabase Vault. Configure via: SELECT vault.create_secret(''your-service-role-key'', ''service_role_key'');';
 
