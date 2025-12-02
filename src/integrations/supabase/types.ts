@@ -2899,10 +2899,6 @@ export type Database = {
         }[]
       }
       reset_folder_ai_usage: { Args: { p_user_id: string }; Returns: undefined }
-      rpc_notify_orchestrator: {
-        Args: { guest_report_id: string }
-        Returns: undefined
-      }
       search_folder_documents: {
         Args: {
           p_folder_id: string
