@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useMemo } from 'react';
 import { useAuth } from './AuthContext';
 import { Conversation } from '@/core/types';
 
@@ -41,21 +41,21 @@ export const ThreadsProvider: React.FC<ThreadsProviderProps> = ({ children }) =>
     return <>{children}</>;
   }
 
-  const loadThreads = async () => {
+  const loadThreads = useCallback(async () => {
     if (!user) return;
-    
+
     setLoading(true);
     setError(null);
-    
+
     try {
       const { listConversations } = await import('@/services/conversations');
       const conversations = await listConversations(user.id);
-      
+
       // Sort by updated_at desc for proper ordering
       const sortedConversations = conversations.sort(
         (a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
       );
-      
+
       setThreads(sortedConversations);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to load threads';
@@ -64,18 +64,18 @@ export const ThreadsProvider: React.FC<ThreadsProviderProps> = ({ children }) =>
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
 
-  const addThread = async (userId: string, mode: 'chat' | 'astro' | 'insight' | 'swiss' | 'together', title?: string) => {
+  const addThread = useCallback(async (userId: string, mode: 'chat' | 'astro' | 'insight' | 'swiss' | 'together', title?: string) => {
     if (!user) throw new Error('User not authenticated');
-    
+
     setLoading(true);
     setError(null);
-    
+
     try {
       const { createConversation } = await import('@/services/conversations');
       const conversationId = await createConversation(userId, mode, title);
-      
+
       // Add new thread to local state immediately for instant UI feedback
       const newThread: Conversation = {
         id: conversationId,
@@ -86,7 +86,7 @@ export const ThreadsProvider: React.FC<ThreadsProviderProps> = ({ children }) =>
         updated_at: new Date().toISOString(),
         meta: null
       };
-      
+
       setThreads(prev => [newThread, ...prev]);
       return conversationId;
     } catch (err) {
@@ -96,16 +96,16 @@ export const ThreadsProvider: React.FC<ThreadsProviderProps> = ({ children }) =>
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
 
-  const removeThread = async (threadId: string) => {
+  const removeThread = useCallback(async (threadId: string) => {
     setLoading(true);
     setError(null);
 
     try {
       const { deleteConversation } = await import('@/services/conversations');
       await deleteConversation(threadId, user!.id);
-      
+
       // Update local state immediately for instant UI feedback
       setThreads(prev => prev.filter(thread => thread.id !== threadId));
     } catch (err) {
@@ -115,20 +115,20 @@ export const ThreadsProvider: React.FC<ThreadsProviderProps> = ({ children }) =>
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
 
-  const updateThreadTitle = async (threadId: string, title: string) => {
+  const updateThreadTitle = useCallback(async (threadId: string, title: string) => {
     setLoading(true);
     setError(null);
 
     try {
       const { updateConversationTitle } = await import('@/services/conversations');
       await updateConversationTitle(threadId, title, user!.id);
-      
+
       // Update local state
-      setThreads(prev => prev.map(thread => 
-        thread.id === threadId 
-          ? { ...thread, title, updated_at: new Date().toISOString() } 
+      setThreads(prev => prev.map(thread =>
+        thread.id === threadId
+          ? { ...thread, title, updated_at: new Date().toISOString() }
           : thread
       ));
     } catch (err) {
@@ -138,11 +138,11 @@ export const ThreadsProvider: React.FC<ThreadsProviderProps> = ({ children }) =>
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
 
-  const clearThreadsError = () => setError(null);
+  const clearThreadsError = useCallback(() => setError(null), []);
 
-  const value: ThreadsContextType = {
+  const value = useMemo(() => ({
     threads,
     loading,
     error,
@@ -151,7 +151,16 @@ export const ThreadsProvider: React.FC<ThreadsProviderProps> = ({ children }) =>
     removeThread,
     updateThreadTitle,
     clearThreadsError,
-  };
+  }), [
+    threads,
+    loading,
+    error,
+    loadThreads,
+    addThread,
+    removeThread,
+    updateThreadTitle,
+    clearThreadsError,
+  ]);
 
   return (
     <ThreadsContext.Provider value={value}>

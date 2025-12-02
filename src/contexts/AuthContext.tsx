@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
+import React, { createContext, useContext, useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import type { User, Session } from '@supabase/supabase-js';
 import { useNavigationState } from '@/contexts/NavigationStateContext';
@@ -68,15 +68,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const isAuthenticated = !!user;
 
   // Functions to manage pending email state
-  const setPendingEmailAddress = (email: string) => {
+  const setPendingEmailAddress = useCallback((email: string) => {
     setPendingEmailAddressState(email);
     setIsPendingEmailCheck(false);
-  };
+  }, []);
 
-  const clearPendingEmail = () => {
+  const clearPendingEmail = useCallback(() => {
     setPendingEmailAddressState(undefined);
     setIsPendingEmailCheck(false);
-  };
+  }, []);
 
   /* ─────────────────────────────────────────────────────────────
    * Register Supabase auth listener and get initial session
@@ -283,7 +283,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   /* ──────────────────────────────────
    * Helpers exposed through context
    * ─────────────────────────────────*/
-  const signIn = async (email: string, password: string) => {
+  const signIn = useCallback(async (email: string, password: string) => {
     try {
       // Clean up any existing localStorage data before signing in
       // This ensures no stale data from previous sessions
@@ -293,12 +293,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       // Note: 400 errors in console are expected for invalid credentials - handled gracefully below
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-      
+
       if (error) {
         // Return error without logging - UI will show "Invalid email or password"
         return { error, data: null };
       }
-      
+
         // Email verification check removed - handled by custom verification system
         // Users will be redirected to verification page if needed
 
@@ -307,15 +307,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setSession(data.session);
           setLoading(false);
         }
-      
+
       return { error: null, data };
     } catch (err: unknown) {
       const error = err instanceof Error ? err : new Error('Unexpected sign-in error');
       return { error, data: null };
     }
-  };
+  }, []);
 
-  const signUp = async (email: string, password: string) => {
+  const signUp = useCallback(async (email: string, password: string) => {
     try {
       log('debug', 'Starting signup process', { email }, 'auth');
 
@@ -340,46 +340,46 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (!data?.success) {
         log('debug', 'Edge function returned error', { data }, 'auth');
-        
+
         // Handle specific error codes for better user experience
         if (data?.code === 'EMAIL_EXISTS') {
           return { error: new Error('An account with this email already exists. Please sign in instead.') };
         }
-        
+
         return { error: new Error(data?.error || 'Failed to create account') };
       }
 
       log('debug', 'Signup completed successfully', { userId: data.user_id }, 'auth');
 
       // Success case - verification email sent
-      return { 
-        error: null, 
-        data: { 
-          message: data.message || 'Verification email sent. Please check your inbox and click the verification link to complete registration.' 
-        } 
+      return {
+        error: null,
+        data: {
+          message: data.message || 'Verification email sent. Please check your inbox and click the verification link to complete registration.'
+        }
       };
 
     } catch (err: unknown) {
       const error = err instanceof Error ? err : new Error('Unexpected sign-up error');
       return { error };
     }
-  };
+  }, []);
 
-  const signInWithGoogle = async (): Promise<{ error: Error | null }> => {
+  const signInWithGoogle = useCallback(async (): Promise<{ error: Error | null }> => {
     // Unified auth manager handles platform routing automatically
     return await getAuthManager().signInWithOAuth('google');
-  };
+  }, []);
 
-  const signInWithApple = async (): Promise<{ error: Error | null }> => {
+  const signInWithApple = useCallback(async (): Promise<{ error: Error | null }> => {
     // Unified auth manager handles platform routing automatically
     return await getAuthManager().signInWithOAuth('apple');
-  };
+  }, []);
 
-  const signOut = async () => {
+  const signOut = useCallback(async () => {
     try {
       debug('========== SIGN‑OUT ==========');
       setLoading(true);
-      
+
       // Step 1: Clear local state first
       setUser(null);
       setSession(null);
@@ -400,7 +400,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         // Clear any remaining Supabase session data
         await supabase.auth.signOut({ scope: 'local' });
-        
+
         // Clear any cookies that might contain session data
         if (typeof document !== 'undefined') {
           document.cookie.split(";").forEach((c) => {
@@ -427,7 +427,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           return; // Exit early since we're doing a hard navigation
         }
       }
-      
+
     } catch (error) {
       console.error('Sign out error:', error);
       // Continue with cleanup even on error
@@ -438,13 +438,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [clearNavigationState]);
 
   /**
    * Resend confirmation link if the user deleted the first one.
    * Only succeeds when the account exists & is still unconfirmed.
    */
-  const resendVerificationEmail = async (email: string) => {
+  const resendVerificationEmail = useCallback(async (email: string) => {
     try {
       // Get user ID for the email
       const { data: userData } = await supabase.auth.getUser();
@@ -458,35 +458,51 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           user_id: userData.user.id
         }
       });
-      
+
       return { error };
     } catch (err: unknown) {
       return { error: err instanceof Error ? err : new Error('Could not resend verification') };
     }
-  };
+  }, []);
 
 
   /* ────────────────────────────────────────────────────────────────*/
+  const contextValue = useMemo(() => ({
+    user,
+    session,
+    loading,
+    isValidating,
+    pendingEmailAddress,
+    isPendingEmailCheck,
+    isAuthenticated,
+    signIn,
+    signUp,
+    signInWithGoogle,
+    signInWithApple,
+    signOut,
+    resendVerificationEmail,
+    setPendingEmailAddress,
+    clearPendingEmail,
+  }), [
+    user,
+    session,
+    loading,
+    isValidating,
+    pendingEmailAddress,
+    isPendingEmailCheck,
+    isAuthenticated,
+    signIn,
+    signUp,
+    signInWithGoogle,
+    signInWithApple,
+    signOut,
+    resendVerificationEmail,
+    setPendingEmailAddress,
+    clearPendingEmail,
+  ]);
+
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        session,
-        loading,
-        isValidating,
-        pendingEmailAddress,
-        isPendingEmailCheck,
-        isAuthenticated,
-        signIn,
-        signUp,
-        signInWithGoogle,
-        signInWithApple,
-        signOut,
-        resendVerificationEmail,
-        setPendingEmailAddress,
-        clearPendingEmail,
-      }}
-    >
+    <AuthContext.Provider value={contextValue}>
       {children}
     </AuthContext.Provider>
   );
