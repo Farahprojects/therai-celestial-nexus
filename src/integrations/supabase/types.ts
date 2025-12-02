@@ -2537,7 +2537,6 @@ export type Database = {
         Args: { p_requested_seconds?: number; p_user_id: string }
         Returns: Json
       }
-      clean_completed_topups: { Args: never; Returns: undefined }
       clean_edge_function_logs: { Args: never; Returns: undefined }
       clean_old_webhook_events: { Args: never; Returns: undefined }
       create_user_after_payment: {
