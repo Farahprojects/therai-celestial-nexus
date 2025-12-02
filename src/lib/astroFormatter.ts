@@ -211,7 +211,7 @@ export const parseAstroData = (raw: Record<string, unknown>): ParsedAstroData =>
     subject: (raw.subject as SubjectData) ?? {} // Carry over subject info
   };
 
-  // Handle single-block, top-level report types like 'weekly'
+  // Handle single-block, top-level report types like 'weekly' and 'focus'
   if (raw.block_type) {
     switch(raw.block_type) {
       case 'weekly':
@@ -220,6 +220,13 @@ export const parseAstroData = (raw: Record<string, unknown>): ParsedAstroData =>
           block_type: 'weekly',
           ...(raw.components as Record<string, unknown>)
         };
+        return parsedData;
+      case 'focus':
+        // The core data is in the 'components' object for focus reports
+        parsedData.focus = {
+          block_type: 'focus',
+          ...(raw.components as Record<string, unknown>)
+        } as FocusData;
         return parsedData;
     }
   }

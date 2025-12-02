@@ -3,14 +3,15 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ChartHeader } from './shared/ChartHeader';
 import { Badge } from '@/components/ui/badge';
 import { Clock, TrendingUp, List, CheckCircle2, Activity, AlertTriangle, Zap, Brain } from 'lucide-react';
-
-interface Band {
-  name: string;
-  hours: number[];
-}
+import { FocusData, Band, MetaData, SubjectData } from '@/lib/astro/types';
 
 interface FocusAstroFormatterProps {
-  swissData: Record<string, unknown>;
+  swissData: {
+    components?: FocusData;
+    meta?: MetaData;
+    subject?: SubjectData;
+    [key: string]: unknown;
+  };
   reportData: {
     guest_report?: {
       report_data?: {
@@ -102,7 +103,7 @@ const getCategoryForScore = (score: number): { label: string; icon: React.Compon
 };
 
 // Group consecutive hours with same score into time blocks
-const groupTimeBlocks = (scores: number[], notes: string[], bands: Band[]): TimeBlock[] => {
+const groupTimeBlocks = (scores: number[], notes: string[], bands: Band[] = []): TimeBlock[] => {
   const blocks: TimeBlock[] = [];
   
   const getBandForHour = (hour: number): string | null => {
@@ -168,7 +169,7 @@ export const FocusAstroFormatter: React.FC<FocusAstroFormatterProps> = ({
     );
   }
 
-  const { hourly_grid } = components;
+  const hourly_grid = components.hourly_grid;
   
   // Format date
   const dateStr = meta.date 

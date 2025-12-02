@@ -70,15 +70,34 @@ export interface WeeklyData {
   [key: string]: unknown;
 }
 
+export interface Band {
+  name: string;
+  hours: number[];
+}
+
+export interface HourlyGrid {
+  scores: number[];
+  notes?: string[];
+  bands?: Band[];
+}
+
+export interface FocusData {
+  block_type: string;
+  hourly_grid: HourlyGrid;
+  [key: string]: unknown;
+}
+
 export interface SubjectData {
   name?: string;
   location?: string;
+  tz?: string;
   lat?: number;
   lon?: number;
   [key: string]: unknown;
 }
 
 export interface MetaData {
+  date?: string;
   [key: string]: unknown;
 }
 
@@ -92,5 +111,6 @@ export interface ParsedAstroData {
   composite_chart?: CompositeChartData | null;
   synastry_aspects?: SynastryAspectsData | null;
   weekly?: WeeklyData | null;
+  focus?: FocusData | null;
   [key: string]: unknown; // Allow for additional unknown properties
 }
