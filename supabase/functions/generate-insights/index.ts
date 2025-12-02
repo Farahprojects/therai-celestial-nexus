@@ -358,26 +358,6 @@ Deno.serve(async (req) => {
       requestId
     );
 
-    // Record API usage
-    try {
-      const costUsd = await getInsightPrice(requestId);
-      
-      const { error: usageError } = await supabase.rpc('record_api_usage', {
-        _user_id: userId,
-        _endpoint: 'generate-insights',
-        _cost_usd: costUsd,
-        _request_params: { insightType, clientId },
-        _response_status: 200,
-        _processing_time_ms: Date.now() - startTime
-      });
-
-      if (usageError) {
-        console.error(`[${requestId}] API usage recording failed:`, usageError);
-      }
-    } catch (usageErr) {
-      console.error(`[${requestId}] API usage recording error:`, usageErr);
-    }
-
     console.log(`[${requestId}] Insight generated successfully in ${Date.now() - startTime}ms`);
     return jsonResponse({
       success: true,
