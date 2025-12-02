@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search, Clock, MessageSquare, User, Bot } from 'lucide-react';
+import { Search, Clock, MessageSquare, User } from 'lucide-react';
 
 interface SearchIndexProps {
   totalConversations: number;

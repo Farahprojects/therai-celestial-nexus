@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Download, Copy, Paperclip, Check, ChevronDown, ChevronRight } from 'lucide-react';
+import { Copy, Paperclip, Check, ChevronDown, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
@@ -8,8 +8,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { ReportContent } from './ReportContent';
 import { DocumentContent } from './DocumentContent';
 import { supabase } from '@/integrations/supabase/client';
-import { ReportData, extractReportContent, getPersonName } from '@/utils/reportContentExtraction';
-import { renderUnifiedContentAsText } from '@/utils/componentToTextRenderer';
+import { ReportData, getPersonName } from '@/utils/reportContentExtraction';
 import { AstroDataRenderer } from './AstroDataRenderer';
 import { useSystemPrompts, SystemPrompt } from '@/hooks/useSystemPrompts';
 import { useDocumentLoader } from '@/hooks/useDocumentLoader';
@@ -103,8 +102,9 @@ export const ReportSlideOver: React.FC<ReportSlideOverProps> = ({
       }
 
       setReportData(data.data as ReportData);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'An error occurred';
+      setError(errorMessage);
       console.error('Error fetching report data:', err);
     } finally {
       setIsLoading(false);
@@ -138,7 +138,7 @@ export const ReportSlideOver: React.FC<ReportSlideOverProps> = ({
   useEffect(() => {
     if (!reportData) return;
     
-    const chartType = (reportData?.metadata as any)?.request_type || null;
+    const chartType = (reportData?.metadata as { request_type?: string })?.request_type || null;
     if (!chartType) return;
     
     const getVisibleCategories = (): string[] => {
@@ -306,7 +306,6 @@ export const ReportSlideOver: React.FC<ReportSlideOverProps> = ({
     );
   }
 
-  const personName = getPersonName(reportData);
 
   const handleOpenPromptSelector = () => {
     setShowPromptSelector(true);
@@ -351,7 +350,7 @@ export const ReportSlideOver: React.FC<ReportSlideOverProps> = ({
   };
 
   // Get chart type directly from metadata.request_type (deterministic, no guessing)
-  const chartType = (reportData?.metadata as any)?.request_type || null;
+  const chartType = (reportData?.metadata as { request_type?: string })?.request_type || null;
 
   // Filter categories based on chart type - deterministic and fail-fast
   const getVisibleCategories = (): string[] => {

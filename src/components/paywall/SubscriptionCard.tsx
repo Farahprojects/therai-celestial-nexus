@@ -3,7 +3,6 @@ import { motion } from 'framer-motion';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import { useAuth } from '@/contexts/AuthContext';
 
 type PlanInfo = {
   id: string;

@@ -13,13 +13,10 @@ interface ReportContentProps {
 
 export const ReportContent: React.FC<ReportContentProps> = ({
   reportData,
-  activeView,
-  setActiveView,
-  isMobile = false
+  activeView
 }) => {
   const hasAiContent = !!reportData.report_content && reportData.report_content.trim().length > 20;
   const hasAstroContent = !!reportData.swiss_data;
-  const astroReportType = hasAstroContent ? getAstroReportType(reportData.swiss_data) : null;
 
   const renderAstroContent = () => {
     if (!hasAstroContent) return null;

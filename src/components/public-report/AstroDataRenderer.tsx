@@ -10,12 +10,12 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { parseAstroData } from '@/lib/astroFormatter';
 
 interface AstroDataRendererProps {
-  swissData: any;
+  swissData: Record<string, unknown>;
   reportData: ReportData;
 }
 
 // New helper to detect the specific type of astro report
-  const getAstroReportType = (swissData: any): 'weekly' | 'monthly' | 'synastry' | 'focus' | 'individual' => {
+  const getAstroReportType = (swissData: Record<string, unknown>): 'weekly' | 'monthly' | 'synastry' | 'focus' | 'individual' => {
     if (!swissData) return 'individual'; // Fallback
     
     // Check for weekly data structure (block_type: "weekly")
@@ -38,7 +38,6 @@ interface AstroDataRendererProps {
   };
 
 export const AstroDataRenderer = ({ swissData, reportData }: AstroDataRendererProps) => {
-  const isMobile = useIsMobile();
   const reportType = getAstroReportType(swissData);
 
   const renderContent = () => {

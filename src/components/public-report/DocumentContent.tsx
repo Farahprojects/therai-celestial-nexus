@@ -73,7 +73,7 @@ export const DocumentContent: React.FC<DocumentContentProps> = ({
       toast.success('Document updated');
       setIsEditing(false);
       onUpdate?.(); // Refresh the document data
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('[DocumentContent] Failed to update document:', error);
       toast.error('Failed to update document');
     } finally {
@@ -95,7 +95,7 @@ export const DocumentContent: React.FC<DocumentContentProps> = ({
       toast.success('Document name updated');
       setIsEditingTitle(false);
       onUpdate?.(); // Refresh the document data
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('[DocumentContent] Failed to update document name:', error);
       toast.error('Failed to update document name');
     } finally {
