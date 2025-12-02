@@ -118,14 +118,4 @@ export interface CreatorProfile {
   links?: { label: string; url: string }[];
 }
 
-@@
-export interface CreatorProfile {
-  id: string;
-  username: string;
-  displayName?: string;
-  avatarUrl?: string;
-  bio?: string;
-  websiteUrl?: string;
-  links?: { label: string; url: string }[];
-}
 

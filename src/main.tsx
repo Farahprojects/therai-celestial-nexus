@@ -16,6 +16,8 @@ import { cleanupOldStorage } from './utils/cleanupOldStorage';
 import './stores/initializeApp';
 // 🔥 Initialize memory cleanup handlers (development only)
 import { setupDevCleanup, logMemoryStats } from './utils/memoryCleanup';
+// 🚨 Initialize comprehensive environment monitoring and error catching
+import './utils/environmentMonitor';
 
 // Initialize StatusBar for native apps
 const initStatusBar = async () => {

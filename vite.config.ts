@@ -30,10 +30,24 @@ export default defineConfig(({ mode }) => ({
   },
   build: {
     minify: 'esbuild',
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // Vendor chunks
+          'react-vendor': ['react', 'react-dom'],
+          'router-vendor': ['react-router-dom'],
+          'ui-vendor': ['@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu', '@radix-ui/react-select'],
+          'utils-vendor': ['clsx', 'tailwind-merge', 'date-fns'],
+          'supabase-vendor': ['@supabase/supabase-js'],
+          'stripe-vendor': ['@stripe/stripe-js', '@stripe/react-stripe-js'],
+          // Heavy components
+          'capacitor-vendor': ['@capacitor/core', '@capacitor/app', '@capacitor/browser'],
+        },
+      },
+    },
   },
   esbuild: {
-    // Console logs enabled in production for debugging
-    // drop: mode === 'production' ? ['console', 'debugger'] : [],
-    drop: mode === 'production' ? ['debugger'] : [],
+    // Remove console logs and debugger statements from production builds
+    drop: mode === 'production' ? ['console', 'debugger'] : [],
   },
 }));
