@@ -68,7 +68,7 @@ export const MonthlyAstroFormatter: React.FC<MonthlyAstroFormatterProps> = ({
 
   const monthlyData = monthly as MonthlyData;
   const { peaks, top_events, daily_index } = monthlyData;
-
+  
   const monthStr = (meta as Record<string, unknown>).month;
   const monthName = monthStr
     ? new Date(`${monthStr}-02`).toLocaleString('default', { month: 'long', year: 'numeric' })
