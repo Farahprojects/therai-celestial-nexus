@@ -42,6 +42,45 @@ BEGIN
 END;
 $$;
 
+-- Function to get anon key from Supabase Vault
+-- This should be set via: SELECT vault.create_secret('your-anon-key', 'anon_key');
+CREATE OR REPLACE FUNCTION public.get_anon_key()
+RETURNS text
+LANGUAGE plpgsql
+STABLE
+AS $$
+DECLARE
+  key text;
+BEGIN
+  -- Try to get from app settings first
+  BEGIN
+    key := current_setting('app.settings.anon_key', true);
+    IF key IS NOT NULL AND key != '' THEN
+      RETURN key;
+    END IF;
+  EXCEPTION WHEN OTHERS THEN
+    NULL;
+  END;
+
+  -- Try to get from vault (recommended approach)
+  BEGIN
+    SELECT decrypted_secret INTO key
+    FROM vault.decrypted_secrets
+    WHERE name = 'anon_key'
+    LIMIT 1;
+
+    IF key IS NOT NULL AND key != '' THEN
+      RETURN key;
+    END IF;
+  EXCEPTION WHEN OTHERS THEN
+    NULL;
+  END;
+
+  -- Return empty string if not found (function will fail gracefully)
+  RETURN '';
+END;
+$$;
+
 -- Function to get service role key from Supabase Vault
 -- This should be set via: SELECT vault.create_secret('your-service-role-key', 'service_role_key');
 CREATE OR REPLACE FUNCTION public.get_service_role_key()
@@ -69,7 +108,7 @@ BEGIN
     FROM vault.decrypted_secrets
     WHERE name = 'service_role_key'
     LIMIT 1;
-    
+
     IF key IS NOT NULL AND key != '' THEN
       RETURN key;
     END IF;
@@ -116,20 +155,7 @@ BEGIN
     IF new_count >= 5 THEN
       -- Get Supabase URL and anon key
       supabase_url := public.get_supabase_url();
-      
-      -- Try to get anon key from settings or vault
-      BEGIN
-        anon_key := current_setting('app.settings.anon_key', true);
-      EXCEPTION WHEN OTHERS THEN
-        BEGIN
-          SELECT decrypted_secret INTO anon_key
-          FROM vault.decrypted_secrets
-          WHERE name = 'anon_key'
-          LIMIT 1;
-        EXCEPTION WHEN OTHERS THEN
-          anon_key := '';
-        END;
-      END;
+      anon_key := public.get_anon_key();
       
       IF supabase_url = '' OR anon_key = '' THEN
         RAISE WARNING 'Supabase URL or anon key not configured. Skipping edge function call.';
@@ -164,12 +190,16 @@ $function$;
 
 -- Grant execute permissions
 GRANT EXECUTE ON FUNCTION public.get_supabase_url() TO authenticated, anon, service_role;
+GRANT EXECUTE ON FUNCTION public.get_anon_key() TO authenticated, anon, service_role;
 GRANT EXECUTE ON FUNCTION public.get_service_role_key() TO service_role;
 
 -- Add comment explaining configuration
 COMMENT ON FUNCTION public.get_supabase_url() IS 
 'Gets Supabase URL from app settings. Configure via: ALTER DATABASE postgres SET app.settings.supabase_url = ''https://api.therai.co'';';
 
-COMMENT ON FUNCTION public.get_service_role_key() IS 
+COMMENT ON FUNCTION public.get_anon_key() IS
+'Gets anon key from Supabase Vault. Configure via: SELECT vault.create_secret(''your-anon-key'', ''anon_key'')';
+
+COMMENT ON FUNCTION public.get_service_role_key() IS
 'Gets service role key from Supabase Vault. Configure via: SELECT vault.create_secret(''your-service-role-key'', ''service_role_key'');';
 
