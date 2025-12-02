@@ -214,33 +214,6 @@ export type Database = {
         }
         Relationships: []
       }
-      cascade_deletion_log: {
-        Row: {
-          deleted_at: string | null
-          id: string
-          parent_id: string
-          parent_table: string
-          record_id: string
-          table_name: string
-        }
-        Insert: {
-          deleted_at?: string | null
-          id?: string
-          parent_id: string
-          parent_table: string
-          record_id: string
-          table_name: string
-        }
-        Update: {
-          deleted_at?: string | null
-          id?: string
-          parent_id?: string
-          parent_table?: string
-          record_id?: string
-          table_name?: string
-        }
-        Relationships: []
-      }
       chat_folder_participants: {
         Row: {
           folder_id: string
