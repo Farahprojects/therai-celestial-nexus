@@ -106,24 +106,6 @@ export const SearchModal: React.FC<SearchModalProps> = ({
     }
   }, [isOpen, fetchRecentConversations, query]);
 
-  // Search function with debouncing
-  useEffect(() => {
-    if (!query.trim() || !user) {
-      setResults([]);
-      // Show recent conversations when not searching
-      if (isOpen && recentConversations.length === 0) {
-        fetchRecentConversations();
-      }
-      return;
-    }
-
-    const searchTimeout = setTimeout(async () => {
-      await performSearch(query.trim());
-    }, 300);
-
-    return () => clearTimeout(searchTimeout);
-  }, [query, user, isOpen, recentConversations.length, fetchRecentConversations, performSearch]);
-
   const performSearch = useCallback(async (searchQuery: string) => {
     setIsLoading(true);
     try {
@@ -149,68 +131,79 @@ export const SearchModal: React.FC<SearchModalProps> = ({
 
       // Get conversation IDs
       const conversationIds = conversationRows.map(conv => conv.id);
-      
+
       // Search messages in those conversations
       const { data: messages, error: msgError } = await supabase
         .from('messages')
         .select('id, chat_id, text, role, created_at')
-        .in('chat_id' as never, conversationIds as string[])
+        .in('chat_id', conversationIds)
         .ilike('text', `%${searchQuery}%`)
         .order('created_at', { ascending: false })
-        .limit(100);
+        .limit(50); // Limit results for performance
 
       if (msgError) {
         console.error('Messages search error:', msgError);
         return;
       }
 
-      // Group results by conversation
-      const groupedResults = new Map<string, ConversationGroup>();
+      const messageRows = Array.isArray(messages) ? messages.filter(hasMessageShape) : [];
 
-      // Create a map of conversations for quick lookup
-      const conversationMap = new Map<string, { id: string; title: string | null; created_at: string }>(
+      // Group results by conversation
+      const groupedResults = new Map<string, {
+        conversation_id: string;
+        conversation_title: string;
+        latest_message: string;
+        messages: Array<{
+          id: string;
+          chat_id: string;
+          conversation_title: string;
+          text: string;
+          role: 'user' | 'assistant' | 'system';
+          created_at: string;
+          snippet: string;
+        }>;
+      }>();
+
+      // Create conversation lookup
+      const conversationLookup = new Map(
         conversationRows.map(conv => [conv.id, conv])
       );
 
-      const messageRows = (Array.isArray(messages) ? messages.filter(hasMessageShape) : []) as Array<{ id: string; chat_id: string; text: string; role: string; created_at: string }>;
+      for (const msg of messageRows) {
+        const conversation = conversationLookup.get(msg.chat_id);
+        if (!conversation) continue;
 
-      messageRows.forEach((msg) => {
-        const chatId = msg.chat_id;
-        const conversation = conversationMap.get(chatId);
-        
-        if (conversation && msg.text.toLowerCase().includes(searchQuery.toLowerCase())) {
-          if (!groupedResults.has(chatId)) {
-            groupedResults.set(chatId, {
-              chat_id: chatId,
-              title: conversation.title ?? 'Untitled Chat',
-              messages: [] as SearchResult[],
-              latest_message: conversation.created_at
-            });
-          }
-
-          const snippet = createSnippet(msg.text, searchQuery);
-          const group = groupedResults.get(chatId)!;
-          group.messages.push({
-            id: msg.id,
-            chat_id: chatId,
-            conversation_title: conversation.title ?? 'Untitled Chat',
-            text: msg.text,
-            role: msg.role as 'user' | 'assistant' | 'system',
-            created_at: msg.created_at,
-            snippet
+        if (!groupedResults.has(msg.chat_id)) {
+          groupedResults.set(msg.chat_id, {
+            chat_id: msg.chat_id,
+            title: conversation.title ?? 'Untitled Chat',
+            latest_message: conversation.created_at,
+            messages: []
           });
         }
-      });
+
+        const snippet = createSnippet(msg.text, searchQuery);
+        const group = groupedResults.get(msg.chat_id)!;
+        group.messages.push({
+          id: msg.id,
+          chat_id: msg.chat_id,
+          conversation_title: conversation.title ?? 'Untitled Chat',
+          text: msg.text,
+          role: msg.role as 'user' | 'assistant' | 'system',
+          created_at: msg.created_at,
+          snippet
+        });
+      }
 
       // Convert to array and sort by latest message
       const sortedResults = Array.from(groupedResults.values())
         .map(group => ({
           ...group,
-          messages: group.messages.sort((a, b) => 
+          messages: group.messages.sort((a, b) =>
             new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
           )
         }))
-        .sort((a, b) => 
+        .sort((a, b) =>
           new Date(b.latest_message).getTime() - new Date(a.latest_message).getTime()
         );
 
@@ -221,6 +214,24 @@ export const SearchModal: React.FC<SearchModalProps> = ({
       setIsLoading(false);
     }
   }, [user?.id]);
+
+  // Search function with debouncing
+  useEffect(() => {
+    if (!query.trim() || !user) {
+      setResults([]);
+      // Show recent conversations when not searching
+      if (isOpen && recentConversations.length === 0) {
+        fetchRecentConversations();
+      }
+      return;
+    }
+
+    const searchTimeout = setTimeout(async () => {
+      await performSearch(query.trim());
+    }, 300);
+
+    return () => clearTimeout(searchTimeout);
+  }, [query, user, isOpen, recentConversations.length, fetchRecentConversations, performSearch]);
 
   const createSnippet = (text: string, query: string, maxLength = 120) => {
     const queryIndex = text.toLowerCase().indexOf(query.toLowerCase());
