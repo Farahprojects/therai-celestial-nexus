@@ -6,7 +6,7 @@ import { AuthModal } from '@/components/auth/AuthModal';
 import { StarterQuestionsPopup } from '@/components/onboarding/StarterQuestionsPopup';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { useSearchParams, useNavigate, useLocation, useParams } from 'react-router-dom';
+import { useSearchParams, useNavigate, useLocation } from 'react-router-dom';
 import { getRedirectPath, clearRedirectPath, extractIdFromPath } from '@/utils/redirectUtils';
 import { useChatStore } from '@/core/store';
 import { useMessageStore } from '@/stores/messageStore';

@@ -97,7 +97,7 @@ const JoinConversation: React.FC = () => {
             try {
               localStorage.removeItem('pending_join_chat_id');
               localStorage.removeItem('pending_redirect_path');
-            } catch (e) {
+            } catch {
               // Ignore
             }
           } catch (err) {

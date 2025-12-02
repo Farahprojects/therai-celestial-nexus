@@ -13,12 +13,6 @@ interface LimitsData {
   usage?: Record<string, unknown>;
 }
 
-interface ProfileData {
-  subscription_active?: boolean;
-  subscription_status?: string;
-  subscription_plan?: string;
-}
-
 export interface FeatureUsage {
   voice_seconds: {
     used: number;

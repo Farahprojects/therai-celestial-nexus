@@ -137,7 +137,7 @@ const ActivityLogDrawer = ({ isOpen, onClose, logData }: ActivityLogDrawerProps)
   // Determine which view to show by default
   useEffect(() => {
     if (logData) {
-      const hasReport = getReportData() !== null;
+      const hasReport = logData?.response_payload?.report != null;
       setViewMode(hasReport ? "report" : "payload");
     }
   }, [logData]);

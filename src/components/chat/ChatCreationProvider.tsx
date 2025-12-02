@@ -123,7 +123,7 @@ export const ChatCreationProvider: React.FC<ChatCreationProviderProps> = ({
     } catch (error) {
       console.error('[ChatCreationProvider] Failed to create conversation:', error);
     }
-  }, [navigate, requireEligibleUser, user]);
+  }, [navigate, requireEligibleUser, user, onConversationReady]);
 
   const openAstroFlow = useCallback(() => {
     if (!requireEligibleUser(false)) return;
@@ -286,7 +286,7 @@ export const ChatCreationProvider: React.FC<ChatCreationProviderProps> = ({
       toast.error('Failed to create Sync Score');
       setIsSyncScoreGenerating(false);
     }
-  }, [user, navigate]);
+  }, [user, navigate, onConversationReady]);
 
   const handleSelectChart = useCallback((chartId: string) => {
     setSelectedChartType(chartId);
@@ -321,7 +321,7 @@ export const ChatCreationProvider: React.FC<ChatCreationProviderProps> = ({
         console.error('[ChatCreationProvider] Failed to open astro conversation:', error);
       }
     },
-    [navigate, user]
+    [navigate, user, onConversationReady]
   );
 
   const closeAstroModal = useCallback(() => {

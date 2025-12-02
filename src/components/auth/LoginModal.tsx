@@ -55,7 +55,7 @@ const LoginModal: React.FC<LoginModalProps> = ({ onSuccess, showAsPage = false }
     if (!authLoading && user && !showVerificationModal && !isPendingEmailCheck) {
       onSuccess?.();
     }
-  }, [authLoading, user, isPendingEmailCheck, onSuccess]);
+  }, [authLoading, user, isPendingEmailCheck, onSuccess, showVerificationModal]);
 
   // ————————————————————————————————————————————————
   // Show verification modal automatically when flagged by AuthContext

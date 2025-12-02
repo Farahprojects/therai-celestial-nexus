@@ -465,7 +465,7 @@ if (typeof window !== 'undefined' && !(window as any).__msgStoreListenerInstalle
   });
   
   // Also listen for message-update events (for image generation status updates)
-  unifiedChannel.on('message-update', (payload: any) => {
+  unifiedChannel.on('message-update', (payload: Record<string, unknown>) => {
     const { chat_id, message: messageData } = payload;
     
     if (DEBUG) {
@@ -486,7 +486,7 @@ if (typeof window !== 'undefined' && !(window as any).__msgStoreListenerInstalle
   });
   
   // Listen for conversation-update events for sidebar updates
-  unifiedChannel.on('conversation-update', (payload: any) => {
+  unifiedChannel.on('conversation-update', (payload: Record<string, unknown>) => {
     const { eventType, data } = payload;
     
     if (DEBUG) {
@@ -513,7 +513,7 @@ if (typeof window !== 'undefined' && !(window as any).__msgStoreListenerInstalle
   });
   
   // Listen for assistant-thinking events (shows stop button immediately)
-  unifiedChannel.on('assistant-thinking', (payload: any) => {
+  unifiedChannel.on('assistant-thinking', (payload: Record<string, unknown>) => {
     const { chat_id, status } = payload;
     
     if (DEBUG) {

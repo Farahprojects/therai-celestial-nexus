@@ -65,7 +65,7 @@ const JoinFolder: React.FC = () => {
           try {
             const tempFoldersJson = sessionStorage.getItem('temp_folders');
             const tempFolders = tempFoldersJson ? JSON.parse(tempFoldersJson) : [];
-            const exists = tempFolders.some((f: any) => f.id === folderId);
+            const exists = tempFolders.some((f: { id: string }) => f.id === folderId);
             if (!exists) {
               tempFolders.push({
                 id: folder.id,
@@ -93,7 +93,7 @@ const JoinFolder: React.FC = () => {
           try {
             localStorage.removeItem('pending_join_folder_id');
             localStorage.removeItem('pending_redirect_path');
-          } catch (e) {
+          } catch {
             // Ignore
           }
         } catch (err) {

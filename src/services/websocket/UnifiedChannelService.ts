@@ -17,15 +17,15 @@ export type EventType =
 
 export interface UnifiedEvent {
   type: EventType;
-  payload: any;
+  payload: Record<string, unknown>;
   chat_id?: string;
   conversation_id?: string;
 }
 
-type EventCallback = (payload: any) => void;
+type EventCallback = (payload: Record<string, unknown>) => void;
 
 class UnifiedChannelService {
-  private channel: any = null;
+  private channel: unknown = null;
   private userId: string | null = null;
   private listeners: Map<EventType, Set<EventCallback>> = new Map();
   private isActive: boolean = false;

@@ -66,7 +66,7 @@ export const useSwissDataPolling = (chatId: string | null, enabled: boolean = tr
             if (pollInterval) clearInterval(pollInterval);
           }
         }
-      } catch (_err) {
+      } catch {
         setError('Error polling for data');
         setIsLoading(false);
         if (pollInterval) clearInterval(pollInterval);

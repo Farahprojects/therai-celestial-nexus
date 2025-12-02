@@ -18,7 +18,6 @@ interface PricingData {
 const Pricing: React.FC = () => {
   const navigate = useNavigate();
   const [pricingPlans, setPricingPlans] = useState<PricingData[]>([]);
-  const [abTestGroup, setAbTestGroup] = useState<string | null>(null);
 
   const renderFeature = (feature: string) => {
     const isVoiceFeature = feature.toLowerCase().includes('voice');

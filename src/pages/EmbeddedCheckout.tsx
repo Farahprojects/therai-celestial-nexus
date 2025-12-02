@@ -73,7 +73,7 @@ const EmbeddedCheckoutPage: React.FC = () => {
       <div className="p-10 bg-gray-50 flex items-center justify-center">
         {clientSecret && options && (
           <div className="max-w-md w-full bg-white p-0 rounded-xl shadow-sm overflow-hidden">
-            <EmbeddedCheckoutProvider stripe={stripePromise} options={options as any}>
+            <EmbeddedCheckoutProvider stripe={stripePromise} options={options || {}}>
               <EmbeddedCheckout />
             </EmbeddedCheckoutProvider>
           </div>

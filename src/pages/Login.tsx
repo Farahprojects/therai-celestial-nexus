@@ -1,6 +1,12 @@
 import { useEffect } from 'react';
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+
+interface LocationState {
+  from?: {
+    pathname: string;
+  };
+}
 import LoginModal from '@/components/auth/LoginModal';
 import UnifiedNavigation from '@/components/UnifiedNavigation';
 import Footer from '@/components/Footer';
@@ -22,7 +28,7 @@ export default function Login() {
     if (user && !authLoading) {
       // Check for redirect param first, then location state, then default
       const redirectPath = getRedirectPath(searchParams);
-      const from = redirectPath || (location.state as any)?.from?.pathname || '/therai';
+      const from = redirectPath || (location.state as LocationState)?.from?.pathname || '/therai';
       navigate(from, { replace: true });
     }
   }, [user, authLoading, navigate, location.state, searchParams]);
@@ -30,7 +36,7 @@ export default function Login() {
   const handleSuccess = () => {
     // Check for redirect param first, then location state, then default
     const redirectPath = getRedirectPath(searchParams);
-    const from = redirectPath || (location.state as any)?.from?.pathname || '/therai';
+    const from = redirectPath || (location.state as LocationState)?.from?.pathname || '/therai';
     navigate(from, { replace: true });
   };
 
