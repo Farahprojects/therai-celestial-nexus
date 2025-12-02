@@ -1,7 +1,5 @@
 // @ts-nocheck
-// Dynamically routes to correct LLM handler based on system config
 
-import { getLLMHandler } from "../_shared/llmConfig.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -176,11 +174,11 @@ Deno.serve(async (req) => {
             return;
           }
 
-          // Normal flow: call LLM handler
-          getLLMHandler(supabaseUrl, supabaseKey).then((llmHandler) => {
-            console.log(`[openai-whisper] Using ${llmHandler} for voice mode`);
-            
-            fetch(`${supabaseUrl}/functions/v1/${llmHandler}`, {
+          // Call LLM handler
+          const llmHandler = "llm-handler-gemini";
+          console.log(`[openai-whisper] Using ${llmHandler} for voice mode`);
+          
+          fetch(`${supabaseUrl}/functions/v1/${llmHandler}`, {
               method: 'POST',
               headers: {
                 'Authorization': `Bearer ${supabaseKey}`,
@@ -196,9 +194,6 @@ Deno.serve(async (req) => {
             }).catch((error) => {
               console.error('[openai-whisper] ❌ LLM call failed:', error);
             });
-          }).catch((error) => {
-            console.error('[openai-whisper] ❌ Get LLM handler failed:', error);
-          });
         })
         .catch((error) => {
           console.error('[openai-whisper] ❌ Conversation lookup failed:', error);

@@ -8,7 +8,6 @@
 // Dynamically routes to correct LLM handler based on system config
 
 import { createPooledClient } from "../_shared/supabaseClient.ts";
-import { getLLMHandler } from "../_shared/llmConfig.ts";
 import { getConversationMetadata } from "../_shared/queryCache.ts";
 import { checkLimit } from "../_shared/limitChecker.ts";
 import {
@@ -210,7 +209,7 @@ async function shouldTriggerLLM(
 
   return {
     shouldStart: true,
-    handlerName: await getLLMHandler(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!),
+    handlerName: "llm-handler-gemini",
   };
 }
 
