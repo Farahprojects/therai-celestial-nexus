@@ -1,6 +1,6 @@
 // lib/astroFormatter.ts - Astrological data formatter for Swiss Ephemeris sync v1.1+
 import { ZODIAC_SIGNS } from './astroUtils';
-import { ParsedAstroData, NatalData, NatalSetData, TransitData, CompositeChartData, SynastryAspectsData } from './astro/types';
+import { ParsedAstroData, NatalData, NatalSetData, TransitData, CompositeChartData, SynastryAspectsData, MetaData, SubjectData, Angle } from './astro/types';
 
 type PlanetDetail = {
   deg: number;
@@ -87,7 +87,7 @@ const getOrbBand = (orb: number): 'tight' | 'medium' | 'wide' | 'exact' => {
   return 'wide';
 };
 
-const enrichPlanets = (planets: { [key: string]: PlanetDetail }): EnrichedPlanet[] => {
+const enrichPlanets = (planets: Record<string, PlanetDetail>): EnrichedPlanet[] => {
   if (!planets || typeof planets !== 'object') return [];
   return Object.entries(planets).map(([name, details]) => {
     const signNum = ZODIAC_TO_NUM[details.sign.toLowerCase()] || 0;
@@ -121,47 +121,50 @@ const parseNatal = (block: Record<string, unknown>): NatalData | null => {
   if (!block) return null;
   const personData = block; // In single reports, the block is the person data
 
-  const anglesArray = personData.angles
-    ? Object.entries(personData.angles).map(([name, data]: [string, Record<string, unknown>]) => ({
+  const anglesArray = personData.angles && typeof personData.angles === 'object'
+    ? Object.entries(personData.angles as Record<string, Record<string, unknown>>).map(([name, data]): Angle => ({
         name,
-        ...data
+        sign: typeof data.sign === 'string' ? data.sign : '',
+        deg: typeof data.deg === 'number' ? data.deg : (typeof data.degree === 'number' ? data.degree : 0)
       }))
     : [];
 
   return {
-    name: personData.name || 'Unknown',
-    planets: enrichPlanets(personData.planets ?? {}),
+    name: typeof personData.name === 'string' ? personData.name : 'Unknown',
+      planets: enrichPlanets((personData.planets as Record<string, PlanetDetail>) ?? {}),
     angles: anglesArray,
-    houses: personData.houses ?? [],
-    aspects: enrichAspects(personData.aspects ?? [])
+    houses: Array.isArray(personData.houses) ? personData.houses : [],
+      aspects: enrichAspects((personData.aspects as Aspect[]) ?? [])
   };
 };
 
 const parseNatalSet = (block: Record<string, unknown>): NatalSetData | null => {
-  if (!block || !block.subjects) return null;
+  if (!block || !block.subjects || typeof block.subjects !== 'object') return null;
 
   const processPerson = (personData: Record<string, unknown>) => {
     if (!personData) return undefined;
 
-    const anglesArray = personData.angles 
-      ? Object.entries(personData.angles).map(([name, data]: [string, Record<string, unknown>]) => ({
+    const anglesArray: Angle[] = personData.angles && typeof personData.angles === 'object'
+      ? Object.entries(personData.angles as Record<string, Record<string, unknown>>).map(([name, data]): Angle => ({
           name,
-          ...data
+          sign: typeof data.sign === 'string' ? data.sign : '',
+          deg: typeof data.deg === 'number' ? data.deg : (typeof data.degree === 'number' ? data.degree : 0)
         }))
       : [];
 
     return {
-      name: personData.name || 'Unknown',
-      planets: enrichPlanets(personData.planets ?? {}),
+      name: typeof personData.name === 'string' ? personData.name : 'Unknown',
+      planets: enrichPlanets((personData.planets as Record<string, PlanetDetail>) ?? {}),
       angles: anglesArray,
-      houses: personData.houses ?? [],
-      aspects: enrichAspects(personData.aspects ?? [])
+      houses: Array.isArray(personData.houses) ? personData.houses : [],
+      aspects: enrichAspects((personData.aspects as Aspect[]) ?? [])
     };
   };
 
+  const subjects = block.subjects as Record<string, unknown>;
   return {
-    personA: processPerson(block.subjects.person_a),
-    personB: processPerson(block.subjects.person_b)
+    personA: processPerson(subjects.person_a as Record<string, unknown>),
+    personB: processPerson(subjects.person_b as Record<string, unknown>)
   };
 };
 
@@ -171,23 +174,25 @@ const parseTransits = (block: Record<string, unknown>): TransitData | null => {
   // For single-person transits, the data is at the root of the block.
   // The old implementation incorrectly looked for person_a/person_b.
   return {
-    datetime_utc: block.datetime_utc,
-    timezone: block.timezone,
-    planets: enrichPlanets(block.planets ?? {}),
-    aspects_to_natal: enrichAspects(block.aspects_to_natal ?? [])
+    datetime_utc: typeof block.datetime_utc === 'string' ? block.datetime_utc : undefined,
+    timezone: typeof block.timezone === 'string' ? block.timezone : undefined,
+    planets: enrichPlanets((block.planets as Record<string, PlanetDetail>) ?? {}),
+    aspects_to_natal: enrichAspects((block.aspects_to_natal as Aspect[]) ?? [])
   };
 };
 
 const parseCompositeChart = (block: Record<string, unknown>): CompositeChartData | null => {
   if (!block || !block.planets) return null;
   // Return the enriched planets array directly to match the expected data structure.
-  return enrichPlanets(block.planets);
+  return {
+    planets: enrichPlanets(block.planets as Record<string, PlanetDetail>)
+  };
 };
 
 const parseSynastryAspects = (block: Record<string, unknown>): SynastryAspectsData | null => {
   if (!block || !block.pairs) return null;
   return {
-    aspects: enrichAspects(block.pairs)
+    aspects: enrichAspects(block.pairs as Aspect[])
   };
 };
 
@@ -198,12 +203,12 @@ const parseSynastryAspects = (block: Record<string, unknown>): SynastryAspectsDa
 export const parseAstroData = (raw: Record<string, unknown>): ParsedAstroData => {
   if (!raw || typeof raw !== 'object') {
     console.warn('⚠️ [parseAstroData] received invalid or empty data');
-    return {};
+    return { meta: {}, subject: {} };
   }
 
   const parsedData: ParsedAstroData = {
-    meta: raw.meta ?? {},
-    subject: raw.subject ?? {} // Carry over subject info
+    meta: (raw.meta as MetaData) ?? {},
+    subject: (raw.subject as SubjectData) ?? {} // Carry over subject info
   };
 
   // Handle single-block, top-level report types like 'weekly'
@@ -211,21 +216,20 @@ export const parseAstroData = (raw: Record<string, unknown>): ParsedAstroData =>
     switch(raw.block_type) {
       case 'weekly':
         // The core data is in the 'components' object for weekly reports
-        parsedData.weekly = raw.components;
-        // Also attach the top-level block type for easy identification
-        if (parsedData.weekly) {
-            parsedData.weekly.block_type = 'weekly';
-        }
+        parsedData.weekly = {
+          block_type: 'weekly',
+          ...(raw.components as Record<string, unknown>)
+        };
         return parsedData;
     }
   }
 
   // Continue with existing logic for multi-block reports (natal, synastry)
-  const dataRoot = raw.blocks || raw;
+  const dataRoot = (raw.blocks || raw) as Record<string, unknown>;
 
   for (const key in dataRoot) {
-    if (Object.prototype.hasOwnProperty.call(dataRoot, key) && typeof dataRoot[key] === 'object' && dataRoot[key]?.block_type) {
-      const block = dataRoot[key];
+    if (Object.prototype.hasOwnProperty.call(dataRoot, key) && typeof dataRoot[key] === 'object' && dataRoot[key] && (dataRoot[key] as Record<string, unknown>).block_type) {
+      const block = dataRoot[key] as Record<string, unknown>;
       switch (block.block_type) {
         case 'natal':
           parsedData.natal = parseNatal(block);
@@ -244,7 +248,7 @@ export const parseAstroData = (raw: Record<string, unknown>): ParsedAstroData =>
           break;
         default:
           console.warn(`[parseAstroData] Unknown block_type: "${block.block_type}"`);
-          parsedData[key] = block; // Carry over unknown blocks
+          (parsedData as Record<string, unknown>)[key] = block; // Carry over unknown blocks
       }
     }
   }
@@ -257,11 +261,16 @@ export const isSynastryData = (raw: Record<string, unknown>): boolean => {
   if (!raw) return false;
 
   // The new format is identifiable by the explicit `block_type` keys.
+  const blocks = raw.blocks as Record<string, unknown> | undefined;
+  const natal = raw.natal as Record<string, unknown> | undefined;
+  const synastryAspects = raw.synastry_aspects as Record<string, unknown> | undefined;
+  const compositeChart = raw.composite_chart as Record<string, unknown> | undefined;
+
   return (
     raw.block_type === 'monthly' ||
-    raw.blocks?.natal?.block_type === 'natal' ||
-    raw.natal?.block_type === 'natal_set' ||
-    raw.synastry_aspects?.block_type === 'synastry' ||
-    raw.composite_chart?.block_type === 'composite'
+    (blocks && typeof blocks === 'object' && 'natal' in blocks && (blocks.natal as Record<string, unknown>)?.block_type === 'natal') ||
+    natal?.block_type === 'natal_set' ||
+    synastryAspects?.block_type === 'synastry' ||
+    compositeChart?.block_type === 'composite'
   );
 };
