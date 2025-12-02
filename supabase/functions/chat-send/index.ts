@@ -10,6 +10,7 @@
 import { createPooledClient } from "../_shared/supabaseClient.ts";
 import { getLLMHandler } from "../_shared/llmConfig.ts";
 import { getConversationMetadata } from "../_shared/queryCache.ts";
+import { checkLimit } from "../_shared/limitChecker.ts";
 import {
   AuthContext,
   HttpError,
@@ -531,6 +532,27 @@ async function handleSingleMessageWithMode(
 
   // Handle DB insertion differently for user vs assistant messages
   if (role === "user") {
+    // 🚨 RATE LIMIT CHECK for user messages
+    if (payload.user_id) {
+      const rateLimitCheck = await checkLimit(supabase, payload.user_id, "chat", 1);
+      if (!rateLimitCheck.allowed) {
+        console.warn(JSON.stringify({
+          event: "chat_message_rate_limited",
+          request_id: requestId,
+          user_id: payload.user_id,
+          limit: rateLimitCheck.limit,
+          remaining: rateLimitCheck.remaining,
+          error_code: rateLimitCheck.error_code
+        }));
+
+        const limitMessage = rateLimitCheck.error_code === 'TRIAL_EXPIRED'
+          ? "Your free trial has ended. Upgrade to Growth ($10/month) for unlimited AI conversations! 🚀"
+          : `You've used your ${rateLimitCheck.limit} free messages today. Upgrade to Growth for unlimited chats!`;
+
+        throw new HttpError(429, limitMessage);
+      }
+    }
+
     // Fire-and-forget for user messages
     supabase
       .from("messages")

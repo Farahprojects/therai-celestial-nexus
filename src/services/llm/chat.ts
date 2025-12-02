@@ -30,22 +30,7 @@ class LlmService {
 
     const client_msg_id = params.client_msg_id ?? crypto.randomUUID();
 
-    // Start BOTH calls asynchronously - don't wait for either
-    let rateLimitCheck: Promise<any> | null = null;
-
-    if (user_id) {
-      rateLimitCheck = supabase.functions.invoke("check-rate-limit", {
-        body: {
-          user_id,
-          action: "chat"
-        }
-      }).catch((error) => {
-        console.error("Rate limit check failed:", error);
-        return { data: { allowed: true } }; // Default to allowed on error
-      });
-    }
-
-    // Fire-and-forget chat-send - don't await
+    // Fire-and-forget chat-send - rate limiting handled by backend
     supabase.functions.invoke("chat-send", {
       body: {
         chat_id,
