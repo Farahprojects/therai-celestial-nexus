@@ -8,7 +8,7 @@ const STATIC_CACHE = 'therai-static-v1';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
-  '/manifest.json'
+  '/manifest.webmanifest'
 ];
 
 // Image-specific caching rules
@@ -54,6 +54,14 @@ self.addEventListener('fetch', (event) => {
   // Only handle GET requests
   if (event.request.method !== 'GET') return;
 
+  // Skip service worker, manifest, and favicon requests
+  if (url.pathname === '/sw.js' ||
+      url.pathname === '/manifest.webmanifest' ||
+      url.pathname.startsWith('/theraiiconset/') ||
+      url.pathname.includes('favicon')) {
+    return;
+  }
+
   // Handle image requests with special caching
   if (IMAGE_CACHE_RULES.strategies.generated.test(event.request.url)) {
     event.respondWith(handleGeneratedImageRequest(event.request));
@@ -97,14 +105,14 @@ async function handleGeneratedImageRequest(request) {
       const responseClone = networkResponse.clone();
 
       // Add cache metadata
+      const headers = new Headers(responseClone.headers);
+      headers.set('sw-cache-time', Date.now().toString());
+      headers.set('sw-cache-strategy', 'generated-image-cache-first');
+
       const responseWithMetadata = new Response(responseClone.body, {
         status: responseClone.status,
         statusText: responseClone.statusText,
-        headers: {
-          ...Object.fromEntries(responseClone.headers),
-          'sw-cache-time': Date.now().toString(),
-          'sw-cache-strategy': 'generated-image-cache-first'
-        }
+        headers: headers
       });
 
       // Cache the response
