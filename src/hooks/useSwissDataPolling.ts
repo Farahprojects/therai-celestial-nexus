@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 
 interface SwissDataResult {
   isLoading: boolean;
-  swissData: any | null;
+  swissData: Record<string, unknown> | null;
   error: string | null;
   requestType: string | null;
 }
@@ -14,7 +14,7 @@ interface SwissDataResult {
  */
 export const useSwissDataPolling = (chatId: string | null, enabled: boolean = true): SwissDataResult => {
   const [isLoading, setIsLoading] = useState(false);
-  const [swissData, setSwissData] = useState<any | null>(null);
+  const [swissData, setSwissData] = useState<Record<string, unknown> | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [requestType, setRequestType] = useState<string | null>(null);
 
@@ -66,7 +66,7 @@ export const useSwissDataPolling = (chatId: string | null, enabled: boolean = tr
             if (pollInterval) clearInterval(pollInterval);
           }
         }
-      } catch (err) {
+      } catch (_err) {
         setError('Error polling for data');
         setIsLoading(false);
         if (pollInterval) clearInterval(pollInterval);

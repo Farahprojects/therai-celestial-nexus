@@ -13,30 +13,12 @@ import { SEO } from '@/components/SEO';
  * Desktop Landing / Index page with Know Your [Self, Mind, Bae, Soul, Will] hero
  */
 
-// Animation helpers
-const fadeUp = {
-  hidden: {
-    opacity: 0,
-    y: 20
-  },
-  visible: (i: number) => ({
-    opacity: 1,
-    y: 0,
-    transition: {
-      delay: i * 0.1,
-      duration: 0.6,
-      ease: "easeOut"
-    }
-  })
-};
 const Index = () => {
   const {
     user,
     loading
   } = useAuth();
-  const {
-    data: imageConfig
-  } = useLandingPageImages();
+  useLandingPageImages();
 
   // Rotating words for the "Your..." animation
   const rotatingWords = ['Self', 'Mind', 'Bae', 'Soul', 'Will'];

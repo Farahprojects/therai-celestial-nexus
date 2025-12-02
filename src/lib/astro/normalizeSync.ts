@@ -5,23 +5,25 @@ type Angles = Record<string, { deg?: number; sign?: string }>;
 type Houses = Record<string, { deg?: number; sign?: string }>;
 type Planets = Record<string, { deg?: number; sign?: string; house?: number; house_natal?: number; retrograde?: boolean }>;
 
-type NatalBlock = { 
-  angles?: Angles; 
-  houses?: Houses; 
-  planets?: Planets; 
-  aspects?: any[]; 
-  meta?: { tz?: string } 
+type AspectData = Record<string, unknown>;
+
+type NatalBlock = {
+  angles?: Angles;
+  houses?: Houses;
+  planets?: Planets;
+  aspects?: AspectData[];
+  meta?: { tz?: string }
 };
 
-type TransitBlock = { 
-  angles?: Angles; 
-  houses?: Houses; 
-  planets?: Planets; 
-  aspects_to_natal?: any[]; 
+type TransitBlock = {
+  angles?: Angles;
+  houses?: Houses;
+  planets?: Planets;
+  aspects_to_natal?: AspectData[];
   requested_local_datetime?: string;
-  requested_local_time?: string; 
-  datetime_utc?: string; 
-  timezone?: string 
+  requested_local_time?: string;
+  datetime_utc?: string;
+  timezone?: string
 };
 
 type PersonKey = "person_a" | "person_b";
@@ -38,11 +40,11 @@ export type SyncVM = {
   analysisDate: string;      // meta.date + meta.time
   timeBasis?: string;        // meta.time_basis
   subjects: SubjectVM[];     // one or two subjects
-  synastryPairs?: any[];     // payload.synastry_aspects.pairs
+  synastryPairs?: AspectData[];     // payload.synastry_aspects.pairs
   compositePlanets?: Record<string, { deg?: number; sign?: string }>;
 };
 
-export function normalizeSync(payload: any): SyncVM {
+export function normalizeSync(payload: unknown): SyncVM {
   
   const meta = payload?.meta ?? {};
   let analysisDate = [meta.date, meta.time].filter(Boolean).join(" ");

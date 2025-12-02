@@ -36,7 +36,7 @@ export function useUserPreferences() {
   const [preferences, setPreferences] = useState<UserPreferences | null>(
     user ? getDefaultPreferences(user.id) : null
   );
-  const [loading, setLoading] = useState(false); // Start with false for optimistic loading
+  const [loading] = useState(false); // Start with false for optimistic loading
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState(0);
@@ -48,7 +48,6 @@ export function useUserPreferences() {
   // Track if component is mounted
   const isMountedRef = useRef(true);
   const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const channelRef = useRef<any>(null);
 
   // Function to check if a component is still mounted
   const isMounted = useCallback(() => {
@@ -97,7 +96,7 @@ export function useUserPreferences() {
         } else if (data && isMounted()) {
           setPreferences(data as UserPreferences);
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
         clearTimeout(loadTimeout);
         const errorMessage = err.message || "Failed to load preferences";
 
@@ -167,7 +166,7 @@ export function useUserPreferences() {
       if (error) throw error;
       if (isMounted()) setPreferences(data as UserPreferences);
 
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Failed to create default preferences:", err);
     }
   };
@@ -226,7 +225,7 @@ export function useUserPreferences() {
       pendingChangesRef.current.delete("email_notifications_enabled");
       
       return true;
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error updating main toggle:", err);
       
       // Revert optimistic update on error
@@ -260,11 +259,7 @@ export function useUserPreferences() {
   };
 
   // Notification toggles removed - only main email toggle exists now
-  const updateNotificationToggle = async (
-    type: NotificationToggleType,
-    enabled: boolean,
-    options: UpdateOptions = {}
-  ) => {
+  const updateNotificationToggle = async () => {
     // This function is no longer used but kept for backward compatibility
     console.warn('updateNotificationToggle is deprecated - use updateMainNotificationsToggle instead');
     return false;
@@ -322,7 +317,7 @@ export function useUserPreferences() {
       pendingChangesRef.current.delete("client_view_mode");
       
       return true;
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error updating client view mode:", err);
       
       // Revert optimistic update on error
@@ -367,7 +362,7 @@ export function useUserPreferences() {
 }
 
 // Helper function to format notification type names for display (deprecated)
-export const formatNotificationTypeName = (type: NotificationToggleType): string => {
+export const formatNotificationTypeName = (): string => {
   return 'Notifications';
 };
 

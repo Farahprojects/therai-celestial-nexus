@@ -2,6 +2,23 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 
+interface VoiceUsageData {
+  is_unlimited?: boolean;
+  limit?: number | null;
+  seconds_used?: number;
+}
+
+interface LimitsData {
+  limits?: Record<string, unknown>;
+  usage?: Record<string, unknown>;
+}
+
+interface ProfileData {
+  subscription_active?: boolean;
+  subscription_status?: string;
+  subscription_plan?: string;
+}
+
 export interface FeatureUsage {
   voice_seconds: {
     used: number;
@@ -78,12 +95,13 @@ export function useFeatureUsage() {
         console.warn('[useFeatureUsage] Profile lookup failed:', profileError);
       }
 
-      const limits = (limitsData as any)?.limits || {};
-      const usage = (limitsData as any)?.usage || {};
+      const limitsDataTyped = limitsData as LimitsData;
+      const limits = limitsDataTyped?.limits || {};
+      const usage = limitsDataTyped?.usage || {};
       const currentPeriod = new Date().toISOString().slice(0, 7);
 
-      // Cast voiceData to any to safely access properties
-      const voiceDataTyped = voiceData as any;
+      // Cast voiceData to proper interface
+      const voiceDataTyped = voiceData as VoiceUsageData;
       const voiceIsUnlimited = voiceDataTyped?.is_unlimited === true || voiceDataTyped?.limit === null;
       const voiceUsed = voiceDataTyped?.seconds_used ?? 0;
       const voiceLimit = voiceIsUnlimited ? null : voiceDataTyped?.limit ?? null;

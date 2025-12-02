@@ -12,7 +12,7 @@ export interface ReportReference {
 
 // Cache entry with TTL
 export interface CachedReport {
-  data: any;
+  data: Record<string, unknown> | string | null;
   timestamp: number;
   ttl: number; // Time to live in milliseconds
 }

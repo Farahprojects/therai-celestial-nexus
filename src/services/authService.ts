@@ -68,9 +68,6 @@ class AuthService {
         return null;
       }
 
-      if (session) {
-      }
-
       return session;
     } catch (error) {
       return null;

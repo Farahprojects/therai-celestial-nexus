@@ -4,6 +4,11 @@ import { useChatStore } from '@/core/store';
 import { unifiedChannel } from '@/services/websocket/UnifiedChannelService';
 import type { Message } from '@/core/types';
 
+interface MessageInsertPayload {
+  chat_id?: string;
+  message?: unknown;
+}
+
 // Debug flag for production logging
 const DEBUG = import.meta.env.DEV;
 
@@ -55,7 +60,7 @@ interface MessageStore {
   selfClean: () => void;
 }
 
-const mapDbToMessage = (db: any): StoreMessage => ({
+const mapDbToMessage = (db: Message): StoreMessage => ({
   id: db.id,
   chat_id: db.chat_id,
   role: db.role,
@@ -316,9 +321,10 @@ export const useMessageStore = create<MessageStore>()((set, get) => ({
         hasOlder: (data?.length || 0) === 50
       });
       
-    } catch (e: any) {
-      if (DEBUG) console.error('[MessageStore] Failed to fetch messages:', e.message, e);
-      set({ error: e.message, loading: false });
+    } catch (e: unknown) {
+      const errorMessage = e instanceof Error ? e.message : 'Failed to fetch messages';
+      if (DEBUG) console.error('[MessageStore] Failed to fetch messages:', errorMessage, e);
+      set({ error: errorMessage, loading: false });
     }
   },
 
@@ -358,7 +364,7 @@ export const useMessageStore = create<MessageStore>()((set, get) => ({
           hasOlder: (data?.length || 0) === 50 && combinedMessages.length < MAX_MESSAGES_IN_MEMORY
         };
       });
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error('[MessageStore] Failed to load older messages:', e);
     }
   },
@@ -404,7 +410,7 @@ if (typeof window !== 'undefined' && !(window as any).__msgStoreListenerInstalle
   (window as any).__msgStoreAuthCleanup = authListener?.subscription.unsubscribe.bind(authListener.subscription);
   
   // Listen for message-insert events from unified channel
-  unifiedChannel.on('message-insert', (payload: any) => {
+  unifiedChannel.on('message-insert', (payload: MessageInsertPayload) => {
     const { chat_id, message: messageData } = payload;
     
     if (DEBUG) {

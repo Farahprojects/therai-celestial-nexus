@@ -168,7 +168,9 @@ export const ConversationOverlay: React.FC = () => {
                     recorderRef.current?.resumeInput();
                     recorderRef.current?.startNewRecording();
                     // eslint-disable-next-line no-empty
-                  } catch {}
+                  } catch {
+                    // Silently ignore recording resume/start errors
+                  }
                 }
               }, 200);
             }
@@ -240,7 +242,9 @@ export const ConversationOverlay: React.FC = () => {
                 recorderRef.current?.resumeInput();
                 recorderRef.current?.startNewRecording();
                 // eslint-disable-next-line no-empty
-              } catch {}
+              } catch {
+                // Silently ignore recording resume/start errors
+              }
             }
           }, 200);
         }
@@ -249,7 +253,7 @@ export const ConversationOverlay: React.FC = () => {
       console.error('[ConversationOverlay] ❌ TTS playback failed:', error);
       resetToTapToStart();
     }
-  }, []);
+  }, [resetToTapToStart]);
 
   // Start conversation - ROBUST SEQUENCE with validation
   const handleStart = useCallback(async () => {
@@ -381,7 +385,7 @@ export const ConversationOverlay: React.FC = () => {
     } finally {
       isStartingRef.current = false;
     }
-  }, [chat_id, mode, user, displayName, establishConnection, initializeAudioContext, resumeAudioContext]);
+  }, [chat_id, mode, user, displayName, establishConnection, initializeAudioContext, resumeAudioContext, audioContext, closeConversation, resetToTapToStart, setShouldKeepClosed]);
 
   // Cleanup on modal close - graceful release with fire-and-forget
   const handleModalClose = useCallback(async () => {

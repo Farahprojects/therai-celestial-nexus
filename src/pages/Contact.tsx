@@ -162,7 +162,7 @@ const Contact = () => {
         const response = await Promise.race([fetchPromise, timeoutPromise]);
         clearTimeout(toastTimeoutId);
         
-        const result = response as { data?: any; error?: any };
+        const result = response as { data?: unknown; error?: { message?: string } | null };
         if (result.error) {
           throw new Error(result.error.message || 'Failed to send message');
         }
@@ -186,7 +186,7 @@ const Contact = () => {
           // Continue with the fetch in the background
           fetchPromise.then(response => {
             clearTimeout(toastTimeoutId);
-            const bgResult = response as { data?: any; error?: any };
+            const bgResult = response as { data?: unknown; error?: { message?: string } | null };
             if (bgResult.error) {
               throw new Error(bgResult.error.message || 'Server error');
             }

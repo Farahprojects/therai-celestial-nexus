@@ -3,6 +3,7 @@
 // This separation allows dynamic imports without affecting static imports
 
 import { useMessageStore } from './messageStore';
+import type { Message } from '@/core/types';
 
 /**
  * Get the message store state
@@ -14,7 +15,7 @@ export const getMessageStoreState = () => {
 /**
  * Add an optimistic message
  */
-export const addOptimisticMessage = (message: any) => {
+export const addOptimisticMessage = (message: Message) => {
   return useMessageStore.getState().addOptimisticMessage(message);
 };
 

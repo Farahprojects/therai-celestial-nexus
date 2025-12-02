@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Download, X } from 'lucide-react';
 import {
   Drawer,
@@ -18,6 +18,27 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 // PDF functionality removed to reduce bundle size
 import { ReportRenderer } from '@/components/shared/ReportRenderer';
 import { ReportData } from '@/utils/reportContentExtraction';
+
+// Strict types for report data structures
+interface StructuredReport {
+  title: string;
+  content: string | unknown;
+  generated_at?: string | number | Date;
+}
+
+interface LegacyReportData {
+  report_content: string;
+  swiss_data: null;
+  metadata: {
+    content_type: string;
+    has_ai_report: boolean;
+    has_swiss_data: boolean;
+    is_ready: boolean;
+    report_type: string;
+  };
+}
+
+type ReportData = string | StructuredReport | Record<string, unknown>;
 
 type ActivityLogItem = {
   id: string;
@@ -40,8 +61,24 @@ interface ActivityLogDrawerProps {
   logData: ActivityLogItem | null;
 }
 
+// Type guards for report data validation
+const isStringReport = (report: ReportData): report is string => {
+  return typeof report === 'string';
+};
+
+const isStructuredReport = (report: ReportData): report is StructuredReport => {
+  return (
+    report !== null &&
+    typeof report === 'object' &&
+    !Array.isArray(report) &&
+    'title' in report &&
+    'content' in report &&
+    typeof (report as StructuredReport).title === 'string'
+  );
+};
+
 // Helper function to convert legacy string content to ReportData format
-const createLegacyReportData = (content: string): ReportData => {
+const createLegacyReportData = (content: string): LegacyReportData => {
   return {
     report_content: content,
     swiss_data: null,
@@ -89,47 +126,56 @@ const ActivityLogDrawer = ({ isOpen, onClose, logData }: ActivityLogDrawerProps)
 
   // PDF download functionality removed to reduce bundle size
 
+  // Helper function to safely extract report data
+  const getReportData = (): ReportData | null => {
+    if (!logData?.response_payload?.report) {
+      return null;
+    }
+    return logData.response_payload.report as ReportData;
+  };
+
   // Determine which view to show by default
   useEffect(() => {
     if (logData) {
-      const hasReport = logData.response_payload?.report;
+      const hasReport = getReportData() !== null;
       setViewMode(hasReport ? "report" : "payload");
     }
   }, [logData]);
 
   // Helper function to safely render a report using ReportRenderer
-  const renderReport = (report: Record<string, unknown>) => {
-    // If report is a string, use ReportRenderer with adapter
-    if (typeof report === 'string') {
+  const renderReport = (report: ReportData) => {
+    // Handle string reports (legacy format)
+    if (isStringReport(report)) {
       const reportData = createLegacyReportData(report);
       return <ReportRenderer reportData={reportData} className="text-gray-700" />;
     }
-    
-    // If report is an object with specific structure, render its content
-    if (report && typeof report === 'object') {
-      // Handle object with title, content structure
-      if ('title' in report && 'content' in report) {
-        return (
-          <div>
-            <h4 className="font-medium mb-2">{report.title}</h4>
-            {typeof report.content === 'string' ? (
-              <ReportRenderer reportData={createLegacyReportData(report.content)} className="text-gray-700" />
-            ) : (
-              <div className="whitespace-pre-wrap">{JSON.stringify(report.content, null, 2)}</div>
-            )}
-            {report.generated_at && (
-              <p className="text-sm text-muted-foreground mt-2">
-                Generated at: {new Date(report.generated_at).toLocaleString()}
-              </p>
-            )}
-          </div>
-        );
-      }
-      
-      // If it's some other object, stringify it
+
+    // Handle structured reports with title/content
+    if (isStructuredReport(report)) {
+      const { title, content, generated_at } = report;
+
+      return (
+        <div>
+          <h4 className="font-medium mb-2">{title}</h4>
+          {typeof content === 'string' ? (
+            <ReportRenderer reportData={createLegacyReportData(content)} className="text-gray-700" />
+          ) : (
+            <div className="whitespace-pre-wrap">{JSON.stringify(content, null, 2)}</div>
+          )}
+          {generated_at && (
+            <p className="text-sm text-muted-foreground mt-2">
+              Generated at: {new Date(generated_at).toLocaleString()}
+            </p>
+          )}
+        </div>
+      );
+    }
+
+    // Handle other object types - stringify them
+    if (report && typeof report === 'object' && !Array.isArray(report)) {
       return <pre className="whitespace-pre-wrap font-mono text-xs md:text-sm overflow-x-auto bg-gray-100 p-2 rounded">{JSON.stringify(report, null, 2)}</pre>;
     }
-    
+
     return 'No report content available';
   };
 
@@ -149,27 +195,27 @@ const ActivityLogDrawer = ({ isOpen, onClose, logData }: ActivityLogDrawerProps)
       <DrawerContent className="h-[95vh] md:h-[90vh] w-full md:max-w-[60vw] md:mx-auto">
         <DrawerHeader className="flex flex-row items-center justify-between border-b p-4">
           <div className="flex items-center gap-2 md:gap-4">
-            <ToggleGroup 
-              type="single" 
-              value={viewMode} 
-              onValueChange={(value) => value && setViewMode(value as 'report' | 'payload')}
-              className="flex-wrap"
-            >
-              <ToggleGroupItem 
-                value="report" 
-                disabled={!logData?.response_payload?.report}
-                className="text-xs md:text-sm"
+              <ToggleGroup
+                type="single"
+                value={viewMode}
+                onValueChange={(value) => value && setViewMode(value as 'report' | 'payload')}
+                className="flex-wrap"
               >
-                Report
-              </ToggleGroupItem>
-              <ToggleGroupItem 
-                value="payload" 
-                disabled={!logData?.response_payload && !logData?.request_payload}
-                className="text-xs md:text-sm"
-              >
-                Payload
-              </ToggleGroupItem>
-            </ToggleGroup>
+                <ToggleGroupItem
+                  value="report"
+                  disabled={getReportData() === null}
+                  className="text-xs md:text-sm"
+                >
+                  Report
+                </ToggleGroupItem>
+                <ToggleGroupItem
+                  value="payload"
+                  disabled={!logData?.response_payload && !logData?.request_payload}
+                  className="text-xs md:text-sm"
+                >
+                  Payload
+                </ToggleGroupItem>
+              </ToggleGroup>
           </div>
           <div className="flex items-center gap-2">
             <DropdownMenu>
@@ -207,13 +253,16 @@ const ActivityLogDrawer = ({ isOpen, onClose, logData }: ActivityLogDrawerProps)
                 {viewMode === 'report' && (
                   <ScrollArea className="h-full">
                     <div className="p-3 md:p-4 bg-gray-50 rounded-md">
-                      {logData.response_payload?.report ? (
-                        renderReport(logData.response_payload.report)
-                      ) : (
-                        <div className="text-center py-8 text-muted-foreground">
-                          No report available
-                        </div>
-                      )}
+                      {(() => {
+                        const reportData = getReportData();
+                        return reportData ? (
+                          renderReport(reportData)
+                        ) : (
+                          <div className="text-center py-8 text-muted-foreground">
+                            No report available
+                          </div>
+                        );
+                      })()}
                     </div>
                   </ScrollArea>
                 )}

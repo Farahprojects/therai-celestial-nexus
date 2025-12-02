@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 
 export const useFieldFocusHandler = () => {
-  const scrollTo = useCallback((element: HTMLElement | null, options: ScrollIntoViewOptions = {}) => {
+  const scrollTo = useCallback((element: HTMLElement | null) => {
     // Removed auto-scroll behavior to prevent unwanted scrolling on mobile
     // Users can manually scroll to see the focused field
     if (!element) return;

@@ -17,11 +17,11 @@ export const MappedReportSchema = z.object({
     B: PersonDataSchema.optional(),
   }),
   reportContent: z.string(),
-  swissData: z.any().optional(),
+  swissData: z.record(z.unknown()).nullable().optional(),
   reportType: z.string(),
   hasReport: z.boolean(),
   swissBoolean: z.boolean(),
-  metadata: z.any().optional(),
+  metadata: z.record(z.unknown()).optional(),
   // Additional fields for rendering
   customerName: z.string(),
   isPureAstroReport: z.boolean(),
@@ -32,8 +32,8 @@ export type PersonData = z.infer<typeof PersonDataSchema>;
 export type MappedReport = z.infer<typeof MappedReportSchema>;
 
 export interface RawReportPayload {
-  guest_report?: any;
+  guest_report?: Record<string, unknown>;
   report_content?: string;
-  swiss_data?: any;
-  metadata?: any;
+  swiss_data?: Record<string, unknown> | null;
+  metadata?: Record<string, unknown>;
 }

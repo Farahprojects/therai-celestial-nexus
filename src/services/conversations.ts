@@ -19,7 +19,7 @@ interface CacheEntry<T> {
 }
 
 class SimpleCache {
-  private cache: Map<string, CacheEntry<any>>;
+  private cache: Map<string, CacheEntry<unknown>>;
   private readonly ttlMs = 300000; // 5 minutes
 
   constructor() {
@@ -73,7 +73,7 @@ export const clearAllPrimaryProfileIdCaches = (): void => {
 export const createConversationWithTitle = async (
   message: string,
   mode: 'chat' | 'astro' | 'insight' | 'swiss' | 'together' | 'sync_score' = 'chat',
-  reportData?: any
+  reportData?: ReportData
 ): Promise<string> => {
   const { data, error } = await supabase.functions.invoke('create-conversation-with-title', {
     body: {

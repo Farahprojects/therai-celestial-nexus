@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import {
   Card,
   CardHeader,
@@ -19,66 +19,12 @@ import PasswordResetForm from '@/components/auth/PasswordResetForm';
 const Auth: React.FC = () => {
   const [status, setStatus] = useState<'loading' | 'success' | 'error' | 'update-password'>('loading');
   const [message, setMessage] = useState('Verifying your link…');
-  const [authType, setAuthType] = useState<'email' | 'password' | null>(null);
 
   const navigate = useNavigate();
   const location = useLocation();
   
   const processedRef = useRef(false);
 
-  const finishEmailSuccess = async (kind: 'signup' | 'email_change', token: string, email: string) => {
-    console.log(`[EMAIL-VERIFY] ✓ SUCCESS: ${kind} verification completed`);
-
-    setMessage('Finalizing your account...');
-
-    try {
-      // Call secure edge function to verify token and update profile
-      console.log('[EMAIL-VERIFY] Calling verify-email-token edge function...');
-
-      const { data, error } = await supabase.functions.invoke('verify-email-token', {
-        body: {
-          token,
-          email,
-          type: kind
-        }
-      });
-
-      if (error) {
-        console.error('[EMAIL-VERIFY] Edge function error:', error);
-        throw new Error(error.message || 'Verification failed');
-      }
-
-      if (!data?.success) {
-        console.error('[EMAIL-VERIFY] Verification failed:', data?.error);
-        throw new Error(data?.error || 'Verification failed');
-      }
-
-      console.log('[EMAIL-VERIFY] ✓ Email verification successful:', data.message);
-
-      // Sign out any auto-created session from the magic link
-      // This ensures users must sign in manually after verification
-      await supabase.auth.signOut();
-      console.log('[EMAIL-VERIFY] ✓ Signed out auto-created session');
-
-    } catch (error) {
-      console.error('[EMAIL-VERIFY] Critical verification error:', error);
-      setStatus('error');
-      setMessage('Failed to verify your email. Please try again or contact support.');
-      showToast({
-        variant: 'destructive',
-        title: 'Verification Error',
-        description: error instanceof Error ? error.message : 'Unable to complete email verification. Please try again.'
-      });
-      return;
-    }
-
-    setStatus('success');
-    const msg = kind === 'signup'
-      ? 'Email verified! Please sign in to continue.'
-      : 'Email updated! Please sign in to continue.';
-    setMessage(msg);
-    showToast({ variant: 'success', title: 'Success', description: msg });
-  };
 
   const finishPasswordSuccess = async (token: string) => {
     console.log(`[PASSWORD-VERIFY] ✓ SUCCESS: password reset verification completed`);
@@ -184,8 +130,6 @@ const Auth: React.FC = () => {
         console.log(`[AUTH-VERIFY:${requestId}] Extracted parameters:`, extractedParams);
 
         const token = hash.get('token') || search.get('token');
-        const tokenType = hash.get('type') || search.get('type');
-        const email = hash.get('email') || search.get('email');
 
         if (!token) {
           throw new Error('Invalid link – missing token');
@@ -195,7 +139,7 @@ const Auth: React.FC = () => {
         console.log(`[AUTH-VERIFY:${requestId}] → Verifying token with edge function`);
         finishPasswordSuccess(token);
 
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error(`[AUTH-VERIFY:${requestId}] ✗ VERIFICATION FAILED:`, {
           message: err?.message,
           status: err?.status,
@@ -212,11 +156,9 @@ const Auth: React.FC = () => {
     verify();
   }, [location.hash, location.search]);
 
-  const heading = authType === 'email' 
-    ? (status === 'loading' ? 'Email Verification' : status === 'success' ? 'All Set!' : 'Uh‑oh…')
-    : (status === 'loading' ? 'Password Reset' : 
-       status === 'update-password' ? 'Set New Password' :
-       status === 'success' ? 'All Set!' : 'Uh‑oh…');
+  const heading = status === 'loading' ? 'Password Reset' :
+    status === 'update-password' ? 'Set New Password' :
+    status === 'success' ? 'All Set!' : 'Uh‑oh…';
 
   const iconVariants = {
     loading: {
@@ -285,17 +227,11 @@ const Auth: React.FC = () => {
                 {heading}
               </CardTitle>
               <CardDescription className="text-gray-600 font-light text-lg">
-                {authType === 'email' 
-                  ? (status === 'loading'
-                      ? 'Verifying your email address'
-                      : status === 'success'
-                      ? 'Your email has been verified'
-                      : 'Email verification failed')
-                  : (status === 'loading'
-                      ? 'Verifying your password reset link'
-                      : status === 'success'
-                      ? 'Your password has been reset'
-                      : 'Password reset failed')
+                {status === 'loading'
+                  ? 'Verifying your password reset link'
+                  : status === 'success'
+                  ? 'Your password has been reset'
+                  : 'Password reset failed'
                 }
               </CardDescription>
             </CardHeader>

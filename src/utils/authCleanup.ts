@@ -67,7 +67,7 @@ export const cleanupAuthState = async () => {
         };
       });
     }
-  } catch (error) {
+  } catch {
     // Expected if IndexedDB is not available
   }
 

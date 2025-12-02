@@ -1,5 +1,4 @@
 
-import React from 'react';
 import UnifiedNavigation from './UnifiedNavigation';
 
 // This is a wrapper component that uses UnifiedNavigation

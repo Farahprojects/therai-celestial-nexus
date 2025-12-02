@@ -34,9 +34,9 @@ export function useFolderAI(folderId: string | null, userId: string | null) {
       setError(null);
       const context = await getFolderContext(folderId);
       setFolderContext(context);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('[useFolderAI] Error loading context:', err);
-      setError(err.message || 'Failed to load folder context');
+      setError(err instanceof Error ? err.message : 'Failed to load folder context');
     } finally {
       setIsLoading(false);
     }
@@ -82,9 +82,9 @@ export function useFolderAI(folderId: string | null, userId: string | null) {
       });
 
       setMessages(parsedMessages);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('[useFolderAI] Error loading messages:', err);
-      setError(err.message || 'Failed to load messages');
+      setError(err instanceof Error ? err.message : 'Failed to load messages');
     } finally {
       setIsLoading(false);
     }
@@ -148,9 +148,9 @@ export function useFolderAI(folderId: string | null, userId: string | null) {
       };
       setMessages(prev => [...prev, assistantMessage]);
 
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('[useFolderAI] Error sending message:', err);
-      setError(err.message || 'Failed to send message');
+      setError(err instanceof Error ? err.message : 'Failed to send message');
       
       // Add error message to chat
       const errorMessage: ParsedMessage = {

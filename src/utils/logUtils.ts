@@ -61,7 +61,7 @@ export const setLogConfig = (config: Partial<LogConfig>) => {
 };
 
 // Main logging function
-export const log = (level: LogLevel, message: string, data?: any, component?: string) => {
+export const log = (level: LogLevel, message: string, data?: unknown, component?: string) => {
   const config = getLogConfig();
   
   // Check if logging is enabled
@@ -99,15 +99,15 @@ export const log = (level: LogLevel, message: string, data?: any, component?: st
 };
 
 // Convenience functions for different components
-export const logReportForm = (level: LogLevel, message: string, data?: any) => {
+export const logReportForm = (level: LogLevel, message: string, data?: unknown) => {
   log(level, message, data, 'ReportForm');
 };
 
-export const logSuccessScreen = (level: LogLevel, message: string, data?: any) => {
+export const logSuccessScreen = (level: LogLevel, message: string, data?: unknown) => {
   log(level, message, data, 'SuccessScreen');
 };
 
-export const logOrchestrator = (level: LogLevel, message: string, data?: any) => {
+export const logOrchestrator = (level: LogLevel, message: string, data?: unknown) => {
   log(level, message, data, 'orchestrator');
 };
 
@@ -176,13 +176,13 @@ if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
 /**
  * Safe logging function for auth events that avoids logging sensitive data
  */
-export function logAuth(message: string, data?: any): void {
+export function logAuth(message: string, data?: unknown): void {
   log('info', `Auth: ${message}`, data);
 }
 
 /**
  * Safe logging for navigation events
  */
-export function logNavigation(message: string, data?: any): void {
+export function logNavigation(message: string, data?: unknown): void {
   log('debug', `Navigation: ${message}`, data);
 }

@@ -33,7 +33,7 @@ const queryClient = new QueryClient({
       // Custom retry logic: don't retry on 4xx errors, retry 3 times on others
       retry: (failureCount, error) => {
         // Don't retry on client errors (4xx) - check if error has status property
-        const status = (error as any)?.status;
+        const status = (error as { status?: number })?.status;
         if (status && status >= 400 && status < 500) {
           return false;
         }

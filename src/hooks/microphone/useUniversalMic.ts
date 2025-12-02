@@ -58,12 +58,11 @@ export const useUniversalMic = (options: UseUniversalMicOptions = {}) => {
         throw new Error('getUserMedia not supported');
       }
 
-      // Check current permission state
-      let permissionState = 'unknown';
+      // Check current permission state (for debugging)
       try {
-        const result = await navigator.permissions.query({ name: 'microphone' as PermissionName });
-        permissionState = result.state;
-      } catch (permError) {
+        await navigator.permissions.query({ name: 'microphone' as PermissionName });
+      } catch {
+        // Ignore permission query errors
       }
 
       recorderRef.current = new UniversalSTTRecorder({
@@ -178,7 +177,7 @@ export const useUniversalMic = (options: UseUniversalMicOptions = {}) => {
     setIsRecording(false);
     setIsProcessing(false);
     levelRef.current = 0;
-  }, []);
+  }, [audioContext]);
 
   const toggleRecording = useCallback(async () => {
     if (isRecording) {

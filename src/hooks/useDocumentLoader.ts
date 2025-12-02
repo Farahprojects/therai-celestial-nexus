@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { FolderDocument } from '@/services/folder-documents';
 
 interface DocumentData {
-  document: FolderDocument;
+  document: FolderDocument | null;
   fileUrl: string | null;
   textContent: string | null;
   isLoading: boolean;
@@ -16,7 +16,7 @@ interface DocumentData {
  */
 export const useDocumentLoader = (documentId: string | null) => {
   const [data, setData] = useState<DocumentData>({
-    document: null as any,
+    document: null,
     fileUrl: null,
     textContent: null,
     isLoading: false,
@@ -27,7 +27,7 @@ export const useDocumentLoader = (documentId: string | null) => {
   const loadDocument = useCallback(async () => {
     if (!documentId) {
       setData({
-        document: null as any,
+        document: null,
         fileUrl: null,
         textContent: null,
         isLoading: false,
@@ -63,14 +63,14 @@ export const useDocumentLoader = (documentId: string | null) => {
         isLoading: false,
         error: null,
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('[useDocumentLoader] Failed to load document:', err);
       setData({
-        document: null as any,
+        document: null,
         fileUrl: null,
         textContent: null,
         isLoading: false,
-        error: err.message || 'Failed to load document',
+        error: err instanceof Error ? err.message : 'Failed to load document',
       });
     }
   }, [documentId]);

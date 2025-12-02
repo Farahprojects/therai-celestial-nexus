@@ -4,7 +4,7 @@ import { useChatStore } from '@/core/store';
 import { STTLimitExceededError } from './stt-errors';
 
 class SttService {
-  async transcribe(audioBlob: Blob, chat_id?: string, meta?: Record<string, any>, chattype?: string, mode?: string, user_id?: string, user_name?: string): Promise<{ transcript: string }> {
+  async transcribe(audioBlob: Blob, chat_id?: string, meta?: Record<string, unknown>, chattype?: string, mode?: string, user_id?: string, user_name?: string): Promise<{ transcript: string }> {
     
     // Validate audio blob before processing
     if (!audioBlob || audioBlob.size === 0) {

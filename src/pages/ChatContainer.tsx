@@ -27,7 +27,6 @@ const ChatContainerContent: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const { threadId } = useParams<{ threadId: string }>();
   const { chat_id } = useChatStore();
 
   // Track if component is mounted to prevent state updates after unmount
@@ -419,7 +418,7 @@ const ChatContainerContent: React.FC = () => {
       style={{ 
         height: '100dvh', 
         minHeight: '100vh', 
-        overscrollBehavior: 'contain' as any,
+        overscrollBehavior: 'contain' as React.CSSProperties['overscrollBehavior'],
         paddingTop: 'env(safe-area-inset-top)',
         paddingBottom: 'env(safe-area-inset-bottom)',
       }}

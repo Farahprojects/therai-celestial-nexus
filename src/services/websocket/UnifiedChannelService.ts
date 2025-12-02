@@ -198,7 +198,10 @@ class UnifiedChannelService {
     if (this.visibilityChangeHandler) {
       try {
         document.removeEventListener('visibilitychange', this.visibilityChangeHandler);
-      } catch (_) {}
+        // eslint-disable-next-line no-empty
+      } catch (_) {
+        // Silently ignore cleanup errors
+      }
       this.visibilityChangeHandler = null;
     }
     

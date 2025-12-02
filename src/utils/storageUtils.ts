@@ -69,14 +69,21 @@ export const imagePreloader = new ImagePreloader();
 /**
  * Network-aware image loading utility
  */
+// Network Information API type
+interface NetworkInformation {
+  effectiveType?: string;
+  downlink?: number;
+  rtt?: number;
+}
+
 export class NetworkAwareImageLoader {
-  private connection: any = null;
+  private connection: NetworkInformation | null = null;
   private slowNetworkThreshold = 1000; // 1Mbps threshold
 
   constructor() {
     // Check for Network Information API support
     if ('connection' in navigator) {
-      this.connection = (navigator as any).connection;
+      this.connection = (navigator as { connection?: NetworkInformation }).connection || null;
     }
   }
 

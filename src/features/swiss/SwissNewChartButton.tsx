@@ -6,6 +6,7 @@ import { useSubscription } from '@/contexts/SubscriptionContext';
 import { useChatStore } from '@/core/store';
 import { useMessageStore } from '@/stores/messageStore';
 import { AstroDataForm } from '@/components/chat/AstroDataForm';
+import { ReportFormData } from '@/types/public-report';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -34,7 +35,7 @@ export const SwissNewChartButton: React.FC<SwissNewChartButtonProps> = ({ classN
   };
 
   // Handle Astro form submission - creates Swiss data conversation
-  const handleAstroFormSubmit = async (data: any) => {
+  const handleAstroFormSubmit = async (data: ReportFormData & { chat_id?: string }) => {
     if (!user) return;
 
     try {

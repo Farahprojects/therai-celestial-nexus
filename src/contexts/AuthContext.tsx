@@ -33,7 +33,6 @@ export type AuthContextType = {
   user: User | null;
   session: Session | null;
   loading: boolean;
-  isValidating: boolean;
   pendingEmailAddress?: string;
   isPendingEmailCheck?: boolean;
   isAuthenticated: boolean; // Single source of truth
@@ -469,7 +468,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     user,
     session,
     loading,
-    isValidating,
     pendingEmailAddress,
     isPendingEmailCheck,
     isAuthenticated,
@@ -485,7 +483,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     user,
     session,
     loading,
-    isValidating,
     pendingEmailAddress,
     isPendingEmailCheck,
     isAuthenticated,

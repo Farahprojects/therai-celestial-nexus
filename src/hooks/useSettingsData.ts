@@ -71,7 +71,7 @@ export function useSettingsData() {
       setData(prev => ({ ...prev, loading: true, error: null }))
 
       // Fetch all data in parallel
-      const [profileResult, paymentResult, creditsResult] = await Promise.all([
+      const [profileResult, paymentResult] = await Promise.all([
         // Fetch user profile
         supabase
           .from('profiles')

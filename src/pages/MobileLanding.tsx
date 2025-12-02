@@ -13,14 +13,7 @@ import Logo from '@/components/Logo';
 import { useAuth } from '@/contexts/AuthContext';
 import { getRedirectPath } from '@/utils/redirectUtils';
 import { SEO } from '@/components/SEO';
-type Props = {
-  onGoogle?: () => void;
-  onApple?: () => void;
-};
-const MobileLanding: React.FC<Props> = ({
-  onGoogle,
-  onApple
-}) => {
+const MobileLanding: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const {

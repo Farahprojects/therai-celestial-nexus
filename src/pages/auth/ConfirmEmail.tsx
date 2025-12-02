@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import {
   Card,
   CardHeader,
@@ -107,12 +107,6 @@ const ConfirmEmail: React.FC = () => {
         };
 
         console.log(`[EMAIL-VERIFY:${requestId}] Extracted parameters:`, extractedParams);
-
-        const accessToken = hash.get('access_token');
-        const refreshToken = hash.get('refresh_token');
-        const pkceCode = hash.get('code');
-        const newEmail = hash.get('email') || search.get('email');
-        const hashType = hash.get('type');
 
         // Only support OTP flow (custom email verification)
         // ACCESS_TOKEN and PKCE flows removed for simplicity

@@ -65,7 +65,12 @@ export function onReachBottom(
   observer.observe(sentinel);
 
   return () => {
-    try { observer.disconnect(); } catch {}
+    try {
+      observer.disconnect();
+      // eslint-disable-next-line no-empty
+    } catch {
+      // Silently ignore observer disconnect errors during cleanup
+    }
     if (appended && sentinel.parentNode) {
       sentinel.parentNode.removeChild(sentinel);
     }

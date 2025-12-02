@@ -1,18 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { Conversation } from '@/core/types';
 import ChatContainer from './ChatContainer';
 import { setRedirectPath, encodeRedirectPath } from '@/utils/redirectUtils';
 
 const JoinConversation: React.FC = () => {
   const { chatId } = useParams<{ chatId: string }>();
   const navigate = useNavigate();
-  const [conversation, setConversation] = useState<Conversation | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [isJoined, setIsJoined] = useState(false);
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<{ id: string } | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [authLoading, setAuthLoading] = useState(true);
 
@@ -116,45 +112,6 @@ const JoinConversation: React.FC = () => {
     loadPublicConversation();
   }, [chatId, isAuthenticated, user, authLoading, navigate]);
 
-  const handleJoin = async () => {
-    if (!isAuthenticated || !user || !chatId || !conversation) return;
-
-    try {
-      // Add this conversation to the user's conversations
-      const { error: joinError } = await supabase
-        .from('conversations')
-        .insert({
-          id: chatId,
-          user_id: user.id,
-          title: conversation.title,
-          created_at: conversation.created_at,
-          updated_at: conversation.updated_at,
-          meta: conversation.meta
-        });
-
-      if (joinError) {
-        console.error('Error joining conversation:', joinError);
-        return;
-      }
-
-      setIsJoined(true);
-      
-      // Redirect to the full chat interface
-      navigate(`/c/${chatId}`, { replace: true });
-    } catch (err) {
-      console.error('Error joining conversation:', err);
-    }
-  };
-
-  const handleSignIn = () => {
-    if (chatId) {
-      const redirectPath = setRedirectPath(`/c/${chatId}`);
-      const encodedRedirect = encodeRedirectPath(redirectPath);
-      navigate(`/therai?redirect=${encodedRedirect}`);
-    } else {
-      navigate('/therai');
-    }
-  };
 
   if (loading) {
     return (

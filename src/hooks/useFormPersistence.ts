@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback } from 'react';
 
 interface FormData {
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export const useFormPersistence = <T extends FormData>(
@@ -41,7 +41,7 @@ export const useFormPersistence = <T extends FormData>(
   }, [defaultValues, storageKey]);
 
   // Auto-save function for use in form inputs
-  const autoSave = useCallback((field: keyof T, value: any) => {
+  const autoSave = useCallback((field: keyof T, value: string | number | boolean | null | undefined) => {
     updateFormData({ [field]: value } as Partial<T>);
   }, [updateFormData]);
 
