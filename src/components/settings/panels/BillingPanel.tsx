@@ -36,9 +36,9 @@ export const BillingPanel = () => {
     if (user) {
       fetchBillingData();
     }
-  }, [user]);
+  }, [user, fetchBillingData]);
 
-  const fetchBillingData = async () => {
+  const fetchBillingData = useCallback(async () => {
     if (!user) return;
 
     setLoading(true);
@@ -65,7 +65,7 @@ export const BillingPanel = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
 
   const handleManageSubscription = async () => {
     if (manageLoading) return;

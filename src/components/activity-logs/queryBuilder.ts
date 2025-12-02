@@ -1,6 +1,5 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import type { Tables } from '@/integrations/supabase/types';
 
 export type ActivityLogsFilterState = {
   startDate?: Date;
@@ -9,8 +8,6 @@ export type ActivityLogsFilterState = {
   status: string | null;
   search?: string;
 };
-
-type TranslatorLogsRow = Tables<'translator_logs'>;
 
 export function buildLogQuery(userId: string, filters: ActivityLogsFilterState) {
   // translator_logs doesn't have user_id, it has chat_id which links to insights

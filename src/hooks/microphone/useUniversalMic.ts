@@ -166,7 +166,7 @@ export const useUniversalMic = (options: UseUniversalMicOptions = {}) => {
       setIsProcessing(false);
       return false;
     }
-  }, [isRecording, isProcessing, options, user?.id, displayName, mode]);
+  }, [isRecording, isProcessing, options, user?.id, displayName, mode, audioContext]);
 
   const stopRecording = useCallback(() => {
     if (recorderRef.current) {
@@ -177,7 +177,7 @@ export const useUniversalMic = (options: UseUniversalMicOptions = {}) => {
     setIsRecording(false);
     setIsProcessing(false);
     levelRef.current = 0;
-  }, [audioContext]);
+  }, []);
 
   const toggleRecording = useCallback(async () => {
     if (isRecording) {

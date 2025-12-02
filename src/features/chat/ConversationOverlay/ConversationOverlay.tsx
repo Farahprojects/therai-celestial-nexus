@@ -114,6 +114,9 @@ export const ConversationOverlay: React.FC = () => {
   useEffect(() => {
     if (!overlayRef.current || isAudioUnlocked) return;
 
+    // Capture the current ref value for cleanup
+    const currentOverlayRef = overlayRef.current;
+
     const handleUserGesture = async () => {
       // Initialize AudioContext if not exists
       if (!audioContext) {
@@ -128,13 +131,13 @@ export const ConversationOverlay: React.FC = () => {
     };
 
     // Add event listeners for user gestures
-    overlayRef.current.addEventListener('click', handleUserGesture, { once: true });
-    overlayRef.current.addEventListener('touchstart', handleUserGesture, { once: true });
+    currentOverlayRef.addEventListener('click', handleUserGesture, { once: true });
+    currentOverlayRef.addEventListener('touchstart', handleUserGesture, { once: true });
 
     return () => {
-      if (overlayRef.current) {
-        overlayRef.current.removeEventListener('click', handleUserGesture);
-        overlayRef.current.removeEventListener('touchstart', handleUserGesture);
+      if (currentOverlayRef) {
+        currentOverlayRef.removeEventListener('click', handleUserGesture);
+        currentOverlayRef.removeEventListener('touchstart', handleUserGesture);
       }
     };
   }, [audioContext, isAudioUnlocked, initializeAudioContext, resumeAudioContext]);
@@ -219,7 +222,7 @@ export const ConversationOverlay: React.FC = () => {
       resetToTapToStart();
       return false;
     }
-  }, [chat_id, user, addMessage]);
+  }, [chat_id, user, addMessage, playAudioImmediately, resetToTapToStart]);
 
   // TTS playback
   const playAudioImmediately = useCallback(async (audioBytes: number[]) => {

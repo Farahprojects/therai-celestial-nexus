@@ -61,94 +61,90 @@ export function useUserPreferences() {
     };
   }, []);
 
+  const loadUserPreferences = useCallback(async () => {
+    if (!user?.id) {
+      if (isMounted()) {
+        setError("Authentication required");
+      }
+      return;
+    }
+
+    try {
+      const loadTimeout = setTimeout(() => {
+        if (isMounted()) {
+          setError("Request timed out. Please try again.");
+        }
+      }, 8000);
+
+      const { data, error: fetchError } = await supabase
+        .from("user_preferences")
+        .select("*")
+        .eq("user_id", user.id)
+        .single();
+
+      clearTimeout(loadTimeout);
+
+      if (fetchError) {
+        if (fetchError.code === "PGRST116") {
+          await createDefaultPreferences(user.id);
+        } else {
+          throw fetchError;
+        }
+      } else if (data && isMounted()) {
+        setPreferences(data as UserPreferences);
+      }
+    } catch (err: unknown) {
+      const errorMessage = err.message || "Failed to load preferences";
+
+      if (isMounted()) {
+        setError(errorMessage);
+
+        if (!errorMessage.includes("timed out")) {
+          showToast({
+            title: "Error Loading Preferences",
+            description:
+              "There was a problem loading your notification settings",
+            variant: "destructive",
+          });
+        }
+
+        if (retryCount < 3) {
+          const retryDelay = Math.min(2000 * (retryCount + 1), 6000);
+
+          // Clear any existing retry timeout
+          if (retryTimeoutRef.current) {
+            clearTimeout(retryTimeoutRef.current);
+          }
+
+          retryTimeoutRef.current = setTimeout(() => {
+            setRetryCount((prev) => prev + 1);
+            loadUserPreferences();
+          }, retryDelay);
+        }
+      }
+    }
+  }, [user, isMounted, createDefaultPreferences, retryCount, setError, setPreferences]);
+
   useEffect(() => {
-    let loadTimeout: NodeJS.Timeout;
-
-    const loadUserPreferences = async () => {
-      if (!user?.id) {
-        if (isMounted()) {
-          setError("Authentication required");
-        }
-        return;
-      }
-
-      try {
-        loadTimeout = setTimeout(() => {
-          if (isMounted()) {
-            setError("Request timed out. Please try again.");
-          }
-        }, 8000);
-
-        const { data, error: fetchError } = await supabase
-          .from("user_preferences")
-          .select("*")
-          .eq("user_id", user.id)
-          .single();
-
-        clearTimeout(loadTimeout);
-
-        if (fetchError) {
-          if (fetchError.code === "PGRST116") {
-            await createDefaultPreferences(user.id);
-          } else {
-            throw fetchError;
-          }
-        } else if (data && isMounted()) {
-          setPreferences(data as UserPreferences);
-        }
-      } catch (err: unknown) {
-        clearTimeout(loadTimeout);
-        const errorMessage = err.message || "Failed to load preferences";
-
-        if (isMounted()) {
-          setError(errorMessage);
-
-          if (!errorMessage.includes("timed out")) {
-            showToast({
-              title: "Error Loading Preferences",
-              description:
-                "There was a problem loading your notification settings",
-              variant: "destructive",
-            });
-          }
-
-          if (retryCount < 3) {
-            const retryDelay = Math.min(2000 * (retryCount + 1), 6000);
-            
-            // Clear any existing retry timeout
-            if (retryTimeoutRef.current) {
-              clearTimeout(retryTimeoutRef.current);
-            }
-            
-            retryTimeoutRef.current = setTimeout(() => {
-              setRetryCount((prev) => prev + 1);
-              loadUserPreferences();
-            }, retryDelay);
-          }
-        }
-      }
-    };
-
     // Removed realtime listener - user_preferences broadcasts are disabled
     // Preferences are loaded once on mount and saved optimistically
-    
+
     loadUserPreferences();
 
     return () => {
       isMountedRef.current = false;
-      clearTimeout(loadTimeout);
-      
+
       // Clear retry timeout
       if (retryTimeoutRef.current) {
         clearTimeout(retryTimeoutRef.current);
         retryTimeoutRef.current = null;
       }
-      
+
       // No channel cleanup needed - realtime listener removed
     };
-  }, [user, isMounted, retryCount]);
+  }, [loadUserPreferences]);
 
-  const createDefaultPreferences = async (userId: string) => {
+  const createDefaultPreferences = useCallback(async (userId: string) => {
     try {
       const defaultPrefs = {
         user_id: userId,
@@ -169,7 +165,7 @@ export function useUserPreferences() {
     } catch (err: unknown) {
       console.error("Failed to create default preferences:", err);
     }
-  };
+  }, []);
 
   const updateMainNotificationsToggle = async (
     enabled: boolean,

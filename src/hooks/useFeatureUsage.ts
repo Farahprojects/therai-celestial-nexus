@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -41,7 +41,7 @@ export function useFeatureUsage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchUsage = async () => {
+  const fetchUsage = useCallback(async () => {
     if (!user) {
       setUsage(null);
       setLoading(false);
@@ -133,7 +133,7 @@ export function useFeatureUsage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
 
   useEffect(() => {
     fetchUsage();
@@ -142,7 +142,7 @@ export function useFeatureUsage() {
     const interval = setInterval(fetchUsage, 30000);
 
     return () => clearInterval(interval);
-  }, [user]);
+  }, [user, fetchUsage]);
 
   return {
     usage,

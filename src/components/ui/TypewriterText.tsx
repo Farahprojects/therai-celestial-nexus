@@ -47,7 +47,7 @@ export const TypewriterText: React.FC<TypewriterTextProps> = ({
       cleanup();
       onComplete?.();
     }
-  }, [isAssistantTyping, isTyping, text, onComplete]);
+  }, [isAssistantTyping, isTyping, text, onComplete, cleanup]);
 
   // Cleanup function
   const cleanup = useCallback(() => {

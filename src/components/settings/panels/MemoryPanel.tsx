@@ -38,7 +38,7 @@ export function MemoryPanel() {
         return next;
       });
     }
-  }, [memories]);
+  }, [memories, deletedIds]);
 
   // Filter out optimistically deleted memories
   const visibleMemories = memories.filter(m => !deletedIds.has(m.id));

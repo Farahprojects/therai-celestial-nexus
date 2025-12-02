@@ -13,6 +13,9 @@ export const useTabVisibility = (options: UseTabVisibilityOptions = {}) => {
   const tabIdRef = useRef<string>(`tab_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
 
   useEffect(() => {
+    // Capture the current tab ID for cleanup
+    const currentTabId = tabIdRef.current;
+
     const handleVisibilityChange = () => {
       const isVisible = !document.hidden;
       
@@ -51,7 +54,7 @@ export const useTabVisibility = (options: UseTabVisibilityOptions = {}) => {
     // Cleanup function to remove this tab's timestamp when tab closes
     const handleBeforeUnload = () => {
       const currentActiveTabId = localStorage.getItem('activeTabId');
-      if (currentActiveTabId === tabIdRef.current) {
+      if (currentActiveTabId === currentTabId) {
         localStorage.removeItem('activeTab');
         localStorage.removeItem('activeTabId');
       }
@@ -66,10 +69,10 @@ export const useTabVisibility = (options: UseTabVisibilityOptions = {}) => {
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('beforeunload', handleBeforeUnload);
-      
+
       // Cleanup on unmount if this tab was the active one
       const currentActiveTabId = localStorage.getItem('activeTabId');
-      if (currentActiveTabId === tabIdRef.current) {
+      if (currentActiveTabId === currentTabId) {
         localStorage.removeItem('activeTab');
         localStorage.removeItem('activeTabId');
       }

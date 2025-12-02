@@ -260,7 +260,7 @@ export const useFolderData = (folderId: string) => {
 
   useEffect(() => {
     loadFolderData();
-  }, [loadFolderData]);
+  }, [loadFolderData, updateDocuments]);
 
   return {
     ...state,

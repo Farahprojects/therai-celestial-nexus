@@ -50,7 +50,7 @@ export const CleanPlaceAutocomplete = ({
       if (value !== localValue) {
         setLocalValue(value);
       }
-    }, [value]);
+    }, [value, localValue]);
 
     // Debounced search function
     const searchPlaces = async (input: string) => {

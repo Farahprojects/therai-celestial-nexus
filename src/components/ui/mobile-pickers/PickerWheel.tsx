@@ -96,7 +96,7 @@ function PickerWheel<T extends string | number = string>({
       y.set(initialY);
       lastExternalValue.current = value;
     }
-  }, []); // 🚀 fires only once, avoids motion snap
+  }, [centerRepetitionStart, height, infinite, itemHeight, options, rawY, value, y]); // Dependencies for initial positioning
 
   // Enable syncing after first mount
   useEffect(() => {

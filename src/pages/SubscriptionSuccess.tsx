@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Card, CardContent } from '@/components/ui/card';
@@ -27,7 +27,7 @@ const SubscriptionSuccess: React.FC = () => {
     return 'Premium';
   };
 
-  const checkSubscription = async () => {
+  const checkSubscription = useCallback(async () => {
     try {
       const { data, error } = await supabase.functions.invoke('check-subscription');
       
@@ -63,7 +63,7 @@ const SubscriptionSuccess: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [navigate, setPlanName, setError, setLoading]);
 
   const retryVerification = async () => {
     setRetryLoading(true);

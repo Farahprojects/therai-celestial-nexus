@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -43,12 +43,12 @@ export const ProfilesPanel = () => {
     if (user) {
       loadProfiles();
     }
-  }, [user]);
+  }, [user, loadProfiles]);
 
-  const loadProfiles = async () => {
+  const loadProfiles = useCallback(async () => {
     if (!user) return;
     const userId = user.id as SavedProfile['user_id'];
-    
+
     setIsLoading(true);
     try {
       const { data, error } = await supabase
@@ -68,7 +68,7 @@ export const ProfilesPanel = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [user]);
 
   const resetForm = () => {
     setProfileName('');

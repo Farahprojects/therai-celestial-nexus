@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Check, ChevronsUpDown, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
@@ -47,9 +47,9 @@ export const ProfileSelector: React.FC<ProfileSelectorProps> = ({
     if (user && open) {
       loadProfiles();
     }
-  }, [user, open]);
+  }, [user, open, loadProfiles]);
 
-  const loadProfiles = async () => {
+  const loadProfiles = useCallback(async () => {
     if (!user) return;
 
     setIsLoading(true);
@@ -70,7 +70,7 @@ export const ProfileSelector: React.FC<ProfileSelectorProps> = ({
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [user]);
 
   const handleSelect = (profile: SavedProfile) => {
     onProfileSelect(profile);
