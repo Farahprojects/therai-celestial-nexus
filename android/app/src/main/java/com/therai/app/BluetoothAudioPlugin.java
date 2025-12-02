@@ -5,6 +5,8 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.media.AudioManager;
 import android.media.AudioAttributes;
+import android.media.AudioDeviceCallback;
+import android.media.AudioDeviceInfo;
 import android.media.AudioFocusRequest;
 import android.os.Build;
 import android.util.Log;
@@ -22,7 +24,7 @@ public class BluetoothAudioPlugin extends Plugin {
     private int previousAudioMode = AudioManager.MODE_NORMAL;
     private boolean wasSpeakerphoneOn = false;
     private boolean keepRoutingLocked = false;
-    private AudioManager.AudioDeviceCallback deviceCallback;
+    private AudioDeviceCallback deviceCallback;
 
     // Audio focus handling
     private AudioManager.OnAudioFocusChangeListener focusChangeListener;
@@ -69,7 +71,7 @@ public class BluetoothAudioPlugin extends Plugin {
         };
         // Device change callback to re-assert communication device on API 31+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            deviceCallback = new AudioManager.AudioDeviceCallback() {
+            deviceCallback = new AudioDeviceCallback() {
                 @Override
                 public void onAudioDevicesAdded(AudioDeviceInfo[] addedDevices) {
                     maybeSetCommunicationDevice();

@@ -1,6 +1,6 @@
 // lib/astroFormatter.ts - Astrological data formatter for Swiss Ephemeris sync v1.1+
 import { ZODIAC_SIGNS } from './astroUtils';
-import { ParsedAstroData, NatalData, NatalSetData, TransitData, CompositeChartData, SynastryAspectsData, MetaData, SubjectData, Angle } from './astro/types';
+import { ParsedAstroData, NatalData, NatalSetData, TransitData, CompositeChartData, SynastryAspectsData, MetaData, SubjectData, Angle, FocusData } from './astro/types';
 
 type PlanetDetail = {
   deg: number;
