@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { useUserData } from '@/hooks/useUserData';
 import { Button } from '@/components/ui/button';
-import { Play, Pause, Volume2, ChevronDown } from 'lucide-react';
+import { Play, Pause, ChevronDown } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 
 export const VoiceSelectionPanel: React.FC = () => {
-  const { preferences, updateTtsVoice, saving } = useUserData();
+  const { preferences, updateTtsVoice } = useUserData();
   const ttsVoice = preferences?.tts_voice || 'Puck';
   const [playingVoice, setPlayingVoice] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<string | null>(null);

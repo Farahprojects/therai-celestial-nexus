@@ -8,7 +8,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { ReportContent } from './ReportContent';
 import { DocumentContent } from './DocumentContent';
 import { supabase } from '@/integrations/supabase/client';
-import { ReportData, getPersonName } from '@/utils/reportContentExtraction';
+import { ReportData } from '@/utils/reportContentExtraction';
 import { AstroDataRenderer } from './AstroDataRenderer';
 import { useSystemPrompts, SystemPrompt } from '@/hooks/useSystemPrompts';
 import { useDocumentLoader } from '@/hooks/useDocumentLoader';

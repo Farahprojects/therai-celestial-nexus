@@ -6,7 +6,6 @@ import { MonthlyAstroFormatter } from '@/components/astro-formatters/MonthlyAstr
 import { WeeklyAstroFormatter } from '@/components/astro-formatters/WeeklyAstroFormatter';
 import { FocusAstroFormatter } from '@/components/astro-formatters/FocusAstroFormatter';
 import { ReportData } from '@/utils/reportContentExtraction';
-import { useIsMobile } from '@/hooks/use-mobile';
 import { parseAstroData } from '@/lib/astroFormatter';
 
 interface AstroDataRendererProps {

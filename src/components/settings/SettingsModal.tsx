@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogClose, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { X, User, Bell, LifeBuoy, Settings as SettingsIcon, LogOut, Trash2, CreditCard, ArrowLeft, Users, Zap, Brain } from "lucide-react";
+import { X, User, Bell, LifeBuoy, Settings as SettingsIcon, LogOut, CreditCard, ArrowLeft, Users, Brain } from "lucide-react";
 import { HIDDEN_SETTINGS_PANELS, SettingsPanelType, useSettingsModal } from "@/contexts/SettingsModalContext";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { AccountSettingsPanel } from "./account/AccountSettingsPanel";
@@ -16,13 +16,11 @@ import { BillingPanel } from "./panels/BillingPanel";
 import { MemoryPanel } from "./panels/MemoryPanel";
 import { SignInPrompt } from "@/components/auth/SignInPrompt";
 import { useAuth } from "@/contexts/AuthContext";
-import { useSubscription } from "@/contexts/SubscriptionContext";
 import { useUserData } from "@/hooks/useUserData";
 
 export const SettingsModal = () => {
   const { isOpen, closeSettings, activePanel, setActivePanel } = useSettingsModal();
-  const { signOut, user, loading } = useAuth();
-  const { isSubscriptionActive } = useSubscription();
+  const { signOut, user } = useAuth();
   const { fetchData: fetchSettingsData } = useUserData();
   const [showSignInPrompt, setShowSignInPrompt] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
@@ -53,7 +51,7 @@ export const SettingsModal = () => {
       setShowSignInPrompt(true);
       return;
     }
-    setActivePanel(panel as any);
+    setActivePanel(panel as SettingsPanelType);
   };
 
   const handleMobilePanelClick = (panel: string) => {
@@ -61,7 +59,7 @@ export const SettingsModal = () => {
       setShowSignInPrompt(true);
       return;
     }
-    setActivePanel(panel as any);
+    setActivePanel(panel as SettingsPanelType);
     setShowMobileMenu(false); // Hide menu, show panel
   };
 

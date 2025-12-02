@@ -2,7 +2,7 @@
 import React from 'react';
 import { ReportRenderer } from '@/components/shared/ReportRenderer';
 import { ReportData } from '@/utils/reportContentExtraction';
-import { AstroDataRenderer, getAstroReportType } from './AstroDataRenderer';
+import { AstroDataRenderer } from './AstroDataRenderer';
 
 interface ReportContentProps {
   reportData: ReportData;

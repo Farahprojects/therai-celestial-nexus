@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { X, Search, MessageSquare, Clock, ChevronRight } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useChatStore } from '@/core/store';
 import { supabase } from '@/integrations/supabase/client';
 
 const hasConversationShape = (value: unknown): value is { id: string; title: string | null; created_at: string; mode?: string | null } => {
