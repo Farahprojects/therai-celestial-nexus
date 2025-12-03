@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, ReactNode, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { ReportSlideOver } from '@/components/public-report/ReportSlideOver';
+import { ReportSlideOver } from '@/components/report-viewer/ReportSlideOver';
 
 interface ModalContext {
   open: (reportId: string, onLoad?: (error?: string | null) => void) => void;

@@ -2,7 +2,7 @@
 // Content extraction helpers for raw report data
 export interface ReportData {
   report_content: string | null;
-  swiss_data: unknown | null;
+  swiss_data: Record<string, unknown> | null;
   guest_report?: {
     report_data?: {
       birthDate?: string;
@@ -18,6 +18,7 @@ export interface ReportData {
     report_type: string | null;
     request_type?: string | null;
   };
+  [key: string]: unknown; // Index signature for flexibility
 }
 
 export const extractReportContent = (reportData: ReportData): string => {

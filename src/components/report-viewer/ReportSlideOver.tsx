@@ -438,7 +438,7 @@ export const ReportSlideOver: React.FC<ReportSlideOverProps> = ({
           {/* Content */}
           <ScrollArea className="flex-1">
             <div className="p-6">
-              {showToggle ? (
+              {reportData && showToggle ? (
                 // Show toggle-based content when both report and Swiss data are available
                 activeView === 'report' ? (
                   <ReportContent
@@ -449,10 +449,12 @@ export const ReportSlideOver: React.FC<ReportSlideOverProps> = ({
                   />
                 ) : (
                   <div className="space-y-6">
-                    <AstroDataRenderer swissData={reportData.swiss_data} reportData={reportData} />
+                    {reportData.swiss_data && (
+                      <AstroDataRenderer swissData={reportData.swiss_data} reportData={reportData} />
+                    )}
                   </div>
                 )
-              ) : (
+              ) : reportData ? (
                 // Show appropriate content based on what's available
                 <ReportContent
                   reportData={reportData}
@@ -460,7 +462,7 @@ export const ReportSlideOver: React.FC<ReportSlideOverProps> = ({
                   setActiveView={setActiveView}
                   isMobile={isMobile}
                 />
-              )}
+              ) : null}
             </div>
           </ScrollArea>
         </div>

@@ -1,5 +1,3 @@
-
-import React from 'react';
 import { IndividualAstroFormatter } from '@/components/astro-formatters/IndividualAstroFormatter';
 import { SynastryAstroFormatter } from '@/components/astro-formatters/SynastryAstroFormatter';
 import { MonthlyAstroFormatter } from '@/components/astro-formatters/MonthlyAstroFormatter';

@@ -11,7 +11,7 @@ import { PlaceData } from '@/components/shared/forms/place-input/utils/extractPl
 import { ProfileSelector } from '@/components/shared/forms/ProfileSelector';
 import InlineDateTimeSelector from '@/components/ui/mobile-pickers/InlineDateTimeSelector';
 import { SimpleDateTimePicker } from '@/components/ui/SimpleDateTimePicker';
-import { ReportFormData } from '@/types/public-report';
+import { ReportFormData } from '@/types/report-form';
 
 interface AstroDetailsStepProps {
   register: UseFormRegister<ReportFormData>;

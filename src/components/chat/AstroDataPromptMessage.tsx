@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { AstroDataForm } from './AstroDataForm';
-import { ReportFormData } from '@/types/public-report';
+import { ReportFormData } from '@/types/report-form';
 
 interface AstroDataPromptMessageProps {
   onAddAstroData: () => void;

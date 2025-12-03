@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { User, Sparkles, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { AstroDataForm } from '@/components/chat/AstroDataForm';
-import { ReportFormData } from '@/types/public-report';
+import { ReportFormData } from '@/types/report-form';
 import { updateFolderProfile } from '@/services/folders';
 import { toast } from 'sonner';
 

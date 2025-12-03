@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, User, Users, Briefcase, Heart, Users2, ArrowLeft } from 'lucide-react';
 import { AstroDataForm } from '@/components/chat/AstroDataForm';
-import { ReportFormData } from '@/types/public-report';
+import { ReportFormData } from '@/types/report-form';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { getInsightTitle } from '@/utils/reportTitles';

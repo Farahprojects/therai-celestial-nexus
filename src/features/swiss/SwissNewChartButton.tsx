@@ -6,7 +6,7 @@ import { useSubscription } from '@/contexts/SubscriptionContext';
 import { useChatStore } from '@/core/store';
 import { useMessageStore } from '@/stores/messageStore';
 import { AstroDataForm } from '@/components/chat/AstroDataForm';
-import { ReportFormData } from '@/types/public-report';
+import { ReportFormData } from '@/types/report-form';
 import {
   DropdownMenu,
   DropdownMenuContent,

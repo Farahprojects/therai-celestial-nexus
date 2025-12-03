@@ -1,5 +1,3 @@
-
-import React from 'react';
 import { ReportRenderer } from '@/components/shared/ReportRenderer';
 import { ReportData } from '@/utils/reportContentExtraction';
 import { AstroDataRenderer } from './AstroDataRenderer';
@@ -19,7 +17,7 @@ export const ReportContent: React.FC<ReportContentProps> = ({
   const hasAstroContent = !!reportData.swiss_data;
 
   const renderAstroContent = () => {
-    if (!hasAstroContent) return null;
+    if (!hasAstroContent || !reportData.swiss_data) return null;
     return <AstroDataRenderer swissData={reportData.swiss_data} reportData={reportData} />;
   };
 
