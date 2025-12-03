@@ -177,9 +177,8 @@ export const ConversationOverlay: React.FC = () => {
               }, 200);
             }
           }).catch((e) => {
-            console.error('[ConversationOverlay] ❌ TTS base64 playback failed, using direct playback:', e);
-            // Fallback to direct audio playback
-            playAudioImmediately(payload.audioBase64);
+            console.error('[ConversationOverlay] ❌ TTS base64 playback failed:', e);
+            // Fallback: just continue without audio playback for now
           });
         }
       };
