@@ -5,6 +5,7 @@ import { AstroDataForm } from '@/components/chat/AstroDataForm';
 import { ReportFormData } from '@/types/report-form';
 import { updateFolderProfile } from '@/services/folders';
 import { toast } from 'sonner';
+import { ProfileSelector } from '@/components/shared/forms/ProfileSelector';
 
 interface FolderProfileSetupProps {
   folderId: string;
@@ -41,6 +42,17 @@ export const FolderProfileSetup: React.FC<FolderProfileSetupProps> = ({
     }
   };
 
+  const handleProfileSelect = async (profile: { id: string; name: string }) => {
+    try {
+      await updateFolderProfile(folderId, profile.id);
+      toast.success(`Profile "${profile.name}" linked to folder`);
+      onProfileLinked();
+    } catch (error) {
+      console.error('[FolderProfileSetup] Failed to link profile:', error);
+      toast.error('Failed to link profile to folder');
+    }
+  };
+
   if (isDismissed) {
     return null;
   }
@@ -61,23 +73,41 @@ export const FolderProfileSetup: React.FC<FolderProfileSetupProps> = ({
               Link a profile to this folder to enable personalized astro insights and analysis.
               This profile will be used for all astro-related activities in <strong>{folderName}</strong>.
             </p>
-            <div className="flex items-center gap-3">
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Select Existing Profile
+                </label>
+                <ProfileSelector
+                  onProfileSelect={handleProfileSelect}
+                  currentValue=""
+                />
+              </div>
+
+              <div className="text-center">
+                <span className="text-sm text-gray-500">or</span>
+              </div>
+
               <Button
                 onClick={() => setShowAstroForm(true)}
-                className="rounded-full bg-gray-900 hover:bg-gray-800 text-white font-light"
+                variant="outline"
+                className="w-full rounded-full font-light"
                 size="sm"
               >
                 <Sparkles className="w-4 h-4 mr-2" />
-                Create Profile
+                Create New Profile
               </Button>
-              <Button
-                onClick={() => setIsDismissed(true)}
-                variant="ghost"
-                className="rounded-full font-light"
-                size="sm"
-              >
-                Maybe Later
-              </Button>
+
+              <div className="flex justify-center pt-2">
+                <Button
+                  onClick={() => setIsDismissed(true)}
+                  variant="ghost"
+                  className="rounded-full font-light text-gray-500 hover:text-gray-700"
+                  size="sm"
+                >
+                  Set Up Later
+                </Button>
+              </div>
             </div>
           </div>
           
