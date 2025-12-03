@@ -22,6 +22,7 @@ interface FolderModalsProps {
 
   // Edit Journal Dialog
   showEditJournalDialog: boolean;
+  editingJournal: { id: string; title?: string | null; entry_text: string } | null;
   editJournalTitle: string;
   editJournalText: string;
   isSavingJournal: boolean;
@@ -42,6 +43,7 @@ interface FolderModalsProps {
 
   // Folder Modal
   showFolderModal: boolean;
+  conversationToMoveToNewFolder: string | null;
   onCreateFolder: (name: string) => void;
   onCloseFolderModal: () => void;
 
@@ -70,7 +72,7 @@ interface FolderModalsProps {
     house_system: string | null;
     is_primary: boolean;
   } | null;
-  onAstroFormSubmit: (data: unknown) => void;
+  onAstroFormSubmit: (data: { chat_id?: string }) => void;
   onCloseAstroForm: () => void;
 }
 
@@ -314,17 +316,16 @@ export const FolderModals: React.FC<FolderModalsProps> = ({
               onSubmit={onAstroFormSubmit}
               mode="astro"
               preselectedType="sync"
-              reportType={null}
-              contextId={folderId}
+              reportType={undefined}
               prefillPersonA={{
                 name: folderProfile.name,
                 birthDate: folderProfile.birth_date,
                 birthTime: folderProfile.birth_time,
                 birthLocation: folderProfile.birth_location,
-                birthLatitude: folderProfile.birth_latitude,
-                birthLongitude: folderProfile.birth_longitude,
-                birthPlaceId: folderProfile.birth_place_id,
-                timezone: folderProfile.timezone
+                birthLatitude: folderProfile.birth_latitude ?? undefined,
+                birthLongitude: folderProfile.birth_longitude ?? undefined,
+                birthPlaceId: folderProfile.birth_place_id ?? undefined,
+                timezone: folderProfile.timezone ?? undefined
               }}
             />
           </div>

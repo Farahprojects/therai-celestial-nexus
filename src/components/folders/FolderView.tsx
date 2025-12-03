@@ -141,13 +141,12 @@ export const FolderView: React.FC<FolderViewProps> = ({
     await reloadProfileData();
   };
 
-  const handleAstroFormSubmit = async (data: unknown & {
-    chat_id?: string;
-  }) => {
+  const handleAstroFormSubmit = async (data: { chat_id?: string }) => {
     if (!data.chat_id) return;
 
     // Move conversation to folder if it's not already there
     try {
+      const { moveConversationToFolder } = await import('@/services/folders');
       await moveConversationToFolder(data.chat_id, folderId);
       await loadFolderData();
       setShowAstroForm(false);
@@ -356,11 +355,9 @@ export const FolderView: React.FC<FolderViewProps> = ({
           folderId={folderId}
           userId={user.id}
           folderName={folderName}
-          onDocumentCreated={handleDocumentUploaded}
-          onDocumentUpdated={handleDocumentUploaded}
           onOpenDocumentCanvas={(draft, docId) => {
             setCurrentDraft(draft);
-            setCurrentDocumentId(docId);
+            setCurrentDocumentId(docId ?? null);
             setShowDocumentCanvas(true);
           }}
           initialMessage={folderAIMessage || undefined}

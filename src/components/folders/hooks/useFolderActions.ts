@@ -18,6 +18,7 @@ interface Conversation {
 
 interface UseFolderActionsProps {
   folderId: string;
+  folderName?: string;
   conversations: Conversation[];
   journals: JournalEntry[];
   documents: FolderDocument[];
