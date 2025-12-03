@@ -92,7 +92,7 @@ export const getPrimaryProfileId = async (userId: string): Promise<string | null
 
   try {
     const { data, error } = await supabase
-      .from('user_profiles')
+      .from('user_profile_list')
       .select('id')
       .eq('user_id', userId)
       .eq('is_primary', true)
