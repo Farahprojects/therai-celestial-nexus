@@ -4,9 +4,46 @@ import { ChartHeader } from './shared/ChartHeader';
 import { AspectTable } from './shared/AspectTable';
 import { PlanetaryPositions } from './shared/PlanetaryPositions';
 
+interface Planet {
+  name: string;
+  sign: string;
+  deg: number;
+  house?: number;
+  retro?: boolean;
+}
+
+interface Aspect {
+  a?: string;
+  b?: string;
+  type?: string;
+  orb?: number;
+  [key: string]: unknown;
+}
+
+interface ReportData {
+  guest_report?: {
+    report_data?: {
+      birthDate?: string;
+      birthLocation?: string;
+      name?: string;
+      [key: string]: unknown;
+    };
+    [key: string]: unknown;
+  };
+  name?: string;
+  [key: string]: unknown;
+}
+
+interface SwissData {
+  aspects_to_natal?: Aspect[];
+  progressed_planets?: Planet[];
+  days_after_birth?: number;
+  [key: string]: unknown;
+}
+
 interface ProgressionsFormatterProps {
-  swissData: Record<string, unknown>;
-  reportData: Record<string, unknown>;
+  swissData: SwissData;
+  reportData: ReportData;
   className?: string;
 }
 
@@ -27,9 +64,10 @@ export const ProgressionsFormatter: React.FC<ProgressionsFormatterProps> = ({
   const { aspects_to_natal, progressed_planets, days_after_birth } = swissData;
 
   // Calculate progression date from days after birth
-  let progressionDate = null;
-  if (days_after_birth && reportData.guest_report?.report_data?.birthDate) {
-    const birthDate = new Date(reportData.guest_report.report_data.birthDate);
+  let progressionDate: string | null = null;
+  const birthDateStr = reportData.guest_report?.report_data?.birthDate;
+  if (days_after_birth && birthDateStr) {
+    const birthDate = new Date(birthDateStr);
     const progressionDateObj = new Date(birthDate.getTime() + (days_after_birth * 24 * 60 * 60 * 1000));
     progressionDate = progressionDateObj.toLocaleDateString('en-US', { 
       year: 'numeric', 
@@ -47,7 +85,7 @@ export const ProgressionsFormatter: React.FC<ProgressionsFormatterProps> = ({
     <div className={`font-inter max-w-4xl mx-auto py-4 md:py-8 px-4 md:px-0 ${className}`}>
       <ChartHeader
         name={name}
-        birthDate={reportData.guest_report?.report_data?.birthDate}
+        birthDate={birthDateStr}
         birthLocation={reportData.guest_report?.report_data?.birthLocation}
       />
 
@@ -63,7 +101,7 @@ export const ProgressionsFormatter: React.FC<ProgressionsFormatterProps> = ({
             </p>
           </CardHeader>
           <CardContent className="space-y-4 md:space-y-8">
-            {progressionDate && (
+            {progressionDate && days_after_birth && (
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                 <h3 className="text-lg font-medium text-blue-900 mb-2">Progression Date</h3>
                 <p className="text-blue-800">{progressionDate}</p>
@@ -73,7 +111,7 @@ export const ProgressionsFormatter: React.FC<ProgressionsFormatterProps> = ({
               </div>
             )}
             
-            {progressed_planets && (
+            {progressed_planets && progressed_planets.length > 0 && (
               <div>
                 <h3 className="text-lg font-medium text-gray-800 mb-4">Progressed Planetary Positions</h3>
                 <PlanetaryPositions 
@@ -90,7 +128,7 @@ export const ProgressionsFormatter: React.FC<ProgressionsFormatterProps> = ({
                   These aspects show how your progressed planets interact with your natal chart positions.
                 </p>
                 <AspectTable 
-                  aspects={aspects_to_natal} 
+                  aspects={aspects_to_natal as Array<{ type: string; [key: string]: unknown }>} 
                   title="Progressed Aspects to Natal"
                 />
               </div>

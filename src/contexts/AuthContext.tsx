@@ -33,6 +33,7 @@ export type AuthContextType = {
   user: User | null;
   session: Session | null;
   loading: boolean;
+  isValidating?: boolean; // Additional loading state for validation
   pendingEmailAddress?: string;
   isPendingEmailCheck?: boolean;
   isAuthenticated: boolean; // Single source of truth

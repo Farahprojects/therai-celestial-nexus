@@ -142,9 +142,10 @@ const LoginModal: React.FC<LoginModalProps> = ({ onSuccess, showAsPage = false }
       setTimeout(() => setResendState('idle'), 3000);
     } catch (error: unknown) {
       setResendState('idle');
+      const errorMessage = error instanceof Error ? error.message : 'Failed to resend verification email. Please try again.';
       showToast({
         title: 'Error',
-        description: error.message ?? 'Failed to resend verification email. Please try again.',
+        description: errorMessage,
         variant: 'destructive'
       });
     }

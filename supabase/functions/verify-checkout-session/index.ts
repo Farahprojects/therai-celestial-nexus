@@ -1,6 +1,6 @@
 import Stripe from "https://esm.sh/stripe@14.21.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { withStandardHandling, withAuth, HttpError } from '../_shared/authHelper.ts';
+import { withStandardHandling, withAuth, HttpError, AuthContext } from '../_shared/authHelper.ts';
 
 const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
   apiVersion: "2023-10-16",
@@ -8,7 +8,7 @@ const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
 });
 
 // Core verification logic - separated from auth concerns
-async function verifyCheckoutHandler(req: Request, authCtx: any): Promise<Response> {
+async function verifyCheckoutHandler(req: Request, authCtx: AuthContext): Promise<Response> {
   const supabaseClient = createClient(
     Deno.env.get("SUPABASE_URL") ?? "",
     Deno.env.get("SUPABASE_ANON_KEY") ?? "",
@@ -91,7 +91,7 @@ Deno.serve(async (req) => {
       throw new HttpError(405, "Method not allowed");
     }
 
-    return withAuth(req, verifyCheckoutHandler);
+    return withAuth(req, (authCtx) => verifyCheckoutHandler(req, authCtx));
   });
 });
 
