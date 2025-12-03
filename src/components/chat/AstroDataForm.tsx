@@ -188,10 +188,10 @@ export const AstroDataForm: React.FC<AstroDataFormProps> = ({
     // Save second person's profile if checkbox is checked
     if (saveSecondPersonToProfile && user) {
       await saveProfile({
-        name: formValues.secondPersonName,
-        birthDate: formValues.secondPersonBirthDate,
-        birthTime: formValues.secondPersonBirthTime,
-        birthLocation: formValues.secondPersonBirthLocation,
+        name: formValues.secondPersonName || '',
+        birthDate: formValues.secondPersonBirthDate || '',
+        birthTime: formValues.secondPersonBirthTime || '',
+        birthLocation: formValues.secondPersonBirthLocation || '',
         birthLatitude: formValues.secondPersonLatitude,
         birthLongitude: formValues.secondPersonLongitude,
         birthPlaceId: formValues.secondPersonPlaceId,
@@ -273,13 +273,13 @@ export const AstroDataForm: React.FC<AstroDataFormProps> = ({
         title = getAstroTitle(data.name, selectedAstroType, data.secondPersonName);
       }
       
-      // For Swiss mode and sync_score mode, explicitly set reportType to null to skip orchestrator
+      // For Swiss mode and sync_score mode, explicitly set reportType to undefined to skip orchestrator
       const payloadToSend = (explicitMode === 'swiss' || explicitMode === 'sync_score')
         ? { 
             ...payload, 
             report_data: { 
               ...payload.report_data, 
-              reportType: null 
+              reportType: undefined 
             }
           }
         : { reportType, ...payload };

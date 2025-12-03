@@ -15,9 +15,10 @@ interface PersonData {
 
 interface ReportPayload {
   request: string;
-  reportType: string | null;
+  reportType?: string;
   person_a: PersonData;
   person_b?: PersonData;
+  [key: string]: unknown;
 }
 
 export const useAstroReportPayload = () => {
@@ -59,7 +60,7 @@ export const useAstroReportPayload = () => {
 
     const reportData: ReportPayload = {
       request: data.request || selectedAstroType,
-      reportType: data.reportType,
+      reportType: data.reportType || undefined,
       person_a: personA,
     };
 
