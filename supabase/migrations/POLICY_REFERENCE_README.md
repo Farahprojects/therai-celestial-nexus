@@ -125,10 +125,11 @@ These files contain the optimized, consolidated RLS policies for reference purpo
 - **Security best practice**: Prevents token enumeration attacks
 
 ### `folder_documents_policies.sql` 📁
-- **Double-verification security**: Document ownership + folder ownership required
-- **Strict update controls**: Users can only modify documents they own in folders they own
-- **Prevents cross-folder access**: Cannot update documents in shared or foreign folders
+- **Double-verification security**: Document ownership + folder ownership required for both UPDATE and DELETE
+- **Strict modification controls**: Users can only update/delete documents they own in folders they own
+- **Prevents cross-folder access**: Cannot modify documents in shared or foreign folders
 - **Granular permission model**: Fine-grained access control for collaborative documents
+- **Consistent security model**: UPDATE and DELETE policies use identical ownership verification
 
 ### `user_images_policies.sql` 🖼️
 - **User image management**: Update access for personal images
