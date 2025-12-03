@@ -124,6 +124,12 @@ class ChatController {
    */
   async switchToChat(chat_id: string) {
     await unifiedWebSocketService.subscribe(chat_id);
+
+    // Ensure unified channel is subscribed for message delivery
+    const { user } = await supabase.auth.getUser();
+    if (user?.id) {
+      await unifiedChannel.subscribe(user.id);
+    }
   }
 
 

@@ -115,6 +115,19 @@ export const useMessageStore = create<MessageStore>()((set, get) => ({
     }
     
     if (id) {
+      // Ensure unified channel is subscribed for message delivery
+      (async () => {
+        try {
+          const { data: { user }, error } = await supabase.auth.getUser();
+          if (user?.id && !error) {
+            await unifiedChannel.subscribe(user.id);
+            if (DEBUG) console.log('[MessageStore] ✅ Unified channel subscribed for user:', user.id);
+          }
+        } catch (error) {
+          console.warn('[MessageStore] Failed to subscribe to unified channel:', error);
+        }
+      })();
+
       // Just fetch messages - WebSocket handles real-time updates
       get().fetchMessages();
     }
