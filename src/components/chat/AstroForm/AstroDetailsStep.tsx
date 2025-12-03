@@ -29,6 +29,7 @@ interface AstroDetailsStepProps {
   saveToProfile: boolean;
   setSaveToProfile: (value: boolean) => void;
   isProfileFlow?: boolean;
+  nameFieldAddon?: React.ReactNode; // Custom element to show next to name field
 }
 
 const ErrorMsg = ({ msg }: { msg: string }) => (
@@ -54,6 +55,7 @@ export const AstroDetailsStep: React.FC<AstroDetailsStepProps> = ({
   saveToProfile,
   setSaveToProfile,
   isProfileFlow = false,
+  nameFieldAddon,
 }) => {
   const formValues = watch();
 
@@ -78,8 +80,8 @@ export const AstroDetailsStep: React.FC<AstroDetailsStepProps> = ({
       className="space-y-6"
     >
       <div className="space-y-4">
-        <div className="grid grid-cols-2 gap-4">
-          <div>
+        <div className="flex gap-4 items-end">
+          <div className="flex-1">
             <Label htmlFor="name" className="text-sm font-medium text-gray-700">
               Name *
             </Label>
@@ -92,8 +94,14 @@ export const AstroDetailsStep: React.FC<AstroDetailsStepProps> = ({
             {errors.name && <ErrorMsg msg={errors.name.message || ''} />}
           </div>
 
-          {!isProfileFlow && (
-            <div>
+          {nameFieldAddon && (
+            <div className="flex-shrink-0">
+              {nameFieldAddon}
+            </div>
+          )}
+
+          {!isProfileFlow && !nameFieldAddon && (
+            <div className="flex-shrink-0">
               <Label className="text-sm font-medium text-gray-700">Load Profile</Label>
               <ProfileSelector
                 onProfileSelect={(profile) => {

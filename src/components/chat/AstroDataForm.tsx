@@ -44,6 +44,7 @@ interface AstroDataFormProps {
     birthPlaceId?: string;
     timezone?: string;
   };
+  nameFieldAddon?: React.ReactNode; // Custom element to show next to name field
 }
 
 const DEFAULT_FORM_VALUES: ReportFormData = {
@@ -402,6 +403,7 @@ export const AstroDataForm: React.FC<AstroDataFormProps> = ({
                 saveToProfile={saveToProfile}
                 setSaveToProfile={setSaveToProfile}
                 isProfileFlow={isProfileFlow}
+                nameFieldAddon={nameFieldAddon}
               />
             ) : currentStep === 'secondPerson' ? (
               <AstroSecondPersonStep

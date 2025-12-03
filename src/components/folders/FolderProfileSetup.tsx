@@ -113,60 +113,6 @@ export const FolderProfileSetup: React.FC<FolderProfileSetupProps> = ({
               This profile will be used for all astro-related activities in <strong>{folderName}</strong>.
             </p>
             <div className="space-y-3">
-              {/* Profile Selection Dropdown */}
-              {profiles.length > 0 && (
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-gray-600 font-light">Use existing:</span>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="rounded-full border-gray-300 hover:border-gray-400 font-light"
-                      >
-                        {selectedProfile ? selectedProfile.name : 'Select Profile'}
-                        <ChevronDown className="w-4 h-4 ml-2" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="start" className="w-56">
-                      {profiles.map((profile) => (
-                        <DropdownMenuItem
-                          key={profile.id}
-                          onClick={() => setSelectedProfile(profile)}
-                          className="flex items-center justify-between"
-                        >
-                          <div>
-                            <div className="font-medium">{profile.name}</div>
-                            <div className="text-xs text-gray-500">{profile.birth_location}</div>
-                          </div>
-                          {selectedProfile?.id === profile.id && (
-                            <Check className="w-4 h-4 text-green-600" />
-                          )}
-                        </DropdownMenuItem>
-                      ))}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                  {selectedProfile && (
-                    <Button
-                      onClick={() => handleProfileSelect(selectedProfile)}
-                      size="sm"
-                      className="rounded-full bg-green-600 hover:bg-green-700 text-white font-light"
-                    >
-                      Link Profile
-                    </Button>
-                  )}
-                </div>
-              )}
-
-              {/* Divider */}
-              {profiles.length > 0 && (
-                <div className="flex items-center gap-2">
-                  <div className="flex-1 h-px bg-gray-200"></div>
-                  <span className="text-xs text-gray-500 font-light px-2">or</span>
-                  <div className="flex-1 h-px bg-gray-200"></div>
-                </div>
-              )}
-
               {/* Inline Form */}
               <div>
                 <h4 className="text-base font-light text-gray-900 mb-3">
@@ -179,7 +125,51 @@ export const FolderProfileSetup: React.FC<FolderProfileSetupProps> = ({
                   preselectedType="essence"
                   reportType="essence"
                   isProfileFlow={true}
+                  nameFieldAddon={
+                    profiles.length > 0 ? (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className="rounded-full border-gray-300 hover:border-gray-400 font-light h-12 px-4"
+                          >
+                            <span className="truncate mr-2">
+                              {selectedProfile ? selectedProfile.name : 'Use existing'}
+                            </span>
+                            <ChevronDown className="w-4 h-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-56">
+                          {profiles.map((profile) => (
+                            <DropdownMenuItem
+                              key={profile.id}
+                              onClick={() => setSelectedProfile(profile)}
+                              className="flex items-center justify-between"
+                            >
+                              <div className="flex-1 min-w-0">
+                                <div className="font-medium truncate">{profile.name}</div>
+                                <div className="text-xs text-gray-500 truncate">{profile.birth_location}</div>
+                              </div>
+                              {selectedProfile?.id === profile.id && (
+                                <Check className="w-4 h-4 text-green-600 flex-shrink-0 ml-2" />
+                              )}
+                            </DropdownMenuItem>
+                          ))}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    ) : undefined
+                  }
                 />
+                {selectedProfile && (
+                  <div className="mt-3 flex justify-end">
+                    <Button
+                      onClick={() => handleProfileSelect(selectedProfile)}
+                      className="rounded-full bg-green-600 hover:bg-green-700 text-white font-light"
+                    >
+                      Link Profile
+                    </Button>
+                  </div>
+                )}
               </div>
             </div>
           </div>
