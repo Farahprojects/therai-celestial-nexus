@@ -86,7 +86,7 @@ export const ImageGallery = ({
         if (!loadMore) setImages([]);
       } else {
         // Transform user_images format to ImageMessage format for compatibility
-        const transformedImages: ImageMessage[] = (data || []).map((img: { id: string; chat_id?: string; created_at: string; image_url: string; image_prompt: string; image_path: string }) => ({
+        const transformedImages: ImageMessage[] = (data || []).map((img) => ({
           id: img.id,
           chat_id: img.chat_id || '',
           created_at: img.created_at,
@@ -129,8 +129,8 @@ export const ImageGallery = ({
   useEffect(() => {
     if (!isOpen || !user) return;
 
-    const handleImageInsert = (payload: { image: { id: string; chat_id?: string; created_at: string; image_url: string; image_prompt: string; image_path: string } }) => {
-      const { image } = payload;
+    const handleImageInsert = (payload: Record<string, unknown>) => {
+      const image = payload.image as { id: string; chat_id?: string; created_at: string; image_url: string; prompt?: string; image_path: string } | undefined;
       
       if (image) {
         // Transform to ImageMessage format and prepend to list
@@ -273,7 +273,7 @@ export const ImageGallery = ({
                     className="w-full h-full object-cover md:transition-transform md:group-hover:scale-105" 
                     loading={index < 8 ? "eager" : "lazy"}
                     decoding="async"
-                    fetchpriority={index < 4 ? "high" : "low"}
+                    fetchPriority={index < 4 ? "high" : "low"}
                   />
                   <div className="hidden md:flex absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/0 group-hover:from-black/60 group-hover:to-transparent transition-all duration-200 items-center justify-center h-12 gap-2">
                     <TooltipProvider>
@@ -431,7 +431,7 @@ export const ImageGallery = ({
                 className="max-w-[92%] max-h-[92%] rounded-xl shadow-2xl mx-auto"
                 loading="eager"
                 decoding="async"
-                fetchpriority="high"
+                fetchPriority="high"
               />
             </div>
 
