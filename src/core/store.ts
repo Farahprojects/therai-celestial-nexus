@@ -110,10 +110,9 @@ export const useChatStore = create<ChatState>()((set, get) => ({
   selectedFolderId: null,
 
   startConversation: (id) => {
-    // Clean up memory when switching conversations
-    import('@/utils/memoryCleanup').then(({ cleanupAllServices }) => {
-      cleanupAllServices().catch(console.error);
-    });
+    // ⚠️ DO NOT call cleanupAllServices() here!
+    // It destroys unifiedChannel listeners which breaks message receiving.
+    // WebSocket cleanup should only happen on sign-out or page unload.
 
     set({
       chat_id: id,
@@ -202,10 +201,9 @@ export const useChatStore = create<ChatState>()((set, get) => ({
       getMessageStoreState().clearMessages();
     });
 
-    // Clean up memory when clearing chat
-    import('@/utils/memoryCleanup').then(({ cleanupAllServices }) => {
-      cleanupAllServices().catch(console.error);
-    });
+    // ⚠️ DO NOT call cleanupAllServices() here!
+    // It destroys unifiedChannel listeners which breaks message receiving.
+    // WebSocket cleanup should only happen on sign-out or page unload.
     
     set({ 
       chat_id: null, 
