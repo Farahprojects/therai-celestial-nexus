@@ -1,6 +1,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { Conversation } from '@/core/types';
 import { ReportData } from '@/core/store';
+import { getPrimaryProfileId } from './conversations-static';
 
 // Re-export commonly used functions to avoid dynamic import warnings
 export {
