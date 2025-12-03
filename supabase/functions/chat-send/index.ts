@@ -606,8 +606,9 @@ async function handleSingleMessageWithMode(
       throw new HttpError(500, "Failed to save message");
     }
 
-    // Broadcast the user message immediately after insertion
-    await broadcastMessageInsert(payload.chat_id, insertedMessage, payload.user_id, requestId);
+    // Broadcast the user message (fire-and-forget)
+    broadcastMessageInsert(payload.chat_id, insertedMessage, payload.user_id, requestId)
+      .catch(() => { /* already logged */ });
 
     // Continue with normal LLM triggering logic
     const { shouldStart: shouldStartLLM, handlerName } = await shouldTriggerLLM(
