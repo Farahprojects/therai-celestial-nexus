@@ -215,6 +215,27 @@ export const SimpleDateTimePicker: React.FC<SimpleDateTimePickerProps> = ({
       <div className="space-y-2">
         <label className="text-sm font-medium text-gray-700">Time *</label>
         <div className="flex items-center gap-2">
+          <Popover open={isTimeOpen} onOpenChange={setIsTimeOpen}>
+            <PopoverTrigger asChild>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 p-0 hover:bg-gray-100 rounded-full"
+              >
+                <Clock className="h-4 w-4 text-gray-400" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <SimpleTimePicker
+                value={timeValue}
+                onChange={onTimeChange}
+                onClose={() => setIsTimeOpen(false)}
+                hasError={hasTimeError}
+              />
+            </PopoverContent>
+          </Popover>
+          
           <div className={containerClass(hasTimeError)}>
             <input
               ref={hourRef}
@@ -254,27 +275,6 @@ export const SimpleDateTimePicker: React.FC<SimpleDateTimePickerProps> = ({
               <option value="PM">PM</option>
             </select>
           </div>
-          
-          <Popover open={isTimeOpen} onOpenChange={setIsTimeOpen}>
-            <PopoverTrigger asChild>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="h-8 w-8 p-0 hover:bg-gray-100 rounded-full"
-              >
-                <Clock className="h-4 w-4 text-gray-400" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <SimpleTimePicker
-                value={timeValue}
-                onChange={onTimeChange}
-                onClose={() => setIsTimeOpen(false)}
-                hasError={hasTimeError}
-              />
-            </PopoverContent>
-          </Popover>
         </div>
       </div>
     </div>
