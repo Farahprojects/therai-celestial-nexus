@@ -117,7 +117,7 @@ async function getConversationParticipants(chatId: string): Promise<string[]> {
     .select("user_id")
     .eq("conversation_id", chatId);
 
-  return (participants ?? []).map(p => p.user_id);
+  return (participants ?? []).map((p: { user_id: string }) => p.user_id);
 }
 
 async function broadcastMessageInsert(
@@ -156,7 +156,7 @@ async function broadcastMessageInsert(
           error: err instanceof Error ? err.message : String(err),
         }));
       } finally {
-        supabase.removeChannel(broadcastChannel).catch(() => {});
+        supabase.removeChannel(broadcastChannel).catch(() => { });
       }
     })
   );
@@ -183,7 +183,7 @@ async function broadcastAssistantThinking(
           payload: { chat_id: chatId, status: "thinking" },
         });
       } finally {
-        supabase.removeChannel(channel).catch(() => {});
+        supabase.removeChannel(channel).catch(() => { });
       }
     })
   );
@@ -202,7 +202,7 @@ async function shouldTriggerLLM(
     return { shouldStart: false, handlerName: null };
   }
 
-  // conversationMode is already fetched by ensureConversationAccess
+  // conversationMode passed from ensureConversationAccess (no refetch needed)
   if (conversationMode === "together") {
     return { shouldStart: true, handlerName: "llm-handler-together-mode" };
   }
@@ -454,7 +454,7 @@ async function handleBatchMessages(
   // Broadcast each message
   if (insertedMessages && insertedMessages.length > 0) {
     await Promise.all(
-      insertedMessages.map(msg =>
+      insertedMessages.map((msg: any) =>
         broadcastMessageInsert(payload.chat_id, msg, payload.user_id, requestId)
       )
     );
@@ -466,28 +466,7 @@ async function handleBatchMessages(
   };
 }
 
-async function handleSingleMessage(
-  payload: SinglePayload,
-  role: Role,
-  authCtx: AuthContext,
-  requestId: string,
-  startTime: number
-): Promise<any> {
-  // For backwards compatibility - fetch mode if not provided
-  const conversationMode = await getConversationMetadata(
-    payload.chat_id,
-    async () => {
-      const { data: conv } = await supabase
-        .from("conversations")
-        .select("mode")
-        .eq("id", payload.chat_id)
-        .single();
-      return conv?.mode || "chat";
-    }
-  );
 
-  return handleSingleMessageWithMode(payload, role, authCtx, conversationMode, requestId, startTime);
-}
 
 async function handleSingleMessageWithMode(
   payload: SinglePayload,
@@ -683,9 +662,9 @@ async function handleSingleMessageWithMode(
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-"Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, accept",
-"Access-Control-Allow-Methods": "POST, OPTIONS",
-"Vary": "Origin"
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, accept",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Vary": "Origin"
 };
 
 // Fail fast if env vars are missing
@@ -699,10 +678,10 @@ if (!SUPABASE_SERVICE_ROLE_KEY) throw new Error("Missing env: SUPABASE_SERVICE_R
 const supabase = createPooledClient();
 
 const json = (status: number, data: any) =>
-new Response(JSON.stringify(data), {
-status,
-headers: { ...corsHeaders, "Content-Type": "application/json" }
-});
+  new Response(JSON.stringify(data), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" }
+  });
 
 // ============================================================================
 // THIN ORCHESTRATOR HANDLER
@@ -747,13 +726,17 @@ Deno.serve(async (req) => {
         throw new HttpError(403, "Access denied to this conversation");
       }
 
-      if (role === "user") {
-        const result = await handleSingleMessage(payload, role, authCtx, requestId, startTime);
-        return json(200, result);
-      } else {
-        const result = await handleSingleMessageWithMode(payload, role, authCtx, conversationResult.mode || "chat", requestId, startTime);
-        return json(200, result);
-      }
+      // Use conversationResult.mode directly for both user and assistant messages
+      // This eliminates redundant database fetch that was happening in handleSingleMessage
+      const result = await handleSingleMessageWithMode(
+        payload,
+        role,
+        authCtx,
+        conversationResult.mode || "chat",
+        requestId,
+        startTime
+      );
+      return json(200, result);
     }
   } catch (err) {
     if (err instanceof HttpError) {
