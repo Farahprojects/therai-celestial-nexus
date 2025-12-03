@@ -736,41 +736,17 @@ Deno.serve(async (req) => {
       const payload = parseAndValidateSinglePayload(body);
       const role: Role = payload.role === "assistant" ? "assistant" : "user";
 
-      // For user messages: do auth checks asynchronously after response
-      if (role === "user") {
-        // Start auth checks in background but don't await
-        authenticateUserIfNeeded(authCtx, payload.user_id, requestId)
-          .then(() => ensureConversationAccess(authCtx, payload.chat_id, requestId))
-          .then((conversationResult) => {
-            if (!conversationResult.conversationExists) {
-              console.warn(JSON.stringify({
-                event: "auth_failed_after_response",
-                request_id: requestId,
-                chat_id: payload.chat_id,
-                user_id: payload.user_id,
-                action: "message_inserted_but_unauthorized"
-              }));
-              // Could potentially mark message as invalid or remove it here
-            }
-          })
-          .catch((error) => {
-            console.error(JSON.stringify({
-              event: "async_auth_check_failed",
-              request_id: requestId,
-              error: error.message
-            }));
-          });
+      // Auth checks MUST complete before processing any message
+      await authenticateUserIfNeeded(authCtx, payload.user_id, requestId);
+      const conversationResult = await ensureConversationAccess(authCtx, payload.chat_id, requestId);
+      if (!conversationResult.conversationExists) {
+        throw new HttpError(403, "Access denied to this conversation");
+      }
 
+      if (role === "user") {
         const result = await handleSingleMessage(payload, role, authCtx, requestId, startTime);
         return json(200, result);
       } else {
-        // For assistant messages: still need to await auth (synchronous operation)
-        await authenticateUserIfNeeded(authCtx, payload.user_id, requestId);
-        const conversationResult = await ensureConversationAccess(authCtx, payload.chat_id, requestId);
-        if (!conversationResult.conversationExists) {
-          throw new HttpError(403, "Access denied to this conversation");
-        }
-
         const result = await handleSingleMessageWithMode(payload, role, authCtx, conversationResult.mode || "chat", requestId, startTime);
         return json(200, result);
       }
