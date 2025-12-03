@@ -308,10 +308,8 @@ export const useFolderActions = ({
   const handleNewChat = async () => {
     if (!user?.id) return;
     try {
-      const newChatId = await createConversation(user.id, 'chat', 'New Chat');
-
-      // Move the conversation to this folder
-      await moveConversationToFolder(newChatId, folderId);
+      // Pass folderId directly to createConversation for atomic folder assignment
+      const newChatId = await createConversation(user.id, 'chat', 'New Chat', undefined, folderId);
 
       // Navigate to the new chat
       setViewMode('chat');
