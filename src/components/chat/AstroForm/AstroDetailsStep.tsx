@@ -80,8 +80,8 @@ export const AstroDetailsStep: React.FC<AstroDetailsStepProps> = ({
       className="space-y-6"
     >
       <div className="space-y-4">
-        <div className="flex gap-4 items-end">
-          <div className="w-64">
+      <div className="flex gap-4 items-end justify-between">
+          <div className="flex-1 max-w-64">
             <Label htmlFor="name" className="text-sm font-medium text-gray-700">
               Name *
             </Label>

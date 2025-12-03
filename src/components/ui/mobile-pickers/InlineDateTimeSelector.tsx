@@ -144,22 +144,22 @@ const InlineDateTimeSelector = ({
     <div className="relative">
       <div className="flex items-center gap-2">
         <div className="flex-1 relative">
+          <button
+            type="button"
+            onClick={handleTriggerClick}
+            className="absolute left-3 top-1/2 -translate-y-1/2 p-1 hover:bg-gray-100 rounded z-10"
+          >
+            <Icon className="h-4 w-4 text-gray-500" />
+          </button>
           <Input
             type="text"
             value={localValue}
             onChange={handleTextInputChange}
             placeholder={getInputPlaceholder()}
-            className={`h-12 rounded-full text-base font-light ${
+            className={`h-12 rounded-full text-base font-light pl-10 ${
               hasError ? 'border-red-500 bg-red-50' : 'border-gray-200 focus:border-gray-400'
             }`}
           />
-          <button
-            type="button"
-            onClick={handleTriggerClick}
-            className="absolute right-3 top-1/2 -translate-y-1/2 p-1 hover:bg-gray-100 rounded"
-          >
-            <Icon className="h-4 w-4 text-gray-500" />
-          </button>
         </div>
         
         {type === 'time' && localValue && (
