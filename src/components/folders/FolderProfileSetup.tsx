@@ -33,7 +33,6 @@ export const FolderProfileSetup: React.FC<FolderProfileSetupProps> = ({
   folderName,
   onProfileLinked,
 }) => {
-  const [showInlineForm, setShowInlineForm] = useState(false);
   const [isDismissed, setIsDismissed] = useState(false);
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [loadingProfiles, setLoadingProfiles] = useState(false);
@@ -73,10 +72,6 @@ export const FolderProfileSetup: React.FC<FolderProfileSetupProps> = ({
     }
   };
 
-  const handleCreateProfileClick = () => {
-    setShowInlineForm(true);
-  };
-
   const handleAstroFormSubmit = async (data: ReportFormData & { chat_id?: string }) => {
     try {
       // The profile is automatically saved by the AstroDataForm/useProfileSaver hook
@@ -85,21 +80,16 @@ export const FolderProfileSetup: React.FC<FolderProfileSetupProps> = ({
       if (data.profile_id) {
         await updateFolderProfile(folderId, data.profile_id);
         toast.success('Profile linked to folder');
-        setShowInlineForm(false);
         onProfileLinked();
       } else {
         // If no profile_id, the form might have created a chat instead
-        // Close the form anyway
-        setShowInlineForm(false);
+        // Keep the form visible for retry
+        console.warn('[FolderProfileSetup] Profile created but no profile_id returned');
       }
     } catch (error) {
       console.error('[FolderProfileSetup] Failed to link profile:', error);
       toast.error('Failed to link profile to folder');
     }
-  };
-
-  const handleCancelForm = () => {
-    setShowInlineForm(false);
   };
 
   if (isDismissed) {
@@ -168,24 +158,28 @@ export const FolderProfileSetup: React.FC<FolderProfileSetupProps> = ({
                 </div>
               )}
 
-              {/* Create Profile Button */}
-              <div className="flex items-center gap-3">
-                <Button
-                  onClick={handleCreateProfileClick}
-                  className="rounded-full bg-gray-900 hover:bg-gray-800 text-white font-light"
-                  size="sm"
-                >
-                  <Sparkles className="w-4 h-4 mr-2" />
-                  Create Profile
-                </Button>
-                <Button
-                  onClick={() => setIsDismissed(true)}
-                  variant="ghost"
-                  className="rounded-full font-light"
-                  size="sm"
-                >
-                  Maybe Later
-                </Button>
+              {/* Divider */}
+              {profiles.length > 0 && (
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 h-px bg-gray-200"></div>
+                  <span className="text-xs text-gray-500 font-light px-2">or</span>
+                  <div className="flex-1 h-px bg-gray-200"></div>
+                </div>
+              )}
+
+              {/* Inline Form */}
+              <div>
+                <h4 className="text-base font-light text-gray-900 mb-3">
+                  {profiles.length > 0 ? 'Create new profile:' : 'Create profile:'}
+                </h4>
+                <AstroDataForm
+                  onClose={() => setIsDismissed(true)}
+                  onSubmit={handleAstroFormSubmit}
+                  mode="astro"
+                  preselectedType="essence"
+                  reportType="essence"
+                  isProfileFlow={true}
+                />
               </div>
             </div>
           </div>
@@ -201,30 +195,6 @@ export const FolderProfileSetup: React.FC<FolderProfileSetupProps> = ({
         </div>
       </div>
 
-      {/* Inline Astro Form */}
-      {showInlineForm && (
-        <div className="mt-6 p-6 bg-white rounded-2xl border border-gray-200">
-          <div className="flex items-center justify-between mb-4">
-            <h4 className="text-lg font-light text-gray-900">Create New Profile</h4>
-            <Button
-              onClick={handleCancelForm}
-              variant="ghost"
-              size="sm"
-              className="rounded-full"
-            >
-              <X className="w-4 h-4" />
-            </Button>
-          </div>
-          <AstroDataForm
-            onClose={handleCancelForm}
-            onSubmit={handleAstroFormSubmit}
-            mode="astro"
-            preselectedType="essence"
-            reportType="essence"
-            isProfileFlow={true}
-          />
-        </div>
-      )}
     </>
   );
 };
