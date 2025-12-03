@@ -1,11 +1,26 @@
-import React, { useState } from 'react';
-import { User, Sparkles, X } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { User, Sparkles, X, ChevronDown, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { AstroDataForm } from '@/components/chat/AstroDataForm';
 import { ReportFormData } from '@/types/report-form';
 import { updateFolderProfile } from '@/services/folders';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { ProfileSelector } from '@/components/shared/forms/ProfileSelector';
+
+interface Profile {
+  id: string;
+  profile_name: string;
+  name: string;
+  birth_date: string;
+  birth_location: string;
+  is_primary: boolean;
+}
 
 interface FolderProfileSetupProps {
   folderId: string;
@@ -20,6 +35,43 @@ export const FolderProfileSetup: React.FC<FolderProfileSetupProps> = ({
 }) => {
   const [showAstroForm, setShowAstroForm] = useState(false);
   const [isDismissed, setIsDismissed] = useState(false);
+  const [profiles, setProfiles] = useState<Profile[]>([]);
+  const [loadingProfiles, setLoadingProfiles] = useState(false);
+  const [selectedProfile, setSelectedProfile] = useState<Profile | null>(null);
+
+  // Fetch existing profiles on mount
+  useEffect(() => {
+    const fetchProfiles = async () => {
+      try {
+        setLoadingProfiles(true);
+        const { data, error } = await supabase
+          .from('user_profile_list')
+          .select('id, profile_name, name, birth_date, birth_location, is_primary')
+          .order('is_primary', { ascending: false })
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        setProfiles(data || []);
+      } catch (error) {
+        console.error('[FolderProfileSetup] Failed to fetch profiles:', error);
+      } finally {
+        setLoadingProfiles(false);
+      }
+    };
+
+    fetchProfiles();
+  }, []);
+
+  const handleProfileSelect = async (profile: Profile) => {
+    try {
+      await updateFolderProfile(folderId, profile.id);
+      toast.success(`Profile "${profile.name}" linked to folder`);
+      onProfileLinked();
+    } catch (error) {
+      console.error('[FolderProfileSetup] Failed to link profile:', error);
+      toast.error('Failed to link profile to folder');
+    }
+  };
 
   const handleAstroFormSubmit = async (data: ReportFormData & { chat_id?: string }) => {
     try {
@@ -36,17 +88,6 @@ export const FolderProfileSetup: React.FC<FolderProfileSetupProps> = ({
         // Close the form anyway
         setShowAstroForm(false);
       }
-    } catch (error) {
-      console.error('[FolderProfileSetup] Failed to link profile:', error);
-      toast.error('Failed to link profile to folder');
-    }
-  };
-
-  const handleProfileSelect = async (profile: { id: string; name: string }) => {
-    try {
-      await updateFolderProfile(folderId, profile.id);
-      toast.success(`Profile "${profile.name}" linked to folder`);
-      onProfileLinked();
     } catch (error) {
       console.error('[FolderProfileSetup] Failed to link profile:', error);
       toast.error('Failed to link profile to folder');
@@ -73,39 +114,69 @@ export const FolderProfileSetup: React.FC<FolderProfileSetupProps> = ({
               Link a profile to this folder to enable personalized astro insights and analysis.
               This profile will be used for all astro-related activities in <strong>{folderName}</strong>.
             </p>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Select Existing Profile
-                </label>
-                <ProfileSelector
-                  onProfileSelect={handleProfileSelect}
-                  currentValue=""
-                />
-              </div>
+            <div className="space-y-3">
+              {/* Profile Selection Dropdown */}
+              {profiles.length > 0 && (
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-600 font-light">Use existing:</span>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="rounded-full border-gray-300 hover:border-gray-400 font-light"
+                      >
+                        {selectedProfile ? selectedProfile.name : 'Select Profile'}
+                        <ChevronDown className="w-4 h-4 ml-2" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" className="w-56">
+                      {profiles.map((profile) => (
+                        <DropdownMenuItem
+                          key={profile.id}
+                          onClick={() => setSelectedProfile(profile)}
+                          className="flex items-center justify-between"
+                        >
+                          <div>
+                            <div className="font-medium">{profile.name}</div>
+                            <div className="text-xs text-gray-500">{profile.birth_location}</div>
+                          </div>
+                          {selectedProfile?.id === profile.id && (
+                            <Check className="w-4 h-4 text-green-600" />
+                          )}
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                  {selectedProfile && (
+                    <Button
+                      onClick={() => handleProfileSelect(selectedProfile)}
+                      size="sm"
+                      className="rounded-full bg-green-600 hover:bg-green-700 text-white font-light"
+                    >
+                      Link Profile
+                    </Button>
+                  )}
+                </div>
+              )}
 
-              <div className="text-center">
-                <span className="text-sm text-gray-500">or</span>
-              </div>
-
-              <Button
-                onClick={() => setShowAstroForm(true)}
-                variant="outline"
-                className="w-full rounded-full font-light"
-                size="sm"
-              >
-                <Sparkles className="w-4 h-4 mr-2" />
-                Create New Profile
-              </Button>
-
-              <div className="flex justify-center pt-2">
+              {/* Create Profile Button */}
+              <div className="flex items-center gap-3">
+                <Button
+                  onClick={() => setShowAstroForm(true)}
+                  className="rounded-full bg-gray-900 hover:bg-gray-800 text-white font-light"
+                  size="sm"
+                >
+                  <Sparkles className="w-4 h-4 mr-2" />
+                  Create Profile
+                </Button>
                 <Button
                   onClick={() => setIsDismissed(true)}
                   variant="ghost"
-                  className="rounded-full font-light text-gray-500 hover:text-gray-700"
+                  className="rounded-full font-light"
                   size="sm"
                 >
-                  Set Up Later
+                  Maybe Later
                 </Button>
               </div>
             </div>
@@ -125,15 +196,27 @@ export const FolderProfileSetup: React.FC<FolderProfileSetupProps> = ({
       {/* Astro Form Modal */}
       {showAstroForm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/20 backdrop-blur-sm">
-          <div className="w-full max-w-2xl max-h-[90vh] overflow-hidden rounded-3xl bg-white shadow-2xl">
-            <AstroDataForm
-              onClose={() => setShowAstroForm(false)}
-              onSubmit={handleAstroFormSubmit}
-              mode="astro"
-              preselectedType="essence"
-              reportType="essence"
-              isProfileFlow={true}
-            />
+          <div className="w-full max-w-2xl max-h-[90vh] overflow-hidden rounded-3xl bg-white shadow-2xl flex flex-col">
+            <div className="flex-1 overflow-hidden">
+              <AstroDataForm
+                onClose={() => setShowAstroForm(false)}
+                onSubmit={handleAstroFormSubmit}
+                mode="astro"
+                preselectedType="essence"
+                reportType="essence"
+                isProfileFlow={true}
+              />
+            </div>
+            {/* Cancel Button Footer */}
+            <div className="px-6 py-4 border-t border-gray-100 bg-gray-50/50">
+              <Button
+                onClick={() => setShowAstroForm(false)}
+                variant="outline"
+                className="w-full rounded-full font-light"
+              >
+                Cancel
+              </Button>
+            </div>
           </div>
         </div>
       )}
