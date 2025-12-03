@@ -1,26 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { User, Sparkles, X, ChevronDown, Check } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+import { useState } from 'react';
+import { User, X } from 'lucide-react';
 import { AstroDataForm } from '@/components/chat/AstroDataForm';
 import { ReportFormData } from '@/types/report-form';
 import { updateFolderProfile } from '@/services/folders';
-import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-
-interface Profile {
-  id: string;
-  profile_name: string;
-  name: string;
-  birth_date: string;
-  birth_location: string;
-  is_primary: boolean;
-}
 
 interface FolderProfileSetupProps {
   folderId: string;
@@ -34,56 +17,16 @@ export const FolderProfileSetup: React.FC<FolderProfileSetupProps> = ({
   onProfileLinked,
 }) => {
   const [isDismissed, setIsDismissed] = useState(false);
-  const [profiles, setProfiles] = useState<Profile[]>([]);
-  const [loadingProfiles, setLoadingProfiles] = useState(false);
-  const [selectedProfile, setSelectedProfile] = useState<Profile | null>(null);
-
-  // Fetch existing profiles on mount
-  useEffect(() => {
-    const fetchProfiles = async () => {
-      try {
-        setLoadingProfiles(true);
-        const { data, error } = await supabase
-          .from('user_profile_list')
-          .select('id, profile_name, name, birth_date, birth_location, is_primary')
-          .order('is_primary', { ascending: false })
-          .order('created_at', { ascending: false });
-
-        if (error) throw error;
-        setProfiles(data || []);
-      } catch (error) {
-        console.error('[FolderProfileSetup] Failed to fetch profiles:', error);
-      } finally {
-        setLoadingProfiles(false);
-      }
-    };
-
-    fetchProfiles();
-  }, []);
-
-  const handleProfileSelect = async (profile: Profile) => {
-    try {
-      await updateFolderProfile(folderId, profile.id);
-      toast.success(`Profile "${profile.name}" linked to folder`);
-      onProfileLinked();
-    } catch (error) {
-      console.error('[FolderProfileSetup] Failed to link profile:', error);
-      toast.error('Failed to link profile to folder');
-    }
-  };
 
   const handleAstroFormSubmit = async (data: ReportFormData & { chat_id?: string }) => {
     try {
       // The profile is automatically saved by the AstroDataForm/useProfileSaver hook
       // We just need to link it to the folder
-      // The profile_id should be in data if it was saved
       if (data.profile_id) {
         await updateFolderProfile(folderId, data.profile_id);
         toast.success('Profile linked to folder');
         onProfileLinked();
       } else {
-        // If no profile_id, the form might have created a chat instead
-        // Keep the form visible for retry
         console.warn('[FolderProfileSetup] Profile created but no profile_id returned');
       }
     } catch (error) {
@@ -97,95 +40,40 @@ export const FolderProfileSetup: React.FC<FolderProfileSetupProps> = ({
   }
 
   return (
-    <>
-      {/* Banner */}
-      <div className="w-full max-w-2xl mx-auto mb-6 p-6 bg-gradient-to-r from-gray-50 to-gray-100 rounded-2xl border border-gray-200">
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex-1">
-            <div className="flex items-center gap-2 mb-2">
-              <User className="w-5 h-5 text-gray-600" />
-              <h3 className="text-base font-normal text-gray-900">
-                Set Up Folder Profile
-              </h3>
-            </div>
-            <p className="text-sm font-light text-gray-600 mb-4">
-              Link a profile to this folder to enable personalized astro insights and analysis.
-              This profile will be used for all astro-related activities in <strong>{folderName}</strong>.
-            </p>
-            <div className="space-y-3">
-              {/* Inline Form */}
-              <div>
-                <h4 className="text-base font-light text-gray-900 mb-3">
-                  {profiles.length > 0 ? 'Create new profile:' : 'Create profile:'}
-                </h4>
-                <AstroDataForm
-                  onClose={() => setIsDismissed(true)}
-                  onSubmit={handleAstroFormSubmit}
-                  mode="astro"
-                  preselectedType="essence"
-                  reportType="essence"
-                  isProfileFlow={true}
-                  nameFieldAddon={
-                    profiles.length > 0 ? (
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            variant="outline"
-                            className="rounded-full border-gray-300 hover:border-gray-400 font-light h-12 px-4"
-                          >
-                            <span className="truncate mr-2">
-                              {selectedProfile ? selectedProfile.name : 'Use existing'}
-                            </span>
-                            <ChevronDown className="w-4 h-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-56">
-                          {profiles.map((profile) => (
-                            <DropdownMenuItem
-                              key={profile.id}
-                              onClick={() => setSelectedProfile(profile)}
-                              className="flex items-center justify-between"
-                            >
-                              <div className="flex-1 min-w-0">
-                                <div className="font-medium truncate">{profile.name}</div>
-                                <div className="text-xs text-gray-500 truncate">{profile.birth_location}</div>
-                              </div>
-                              {selectedProfile?.id === profile.id && (
-                                <Check className="w-4 h-4 text-green-600 flex-shrink-0 ml-2" />
-                              )}
-                            </DropdownMenuItem>
-                          ))}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    ) : undefined
-                  }
-                />
-                {selectedProfile && (
-                  <div className="mt-3 flex justify-end">
-                    <Button
-                      onClick={() => handleProfileSelect(selectedProfile)}
-                      className="rounded-full bg-green-600 hover:bg-green-700 text-white font-light"
-                    >
-                      Link Profile
-                    </Button>
-                  </div>
-                )}
-              </div>
-            </div>
+    <div className="w-full max-w-2xl mx-auto mb-6 p-6 bg-gradient-to-r from-gray-50 to-gray-100 rounded-2xl border border-gray-200">
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex-1">
+          <div className="flex items-center gap-2 mb-2">
+            <User className="w-5 h-5 text-gray-600" />
+            <h3 className="text-base font-normal text-gray-900">
+              Set Up Folder Profile
+            </h3>
           </div>
-          
-          {/* Dismiss Button */}
-          <button
-            onClick={() => setIsDismissed(true)}
-            className="p-1 hover:bg-gray-200 rounded-lg transition-colors flex-shrink-0"
-            aria-label="Dismiss"
-          >
-            <X className="w-4 h-4 text-gray-500" />
-          </button>
+          <p className="text-sm font-light text-gray-600 mb-4">
+            Link a profile to this folder to enable personalized astro insights and analysis.
+            This profile will be used for all astro-related activities in <strong>{folderName}</strong>.
+          </p>
+          <div className="space-y-3">
+            <AstroDataForm
+              onClose={() => setIsDismissed(true)}
+              onSubmit={handleAstroFormSubmit}
+              mode="astro"
+              preselectedType="essence"
+              reportType="essence"
+              isProfileFlow={false}
+            />
+          </div>
         </div>
+        
+        {/* Dismiss Button */}
+        <button
+          onClick={() => setIsDismissed(true)}
+          className="p-1 hover:bg-gray-200 rounded-lg transition-colors flex-shrink-0"
+          aria-label="Dismiss"
+        >
+          <X className="w-4 h-4 text-gray-500" />
+        </button>
       </div>
-
-    </>
+    </div>
   );
 };
-
