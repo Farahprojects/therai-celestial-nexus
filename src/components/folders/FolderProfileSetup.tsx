@@ -33,7 +33,7 @@ export const FolderProfileSetup: React.FC<FolderProfileSetupProps> = ({
   folderName,
   onProfileLinked,
 }) => {
-  const [showAstroForm, setShowAstroForm] = useState(false);
+  const [showInlineForm, setShowInlineForm] = useState(false);
   const [isDismissed, setIsDismissed] = useState(false);
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [loadingProfiles, setLoadingProfiles] = useState(false);
@@ -73,6 +73,10 @@ export const FolderProfileSetup: React.FC<FolderProfileSetupProps> = ({
     }
   };
 
+  const handleCreateProfileClick = () => {
+    setShowInlineForm(true);
+  };
+
   const handleAstroFormSubmit = async (data: ReportFormData & { chat_id?: string }) => {
     try {
       // The profile is automatically saved by the AstroDataForm/useProfileSaver hook
@@ -81,17 +85,21 @@ export const FolderProfileSetup: React.FC<FolderProfileSetupProps> = ({
       if (data.profile_id) {
         await updateFolderProfile(folderId, data.profile_id);
         toast.success('Profile linked to folder');
-        setShowAstroForm(false);
+        setShowInlineForm(false);
         onProfileLinked();
       } else {
         // If no profile_id, the form might have created a chat instead
         // Close the form anyway
-        setShowAstroForm(false);
+        setShowInlineForm(false);
       }
     } catch (error) {
       console.error('[FolderProfileSetup] Failed to link profile:', error);
       toast.error('Failed to link profile to folder');
     }
+  };
+
+  const handleCancelForm = () => {
+    setShowInlineForm(false);
   };
 
   if (isDismissed) {
@@ -163,7 +171,7 @@ export const FolderProfileSetup: React.FC<FolderProfileSetupProps> = ({
               {/* Create Profile Button */}
               <div className="flex items-center gap-3">
                 <Button
-                  onClick={() => setShowAstroForm(true)}
+                  onClick={handleCreateProfileClick}
                   className="rounded-full bg-gray-900 hover:bg-gray-800 text-white font-light"
                   size="sm"
                 >
@@ -193,31 +201,28 @@ export const FolderProfileSetup: React.FC<FolderProfileSetupProps> = ({
         </div>
       </div>
 
-      {/* Astro Form Modal */}
-      {showAstroForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/20 backdrop-blur-sm">
-          <div className="w-full max-w-2xl max-h-[90vh] overflow-hidden rounded-3xl bg-white shadow-2xl flex flex-col">
-            <div className="flex-1 overflow-hidden">
-              <AstroDataForm
-                onClose={() => setShowAstroForm(false)}
-                onSubmit={handleAstroFormSubmit}
-                mode="astro"
-                preselectedType="essence"
-                reportType="essence"
-                isProfileFlow={true}
-              />
-            </div>
-            {/* Cancel Button Footer */}
-            <div className="px-6 py-4 border-t border-gray-100 bg-gray-50/50">
-              <Button
-                onClick={() => setShowAstroForm(false)}
-                variant="outline"
-                className="w-full rounded-full font-light"
-              >
-                Cancel
-              </Button>
-            </div>
+      {/* Inline Astro Form */}
+      {showInlineForm && (
+        <div className="mt-6 p-6 bg-white rounded-2xl border border-gray-200">
+          <div className="flex items-center justify-between mb-4">
+            <h4 className="text-lg font-light text-gray-900">Create New Profile</h4>
+            <Button
+              onClick={handleCancelForm}
+              variant="ghost"
+              size="sm"
+              className="rounded-full"
+            >
+              <X className="w-4 h-4" />
+            </Button>
           </div>
+          <AstroDataForm
+            onClose={handleCancelForm}
+            onSubmit={handleAstroFormSubmit}
+            mode="astro"
+            preselectedType="essence"
+            reportType="essence"
+            isProfileFlow={true}
+          />
         </div>
       )}
     </>
