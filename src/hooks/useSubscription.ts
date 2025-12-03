@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { supabase } from '@/integrations/supabase/client'
 import { toast } from 'sonner'
-
+import { safeConsoleError } from '@/utils/safe-logging';
 export function useSubscription() {
   const [loading, setLoading] = useState(false)
 
@@ -32,7 +32,7 @@ export function useSubscription() {
       window.location.href = url
       
     } catch (error) {
-      console.error('Checkout error:', error)
+      safeConsoleError('Checkout error:', error)
       toast.error(error instanceof Error ? error.message : 'Failed to start checkout')
       throw error
     } finally {

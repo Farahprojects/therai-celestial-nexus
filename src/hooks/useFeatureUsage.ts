@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-
+import { safeConsoleError } from '@/utils/safe-logging';
 interface VoiceUsageData {
   is_unlimited?: boolean;
   limit?: number | null;
@@ -72,21 +72,21 @@ export function useFeatureUsage() {
       ]);
 
       if (voiceError) {
-        console.error('[useFeatureUsage] Error fetching voice usage:', voiceError);
+        safeConsoleError('[useFeatureUsage] Error fetching voice usage:', voiceError);
         setError(voiceError.message || 'Failed to fetch voice usage');
         setUsage(null);
         return;
       }
 
       if (limitsError) {
-        console.error('[useFeatureUsage] Error fetching limits:', limitsError);
+        safeConsoleError('[useFeatureUsage] Error fetching limits:', limitsError);
         setError(limitsError.message || 'Failed to fetch usage data');
         setUsage(null);
         return;
       }
 
       if (profileError) {
-        console.warn('[useFeatureUsage] Profile lookup failed:', profileError);
+        safeConsoleWarn('[useFeatureUsage] Profile lookup failed:', profileError);
       }
 
       const limitsDataTyped = limitsData as LimitsData;
@@ -127,7 +127,7 @@ export function useFeatureUsage() {
 
       setUsage(transformedData);
     } catch (err) {
-      console.error('[useFeatureUsage] Exception fetching usage:', err);
+      safeConsoleError('[useFeatureUsage] Exception fetching usage:', err);
       setError(err instanceof Error ? err.message : 'Unknown error');
       setUsage(null);
     } finally {

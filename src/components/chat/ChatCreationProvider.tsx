@@ -10,7 +10,7 @@ import { InsightsModal } from '@/components/insights/InsightsModal';
 import { AstroChartSelector } from '@/components/chat/AstroChartSelector';
 import { AstroDataForm } from '@/components/chat/AstroDataForm';
 import { ProfileSelectorModal } from '@/components/sync/ProfileSelectorModal';
-
+import { safeConsoleError, safeConsoleLog } from '@/utils/safe-logging';
 interface Profile {
   id: string;
   profile_name: string;
@@ -121,7 +121,7 @@ export const ChatCreationProvider: React.FC<ChatCreationProviderProps> = ({
       navigate(`/c/${newChatId}`, { replace: true });
       onConversationReady?.();
     } catch (error) {
-      console.error('[ChatCreationProvider] Failed to create conversation:', error);
+      safeConsoleError('[ChatCreationProvider] Failed to create conversation:', error);
     }
   }, [navigate, requireEligibleUser, user, onConversationReady]);
 
@@ -246,7 +246,7 @@ export const ChatCreationProvider: React.FC<ChatCreationProviderProps> = ({
 
       // Final validation: ensure both persons have required data
       if (!personA.birth_date || !personB.birth_date) {
-        console.error('[ProfileSelector] Missing birth dates:', { personA, personB });
+        console.error('[ProfileSelector] Missing birth dates: personA missing birth_date:', !personA.birth_date, 'personB missing birth_date:', !personB.birth_date);
         toast.error('Both profiles must have birth dates');
         return;
       }
@@ -263,7 +263,7 @@ export const ChatCreationProvider: React.FC<ChatCreationProviderProps> = ({
       };
 
       // Log payload for debugging
-      console.log('[ProfileSelector] Sending sync score payload:', {
+      safeConsoleLog('[ProfileSelector] Sending sync score payload:', {
         chat_id: payload.chat_id,
         mode: payload.mode,
         person_a_name: payload.report_data.person_a.name,
@@ -277,12 +277,12 @@ export const ChatCreationProvider: React.FC<ChatCreationProviderProps> = ({
         body: payload,
       }).then(({ error: reportError }) => {
         if (reportError) {
-          console.error('[ProfileSelector] Error initiating sync score:', reportError);
+          safeConsoleError('[ProfileSelector] Error initiating sync score:', reportError);
           toast.error('Failed to process astrological data');
         }
       });
     } catch (error) {
-      console.error('[ProfileSelector] Failed to create sync score:', error);
+      safeConsoleError('[ProfileSelector] Failed to create sync score:', error);
       toast.error('Failed to create Sync Score');
       setIsSyncScoreGenerating(false);
     }
@@ -318,7 +318,7 @@ export const ChatCreationProvider: React.FC<ChatCreationProviderProps> = ({
         navigate(`/c/${newChatId}`, { replace: true });
         onConversationReady?.();
       } catch (error) {
-        console.error('[ChatCreationProvider] Failed to open astro conversation:', error);
+        safeConsoleError('[ChatCreationProvider] Failed to open astro conversation:', error);
       }
     },
     [navigate, user, onConversationReady]

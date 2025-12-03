@@ -3,7 +3,7 @@ import { AlertCircle, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-
+import { safeConsoleError } from '@/utils/safe-logging';
 interface PaymentFailureAlertProps {
   daysUntilCancellation: number | null;
   isPastDue: boolean;
@@ -59,7 +59,7 @@ export const PaymentFailureAlert: React.FC<PaymentFailureAlertProps> = ({
         window.open(data.url, '_blank');
       }
     } catch (error) {
-      console.error('Error opening customer portal:', error);
+      safeConsoleError('Error opening customer portal:', error);
       toast.error('Failed to open payment portal');
     } finally {
       setIsOpening(false);

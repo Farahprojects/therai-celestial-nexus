@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-
+import { safeConsoleError } from '@/utils/safe-logging';
 interface ConversationSearchResult {
   id: string;
   title: string | null;
@@ -83,7 +83,7 @@ export const useConversationSearch = () => {
         .limit(100); // Increased limit for better results
 
       if (error) {
-        console.error('Search error:', error);
+        safeConsoleError('Search error:', error);
         return [];
       }
 
@@ -134,7 +134,7 @@ export const useConversationSearch = () => {
 
       return sortedResults;
     } catch (error) {
-      console.error('Search failed:', error);
+      safeConsoleError('Search failed:', error);
       return [];
     } finally {
       setIsLoading(false);

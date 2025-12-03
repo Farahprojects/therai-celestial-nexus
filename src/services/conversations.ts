@@ -2,6 +2,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Conversation } from '@/core/types';
 import { ReportData } from '@/core/store';
 import { getPrimaryProfileId } from './conversations-static';
+import { safeConsoleError, safeConsoleLog } from '@/utils/safe-logging';
 
 // Re-export commonly used functions to avoid dynamic import warnings
 export {
@@ -85,7 +86,7 @@ export const createConversationWithTitle = async (
   });
 
   if (error) {
-    console.error('[Conversations] Error creating conversation with title:', error);
+    safeConsoleError('[Conversations] Error creating conversation with title', error);
     throw new Error('Failed to create conversation');
   }
 
@@ -110,7 +111,7 @@ export const createConversation = async (
   // ✅ Fetch primary profile for memory tracking
   const profileId = await getPrimaryProfileId(userId);
   
-  console.log('[Conversations] Creating conversation with profile_id:', profileId);
+  safeConsoleLog('[Conversations] Creating conversation with profile', { has_profile: !!profileId });
   
   const { data, error } = await supabase.functions.invoke('conversation-manager?action=create_conversation', {
     body: {
@@ -130,7 +131,7 @@ export const createConversation = async (
 
   // Handle network/HTTP errors
   if (error) {
-    console.error('[Conversations] Error creating conversation:', error);
+    safeConsoleError('[Conversations] Error creating conversation', error);
     throw new Error(error.message || 'Failed to create conversation');
   }
 
@@ -161,7 +162,7 @@ export const listConversations = async (userId: string, limit?: number, offset?:
   });
 
   if (error) {
-    console.error('[Conversations] Error listing conversations:', error);
+    safeConsoleError('[Conversations] Error listing conversations', error);
     throw new Error('Failed to load conversations');
   }
 
@@ -180,7 +181,7 @@ export const deleteConversation = async (conversationId: string, userId: string)
   });
 
   if (error) {
-    console.error('[Conversations] Error deleting conversation:', error);
+    safeConsoleError('[Conversations] Error deleting conversation', error);
     throw new Error('Failed to delete conversation');
   }
 };
@@ -199,7 +200,7 @@ export const joinConversation = async (conversationId: string, userId: string): 
   });
 
   if (error) {
-    console.error('[Conversations] Error joining conversation:', error);
+    safeConsoleError('[Conversations] Error joining conversation', error);
     throw new Error('Failed to join conversation');
   }
 };

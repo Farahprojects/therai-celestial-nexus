@@ -11,7 +11,7 @@ import { getRedirectPath, clearRedirectPath, extractIdFromPath } from '@/utils/r
 import { useChatStore } from '@/core/store';
 import { useMessageStore } from '@/stores/messageStore';
 import { toast } from 'sonner';
-
+import { safeConsoleError, safeConsoleLog } from '@/utils/safe-logging';
 /**
  * Streamlined ChatContainer - Single Responsibility
  * 
@@ -64,7 +64,7 @@ const ChatContainerContent: React.FC = () => {
           if (!isMountedRef.current) return;
 
           if (profile?.has_seen_subscription_page && profile?.onboarding_modal_closed) {
-            console.log('[ChatContainer] Chat initialized, onboarding complete, showing starter questions', { chat_id });
+            safeConsoleLog('[ChatContainer] Chat initialized, onboarding complete, showing starter questions', { chat_id });
             setShowStarterQuestions(true);
 
             // Remove ?new from URL
@@ -72,7 +72,7 @@ const ChatContainerContent: React.FC = () => {
             newSearchParams.delete('new');
             setSearchParams(newSearchParams, { replace: true });
           } else {
-            console.log('[ChatContainer] Waiting for onboarding modal to close', {
+            safeConsoleLog('[ChatContainer] Waiting for onboarding modal to close', {
               has_seen_subscription_page: profile?.has_seen_subscription_page,
               onboarding_modal_closed: profile?.onboarding_modal_closed
             });
@@ -80,7 +80,7 @@ const ChatContainerContent: React.FC = () => {
         } catch (error) {
           // Prevent state updates if component unmounted during error
           if (!isMountedRef.current) return;
-          console.error('[ChatContainer] Error checking onboarding status:', error);
+          safeConsoleError('[ChatContainer] Error checking onboarding status:', error);
         }
       }
     };
@@ -149,7 +149,7 @@ const ChatContainerContent: React.FC = () => {
         const { type, id } = extractIdFromPath(redirectPath);
 
         if (type === 'folder' && id) {
-          console.log('[ChatContainer] Handling folder redirect', { folderId: id, userId: user.id });
+          safeConsoleLog('[ChatContainer] Handling folder redirect', { folderId: id, userId: user.id });
           try {
             const { addFolderParticipant, isFolderParticipant } = await import('@/services/folders');
 
@@ -163,7 +163,7 @@ const ChatContainerContent: React.FC = () => {
             if (!isMountedRef.current) return;
 
             if (!isParticipant) {
-              console.log('[ChatContainer] Adding as participant');
+              safeConsoleLog('[ChatContainer] Adding as participant');
               await addFolderParticipant(id, user.id, 'member');
               console.log('[ChatContainer] Successfully added as participant');
             }
@@ -181,13 +181,13 @@ const ChatContainerContent: React.FC = () => {
           } catch (error) {
             // Check if component is still mounted before cleanup
             if (!isMountedRef.current) return;
-            console.error('[ChatContainer] Error joining folder:', error);
+            safeConsoleError('[ChatContainer] Error joining folder:', error);
             clearRedirectPath();
             searchParams.delete('redirect');
             setSearchParams(searchParams);
           }
         } else if (type === 'chat' && id) {
-          console.log('[ChatContainer] Handling chat redirect', { chatId: id });
+          safeConsoleLog('[ChatContainer] Handling chat redirect', { chatId: id });
           try {
             // Check if user is already a participant
             const { data: existingParticipant } = await supabase
@@ -225,7 +225,7 @@ const ChatContainerContent: React.FC = () => {
           } catch (error) {
             // Check if component is still mounted before cleanup
             if (!isMountedRef.current) return;
-            console.error('[ChatContainer] Error joining chat:', error);
+            safeConsoleError('[ChatContainer] Error joining chat:', error);
             clearRedirectPath();
             searchParams.delete('redirect');
             setSearchParams(searchParams);
@@ -249,7 +249,7 @@ const ChatContainerContent: React.FC = () => {
       const pendingFolderId = localStorage.getItem('pending_join_folder_id');
 
       if (pendingFolderId) {
-        console.log('[ChatContainer] Handling pending folder join from localStorage', { pendingFolderId, userId: user.id });
+        safeConsoleLog('[ChatContainer] Handling pending folder join from localStorage', { pendingFolderId, userId: user.id });
         try {
           const { addFolderParticipant, isFolderParticipant } = await import('@/services/folders');
 
@@ -263,7 +263,7 @@ const ChatContainerContent: React.FC = () => {
           if (!isMountedRef.current) return;
 
           if (!isParticipant) {
-            console.log('[ChatContainer] Not a participant - adding as participant');
+            safeConsoleLog('[ChatContainer] Not a participant - adding as participant');
             await addFolderParticipant(pendingFolderId, user.id, 'member');
             console.log('[ChatContainer] Successfully added as participant');
           }
@@ -279,7 +279,7 @@ const ChatContainerContent: React.FC = () => {
         } catch (error) {
           // Check if component is still mounted before cleanup
           if (!isMountedRef.current) return;
-          console.error('[ChatContainer] Error joining pending folder:', error);
+          safeConsoleError('[ChatContainer] Error joining pending folder:', error);
           clearRedirectPath();
         }
       }
@@ -312,7 +312,7 @@ const ChatContainerContent: React.FC = () => {
             if (insertError) {
               // Check if component is still mounted before cleanup
               if (!isMountedRef.current) return;
-              console.error('Error adding user as participant:', insertError);
+              safeConsoleError('Error adding user as participant:', insertError);
               localStorage.removeItem('pending_join_chat_id');
               localStorage.removeItem('pending_redirect_path');
               return;
@@ -329,7 +329,7 @@ const ChatContainerContent: React.FC = () => {
         } catch (error) {
           // Check if component is still mounted before cleanup
           if (!isMountedRef.current) return;
-          console.error('[ChatContainer] Error joining pending chat:', error);
+          safeConsoleError('[ChatContainer] Error joining pending chat:', error);
           clearRedirectPath();
         }
       }
@@ -401,13 +401,13 @@ const ChatContainerContent: React.FC = () => {
       const { loadThreads } = useChatStore.getState();
       if (user?.id) {
         loadThreads(user.id).catch(err =>
-          console.error('[ChatContainer] Failed to refresh conversations:', err)
+          safeConsoleError('[ChatContainer] Failed to refresh conversations:', err)
         );
       }
       
       console.log('[ChatContainer] Starter question sent successfully');
     } catch (error) {
-      console.error('[ChatContainer] Error sending starter question:', error);
+      safeConsoleError('[ChatContainer] Error sending starter question:', error);
       toast.error('Failed to send message. Please try again.');
     }
   };

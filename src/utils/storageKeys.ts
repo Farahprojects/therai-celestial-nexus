@@ -73,7 +73,7 @@ export const clearUserStorage = () => {
       sessionStorage.removeItem(key);
       localStorage.removeItem(key);
     } catch (error) {
-      console.warn(`[StorageKeys] Could not clear ${key}:`, error);
+      safeConsoleWarn(`[StorageKeys] Could not clear ${key}:`, error);
     }
   });
 };
@@ -87,7 +87,7 @@ export const clearLegacyStorage = () => {
       sessionStorage.removeItem(key);
       localStorage.removeItem(key);
     } catch (error) {
-      console.warn(`[StorageKeys] Could not clear legacy ${key}:`, error);
+      safeConsoleWarn(`[StorageKeys] Could not clear legacy ${key}:`, error);
     }
   });
 };

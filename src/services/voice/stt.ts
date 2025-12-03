@@ -2,7 +2,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { useChatStore } from '@/core/store';
 import { STTLimitExceededError } from './stt-errors';
-
+import { safeConsoleError } from '@/utils/safe-logging';
 class SttService {
   async transcribe(audioBlob: Blob, chat_id?: string, meta?: Record<string, unknown>, chattype?: string, mode?: string, user_id?: string, user_name?: string): Promise<{ transcript: string }> {
     
@@ -44,7 +44,7 @@ class SttService {
 
     // Handle network/HTTP errors (actual failures)
     if (error) {
-      console.error('[STT] Google Whisper HTTP error:', error);
+      safeConsoleError('[STT] Google Whisper HTTP error:', error);
       throw new Error(`Error invoking google-whisper: ${error.message}`);
     }
 

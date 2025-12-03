@@ -1,6 +1,6 @@
 
 import { supabase } from "@/integrations/supabase/client";
-
+import { safeConsoleError } from '@/utils/safe-logging';
 export interface StripeProduct {
   id: string;
   product_id: string;
@@ -24,13 +24,13 @@ export const fetchStripeProducts = async (): Promise<StripeProduct[]> => {
       .order('amount_usd', { ascending: true });
     
     if (error) {
-      console.error('Error fetching stripe products:', error);
+      safeConsoleError('Error fetching stripe products:', error);
       throw error;
     }
     
     return data || [];
   } catch (err) {
-    console.error('Failed to fetch stripe products:', err);
+    safeConsoleError('Failed to fetch stripe products:', err);
     return [];
   }
 };
@@ -61,14 +61,14 @@ export const getProductByName = async (name: string): Promise<StripeProduct | nu
     }
     
     if (error) {
-      console.error(`Error fetching product with name ${name}:`, error);
+      safeConsoleError(`Error fetching product with name ${name}:`, error);
       return null;
     }
     
     console.log(`Found product:`, data);
     return data;
   } catch (err) {
-    console.error(`Failed to fetch product with name ${name}:`, err);
+    safeConsoleError(`Failed to fetch product with name ${name}:`, err);
     return null;
   }
 };
@@ -82,13 +82,13 @@ export const getProductByType = async (type: string): Promise<StripeProduct[]> =
       .eq('type', type);
     
     if (error) {
-      console.error(`Error fetching products with type ${type}:`, error);
+      safeConsoleError(`Error fetching products with type ${type}:`, error);
       return [];
     }
     
     return data || [];
   } catch (err) {
-    console.error(`Failed to fetch products with type ${type}:`, err);
+    safeConsoleError(`Failed to fetch products with type ${type}:`, err);
     return [];
   }
 };
@@ -103,13 +103,13 @@ export const getActiveCreditProduct = async (): Promise<StripeProduct | null> =>
       .single();
     
     if (error) {
-      console.error('Error fetching active credit product:', error);
+      safeConsoleError('Error fetching active credit product:', error);
       return null;
     }
     
     return data;
   } catch (err) {
-    console.error('Failed to fetch active credit product:', err);
+    safeConsoleError('Failed to fetch active credit product:', err);
     return null;
   }
 };
@@ -126,7 +126,7 @@ export const ensureCreditProduct = async () => {
       .maybeSingle();
     
     if (error) {
-      console.error('Error checking for credit product:', error);
+      safeConsoleError('Error checking for credit product:', error);
       return;
     }
     
@@ -135,6 +135,6 @@ export const ensureCreditProduct = async () => {
       console.log('No credit product found, please add one in the Supabase dashboard');
     }
   } catch (err) {
-    console.error('Failed to ensure credit product:', err);
+    safeConsoleError('Failed to ensure credit product:', err);
   }
 };

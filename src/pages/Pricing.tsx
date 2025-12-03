@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import Logo from '@/components/Logo';
 import { supabase } from '@/integrations/supabase/client';
 import { SEO } from '@/components/SEO';
-
+import { safeConsoleError } from '@/utils/safe-logging';
 interface PricingData {
   id: string;
   name: string;
@@ -135,7 +135,7 @@ const Pricing: React.FC = () => {
           .order('unit_price_usd', { ascending: true });
 
         if (error) {
-          console.error('Error fetching pricing:', error);
+          safeConsoleError('Error fetching pricing:', error);
         } else {
           // Start with clean slate - build exactly what we want to show
           const planMap = new Map<string, PricingData>();
@@ -195,16 +195,13 @@ const Pricing: React.FC = () => {
           });
 
           if (duplicates.length > 0) {
-            console.error('[PricingPage] Duplicate plan names detected:', {
-              duplicates,
-              plans: finalPlans
-            });
+            console.error('[PricingPage] Duplicate plan names detected:', duplicates.length, 'duplicates found');
           }
 
           setPricingPlans(finalPlans);
         }
       } catch (error) {
-        console.error('Error fetching pricing:', error);
+        safeConsoleError('Error fetching pricing:', error);
       }
     };
 

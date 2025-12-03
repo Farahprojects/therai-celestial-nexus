@@ -3,6 +3,7 @@ import { File, Download, Edit2, Save, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { FolderDocument, updateDocument } from '@/services/folder-documents';
 import { toast } from 'sonner';
+import { safeConsoleError } from '@/utils/safe-logging';
 
 interface DocumentContentProps {
   document: FolderDocument;
@@ -74,7 +75,7 @@ export const DocumentContent: React.FC<DocumentContentProps> = ({
       setIsEditing(false);
       onUpdate?.(); // Refresh the document data
     } catch (error: unknown) {
-      console.error('[DocumentContent] Failed to update document:', error);
+      safeConsoleError('[DocumentContent] Failed to update document', error);
       toast.error('Failed to update document');
     } finally {
       setIsSaving(false);
@@ -96,7 +97,7 @@ export const DocumentContent: React.FC<DocumentContentProps> = ({
       setIsEditingTitle(false);
       onUpdate?.(); // Refresh the document data
     } catch (error: unknown) {
-      console.error('[DocumentContent] Failed to update document name:', error);
+      safeConsoleError('[DocumentContent] Failed to update document name', error);
       toast.error('Failed to update document name');
     } finally {
       setIsSavingTitle(false);

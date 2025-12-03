@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { AlertCircle, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-
+import { safeConsoleError } from '@/utils/safe-logging';
 interface CancelSubscriptionModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -42,7 +42,7 @@ export const CancelSubscriptionModal: React.FC<CancelSubscriptionModalProps> = (
       onSuccess();
       onClose();
     } catch (err) {
-      console.error('Cancel subscription error:', err);
+      safeConsoleError('Cancel subscription error:', err);
       toast.error('Failed to cancel subscription');
     } finally {
       setLoading(false);

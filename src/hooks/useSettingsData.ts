@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { supabase } from '@/integrations/supabase/client'
-
+import { safeConsoleError } from '@/utils/safe-logging';
 interface UserProfile {
   id: string
   email: string
@@ -106,7 +106,7 @@ export function useSettingsData() {
       })
 
     } catch (error) {
-      console.error('Error fetching settings data:', error)
+      safeConsoleError('Error fetching settings data:', error)
       setData(prev => ({
         ...prev,
         loading: false,

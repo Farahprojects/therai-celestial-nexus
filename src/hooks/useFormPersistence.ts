@@ -1,6 +1,6 @@
 
 import { useState, useEffect, useCallback } from 'react';
-
+import { safeConsoleError } from '@/utils/safe-logging';
 interface FormData {
   [key: string]: unknown;
 }
@@ -20,7 +20,7 @@ export const useFormPersistence = <T extends FormData>(
         const parsedData = JSON.parse(savedData);
         setFormData(prevData => ({ ...prevData, ...parsedData }));
       } catch (error) {
-        console.error('Failed to restore form data:', error);
+        safeConsoleError('Failed to restore form data:', error);
       }
     }
   }, [storageKey]);

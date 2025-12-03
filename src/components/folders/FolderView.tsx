@@ -8,6 +8,7 @@ import { ReportSlideOver } from '@/components/report-viewer/ReportSlideOver';
 import { FolderAIPanel } from '@/components/folders/FolderAIPanel';
 import { FolderAIDocumentCanvas } from '@/components/folders/FolderAIDocumentCanvas';
 import { saveDocumentDraft, DraftDocument } from '@/services/folder-ai';
+import { safeConsoleError } from '@/utils/safe-logging';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 
@@ -46,7 +47,6 @@ export const FolderView: React.FC<FolderViewProps> = ({
     isLoading,
     error,
     loadFolderData,
-    reloadProfileData,
     updateConversations,
     updateJournals,
     updateDocuments,
@@ -153,7 +153,7 @@ export const FolderView: React.FC<FolderViewProps> = ({
       setShowAstroForm(false);
       onChatClick(data.chat_id);
     } catch (error) {
-      console.error('[FolderView] Failed to move conversation to folder:', error);
+      safeConsoleError('[FolderView] Failed to move conversation to folder', error);
       toast.error('Failed to add conversation to folder');
     }
   };
@@ -395,7 +395,7 @@ export const FolderView: React.FC<FolderViewProps> = ({
             setCurrentDocumentId(null);
             handleDocumentUploaded();
           } catch (error) {
-            console.error('[FolderView] Error saving document:', error);
+            safeConsoleError('[FolderView] Error saving document', error);
             toast.error('Failed to save document');
           } finally {
             setIsSavingDraft(false);

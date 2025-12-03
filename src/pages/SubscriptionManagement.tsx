@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Loader2, CreditCard, FileText, X, Check } from 'lucide-react';
 import { toast } from 'sonner';
 import { CancelSubscriptionModal } from '@/components/billing/CancelSubscriptionModal';
-
+import { safeConsoleError } from '@/utils/safe-logging';
 const STRIPE_PUBLISHABLE_KEY = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY as string;
 const stripePromise = STRIPE_PUBLISHABLE_KEY ? loadStripe(STRIPE_PUBLISHABLE_KEY) : Promise.resolve(null);
 
@@ -78,7 +78,7 @@ const PaymentMethodForm: React.FC<{
         onSuccess();
       }
     } catch (err) {
-      console.error('Payment method update error:', err);
+      safeConsoleError('Payment method update error:', err);
       toast.error('Failed to update payment method');
     } finally {
       setLoading(false);
@@ -158,7 +158,7 @@ const SubscriptionManagementPage: React.FC = () => {
         setInvoices(invoiceData.invoices);
       }
     } catch (err) {
-      console.error('Error fetching data:', err);
+      safeConsoleError('Error fetching data:', err);
       toast.error('Failed to load subscription data');
     } finally {
       setLoading(false);
@@ -178,7 +178,7 @@ const SubscriptionManagementPage: React.FC = () => {
         setShowAddPaymentMethod(true);
       }
     } catch (err) {
-      console.error('Error creating setup intent:', err);
+      safeConsoleError('Error creating setup intent:', err);
       toast.error('Failed to initialize payment form');
     }
   };

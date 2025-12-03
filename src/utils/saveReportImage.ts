@@ -1,6 +1,6 @@
 
 import { supabase } from "@/integrations/supabase/client";
-
+import { safeConsoleError } from '@/utils/safe-logging';
 export const saveReportImageToBucket = async (imageUrl: string, fileName: string) => {
   try {
     // Fetch the image from the URL
@@ -21,7 +21,7 @@ export const saveReportImageToBucket = async (imageUrl: string, fileName: string
       });
 
     if (error) {
-      console.error('Error uploading image:', error);
+      safeConsoleError('Error uploading image:', error);
       return null;
     }
 
@@ -32,7 +32,7 @@ export const saveReportImageToBucket = async (imageUrl: string, fileName: string
 
     return urlData.publicUrl;
   } catch (error) {
-    console.error('Error saving image to bucket:', error);
+    safeConsoleError('Error saving image to bucket:', error);
     return null;
   }
 };
@@ -52,7 +52,7 @@ export const autoSaveEssenceReportImage = async (): Promise<string | null> => {
     }
     return null;
   } catch (error) {
-    console.error('Failed to save essence report image:', error);
+    safeConsoleError('Failed to save essence report image:', error);
     return null;
   }
 };

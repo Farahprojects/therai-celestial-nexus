@@ -2,6 +2,7 @@
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { safeConsoleError } from '@/utils/safe-logging';
 import { 
   Select, 
   SelectContent, 
@@ -152,7 +153,7 @@ export const ContactSupportPanel = () => {
         return [];
       });
     } catch (error) {
-      console.error('Contact form error:', error);
+      safeConsoleError('Contact form error:', error);
       showToast({
         title: "Failed to send message",
         description: "Please try again later.",

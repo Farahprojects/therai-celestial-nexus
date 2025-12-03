@@ -1,14 +1,14 @@
 
 // Memoize removed to reduce bundle size
 import { MappedReport, MappedReportSchema, RawReportPayload } from '@/types/mappedReport';
-
+import { safeConsoleLog } from '@/utils/safe-logging';
 function _mapReportPayload({
   guest_report,
   report_content,
   swiss_data,
   metadata
 }: RawReportPayload): MappedReport {
-  console.log('mapReportPayload received payload:', {
+  safeConsoleLog('mapReportPayload received payload:', {
     guest_report,
     has_report_data: !!guest_report?.report_data,
     report_data_keys: guest_report?.report_data ? Object.keys(guest_report.report_data) : [],

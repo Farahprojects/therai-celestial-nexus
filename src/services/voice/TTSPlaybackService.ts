@@ -1,6 +1,6 @@
 import { directBarsAnimationService, FourBarLevels } from '@/services/voice/DirectBarsAnimationService';
 import { audioArbitrator } from '@/services/audio/AudioArbitrator';
-
+import { safeConsoleError } from '@/utils/safe-logging';
 class TTSPlaybackService {
   private audioContext: AudioContext | null = null;
   private externalContextProvider: (() => AudioContext | null) | null = null;
@@ -55,7 +55,7 @@ class TTSPlaybackService {
       source.stop(0.001); // Stop immediately
       
     } catch (error) {
-      console.error('[TTSPlaybackService] Warmup failed:', error);
+      safeConsoleError('[TTSPlaybackService] Warmup failed:', error);
     }
   }
 

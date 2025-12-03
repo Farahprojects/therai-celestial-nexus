@@ -11,7 +11,7 @@ import { PlaceData } from '@/components/shared/forms/place-input/utils/extractPl
 import InlineDateTimeSelector from '@/components/ui/mobile-pickers/InlineDateTimeSelector';
 import { SimpleDateTimePicker } from '@/components/ui/SimpleDateTimePicker';
 import type { Tables, TablesInsert } from '@/integrations/supabase/types';
-
+import { safeConsoleError } from '@/utils/safe-logging';
 type SavedProfile = Tables<'user_profile_list'>;
 
 export const ProfilesPanel = () => {
@@ -58,13 +58,13 @@ export const ProfilesPanel = () => {
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('[ProfilesPanel] Failed to load profiles:', error);
+        safeConsoleError('[ProfilesPanel] Failed to load profiles:', error);
       } else {
         const typedData = (data ?? []) as unknown as SavedProfile[];
         setProfiles(typedData);
       }
     } catch (err) {
-      console.error('[ProfilesPanel] Error loading profiles:', err);
+      safeConsoleError('[ProfilesPanel] Error loading profiles:', err);
     } finally {
       setIsLoading(false);
     }
@@ -131,7 +131,7 @@ export const ProfilesPanel = () => {
         .single();
 
       if (error) {
-        console.error('[ProfilesPanel] Failed to save profile:', error);
+        safeConsoleError('[ProfilesPanel] Failed to save profile:', error);
         alert('Failed to save profile');
       } else {
         const newProfile = data as unknown as SavedProfile;
@@ -140,7 +140,7 @@ export const ProfilesPanel = () => {
         resetForm();
       }
     } catch (err) {
-      console.error('[ProfilesPanel] Error saving profile:', err);
+      safeConsoleError('[ProfilesPanel] Error saving profile:', err);
       alert('Failed to save profile');
     } finally {
       setIsSaving(false);
@@ -167,13 +167,13 @@ export const ProfilesPanel = () => {
         .eq('user_id', userId);
 
       if (error) {
-        console.error('[ProfilesPanel] Failed to delete profile:', error);
+        safeConsoleError('[ProfilesPanel] Failed to delete profile:', error);
         alert('Failed to delete profile');
       } else {
         setProfiles(profiles.filter(p => p.id !== profileToDelete));
       }
     } catch (err) {
-      console.error('[ProfilesPanel] Error deleting profile:', err);
+      safeConsoleError('[ProfilesPanel] Error deleting profile:', err);
       alert('Failed to delete profile');
     } finally {
       setIsDeleting(false);

@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
+import { safeConsoleError, safeConsoleLog } from '@/utils/safe-logging';
 import {
   Dialog,
   DialogContent,
@@ -37,7 +38,7 @@ export const DeleteAccountPanel = () => {
     setIsDeleting(true);
     
     try {
-      console.log('🚀 Calling delete-account edge function...');
+      safeConsoleLog('🚀 Calling delete-account edge function...');
       
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('No session found');
@@ -51,7 +52,7 @@ export const DeleteAccountPanel = () => {
       });
 
       if (error) {
-        console.error('❌ Edge function error:', error);
+        safeConsoleError('❌ Edge function error:', error);
         throw new Error(error.message || 'Failed to delete account')
       }
       
@@ -69,7 +70,7 @@ export const DeleteAccountPanel = () => {
         await supabase.auth.signOut({ scope: 'global' });
         console.log('✅ Supabase global signOut completed');
       } catch (signOutError) {
-        console.warn('⚠️ Supabase signOut failed, but continuing:', signOutError);
+        safeConsoleWarn('⚠️ Supabase signOut failed but continuing:', signOutError);
       }
       
       // 3. Use AuthContext signOut for complete cleanup
@@ -77,7 +78,7 @@ export const DeleteAccountPanel = () => {
         await signOut();
         console.log('✅ AuthContext signOut completed');
       } catch (contextSignOutError) {
-        console.warn('⚠️ AuthContext signOut failed:', contextSignOutError);
+        safeConsoleWarn('⚠️ AuthContext signOut failed:', contextSignOutError);
       }
       
       // 4. Emergency cleanup (this will force reload)
@@ -90,7 +91,7 @@ export const DeleteAccountPanel = () => {
       });
       
     } catch (error) {
-      console.error('❌ Delete account error:', error);
+      safeConsoleError('❌ Delete account error:', error);
       showToast({
         variant: "destructive",
         title: "Error",

@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-
+import { safeConsoleError } from '@/utils/safe-logging';
 type PlanInfo = {
   id: string;
   name: string;
@@ -156,7 +156,7 @@ const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
         window.location.href = url.toString();
       }
     } catch (error) {
-      console.error('Checkout error:', error);
+      safeConsoleError('Checkout error:', error);
       toast.error('Failed to start checkout process');
     } finally {
       setIsProcessing(false);

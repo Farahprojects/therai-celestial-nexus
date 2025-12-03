@@ -4,7 +4,7 @@
  * @deprecated Most functions now use sessionStorage instead of URL parameters
  */
 import { log } from './logUtils';
-
+import { safeConsoleError } from '@/utils/safe-logging';
 export const URL_PARAMS = {
   GUEST_REPORT_ID: 'guest_id'
 } as const;
@@ -109,7 +109,7 @@ export const resetGuestSessionOn404 = async (queryClient?: unknown): Promise<voi
 
     console.log('✅ Guest session reset completed');
   } catch (error) {
-    console.error('❌ Error during guest session reset:', error);
+    safeConsoleError('❌ Error during guest session reset:', error);
   }
 };
 
@@ -142,7 +142,7 @@ export const clearAllSessionData = async (stateResetCallbacks?: (() => void)[], 
           callback();
           console.log(`✅ State reset callback ${index + 1} executed`);
         } catch (error) {
-          console.error(`❌ State reset callback ${index + 1} failed:`, error);
+          safeConsoleError(`❌ State reset callback ${index + 1} failed:`, error);
         }
       });
     }
@@ -166,7 +166,7 @@ export const clearAllSessionData = async (stateResetCallbacks?: (() => void)[], 
         localStorage.removeItem(key);
         sessionStorage.removeItem(key);
       } catch (error) {
-        console.error(`Error removing ${key}:`, error);
+        safeConsoleError(`Error removing ${key}:`, error);
       }
     });
 
@@ -202,7 +202,7 @@ export const clearAllSessionData = async (stateResetCallbacks?: (() => void)[], 
 
     console.log('✅ Comprehensive session clearing completed');
   } catch (error) {
-    console.error('❌ Error during comprehensive session clearing:', error);
+    safeConsoleError('❌ Error during comprehensive session clearing:', error);
   }
 };
 
@@ -224,7 +224,7 @@ export const forceNavigationReset = async (stateResetCallbacks?: (() => void)[])
     window.location.href = '/';
     
   } catch (error) {
-    console.error('❌ Force navigation reset failed:', error);
+    safeConsoleError('❌ Force navigation reset failed:', error);
     // Ultimate fallback - just navigate
     window.location.href = '/';
   }

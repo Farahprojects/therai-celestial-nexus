@@ -12,7 +12,7 @@
  */
 
 import { useEffect, useRef, useCallback } from 'react';
-
+import { safeConsoleError } from '@/utils/safe-logging';
 interface UseRealtimeAudioLevelOptions {
   stream: MediaStream | null;
   enabled: boolean;
@@ -60,7 +60,7 @@ export const useRealtimeAudioLevel = ({
         await audioContextRef.current.resume();
       }
     } catch (error) {
-      console.error('[useRealtimeAudioLevel] ❌ Failed to initialize AudioContext:', error);
+      safeConsoleError('[useRealtimeAudioLevel] ❌ Failed to initialize AudioContext:', error);
     }
   }, [stream, smoothingFactor]);
 
@@ -127,7 +127,7 @@ export const useRealtimeAudioLevel = ({
       }
 
     } catch (error) {
-      console.error('[useRealtimeAudioLevel] ❌ Error reading audio data:', error);
+      safeConsoleError('[useRealtimeAudioLevel] ❌ Error reading audio data:', error);
     }
 
     // Continue the loop

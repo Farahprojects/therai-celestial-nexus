@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { getSharedFolder, addFolderParticipant, isFolderParticipant } from '@/services/folders';
 import { useAuth } from '@/contexts/AuthContext';
 import { setRedirectPath, encodeRedirectPath } from '@/utils/redirectUtils';
-
+import { safeConsoleError, safeConsoleLog } from '@/utils/safe-logging';
 const JoinFolder: React.FC = () => {
   const { folderId } = useParams<{ folderId: string }>();
   const navigate = useNavigate();
@@ -15,7 +15,7 @@ const JoinFolder: React.FC = () => {
     if (authLoading) return;
 
     const loadFolder = async () => {
-      console.log('[JoinFolder] Starting loadFolder', { folderId, isAuthenticated, userId: user?.id });
+      safeConsoleLog('[JoinFolder] Starting loadFolder', { folderId, isAuthenticated, userId: user?.id });
       
       if (!folderId) {
         console.log('[JoinFolder] No folderId - navigating to /therai');
@@ -55,7 +55,7 @@ const JoinFolder: React.FC = () => {
           const folder = await getSharedFolder(folderId);
           
           if (!folder) {
-            console.log('[JoinFolder] Folder not found in background check');
+            safeConsoleLog('[JoinFolder] Folder not found in background check');
             return;
           }
           
@@ -75,7 +75,7 @@ const JoinFolder: React.FC = () => {
               console.log('[JoinFolder] Background: Folder saved to sessionStorage');
             }
           } catch (error) {
-            console.error('[JoinFolder] Background: Failed to save folder to sessionStorage:', error);
+            safeConsoleError('[JoinFolder] Background: Failed to save folder to sessionStorage:', error);
           }
 
           // If private folder, add user as participant
@@ -83,7 +83,7 @@ const JoinFolder: React.FC = () => {
             const participantStatus = await isFolderParticipant(folderId, user.id);
             
             if (!participantStatus) {
-              console.log('[JoinFolder] Background: Adding user as participant');
+              safeConsoleLog('[JoinFolder] Background: Adding user as participant');
               await addFolderParticipant(folderId, user.id, 'member');
               console.log('[JoinFolder] Background: Successfully added as participant');
             }
@@ -97,7 +97,7 @@ const JoinFolder: React.FC = () => {
             // Ignore
           }
         } catch (err) {
-          console.error('[JoinFolder] Background error:', err);
+          safeConsoleError('[JoinFolder] Background error:', err);
         }
       })();
     };

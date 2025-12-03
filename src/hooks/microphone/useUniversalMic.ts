@@ -8,7 +8,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useUserData } from '@/hooks/useUserData';
 import { useMode } from '@/contexts/ModeContext';
 import { useAudioStore } from '@/stores/audioStore';
-
+import { safeConsoleError } from '@/utils/safe-logging';
 interface UseUniversalMicOptions {
   onTranscriptReady?: (transcript: string) => void;
   onError?: (error: Error) => void;
@@ -103,7 +103,7 @@ export const useUniversalMic = (options: UseUniversalMicOptions = {}) => {
             return;
           }
           
-          console.error('[useUniversalMic] Recorder error:', error);
+          safeConsoleError('[useUniversalMic] Recorder error:', error);
           
           let errorMessage = 'Could not access microphone.';
           if (error.message.includes('Permission denied') || error.message.includes('NotAllowedError')) {
@@ -143,7 +143,7 @@ export const useUniversalMic = (options: UseUniversalMicOptions = {}) => {
       return true;
 
     } catch (error) {
-      console.error('[useUniversalMic] Start recording failed:', error);
+      safeConsoleError('[useUniversalMic] Start recording failed:', error);
       
       let errorMessage = 'Please allow microphone access and try again.';
       if (error instanceof Error) {

@@ -17,7 +17,7 @@ import { MemoryPanel } from "./panels/MemoryPanel";
 import { SignInPrompt } from "@/components/auth/SignInPrompt";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserData } from "@/hooks/useUserData";
-
+import { safeConsoleError } from '@/utils/safe-logging';
 export const SettingsModal = () => {
   const { isOpen, closeSettings, activePanel, setActivePanel } = useSettingsModal();
   const { signOut, user } = useAuth();
@@ -75,7 +75,7 @@ export const SettingsModal = () => {
       await signOut();
       closeSettings();
     } catch (error) {
-      console.error('Logout error:', error);
+      safeConsoleError('Logout error:', error);
       // Close settings even on error since signOut handles cleanup
       closeSettings();
     } finally {

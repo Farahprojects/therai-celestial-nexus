@@ -1,4 +1,5 @@
 
+import { safeConsoleError, safeConsoleWarn } from '@/utils/safe-logging';
 /**
  * Simple logger utility that controls logging output based on environment
  * and provides different log levels
@@ -90,10 +91,10 @@ export const log = (level: LogLevel, message: string, data?: unknown, component?
       console.log(formattedMessage, data);
       break;
     case 'warn':
-      console.warn(formattedMessage, data);
+      safeConsoleWarn(formattedMessage, data);
       break;
     case 'error':
-      console.error(formattedMessage, data);
+      safeConsoleError(formattedMessage, data);
       break;
   }
 };

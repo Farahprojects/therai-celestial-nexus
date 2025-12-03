@@ -1,6 +1,6 @@
 
 import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
-
+import { safeConsoleError } from '@/utils/safe-logging';
 interface ModalState {
   showNewClientModal: boolean;
   showJournalModal: boolean;
@@ -46,7 +46,7 @@ export const ModalStateProvider = ({ children }: ModalStateProviderProps) => {
         setModalStateInternal(prevState => ({ ...prevState, ...parsedState }));
       }
     } catch (error) {
-      console.error('Failed to restore modal state:', error);
+      safeConsoleError('Failed to restore modal state:', error);
     }
   }, []);
 
@@ -57,7 +57,7 @@ export const ModalStateProvider = ({ children }: ModalStateProviderProps) => {
       try {
         sessionStorage.setItem('modalState', JSON.stringify(newState));
       } catch (error) {
-        console.error('Failed to save modal state:', error);
+        safeConsoleError('Failed to save modal state:', error);
       }
       return newState;
     });
@@ -69,7 +69,7 @@ export const ModalStateProvider = ({ children }: ModalStateProviderProps) => {
     try {
       sessionStorage.removeItem('modalState');
     } catch (error) {
-      console.error('Failed to clear modal state:', error);
+      safeConsoleError('Failed to clear modal state:', error);
     }
   }, []);
 
@@ -78,7 +78,7 @@ export const ModalStateProvider = ({ children }: ModalStateProviderProps) => {
       console.log('💾 Preserving modal state:', modalState);
       sessionStorage.setItem('modalState', JSON.stringify(modalState));
     } catch (error) {
-      console.error('Failed to preserve modal state:', error);
+      safeConsoleError('Failed to preserve modal state:', error);
     }
   }, [modalState]);
 
@@ -91,7 +91,7 @@ export const ModalStateProvider = ({ children }: ModalStateProviderProps) => {
         setModalStateInternal(prevState => ({ ...prevState, ...parsedState }));
       }
     } catch (error) {
-      console.error('Failed to restore modal state:', error);
+      safeConsoleError('Failed to restore modal state:', error);
     }
   }, []);
 

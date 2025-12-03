@@ -2,7 +2,7 @@ import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Link as LinkIcon, Facebook, Download } from 'lucide-react';
 import { toast } from 'sonner';
-
+import { safeConsoleError } from '@/utils/safe-logging';
 // X (Twitter) Icon
 const XIcon = ({ className }: { className?: string }) => (
   <svg viewBox="0 0 24 24" className={className} fill="currentColor">
@@ -27,7 +27,7 @@ export const ShareImageModal: React.FC<ShareImageModalProps> = ({
       toast.success('Link copied to clipboard');
       onClose();
     } catch (error) {
-      console.error('Failed to copy link:', error);
+      safeConsoleError('Failed to copy link:', error);
       toast.error('Failed to copy link');
     }
   };
@@ -63,7 +63,7 @@ export const ShareImageModal: React.FC<ShareImageModalProps> = ({
       toast.success('Image downloaded');
       onClose();
     } catch (error) {
-      console.error('Failed to download image:', error);
+      safeConsoleError('Failed to download image:', error);
       toast.error('Failed to download image');
     }
   };

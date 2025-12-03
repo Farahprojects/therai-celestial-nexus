@@ -5,7 +5,7 @@ import { Loader2, Wallet, DollarSign } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-
+import { safeConsoleError } from '@/utils/safe-logging';
 export const CheckoutSuccessPage: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -36,7 +36,7 @@ export const CheckoutSuccessPage: React.FC = () => {
         });
 
         if (error) {
-          console.error('Verification error:', error);
+          safeConsoleError('Verification error:', error);
           toast.error('Failed to verify payment');
           setVerifying(false);
           return;
@@ -80,7 +80,7 @@ export const CheckoutSuccessPage: React.FC = () => {
           toast.error('Payment not completed');
         }
       } catch (err) {
-        console.error('Payment verification error:', err);
+        safeConsoleError('Payment verification error:', err);
         toast.error('Failed to verify payment');
       } finally {
         setVerifying(false);

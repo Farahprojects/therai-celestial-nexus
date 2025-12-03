@@ -4,7 +4,7 @@ import { FcGoogle } from 'react-icons/fc';
 import { FaApple } from 'react-icons/fa';
 import { getAuthManager } from '@/services/authManager';
 import { toast } from 'sonner';
-
+import { safeConsoleError, safeConsoleLog } from '@/utils/safe-logging';
 interface CapacitorSocialLoginProps {
   onSuccess?: () => void;
   onError?: (error: Error) => void;
@@ -15,7 +15,7 @@ export function CapacitorSocialLogin({ onSuccess, onError }: CapacitorSocialLogi
 
   const handleOAuthSignIn = async (provider: 'google' | 'apple') => {
     try {
-      console.log('[CapacitorSocialLogin] Button clicked:', provider);
+      safeConsoleLog('[CapacitorSocialLogin] Button clicked:', provider);
       setIsLoading(provider);
       
       const authManager = getAuthManager();
@@ -24,7 +24,7 @@ export function CapacitorSocialLogin({ onSuccess, onError }: CapacitorSocialLogi
       const { error } = await authManager.signInWithOAuth(provider);
       
       if (error) {
-        console.error(`${provider} OAuth error:`, error);
+        safeConsoleError(`${provider} OAuth error:`, error);
         toast.error(`Failed to sign in with ${provider}`);
         onError?.(error as Error);
         setIsLoading(null);
@@ -35,7 +35,7 @@ export function CapacitorSocialLogin({ onSuccess, onError }: CapacitorSocialLogi
         onSuccess?.();
       }
     } catch (error) {
-      console.error(`${provider} sign-in error:`, error);
+      safeConsoleError(`${provider} sign-in error:`, error);
       toast.error(`Failed to sign in with ${provider}`);
       onError?.(error as Error);
       setIsLoading(null);

@@ -2,7 +2,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { normalizeStorageUrl } from '@/utils/storageUtils';
-
+import { safeConsoleError } from '@/utils/safe-logging';
 interface LandingPageConfig {
   id: string;
   feature_images: Record<string, string>;
@@ -23,7 +23,7 @@ export const useLandingPageImages = () => {
         .maybeSingle();
 
       if (error) {
-        console.error('Error fetching landing page config:', error);
+        safeConsoleError('Error fetching landing page config:', error);
         // Return default images if no config exists
         return {
           id: '',

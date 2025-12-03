@@ -3,7 +3,7 @@ import { X, Search, User, Heart, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
-
+import { safeConsoleError } from '@/utils/safe-logging';
 interface Profile {
   id: string;
   profile_name: string;
@@ -58,7 +58,7 @@ export const ProfileSelectorModal: React.FC<ProfileSelectorModalProps> = ({
       const otherProfiles = (data || []).filter(p => !p.is_primary);
       setProfiles(otherProfiles);
     } catch (error) {
-      console.error('Error fetching profiles:', error);
+      safeConsoleError('Error fetching profiles:', error);
     } finally {
       setLoading(false);
     }

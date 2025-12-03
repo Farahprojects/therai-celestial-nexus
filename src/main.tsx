@@ -6,6 +6,7 @@ import App from './App';
 import { initAuthManager } from './services/authManager';
 import { Capacitor } from '@capacitor/core';
 import { StatusBar, Style } from '@capacitor/status-bar';
+import { safeConsoleError } from '@/utils/safe-logging';
 import './index.css';
 
 // Dev-only: suppress noisy Lovable editor console errors (CORS/504 polling)
@@ -27,7 +28,7 @@ const initStatusBar = async () => {
       await StatusBar.setBackgroundColor({ color: '#ffffff' });
       await StatusBar.setOverlaysWebView({ overlay: false });
     } catch (error) {
-      console.error('StatusBar initialization error:', error);
+      safeConsoleError('StatusBar initialization error:', error);
     }
   }
 };

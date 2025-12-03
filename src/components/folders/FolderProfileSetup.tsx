@@ -3,6 +3,7 @@ import { User, X } from 'lucide-react';
 import { AstroDataForm } from '@/components/chat/AstroDataForm';
 import { ReportFormData } from '@/types/report-form';
 import { updateFolderProfile, updateFolderName } from '@/services/folders';
+import { safeConsoleError, safeConsoleWarn } from '@/utils/safe-logging';
 
 interface FolderProfileSetupProps {
   folderId: string;
@@ -16,7 +17,6 @@ export const FolderProfileSetup: React.FC<FolderProfileSetupProps> = ({
   onProfileLinked,
 }) => {
   const [isDismissed, setIsDismissed] = useState(false);
-  const [isLinking, setIsLinking] = useState(false);
 
   const handleAstroFormSubmit = async (data: ReportFormData & { chat_id?: string }) => {
     try {
@@ -40,15 +40,15 @@ export const FolderProfileSetup: React.FC<FolderProfileSetupProps> = ({
           // Trigger parent refresh to show updated name
           onProfileLinked();
         } catch (error) {
-          console.error('[FolderProfileSetup] Failed to link profile:', error);
+          safeConsoleError('[FolderProfileSetup] Failed to link profile', error);
         } finally {
           setIsLinking(false);
         }
       } else {
-        console.warn('[FolderProfileSetup] Profile created but no profile_id returned');
+        safeConsoleWarn('[FolderProfileSetup] Profile created but no profile_id returned', null);
       }
     } catch (error) {
-      console.error('[FolderProfileSetup] Failed to create profile:', error);
+      safeConsoleError('[FolderProfileSetup] Failed to create profile', error);
     }
   };
 

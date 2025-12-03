@@ -13,7 +13,7 @@ import { useAudioStore } from '@/stores/audioStore';
 import { audioArbitrator } from '@/services/audio/AudioArbitrator';
 import { environmentMonitor } from '@/utils/environmentMonitor';
 import { directBarsAnimationService } from '@/services/voice/DirectBarsAnimationService';
-
+import { safeConsoleError, safeConsoleWarn } from '@/utils/safe-logging';
 const DEBUG = import.meta.env.DEV;
 
 /**
@@ -28,14 +28,14 @@ export async function cleanupAllServices(): Promise<void> {
     if (DEBUG) console.log('[MemoryCleanup] Stopping audio systems...');
     audioArbitrator.forceReleaseAll();
     await ttsPlaybackService.destroy().catch((error) => {
-      console.warn('[MemoryCleanup] Failed to destroy TTS playback service:', error);
+      safeConsoleWarn('[MemoryCleanup] Failed to destroy TTS playback service:', error);
     });
     directBarsAnimationService.destroy();
     
     // 2. Close AudioContext
     if (DEBUG) console.log('[MemoryCleanup] Closing AudioContext...');
     await useAudioStore.getState().cleanup().catch((error) => {
-      console.warn('[MemoryCleanup] Failed to cleanup audio store:', error);
+      safeConsoleWarn('[MemoryCleanup] Failed to cleanup audio store:', error);
     });
     
     // 3. Clean up chat controller
@@ -55,7 +55,7 @@ export async function cleanupAllServices(): Promise<void> {
         windowWithCleanup.__msgStoreAuthCleanup();
         windowWithCleanup.__msgStoreAuthCleanup = null;
       } catch (e) {
-        console.error('[MemoryCleanup] Failed to cleanup auth listener:', e);
+        safeConsoleError('[MemoryCleanup] Failed to cleanup auth listener:', e);
       }
     }
 
@@ -64,12 +64,12 @@ export async function cleanupAllServices(): Promise<void> {
     try {
       environmentMonitor.cleanup();
     } catch (e) {
-      console.error('[MemoryCleanup] Failed to cleanup EnvironmentMonitor:', e);
+      safeConsoleError('[MemoryCleanup] Failed to cleanup EnvironmentMonitor:', e);
     }
     
     if (DEBUG) console.log('[MemoryCleanup] ✅ Global cleanup complete');
   } catch (error) {
-    console.error('[MemoryCleanup] ❌ Error during cleanup:', error);
+    safeConsoleError('[MemoryCleanup] ❌ Error during cleanup:', error);
   }
 }
 

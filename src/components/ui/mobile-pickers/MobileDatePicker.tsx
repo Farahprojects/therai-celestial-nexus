@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import PickerWheel from './PickerWheel';
-
+import { safeConsoleLog } from '@/utils/safe-logging';
 interface MobileDatePickerProps {
   value: string; // YYYY-MM-DD format
   onChange: (date: string) => void;
@@ -79,7 +79,7 @@ const MobileDatePicker = ({ value, onChange }: MobileDatePickerProps) => {
   // Debounced onChange to prevent excessive calls
   const debouncedOnChange = useCallback((dateString: string) => {
     if (isValidDate(dateString)) {
-      console.log(`MobileDatePicker onChange: ${dateString}`);
+      safeConsoleLog(`MobileDatePicker onChange: ${dateString}`);
       onChange(dateString);
     }
   }, [onChange, isValidDate]);

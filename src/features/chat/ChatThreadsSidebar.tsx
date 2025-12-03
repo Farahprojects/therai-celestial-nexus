@@ -9,6 +9,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { useUserData } from '@/hooks/useUserData';
 import { Conversation } from '@/core/types';
 import { Button } from '@/components/ui/button';
+import { safeConsoleError, safeConsoleWarn } from '@/utils/safe-logging';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -33,7 +34,6 @@ import { ShareConversationModal } from '@/components/chat/ShareConversationModal
 import { ShareFolderModal } from '@/components/folders/ShareFolderModal';
 import { getConversation, updateConversationTitle } from '@/services/conversations-static';
 import { getUserFolders, createFolder, updateFolderName, deleteFolder, getFolderConversations, getSharedFolder, moveConversationToFolder } from '@/services/folders';
-import { updateConversationTitle as updateChatTitle, deleteConversation, getConversationMessages } from '@/services/chat';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { PullToRefresh } from '@/components/ui/PullToRefresh';
@@ -133,7 +133,7 @@ const useFolders = (userId?: string, currentFolderId?: string) => {
       }
       setFolders(uniq);
     } catch (e) {
-      console.error('[ChatThreadsSidebar] loadFolders failed', e);
+      safeConsoleError('[ChatThreadsSidebar] loadFolders failed', e);
     }
   }, [userId, currentFolderId]);
 
@@ -258,7 +258,7 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
           .eq('is_ready', true);
 
         if (error) {
-          console.error('[ChatThreadsSidebar] Polling error:', error);
+          safeConsoleError('[ChatThreadsSidebar] Polling error:', error);
           return;
         }
 
@@ -270,7 +270,7 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
           useChatStore.setState({ pendingInsightThreads: map });
         }
       } catch (error) {
-        console.error('[ChatThreadsSidebar] Polling error:', error);
+        safeConsoleError('[ChatThreadsSidebar] Polling error:', error);
       }
     };
 
@@ -367,10 +367,10 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
     setEditTitleFor(null);
     try {
       updateConversationTitle(id, editTitle.trim(), user.id).catch((error) => {
-        console.warn('[ChatThreadsSidebar] Failed to update conversation title:', error);
+        safeConsoleWarn('[ChatThreadsSidebar] Failed to update conversation title:', error);
       });
     } catch (error) {
-      console.warn('[ChatThreadsSidebar] Failed to save title:', error);
+      safeConsoleWarn('[ChatThreadsSidebar] Failed to save title:', error);
     }
     const existing = useChatStore.getState().threads.find(t => t.id === id);
     if (existing) {
@@ -419,7 +419,7 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
         if (cur.chat_id === conversationId) cur.clearChat();
         navigate('/therai', { replace: true });
       } catch (e) {
-        console.error('[ChatThreadsSidebar] delete error', e);
+        safeConsoleError('[ChatThreadsSidebar] delete error', e);
       }
     } else {
       try {
@@ -457,7 +457,7 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
         onCloseMobileSidebar?.();
       }
     } catch (e) {
-      console.error('[ChatThreadsSidebar] create/rename folder failed', e);
+      safeConsoleError('[ChatThreadsSidebar] create/rename folder failed', e);
     }
   };
 
@@ -482,7 +482,7 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
       navigate(`/folders/${newFolder.id}`, { replace: true });
       onCloseMobileSidebar?.();
     } catch (e) {
-      console.error('[ChatThreadsSidebar] instant folder creation failed', e);
+      safeConsoleError('[ChatThreadsSidebar] instant folder creation failed', e);
       toast.error('Failed to create folder');
     }
   };
@@ -493,7 +493,7 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
       await moveConversationToFolder(conversationId, folderId);
       await load();
     } catch (e) {
-      console.error('[ChatThreadsSidebar] move to folder failed', e);
+      safeConsoleError('[ChatThreadsSidebar] move to folder failed', e);
     }
   };
 
@@ -515,7 +515,7 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
 
       setFolderPendingDelete(null);
     } catch (e) {
-      console.error('[ChatThreadsSidebar] Failed to delete folder:', e);
+      safeConsoleError('[ChatThreadsSidebar] Failed to delete folder:', e);
     } finally {
       setIsDeletingFolder(false);
     }

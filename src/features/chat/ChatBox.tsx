@@ -13,8 +13,7 @@ import { ShareConversationModal } from '@/components/chat/ShareConversationModal
 import { ShareFolderModal } from '@/components/folders/ShareFolderModal';
 import { ChatCreationProvider } from '@/components/chat/ChatCreationProvider';
 import { calculateSyncScore, getSyncScore } from '@/services/syncScores';
- 
-
+import { safeConsoleError, safeConsoleWarn } from '@/utils/safe-logging';
 // Lazy load components for better performance
 const MessageList = lazy(() => import('./MessageList').then(module => ({ default: module.MessageList })));
 const ConversationOverlay = lazy(() => import('./ConversationOverlay/ConversationOverlay').then(module => ({ default: module.ConversationOverlay })));
@@ -102,7 +101,7 @@ export const ChatBox: React.FC<ChatBoxProps> = ({ onDelete }) => {
             .eq('conversation_id', chat_id);
           
           if (partError) {
-            console.error('[ChatBox] Error checking participants:', partError);
+            safeConsoleError('[ChatBox] Error checking participants:', partError);
             return;
           }
           
@@ -122,7 +121,7 @@ export const ChatBox: React.FC<ChatBoxProps> = ({ onDelete }) => {
           setHasCheckedTogetherModeShare(true);
         }
       } catch (error) {
-        console.error('[ChatBox] Error checking together mode share:', error);
+        safeConsoleError('[ChatBox] Error checking together mode share:', error);
       }
     };
     
@@ -208,7 +207,7 @@ export const ChatBox: React.FC<ChatBoxProps> = ({ onDelete }) => {
           const pollForData = async (attempts = 0): Promise<boolean> => {
             const MAX_ATTEMPTS = 50; // Max 50 attempts (10 seconds total)
             if (attempts >= MAX_ATTEMPTS) {
-              console.warn(`[ChatBox] Swiss data not ready after ${MAX_ATTEMPTS} attempts (10 seconds)`);
+              safeConsoleWarn(`[ChatBox] Swiss data not ready after ${MAX_ATTEMPTS} attempts (10 seconds)`);
               return false;
             }
             
@@ -222,7 +221,7 @@ export const ChatBox: React.FC<ChatBoxProps> = ({ onDelete }) => {
               .maybeSingle();
             
             if (error) {
-              console.warn('[ChatBox] Error polling translator logs:', error);
+              safeConsoleWarn('[ChatBox] Error polling translator logs:', error);
             }
             
             if (translatorLog && translatorLog.swiss_data) {
@@ -264,7 +263,7 @@ export const ChatBox: React.FC<ChatBoxProps> = ({ onDelete }) => {
           }
         }
       } catch (error) {
-        console.error('[ChatBox] Error in sync score mode:', error);
+        safeConsoleError('[ChatBox] Error in sync score mode:', error);
       }
     };
     

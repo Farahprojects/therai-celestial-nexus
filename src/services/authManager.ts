@@ -2,7 +2,7 @@ import { Capacitor } from '@capacitor/core';
 import { Browser } from '@capacitor/browser';
 import { App } from '@capacitor/app';
 import { supabase } from '@/integrations/supabase/client';
-
+import { safeConsoleError, safeConsoleWarn, safeConsoleLog } from '@/utils/safe-logging';
 type Platform = 'web' | 'ios' | 'android';
 type OAuthProvider = 'google' | 'apple';
 
@@ -52,14 +52,14 @@ class AuthManager {
     // Supabase stores the PKCE code_verifier in sessionStorage/localStorage
     // and needs it when exchanging the code for a session after redirect
     // Only clear very specific non-auth related items
-    console.log('[AuthManager] Starting OAuth sign-in', { provider, platform: this.platform });
+    safeConsoleLog('[AuthManager] Starting OAuth sign-in', { provider, platform: this.platform });
     
     // Only clear non-Supabase related items that won't affect PKCE flow
     try {
       localStorage.removeItem('pending_join_token'); // Old token, not needed
       console.log('[AuthManager] Cleared pending_join_token (preserving PKCE state)');
     } catch (error) {
-      console.warn('[AuthManager] Failed to clear pending_join_token:', error);
+      safeConsoleWarn('[AuthManager] Failed to clear pending_join_token:', error);
     }
 
     if (this.isNativeApp()) {
@@ -102,7 +102,7 @@ class AuthManager {
 
       return { error: null };
     } catch (err: unknown) {
-      console.error('[AuthManager] Native OAuth error:', err);
+      safeConsoleError('[AuthManager] Native OAuth error:', err);
       return { error: err instanceof Error ? err : new Error('OAuth failed') };
     }
   }
@@ -154,14 +154,14 @@ class AuthManager {
       });
 
       if (error) {
-        console.error('[AuthManager] Web OAuth error:', error);
+        safeConsoleError('[AuthManager] Web OAuth error:', error);
         return { error: new Error(error.message || 'OAuth failed') };
       }
 
       console.log('[AuthManager] OAuth redirect initiated successfully');
       return { error: null };
     } catch (err: unknown) {
-      console.error('[AuthManager] Web OAuth error:', err);
+      safeConsoleError('[AuthManager] Web OAuth error:', err);
       return { error: err instanceof Error ? err : new Error('OAuth failed') };
     }
   }
@@ -209,7 +209,7 @@ class AuthManager {
             });
 
             if (error) {
-              console.error('[AuthManager] Session error:', error);
+              safeConsoleError('[AuthManager] Session error:', error);
             } else {
               console.log('[AuthManager] ✅ Authentication successful!');
             }
@@ -219,16 +219,16 @@ class AuthManager {
             const { error } = await supabase.auth.exchangeCodeForSession(code);
             
             if (error) {
-              console.error('[AuthManager] Code exchange error:', error);
+              safeConsoleError('[AuthManager] Code exchange error:', error);
             } else {
               console.log('[AuthManager] ✅ Authentication successful!');
             }
           } else {
             console.error('[AuthManager] ❌ No tokens or code in callback URL');
-            console.error('[AuthManager] Full URL:', event.url);
+            console.error('[AuthManager] Full URL: [REDACTED - may contain sensitive auth parameters]');
           }
         } catch (error) {
-          console.error('[AuthManager] Callback handling error:', error);
+          safeConsoleError('[AuthManager] Callback handling error:', error);
         }
       }
     });
@@ -239,7 +239,7 @@ class AuthManager {
   async signOut(): Promise<void> {
     const { error } = await supabase.auth.signOut();
     if (error) {
-      console.error('[AuthManager] Sign out error:', error);
+      safeConsoleError('[AuthManager] Sign out error:', error);
       throw error;
     }
     console.log('[AuthManager] Signed out successfully');

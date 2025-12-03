@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import { useUserData } from '@/hooks/useUserData';
 import { Button } from '@/components/ui/button';
 import { Play, Pause, ChevronDown } from 'lucide-react';
+import { safeConsoleError } from '@/utils/safe-logging';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -67,13 +68,13 @@ export const VoiceSelectionPanel: React.FC = () => {
       audio.onerror = () => {
         setPlayingVoice(null);
         setIsLoading(null);
-        console.error('Error playing voice preview for:', voice);
+        safeConsoleError('Error playing voice preview for:', voice);
       };
       
       await audio.play();
       setIsLoading(null);
     } catch (error) {
-      console.error('Error playing voice preview:', error);
+      safeConsoleError('Error playing voice preview:', error);
       setPlayingVoice(null);
       setIsLoading(null);
     }

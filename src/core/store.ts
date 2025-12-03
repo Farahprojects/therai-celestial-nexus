@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { Conversation } from './types';
 import { useMessageStore } from '@/stores/messageStore';
 import { supabase } from '@/integrations/supabase/client';
-
+import { safeConsoleError, safeConsoleWarn } from '@/utils/safe-logging';
 // Report data types
 export interface ReportData {
   reportType?: string;
@@ -187,7 +187,7 @@ export const useChatStore = create<ChatState>()((set, get) => ({
         setChatId(state.chat_id);
       }
     } catch (error) {
-      console.error('[Store] Retry load messages failed:', error);
+      safeConsoleError('[Store] Retry load messages failed:', error);
       set({ 
         messageLoadError: error instanceof Error ? error.message : 'Failed to load messages',
         isLoadingMessages: false
@@ -252,7 +252,7 @@ export const useChatStore = create<ChatState>()((set, get) => ({
   // Thread actions
   loadThreads: async (userId?: string) => {
     if (!userId) {
-      console.warn('[ChatStore] loadThreads called without userId');
+      safeConsoleWarn('[ChatStore] loadThreads called without userId');
       return;
     }
     

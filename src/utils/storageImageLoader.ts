@@ -1,6 +1,6 @@
 
 import { supabase } from "@/integrations/supabase/client";
-
+import { safeConsoleError } from '@/utils/safe-logging';
 interface StorageImages {
   headerImageUrl?: string;
   aboutImageUrl?: string;
@@ -107,7 +107,7 @@ export const loadImagesFromStorage = async (userId: string): Promise<StorageImag
     return result;
 
   } catch (error) {
-    console.error('Error loading images from storage:', error);
+    safeConsoleError('Error loading images from storage:', error);
     return result;
   }
 };

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-
+import { safeConsoleError } from '@/utils/safe-logging';
 export interface SubscriptionStatus {
   isActive: boolean;
   plan: string | null;
@@ -53,7 +53,7 @@ export function useSubscriptionStatus() {
         .single();
 
       if (error) {
-        console.error('Error fetching subscription status:', error);
+        safeConsoleError('Error fetching subscription status:', error);
         setSubscriptionStatus({
           isActive: false,
           plan: null,
@@ -96,7 +96,7 @@ export function useSubscriptionStatus() {
         daysUntilCancellation
       });
     } catch (err) {
-      console.error('Exception checking subscription:', err);
+      safeConsoleError('Exception checking subscription:', err);
       setSubscriptionStatus({
         isActive: false,
         plan: null,

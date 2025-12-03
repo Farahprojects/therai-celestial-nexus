@@ -6,7 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { DraftDocument } from '@/services/folder-ai';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
-
+import { safeConsoleError } from '@/utils/safe-logging';
 // Same robust markdown stripping logic as Gemini LLM handler, but preserves line breaks
 function sanitizePlainText(input: string): string {
   return (typeof input === "string" ? input : "")
@@ -76,7 +76,7 @@ export const FolderAIDocumentCanvas: React.FC<FolderAIDocumentCanvasProps> = ({
       await onSave(editedTitle, editedContent, documentId);
       onClose();
     } catch (error) {
-      console.error('[DocumentCanvas] Error saving:', error);
+      safeConsoleError('[DocumentCanvas] Error saving:', error);
     }
   };
 

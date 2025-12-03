@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useChatStore } from '@/core/store';
 import { unifiedChannel } from '@/services/websocket/UnifiedChannelService';
 import type { Message } from '@/core/types';
-
+import { safeConsoleError, safeConsoleWarn, safeConsoleLog } from '@/utils/safe-logging';
 interface MessageInsertPayload {
   chat_id?: string;
   message?: unknown;
@@ -33,7 +33,7 @@ const shouldSelfClean = async (): Promise<boolean> => {
     return false;
   } catch (error) {
     // If any error checking auth state, assume we should clean
-    console.warn('[MessageStore] Error checking auth state:', error);
+    safeConsoleWarn('[MessageStore] Error checking auth state:', error);
     return true;
   }
 };
@@ -121,10 +121,9 @@ export const useMessageStore = create<MessageStore>()((set, get) => ({
           const { data: { user }, error } = await supabase.auth.getUser();
           if (user?.id && !error) {
             await unifiedChannel.subscribe(user.id);
-            if (DEBUG) console.log('[MessageStore] ✅ Unified channel subscribed for user:', user.id);
           }
         } catch (error) {
-          console.warn('[MessageStore] Failed to subscribe to unified channel:', error);
+          safeConsoleWarn('[MessageStore] Failed to subscribe to unified channel:', error);
         }
       })();
 
@@ -265,14 +264,12 @@ export const useMessageStore = create<MessageStore>()((set, get) => ({
       if (newMessages.length > MAX_MESSAGES_IN_MEMORY) {
         const excessCount = newMessages.length - MAX_MESSAGES_IN_MEMORY;
         newMessages.splice(0, excessCount); // Remove oldest messages
-        if (DEBUG) console.log(`[MessageStore] Memory optimization: removed ${excessCount} old messages`);
+        if (DEBUG) safeConsoleLog(`[MessageStore] Memory optimization: removed ${excessCount} old messages`);
       }
 
       return { messages: newMessages };
     });
-  },
-
-  // Update existing message - preserve source field
+  }, // Update existing message - preserve source field
   updateMessage: (id: string, updates: Partial<Message>) => {
     set((state) => ({
       messages: state.messages.map(m => 
@@ -336,7 +333,7 @@ export const useMessageStore = create<MessageStore>()((set, get) => ({
       
     } catch (e: unknown) {
       const errorMessage = e instanceof Error ? e.message : 'Failed to fetch messages';
-      if (DEBUG) console.error('[MessageStore] Failed to fetch messages:', errorMessage, e);
+      if (DEBUG) safeConsoleError('[MessageStore] Failed to fetch messages:', errorMessage, e);
       set({ error: errorMessage, loading: false });
     }
   },
@@ -378,7 +375,7 @@ export const useMessageStore = create<MessageStore>()((set, get) => ({
         };
       });
     } catch (e: unknown) {
-      console.error('[MessageStore] Failed to load older messages:', e);
+      safeConsoleError('[MessageStore] Failed to load older messages:', e);
     }
   },
 
@@ -399,7 +396,6 @@ if (typeof window !== 'undefined' && !(window as typeof window & { __msgStoreLis
     // Get user from supabase auth directly (async)
     supabase.auth.getUser().then(({ data }) => {
       if (data?.user) {
-        if (DEBUG) console.log('[MessageStore] 🔌 Subscribing to unified channel for user:', data.user.id);
         unifiedChannel.subscribe(data.user.id);
       }
     });
@@ -427,7 +423,7 @@ if (typeof window !== 'undefined' && !(window as typeof window & { __msgStoreLis
     const { chat_id, message: messageData } = payload;
     
     if (DEBUG) {
-      console.log('[MessageStore] 🔔 Message event received from unified channel:', { 
+      safeConsoleLog('[MessageStore] 🔔 Message event received from unified channel:', { 
         chat_id,
         hasMessageData: !!messageData
       });
@@ -436,7 +432,7 @@ if (typeof window !== 'undefined' && !(window as typeof window & { __msgStoreLis
     const { addMessage, chat_id: currentChatId, messages } = useMessageStore.getState();
     
     if (DEBUG) {
-      console.log('[MessageStore] Current store state:', { 
+      safeConsoleLog('[MessageStore] Current store state:', { 
         messageCount: messages.length,
         matchesEvent: chat_id === currentChatId 
       });
@@ -482,7 +478,7 @@ if (typeof window !== 'undefined' && !(window as typeof window & { __msgStoreLis
     const { chat_id, message: messageData } = payload;
     
     if (DEBUG) {
-      console.log('[MessageStore] 🔄 Message update received from unified channel:', {
+      safeConsoleLog('[MessageStore] 🔄 Message update received from unified channel:', {
         chat_id,
         message_id: messageData?.id
       });
@@ -503,7 +499,7 @@ if (typeof window !== 'undefined' && !(window as typeof window & { __msgStoreLis
     const { eventType, data } = payload;
     
     if (DEBUG) {
-      console.log('[MessageStore] 🔄 Conversation update received:', {
+      safeConsoleLog('[MessageStore] 🔄 Conversation update received:', {
         eventType,
         conversation_id: data?.id
       });
@@ -530,7 +526,7 @@ if (typeof window !== 'undefined' && !(window as typeof window & { __msgStoreLis
     const { chat_id, status } = payload;
     
     if (DEBUG) {
-      console.log('[MessageStore] 🤔 Assistant thinking event received:', {
+      safeConsoleLog('[MessageStore] 🤔 Assistant thinking event received:', {
         chat_id,
         status
       });

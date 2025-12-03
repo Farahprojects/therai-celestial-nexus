@@ -4,7 +4,7 @@ import { useChatStore } from '@/core/store';
 import { chatController } from '@/features/chat/ChatController';
 import { useAuth } from '@/contexts/AuthContext';
 import { getLastChatId } from '@/services/auth/chatTokens';
-
+import { safeConsoleError } from '@/utils/safe-logging';
 /**
  * Direct chat initialization - always fetch from source of truth (DB)
  * No more fragile sessionStorage hydration
@@ -51,7 +51,7 @@ export const useChatInitialization = () => {
             startConversation(chatIdFromQuery);
             await chatController.switchToChat(chatIdFromQuery);
           } catch (error) {
-            console.error('[useChatInitialization] Error loading thread from folder query:', error);
+            safeConsoleError('[useChatInitialization] Error loading thread from folder query:', error);
             useChatStore.getState().clearChat();
           }
         };
@@ -72,7 +72,7 @@ export const useChatInitialization = () => {
           startConversation(routeChatId);
           await chatController.switchToChat(routeChatId);
         } catch (error) {
-          console.error('[useChatInitialization] Error loading thread:', error);
+          safeConsoleError('[useChatInitialization] Error loading thread:', error);
           useChatStore.getState().clearChat();
         }
       };
@@ -127,7 +127,7 @@ export const useChatInitialization = () => {
             }
           }
         } catch (error) {
-          console.error('[useChatInitialization] Error redirecting to last chat:', error);
+          safeConsoleError('[useChatInitialization] Error redirecting to last chat:', error);
         }
       };
 

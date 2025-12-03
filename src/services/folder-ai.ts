@@ -1,5 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
-
+import { safeConsoleError } from '@/utils/safe-logging';
 export interface FolderAIMessage {
   id: string;
   folder_id: string;
@@ -87,7 +87,7 @@ export async function sendMessageToFolderAI(
 
     return data as FolderAIResponse;
   } catch (err) {
-    console.error('[FolderAI] Error sending message:', err);
+    safeConsoleError('[FolderAI] Error sending message:', err);
     throw err;
   }
 }
@@ -109,7 +109,7 @@ export async function getFolderAIMessages(folderId: string): Promise<FolderAIMes
 
     return (data || []) as unknown as FolderAIMessage[];
   } catch (err) {
-    console.error('[FolderAI] Error fetching messages:', err);
+    safeConsoleError('[FolderAI] Error fetching messages:', err);
     throw err;
   }
 }
@@ -182,7 +182,7 @@ export async function getFolderContext(folderId: string): Promise<FolderMap> {
       folderName: folder?.name || 'Untitled Folder'
     };
   } catch (err) {
-    console.error('[FolderAI] Error getting folder context:', err);
+    safeConsoleError('[FolderAI] Error getting folder context:', err);
     throw err;
   }
 }
@@ -231,7 +231,7 @@ export async function saveDraft(
 
     return document.id;
   } catch (err) {
-    console.error('[FolderAI] Error saving draft:', err);
+    safeConsoleError('[FolderAI] Error saving draft:', err);
     throw err;
   }
 }
@@ -326,7 +326,7 @@ export async function updateDocumentContent(
       if (updateError) throw updateError;
     }
   } catch (err) {
-    console.error('[FolderAI] Error updating document:', err);
+    safeConsoleError('[FolderAI] Error updating document:', err);
     throw err;
   }
 }
@@ -345,7 +345,7 @@ export async function clearFolderAIHistory(folderId: string): Promise<void> {
       throw new Error(error.message || 'Failed to clear history');
     }
   } catch (err) {
-    console.error('[FolderAI] Error clearing history:', err);
+    safeConsoleError('[FolderAI] Error clearing history:', err);
     throw err;
   }
 }
@@ -409,7 +409,7 @@ export async function saveDocumentDraft(
       }
     }
   } catch (err) {
-    console.error('[FolderAI] Error saving document:', err);
+    safeConsoleError('[FolderAI] Error saving document:', err);
     throw err;
   }
 }
@@ -441,7 +441,7 @@ export async function getFolderAIUsage(userId: string): Promise<{
       limit: 50 // Free tier limit
     };
   } catch (err) {
-    console.error('[FolderAI] Error getting usage:', err);
+    safeConsoleError('[FolderAI] Error getting usage:', err);
     throw err;
   }
 }
@@ -493,7 +493,7 @@ export function parseAIResponse(text: string): {
       };
       plainText = plainText.replace(requestMatch[0], '').trim();
     } catch (err) {
-      console.error('[FolderAI] Error parsing request_documents:', err);
+      safeConsoleError('[FolderAI] Error parsing request_documents:', err);
     }
   }
 

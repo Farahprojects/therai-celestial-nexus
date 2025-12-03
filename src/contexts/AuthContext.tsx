@@ -4,20 +4,19 @@ import type { User, Session } from '@supabase/supabase-js';
 import { useNavigationState } from '@/contexts/NavigationStateContext';
 import { log } from '@/utils/logUtils';
 import { getAuthManager } from '@/services/authManager';
-
+import { safeConsoleError, safeConsoleWarn, safeConsoleLog } from '@/utils/safe-logging';
 /**
  * Utility – logs enabled in production for debugging.
  */
 const debug = (...args: unknown[]) => {
   // Console logs enabled in production for debugging
-  console.log(...args);
+  safeConsoleLog(...args);
 };
 
 // Lightweight trace object
 if (typeof window !== 'undefined' && !(window as { __authTrace?: unknown }).__authTrace) {
   (window as { __authTrace?: unknown }).__authTrace = {
-    providerMounts: 0,
-    listeners: 0,
+    providerMounts: 0, listeners: 0,
     initialSessionChecks: 0,
   };
 }
@@ -142,7 +141,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 .maybeSingle();
 
               if (!source) {
-                console.error('[AuthContext] Public conversation not found:', pendingChatId);
+                safeConsoleError('[AuthContext] Public conversation not found:', pendingChatId);
                 return;
               }
 
@@ -156,7 +155,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 });
 
               if (insertError) {
-                console.error('[AuthContext] Error adding user as participant:', insertError);
+                safeConsoleError('[AuthContext] Error adding user as participant:', insertError);
                 return;
               }
             }
@@ -169,7 +168,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             }
           }
         } catch (e) {
-          console.error('[AuthContext] Pending join failed:', e);
+          safeConsoleError('[AuthContext] Pending join failed:', e);
         }
       }
 
@@ -184,7 +183,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           await triggerMessageStoreSelfClean();
           storeUtils.getCurrentChatState().clearAllData();
         } catch (error) {
-          console.warn('Could not clear chat stores on sign out:', error);
+          safeConsoleWarn('Could not clear chat stores on sign out:', error);
         }
         
         // Clear redirect persistence on sign out
@@ -192,7 +191,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           const { clearRedirectPath } = await import('@/utils/redirectUtils');
           clearRedirectPath();
         } catch (error) {
-          console.warn('Could not clear redirect persistence on sign out:', error);
+          safeConsoleWarn('Could not clear redirect persistence on sign out:', error);
         }
       }
       
@@ -202,7 +201,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           // Validate that the user still exists in the database
           validateUserExists(supaSession.user.id).catch(() => {
             // User doesn't exist anymore - clear auth state
-            console.warn('[AuthContext] User no longer exists in database, clearing auth state');
+            safeConsoleWarn('[AuthContext] User no longer exists in database, clearing auth state');
             setUser(null);
             setSession(null);
           });
@@ -231,7 +230,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             clearRedirectPath();
             console.log('[AuthContext] Cleared redirect persistence - no authenticated session and no redirect in URL');
           } catch (error) {
-            console.warn('Could not clear redirect persistence on initial load:', error);
+            safeConsoleWarn('Could not clear redirect persistence on initial load:', error);
           }
         }
       }
@@ -244,7 +243,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Initial validation removed - getSession() already validates the session
       // No need for additional getUser() call
     }).catch((error) => {
-      console.error('Error getting initial session:', error);
+      safeConsoleError('Error getting initial session:', error);
       setLoading(false);
     });
 
@@ -391,7 +390,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         await supabase.auth.signOut({ scope: 'global' });
       } catch (signOutError) {
-        console.warn('Supabase signOut failed, but continuing with cleanup:', signOutError);
+        safeConsoleWarn('Supabase signOut failed, but continuing with cleanup:', signOutError);
       }
 
       // Step 4: Additional aggressive cleanup
@@ -411,7 +410,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           });
         }
       } catch (cleanupError) {
-        console.warn('Additional cleanup failed:', cleanupError);
+        safeConsoleWarn('Additional cleanup failed:', cleanupError);
       }
 
       // Step 5: Force navigation to /therai to clear URL (security fix)
@@ -427,7 +426,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
     } catch (error) {
-      console.error('Sign out error:', error);
+      safeConsoleError('Sign out error:', error);
       // Continue with cleanup even on error
       // Still force navigation to /therai for security
       if (typeof window !== 'undefined' && window.location.pathname !== '/therai') {

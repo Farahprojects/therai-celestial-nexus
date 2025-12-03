@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { X, Sparkles, MessageCircle, Mic, FileText } from 'lucide-react';
 import SubscriptionCard from '@/components/paywall/SubscriptionCard';
 import { supabase } from '@/integrations/supabase/client';
-
+import { safeConsoleError } from '@/utils/safe-logging';
 interface PaywallModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -63,7 +63,7 @@ const PaywallModal: React.FC<PaywallModalProps> = ({ isOpen, onClose }) => {
             setSubscriptionPlans(normalizedPlans);
           }
         } catch (err) {
-          console.error('Error fetching plans:', err);
+          safeConsoleError('Error fetching plans:', err);
         } finally {
           setLoadingPlans(false);
         }

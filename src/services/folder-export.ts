@@ -1,6 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import { getJournalEntries } from './journal';
-
+import { safeConsoleError } from '@/utils/safe-logging';
 interface ExportData {
   folderName: string;
   exportDate: string;
@@ -30,7 +30,7 @@ export async function exportJournals(folderId: string, folderName: string): Prom
 
     downloadAsJSON(exportData, `${folderName}-journals-${Date.now()}.json`);
   } catch (error) {
-    console.error('[Export] Failed to export journals:', error);
+    safeConsoleError('[Export] Failed to export journals:', error);
     throw error;
   }
 }
@@ -84,7 +84,7 @@ export async function exportChats(folderId: string, folderName: string): Promise
 
     downloadAsJSON(exportData, `${folderName}-chats-${Date.now()}.json`);
   } catch (error) {
-    console.error('[Export] Failed to export chats:', error);
+    safeConsoleError('[Export] Failed to export chats:', error);
     throw error;
   }
 }
@@ -161,7 +161,7 @@ export async function exportAll(folderId: string, folderName: string): Promise<v
 
     downloadAsJSON(exportData, `${folderName}-complete-${Date.now()}.json`);
   } catch (error) {
-    console.error('[Export] Failed to export all data:', error);
+    safeConsoleError('[Export] Failed to export all data:', error);
     throw error;
   }
 }

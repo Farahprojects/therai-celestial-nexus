@@ -7,7 +7,7 @@ import DOMPurify from 'dompurify';
 import { LikeButton } from './LikeButton';
 import { ShareButton } from './ShareButton';
 import { TagPill } from './TagPill';
-
+import { safeConsoleError } from '@/utils/safe-logging';
 interface BlogPost {
   id: string;
   title: string;
@@ -48,7 +48,7 @@ export const BlogPost: React.FC<BlogPostProps> = ({ post }) => {
     try {
       return DOMPurify.sanitize(post.content, sanitizerConfig);
     } catch (error) {
-      console.error('Content sanitization failed:', error);
+      safeConsoleError('Content sanitization failed:', error);
       // Fallback: strip all HTML tags and return plain text
       return post.content.replace(/<[^>]*>/g, '');
     }

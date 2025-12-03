@@ -18,7 +18,7 @@ export const extractPlaceData = (place: {
   };
 
   try {
-    console.log('🗺️ Google Place object received:', {
+    safeConsoleLog('🗺️ Google Place object received:', {
       displayName: place.displayName,
       formattedAddress: place.formattedAddress,
       location: place.location ? 'present' : 'missing',
@@ -58,7 +58,7 @@ export const extractPlaceData = (place: {
 
     console.log('📊 Final extracted place data:', placeData);
   } catch (error) {
-    console.error('❌ Error extracting place data:', error);
+    safeConsoleError('❌ Error extracting place data:', error);
   }
 
   return placeData;

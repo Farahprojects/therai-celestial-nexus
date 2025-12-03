@@ -1,5 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
-
+import { safeConsoleError } from '@/utils/safe-logging';
 export interface FolderDocument {
   id: string;
   user_id: string;
@@ -47,7 +47,7 @@ export async function uploadDocument(
     .single();
 
   if (error) {
-    console.error('[FolderDocuments] Failed to create document record:', error);
+    safeConsoleError('[FolderDocuments] Failed to create document record:', error);
     throw new Error(error.message || 'Failed to upload document');
   }
 
@@ -65,7 +65,7 @@ export async function getDocuments(folderId: string): Promise<FolderDocument[]> 
     .order('created_at', { ascending: false });
 
   if (error) {
-    console.error('[FolderDocuments] Failed to fetch documents:', error);
+    safeConsoleError('[FolderDocuments] Failed to fetch documents:', error);
     throw new Error(error.message || 'Failed to fetch documents');
   }
 
@@ -83,7 +83,7 @@ export async function getDocument(documentId: string): Promise<FolderDocument | 
     .single();
 
   if (error) {
-    console.error('[FolderDocuments] Failed to fetch document:', error);
+    safeConsoleError('[FolderDocuments] Failed to fetch document:', error);
     return null;
   }
 
@@ -111,7 +111,7 @@ export async function updateDocument(
     .single();
 
   if (error) {
-    console.error('[FolderDocuments] Failed to update document:', error);
+    safeConsoleError('[FolderDocuments] Failed to update document:', error);
     throw new Error(error.message || 'Failed to update document');
   }
 
@@ -132,7 +132,7 @@ export async function deleteDocument(documentId: string): Promise<void> {
       .remove([document.file_path]);
     
     if (storageError) {
-      console.warn('[FolderDocuments] Failed to delete file from storage:', storageError);
+      safeConsoleWarn('[FolderDocuments] Failed to delete file from storage:', storageError);
       // Continue with database deletion even if storage deletion fails
     }
   }
@@ -144,7 +144,7 @@ export async function deleteDocument(documentId: string): Promise<void> {
     .eq('id', documentId);
 
   if (error) {
-    console.error('[FolderDocuments] Failed to delete document:', error);
+    safeConsoleError('[FolderDocuments] Failed to delete document:', error);
     throw new Error(error.message || 'Failed to delete document');
   }
 }
@@ -167,7 +167,7 @@ export async function uploadFileToStorage(
     });
 
   if (error) {
-    console.error('[FolderDocuments] Failed to upload file to storage:', error);
+    safeConsoleError('[FolderDocuments] Failed to upload file to storage:', error);
     throw new Error(error.message || 'Failed to upload file');
   }
 
@@ -188,7 +188,7 @@ export async function extractTextFromFile(file: File): Promise<string> {
   
   // For other formats (PDF, DOCX), would need server-side processing
   // Return empty for now - can be enhanced later
-  console.warn('[FolderDocuments] Text extraction not implemented for', fileExtension);
+  safeConsoleWarn('[FolderDocuments] Text extraction not implemented for', fileExtension);
   return '';
 }
 

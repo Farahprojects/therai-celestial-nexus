@@ -14,7 +14,7 @@ import { AttachmentDropzone } from './AttachmentDropzone';
 import { supabase } from '@/integrations/supabase/client';
 import { showToast } from '@/utils/notifications';
 import { useIsMobile } from '@/hooks/use-mobile';
-
+import { safeConsoleError } from '@/utils/safe-logging';
 interface EmailMessage {
   id: string;
   subject: string;
@@ -83,7 +83,7 @@ export const ReplyModal = ({ isOpen, onClose, originalMessage, onSend }: ReplyMo
         }
       });
       if (error) {
-        console.error('Error sending email:', error);
+        safeConsoleError('Error sending email:', error);
           showToast({
             title: "Error",
             description: "Failed to send email. Please try again.",
@@ -107,7 +107,7 @@ export const ReplyModal = ({ isOpen, onClose, originalMessage, onSend }: ReplyMo
       setTextStyles({ bold: false, italic: false, underline: false });
       onClose();
     } catch (error) {
-      console.error('Unexpected error:', error);
+      safeConsoleError('Unexpected error:', error);
       showToast({
         title: "Error",
         description: "An unexpected error occurred. Please try again.",

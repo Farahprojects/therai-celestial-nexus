@@ -42,9 +42,6 @@ class UnifiedWebSocketService {
    * Messages are handled via unified channel in messageStore
    */
   async subscribe(chat_id: string) {
-    if (DEBUG) {
-      console.log(`[UnifiedWebSocket] 📝 Tracking chat_id: ${chat_id} (messages via unified channel)`);
-    }
     this.currentChatId = chat_id;
     // No realtime subscription needed - messageStore handles everything via unified channel
   }

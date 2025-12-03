@@ -16,6 +16,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Message } from '@/core/types';
 import { UpgradeNotification } from '@/components/subscription/UpgradeNotification';
 import { STTLimitExceededError } from '@/services/voice/stt-errors';
+import { safeConsoleError, safeConsoleLog } from '@/utils/safe-logging';
 // Using unified message store for all message management
 
 // Stop icon component
@@ -177,7 +178,7 @@ export const ChatInput = () => {
                 console.log('[ChatInput] Title upgraded to:', smartTitle);
               }
             } catch (error) {
-              console.error('[ChatInput] Failed to upgrade title (non-blocking):', error);
+              safeConsoleError('[ChatInput] Failed to upgrade title (non-blocking):', error);
             }
           });
         }
@@ -186,7 +187,7 @@ export const ChatInput = () => {
       // Fallback: Create conversation if no chat_id exists (shouldn't happen with new flow)
       if (isAuthenticated && !chat_id && user) {
         try {
-          console.log('[ChatInput] Creating new conversation (fallback path)');
+          safeConsoleLog('[ChatInput] Creating new conversation (fallback path)');
           
           const result = await supabase.functions.invoke('create-conversation-with-title', {
             body: { message: messageText, mode: 'chat' }
@@ -215,7 +216,7 @@ export const ChatInput = () => {
           currentChatId = newChatId;
           console.log('[ChatInput] Fallback conversation created:', newChatId);
         } catch (error) {
-          console.error('[ChatInput] Failed to create conversation:', error);
+          safeConsoleError('[ChatInput] Failed to create conversation:', error);
           return;
         }
       }
@@ -264,7 +265,7 @@ export const ChatInput = () => {
           if (error.name === 'AbortError') {
             console.log('[ChatInput] Message send aborted by user');
           } else {
-            console.error('[ChatInput] Message send failed:', error);
+            safeConsoleError('[ChatInput] Message send failed:', error);
           }
         }).finally(() => {
           // Clear the abort controller reference
@@ -307,7 +308,7 @@ export const ChatInput = () => {
       
       // Abort the ongoing request
       if (abortControllerRef.current) {
-        console.log('[ChatInput] Aborting ongoing request');
+        safeConsoleLog('[ChatInput] Aborting ongoing request');
         abortControllerRef.current.abort();
         abortControllerRef.current = null;
       }

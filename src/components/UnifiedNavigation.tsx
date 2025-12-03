@@ -8,6 +8,7 @@ import { UserAvatar } from '@/components/settings/UserAvatar';
 import Logo from '@/components/Logo';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useUserData } from '@/hooks/useUserData';
+import { safeConsoleError } from '@/utils/safe-logging';
 import { 
   DropdownMenu,
   DropdownMenuContent,
@@ -135,7 +136,7 @@ const UnifiedNavigation = ({
       window.open(previewUrl, '_blank');
       
     } catch (error) {
-      console.error('Error opening preview:', error);
+      safeConsoleError('Error opening preview:', error);
     }
   };
 

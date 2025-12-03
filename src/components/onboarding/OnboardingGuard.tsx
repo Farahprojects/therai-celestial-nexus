@@ -3,7 +3,7 @@ import { AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { OnboardingModal } from './OnboardingModal';
-
+import { safeConsoleError } from '@/utils/safe-logging';
 interface OnboardingGuardProps {
   children: React.ReactNode;
 }
@@ -29,7 +29,7 @@ export const OnboardingGuard: React.FC<OnboardingGuardProps> = ({ children }) =>
           .maybeSingle();
 
         if (error) {
-          console.error('Error checking onboarding status:', error);
+          safeConsoleError('Error checking onboarding status:', error);
           // On error, assume onboarding not needed to avoid blocking user
           setNeedsOnboarding(false);
           return;
@@ -40,7 +40,7 @@ export const OnboardingGuard: React.FC<OnboardingGuardProps> = ({ children }) =>
         setNeedsOnboarding(needs);
         setShowModal(needs);
       } catch (error) {
-        console.error('Error in onboarding check:', error);
+        safeConsoleError('Error in onboarding check:', error);
         setNeedsOnboarding(false);
       }
     };

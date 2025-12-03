@@ -5,7 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import Logo from '@/components/Logo';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSearchParams } from 'react-router-dom';
-
+import { safeConsoleError } from '@/utils/safe-logging';
 const STRIPE_PUBLISHABLE_KEY = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY as string;
 
 const stripePromise = STRIPE_PUBLISHABLE_KEY ? loadStripe(STRIPE_PUBLISHABLE_KEY) : Promise.resolve(null);
@@ -31,7 +31,7 @@ const EmbeddedCheckoutPage: React.FC = () => {
         }
       });
       if (error) {
-        console.error('Failed to create embedded checkout session:', error);
+        safeConsoleError('Failed to create embedded checkout session:', error);
         return;
       }
       setClientSecret(data?.clientSecret || null);

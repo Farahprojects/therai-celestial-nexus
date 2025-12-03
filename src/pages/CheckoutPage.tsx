@@ -9,7 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSettingsModal } from '@/contexts/SettingsModalContext';
-
+import { safeConsoleError } from '@/utils/safe-logging';
 const STRIPE_PUBLISHABLE_KEY = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY as string;
 const stripePromise = STRIPE_PUBLISHABLE_KEY ? loadStripe(STRIPE_PUBLISHABLE_KEY) : Promise.resolve(null);
 
@@ -70,7 +70,7 @@ const CheckoutForm: React.FC<{
         }, 2500);
       }
     } catch (err) {
-      console.error('Payment error:', err);
+      safeConsoleError('Payment error:', err);
       toast.error('An unexpected error occurred');
       setIsProcessing(false);
     }

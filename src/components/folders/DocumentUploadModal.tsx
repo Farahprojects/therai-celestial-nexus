@@ -4,7 +4,7 @@ import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { uploadDocument, uploadFileToStorage, updateDocument, extractTextFromFile } from '@/services/folder-documents';
 import { toast } from 'sonner';
-
+import { safeConsoleWarn, safeConsoleError } from '@/utils/safe-logging';
 interface DocumentUploadModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -161,7 +161,7 @@ export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
           try {
             contentText = await extractTextFromFile(fileItem.file);
           } catch (extractError) {
-            console.warn('[DocumentUpload] Text extraction failed:', extractError);
+            safeConsoleWarn('[DocumentUpload] Text extraction failed:', extractError);
           }
 
           // 4. Update document with storage path and content
@@ -173,7 +173,7 @@ export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
 
           successCount++;
         } catch (error) {
-          console.error('[DocumentUpload] Failed to upload file:', fileItem.file.name, error);
+          safeConsoleError(`[DocumentUpload] Failed to upload file: ${fileItem.file.name}`, error);
           errorCount++;
         }
       }

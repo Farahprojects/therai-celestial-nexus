@@ -1,5 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
-
+import { safeConsoleWarn } from '@/utils/safe-logging';
 /**
  * Image preloader for faster loading of generated images
  */
@@ -56,7 +56,7 @@ class ImagePreloader {
 
     // Use cache manager for professional caching
     imageCacheManager.preloadCriticalImages(recentImages).catch(error =>
-      console.warn('Image preload failed:', error)
+      safeConsoleWarn('Image preload failed:', error)
     );
 
     // Fallback to basic preloading
@@ -138,7 +138,7 @@ export class ImageCacheManager {
         // Clean up old caches
         await this.cleanupOldCaches();
       } catch (error) {
-        console.warn('Service Worker registration failed:', error);
+        safeConsoleWarn('Service Worker registration failed:', error);
       }
     }
   }
@@ -166,7 +166,7 @@ export class ImageCacheManager {
         await this.enforceCacheSize();
       }
     } catch (error) {
-      console.warn('Failed to cache image:', url, error);
+      safeConsoleWarn('Failed to cache image:', url, error);
     }
   }
 
@@ -193,7 +193,7 @@ export class ImageCacheManager {
         return cachedResponse;
       }
     } catch (error) {
-      console.warn('Failed to get cached image:', url, error);
+      safeConsoleWarn('Failed to get cached image:', url, error);
     }
 
     return null;
@@ -212,7 +212,7 @@ export class ImageCacheManager {
         await Promise.all(toDelete.map(key => cache.delete(key)));
       }
     } catch (error) {
-      console.warn('Failed to enforce cache size:', error);
+      safeConsoleWarn('Failed to enforce cache size:', error);
     }
   }
 
@@ -227,7 +227,7 @@ export class ImageCacheManager {
 
       await Promise.all(oldCaches.map(name => caches.delete(name)));
     } catch (error) {
-      console.warn('Failed to cleanup old caches:', error);
+      safeConsoleWarn('Failed to cleanup old caches:', error);
     }
   }
 

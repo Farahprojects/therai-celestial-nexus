@@ -1,6 +1,6 @@
 // src/services/folders.ts
 import { supabase } from '@/integrations/supabase/client';
-
+import { safeConsoleError, safeConsoleLog } from '@/utils/safe-logging';
 export interface ChatFolder {
   id: string;
   user_id: string;
@@ -24,7 +24,7 @@ export async function getUserFolders(userId: string): Promise<ChatFolder[]> {
     .eq('user_id', userId);
 
   if (ownedError) {
-    console.error('[folders] Failed to fetch owned folders:', ownedError);
+    safeConsoleError('[folders] Failed to fetch owned folders:', ownedError);
     throw ownedError;
   }
 
@@ -35,7 +35,7 @@ export async function getUserFolders(userId: string): Promise<ChatFolder[]> {
     .eq('user_id', userId);
 
   if (participantError) {
-    console.error('[folders] Failed to fetch participant folders:', participantError);
+    safeConsoleError('[folders] Failed to fetch participant folders:', participantError);
     // Return owned folders only if participant fetch fails
     return (ownedFolders || []).sort(
       (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
@@ -83,7 +83,7 @@ export async function createFolder(userId: string, name: string): Promise<ChatFo
     .single();
 
   if (error) {
-    console.error('[folders] Failed to create folder:', error);
+    safeConsoleError('[folders] Failed to create folder:', error);
     throw error;
   }
 
@@ -100,7 +100,7 @@ export async function updateFolderName(folderId: string, name: string): Promise<
     .eq('id', folderId);
 
   if (error) {
-    console.error('[folders] Failed to update folder:', error);
+    safeConsoleError('[folders] Failed to update folder:', error);
     throw error;
   }
 }
@@ -115,7 +115,7 @@ export async function deleteFolder(folderId: string): Promise<void> {
     .eq('id', folderId);
 
   if (error) {
-    console.error('[folders] Failed to delete folder:', error);
+    safeConsoleError('[folders] Failed to delete folder:', error);
     throw error;
   }
 }
@@ -141,7 +141,7 @@ export async function moveConversationToFolder(conversationId: string, folderId:
     .eq('id', conversationId);
 
   if (error) {
-    console.error('[folders] Failed to move conversation to folder:', error);
+    safeConsoleError('[folders] Failed to move conversation to folder:', error);
     throw error;
   }
 }
@@ -166,7 +166,7 @@ export async function getFolderConversations(folderId: string): Promise<Array<{
     .order('updated_at', { ascending: false });
 
   if (error) {
-    console.error('[folders] Failed to fetch folder conversations:', error);
+    safeConsoleError('[folders] Failed to fetch folder conversations:', error);
     throw error;
   }
 
@@ -185,7 +185,7 @@ export async function getFolderStats(folderId: string): Promise<{ chatsCount: nu
     .neq('mode', 'profile'); // Exclude Profile conversations (internal use only)
 
   if (error) {
-    console.error('[folders] Failed to fetch folder stats:', error);
+    safeConsoleError('[folders] Failed to fetch folder stats:', error);
     throw error;
   }
 
@@ -206,7 +206,7 @@ export async function shareFolderPublic(folderId: string): Promise<void> {
     .eq('user_id', user.id);
 
   if (error) {
-    console.error('[folders] Error sharing folder publicly:', error);
+    safeConsoleError('[folders] Error sharing folder publicly:', error);
     throw new Error('Failed to share folder');
   }
 }
@@ -226,7 +226,7 @@ export async function shareFolderPrivate(folderId: string): Promise<void> {
     .eq('user_id', user.id);
 
   if (error) {
-    console.error('[folders] Error setting folder to private:', error);
+    safeConsoleError('[folders] Error setting folder to private:', error);
     throw new Error('Failed to update folder');
   }
 
@@ -248,7 +248,7 @@ export async function unshareFolder(folderId: string): Promise<void> {
     .eq('user_id', user.id);
 
   if (error) {
-    console.error('[folders] Error unsharing folder:', error);
+    safeConsoleError('[folders] Error unsharing folder:', error);
     throw new Error('Failed to unshare folder');
   }
 }
@@ -264,7 +264,7 @@ export async function getSharedFolder(folderId: string): Promise<ChatFolder | nu
     .maybeSingle();
 
   if (error) {
-    console.error('[folders] Error fetching folder:', error);
+    safeConsoleError('[folders] Error fetching folder:', error);
     throw error;
   }
 
@@ -279,7 +279,7 @@ export async function addFolderParticipant(
   userId: string,
   role: 'owner' | 'member' = 'member'
 ): Promise<void> {
-  console.log('[addFolderParticipant] Starting', { folderId, userId, role });
+  safeConsoleLog('[addFolderParticipant] Starting', { folderId, userId, role });
   
   const { data, error } = await supabase
     .from('chat_folder_participants')
@@ -295,7 +295,7 @@ export async function addFolderParticipant(
     .select();
 
   if (error) {
-    console.error('[addFolderParticipant] Error:', error);
+    safeConsoleError('[addFolderParticipant] Error:', error);
     throw new Error(`Failed to add participant: ${error.message}`);
   }
   
@@ -306,7 +306,7 @@ export async function addFolderParticipant(
  * Check if user is a participant in a folder
  */
 export async function isFolderParticipant(folderId: string, userId: string): Promise<boolean> {
-  console.log('[isFolderParticipant] Checking', { folderId, userId });
+  safeConsoleLog('[isFolderParticipant] Checking', { folderId, userId });
   
   const { data, error } = await supabase
     .from('chat_folder_participants')
@@ -316,7 +316,7 @@ export async function isFolderParticipant(folderId: string, userId: string): Pro
     .maybeSingle();
 
   if (error) {
-    console.error('[isFolderParticipant] Error:', error);
+    safeConsoleError('[isFolderParticipant] Error:', error);
     return false;
   }
 
@@ -338,7 +338,7 @@ export async function updateFolderProfile(folderId: string, profileId: string | 
     .eq('id', folderId);
 
   if (error) {
-    console.error('[folders] Failed to update folder profile:', error);
+    safeConsoleError('[folders] Failed to update folder profile:', error);
     throw error;
   }
 }
@@ -357,7 +357,7 @@ export async function getFolderWithProfile(folderId: string): Promise<{
     .single();
 
   if (folderError) {
-    console.error('[folders] Failed to fetch folder:', folderError);
+    safeConsoleError('[folders] Failed to fetch folder:', folderError);
     throw folderError;
   }
 
@@ -391,7 +391,7 @@ export async function getFolderProfileId(folderId: string): Promise<string | nul
     .single();
 
   if (error) {
-    console.error('[folders] Failed to fetch folder profile ID:', error);
+    safeConsoleError('[folders] Failed to fetch folder profile ID:', error);
     return null;
   }
 

@@ -5,7 +5,7 @@ import { Loader2, MapPin, ArrowLeft } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { PlaceData } from './utils/extractPlaceData';
 import { useIsMobile } from '@/hooks/use-mobile';
-
+import { safeConsoleError } from '@/utils/safe-logging';
 export interface CleanPlaceAutocompleteProps {
   label?: string;
   value?: string;
@@ -67,7 +67,7 @@ export const CleanPlaceAutocomplete = ({
         });
 
         if (error) {
-          console.error('Places search error:', error);
+          safeConsoleError('Places search error:', error);
           setPredictions([]);
           setIsOpen(false);
           return;
@@ -85,7 +85,7 @@ export const CleanPlaceAutocomplete = ({
             const parsed = JSON.parse(data);
             newPredictions = Array.isArray(parsed) ? parsed : [];
           } catch (parseError) {
-            console.error('Error parsing string response:', parseError);
+            safeConsoleError('Error parsing string response:', parseError);
             newPredictions = [];
           }
         }
@@ -93,7 +93,7 @@ export const CleanPlaceAutocomplete = ({
         setIsOpen(newPredictions.length > 0);
         setHighlightedIndex(-1);
       } catch (error) {
-        console.error('Error searching places:', error);
+        safeConsoleError('Error searching places:', error);
         setPredictions([]);
         setIsOpen(false);
       } finally {
@@ -132,7 +132,7 @@ export const CleanPlaceAutocomplete = ({
           });
 
           if (detailsError || !detailsData) {
-            console.warn('Could not fetch place details, using basic data:', detailsError);
+            safeConsoleWarn('Could not fetch place details using basic data:', detailsError);
             // Fallback to basic data without coordinates
             const placeData: PlaceData = {
               name: fullAddress,
@@ -153,7 +153,7 @@ export const CleanPlaceAutocomplete = ({
           onPlaceSelect(placeData);
 
         } catch (error) {
-          console.error('Error processing place selection:', error);
+          safeConsoleError('Error processing place selection:', error);
           // Fallback to basic data
           const placeData: PlaceData = {
             name: fullAddress,

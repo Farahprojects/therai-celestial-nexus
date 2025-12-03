@@ -5,7 +5,7 @@
 
 import { log } from './logUtils';
 import { imageCacheManager } from './storageUtils';
-
+import { safeConsoleError } from '@/utils/safe-logging';
 // Environment monitoring configuration
 interface EnvironmentStatus {
   environment: 'development' | 'production';
@@ -136,14 +136,10 @@ class EnvironmentMonitor {
 
       // Log based on environment
       if (import.meta.env.DEV) {
-        console.error('🚨 Caught error:', error);
+        safeConsoleError('🚨 Caught error:', error);
       } else {
         // In production, send to monitoring service (placeholder)
-        console.error('🚨 Production error logged:', {
-          message: error.message,
-          type: error.type,
-          timestamp: error.timestamp
-        });
+        console.error('🚨 Production error logged:', '[REDACTED ERROR OBJECT - Check for sensitive data]');
       }
 
       // Limit error storage to prevent memory leaks

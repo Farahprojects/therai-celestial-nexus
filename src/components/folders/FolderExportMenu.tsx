@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Download, FileText, MessageCircle, Archive } from 'lucide-react';
+import { safeConsoleError } from '@/utils/safe-logging';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -27,7 +28,7 @@ export const FolderExportMenu: React.FC<FolderExportMenuProps> = ({
       await exportJournals(folderId, folderName);
       toast.success('Journals exported successfully');
     } catch (error) {
-      console.error('[FolderExportMenu] Failed to export journals:', error);
+      safeConsoleError('[FolderExportMenu] Failed to export journals:', error);
       toast.error('Failed to export journals');
     } finally {
       setIsExporting(false);
@@ -40,7 +41,7 @@ export const FolderExportMenu: React.FC<FolderExportMenuProps> = ({
       await exportChats(folderId, folderName);
       toast.success('Chats exported successfully');
     } catch (error) {
-      console.error('[FolderExportMenu] Failed to export chats:', error);
+      safeConsoleError('[FolderExportMenu] Failed to export chats:', error);
       toast.error('Failed to export chats');
     } finally {
       setIsExporting(false);
@@ -53,7 +54,7 @@ export const FolderExportMenu: React.FC<FolderExportMenuProps> = ({
       await exportAll(folderId, folderName);
       toast.success('All data exported successfully');
     } catch (error) {
-      console.error('[FolderExportMenu] Failed to export all data:', error);
+      safeConsoleError('[FolderExportMenu] Failed to export all data:', error);
       toast.error('Failed to export data');
     } finally {
       setIsExporting(false);

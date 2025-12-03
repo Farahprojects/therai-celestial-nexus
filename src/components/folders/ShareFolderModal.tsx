@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Copy, Check, Lock, Globe } from 'lucide-react';
 import { shareFolderPublic, shareFolderPrivate, unshareFolder, getSharedFolder } from '@/services/folders';
-
+import { safeConsoleError } from '@/utils/safe-logging';
 interface ShareFolderModalProps {
   folderId: string;
   folderName?: string;
@@ -27,7 +27,7 @@ export const ShareFolderModal: React.FC<ShareFolderModalProps> = ({
           setIsPublic(folder.is_public || false);
         }
       } catch (error) {
-        console.error('Error checking folder status:', error);
+        safeConsoleError('Error checking folder status:', error);
       }
     };
 
@@ -41,7 +41,7 @@ export const ShareFolderModal: React.FC<ShareFolderModalProps> = ({
       setIsShared(true);
       setIsPublic(true);
     } catch (error) {
-      console.error('Error sharing folder publicly:', error);
+      safeConsoleError('Error sharing folder publicly:', error);
     } finally {
       setIsLoading(false);
     }
@@ -54,7 +54,7 @@ export const ShareFolderModal: React.FC<ShareFolderModalProps> = ({
       setIsShared(true);
       setIsPublic(false);
     } catch (error) {
-      console.error('Error sharing folder privately:', error);
+      safeConsoleError('Error sharing folder privately:', error);
     } finally {
       setIsLoading(false);
     }
@@ -67,7 +67,7 @@ export const ShareFolderModal: React.FC<ShareFolderModalProps> = ({
       setIsShared(false);
       setIsPublic(false);
     } catch (error) {
-      console.error('Error unsharing folder:', error);
+      safeConsoleError('Error unsharing folder:', error);
     } finally {
       setIsLoading(false);
     }
@@ -80,7 +80,7 @@ export const ShareFolderModal: React.FC<ShareFolderModalProps> = ({
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (error) {
-      console.error('Error copying to clipboard:', error);
+      safeConsoleError('Error copying to clipboard:', error);
     }
   };
 

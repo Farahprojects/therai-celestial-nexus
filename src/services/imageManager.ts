@@ -1,6 +1,6 @@
 
 import { supabase } from '@/integrations/supabase/client';
-
+import { safeConsoleError } from '@/utils/safe-logging';
 export interface ImageData {
   url: string;
   filePath: string;
@@ -26,7 +26,7 @@ export class ImageManager {
       .remove([filePath]);
 
     if (error) {
-      console.error('Storage deletion error:', error);
+      safeConsoleError('Storage deletion error:', error);
       // Don't throw - file might already be deleted
     } else {
       console.log('Successfully deleted from storage:', filePath);
@@ -45,7 +45,7 @@ export class ImageManager {
       
       return null;
     } catch (error) {
-      console.error('Failed to extract file path from URL:', error);
+      safeConsoleError('Failed to extract file path from URL:', error);
       return null;
     }
   }
@@ -130,7 +130,7 @@ export class ImageManager {
     } catch (error) {
       // If upload fails and we deleted an old image, we can't rollback
       // but we should log this for awareness
-      console.error('Upload failed after old image deletion:', error);
+      safeConsoleError('Upload failed after old image deletion:', error);
       throw error;
     }
   }
@@ -176,7 +176,7 @@ export class ImageManager {
       return newImageData;
       
     } catch (error) {
-      console.error('Failed to save edited image:', error);
+      safeConsoleError('Failed to save edited image:', error);
       throw error;
     }
   }

@@ -1,5 +1,5 @@
 import { Component, ErrorInfo, ReactNode } from 'react';
-
+import { safeConsoleError } from '@/utils/safe-logging';
 interface Props {
   children: ReactNode;
 }
@@ -17,17 +17,12 @@ class SSRErrorBoundary extends Component<Props, State> {
 
   public static getDerivedStateFromError(error: Error): State {
     // Update state so the next render will show the fallback UI
-    console.error('[💥 SSR ERROR BOUNDARY CAUGHT]', error);
+    safeConsoleError('[💥 SSR ERROR BOUNDARY CAUGHT]', error);
     return { hasError: true, error };
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error('[💥 SSR ERROR DETAILS]', {
-      error: error.message,
-      stack: error.stack,
-      componentStack: errorInfo.componentStack,
-      isSSR: typeof window === 'undefined'
-    });
+    console.error('[💥 SSR ERROR DETAILS]', '[REDACTED ERROR OBJECT - Check for sensitive data]');
     
     this.setState({ error, errorInfo });
   }

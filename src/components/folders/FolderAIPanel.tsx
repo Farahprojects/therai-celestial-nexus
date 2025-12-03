@@ -8,7 +8,7 @@ import { clearFolderAIHistory } from '@/services/folder-ai';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import TextareaAutosize from 'react-textarea-autosize';
-
+import { safeConsoleError } from '@/utils/safe-logging';
 // Same robust markdown stripping logic as Gemini LLM handler, but preserves line breaks
 function sanitizePlainText(input: string): string {
   return (typeof input === "string" ? input : "")
@@ -127,7 +127,7 @@ export const FolderAIPanel: React.FC<FolderAIPanelProps> = ({
       await loadMessages();
       toast.success('New conversation started');
     } catch (err: unknown) {
-      console.error('[FolderAIPanel] Error clearing history:', err);
+      safeConsoleError('[FolderAIPanel] Error clearing history:', err);
       toast.error('Failed to start new conversation');
     }
   };
@@ -508,7 +508,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
                     await navigator.clipboard.writeText(content);
                     toast.success('Content copied to clipboard');
                   } catch (err) {
-                    console.error('[FolderAIPanel] Failed to copy:', err);
+                    safeConsoleError('[FolderAIPanel] Failed to copy:', err);
                     toast.error('Unable to copy right now');
                   }
                 }}
@@ -557,7 +557,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
                     a.remove();
                     URL.revokeObjectURL(url);
                   } catch (err) {
-                    console.error('[FolderAIPanel] Failed to download:', err);
+                    safeConsoleError('[FolderAIPanel] Failed to download:', err);
                     toast.error('Unable to download right now');
                   }
                 }}

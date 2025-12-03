@@ -3,7 +3,7 @@ import { Share2, Twitter, Linkedin, Copy, Check } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { Database, Tables } from '@/integrations/supabase/types';
-
+import { safeConsoleError } from '@/utils/safe-logging';
 type BlogPostRow = Tables<'blog_posts'>;
 
 interface ShareButtonProps {
@@ -40,7 +40,7 @@ export const ShareButton: React.FC<ShareButtonProps> = ({
         .update(updatePayload)
         .eq(idColumn, postId);
     } catch (error) {
-      console.error('Error updating share count:', error);
+      safeConsoleError('Error updating share count:', error);
       setShares(prev => prev - 1);
     }
   };
@@ -69,7 +69,7 @@ export const ShareButton: React.FC<ShareButtonProps> = ({
         setIsOpen(false);
       }, 2000);
     } catch (error) {
-      console.error('Failed to copy link:', error);
+      safeConsoleError('Failed to copy link:', error);
     }
   };
 

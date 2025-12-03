@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { showToast } from "@/utils/notifications";
 import { useAuth } from "@/contexts/AuthContext";
 import { useChatStore } from "@/core/store";
-
+import { safeConsoleError } from '@/utils/safe-logging';
 // ============================================================================
 // INTERFACES
 // ============================================================================
@@ -164,7 +164,7 @@ export function useUserData() {
 
       setRetryCount(0);
     } catch (err) {
-      console.error('Error fetching user data:', err);
+      safeConsoleError('Error fetching user data:', err);
       setData(prev => ({
         ...prev,
         loading: false,
@@ -189,7 +189,7 @@ export function useUserData() {
         .eq('id', user.id);
 
       if (error) {
-        console.error('Error updating display name:', error);
+        safeConsoleError('Error updating display name:', error);
         setData(prev => ({ ...prev, saving: false, error: error.message }));
         return { error };
       }
@@ -211,7 +211,7 @@ export function useUserData() {
 
       return { error: null };
     } catch (err) {
-      console.error('Error updating display name:', err);
+      safeConsoleError('Error updating display name:', err);
       setData(prev => ({ ...prev, saving: false, error: 'Failed to update display name' }));
       return { error: err };
     }
@@ -229,7 +229,7 @@ export function useUserData() {
         .eq('user_id', user.id);
 
       if (error) {
-        console.error('Error updating notifications:', error);
+        safeConsoleError('Error updating notifications:', error);
         setData(prev => ({ ...prev, saving: false, error: error.message }));
         return { error };
       }
@@ -251,7 +251,7 @@ export function useUserData() {
 
       return { error: null };
     } catch (err) {
-      console.error('Error updating notifications:', err);
+      safeConsoleError('Error updating notifications:', err);
       setData(prev => ({ ...prev, saving: false, error: 'Failed to update notifications' }));
       return { error: err };
     }
@@ -269,7 +269,7 @@ export function useUserData() {
         .eq('user_id', user.id);
 
       if (error) {
-        console.error('Error updating view mode:', error);
+        safeConsoleError('Error updating view mode:', error);
         setData(prev => ({ ...prev, saving: false, error: error.message }));
         return { error };
       }
@@ -291,7 +291,7 @@ export function useUserData() {
 
       return { error: null };
     } catch (err) {
-      console.error('Error updating view mode:', err);
+      safeConsoleError('Error updating view mode:', err);
       setData(prev => ({ ...prev, saving: false, error: 'Failed to update view mode' }));
       return { error: err };
     }
@@ -309,7 +309,7 @@ export function useUserData() {
         .eq('user_id', user.id);
 
       if (error) {
-        console.error('Error updating TTS voice:', error);
+        safeConsoleError('Error updating TTS voice:', error);
         setData(prev => ({ ...prev, saving: false, error: error.message }));
         return { error };
       }
@@ -336,7 +336,7 @@ export function useUserData() {
 
       return { error: null };
     } catch (err) {
-      console.error('Error updating TTS voice:', err);
+      safeConsoleError('Error updating TTS voice:', err);
       setData(prev => ({ ...prev, saving: false, error: 'Failed to update voice' }));
       return { error: err };
     }

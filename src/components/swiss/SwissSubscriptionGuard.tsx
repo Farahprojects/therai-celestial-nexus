@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Sparkles } from 'lucide-react';
 import { checkUserAccess, getPaywallMessage } from '@/utils/billingMode';
 import { useNavigate } from 'react-router-dom';
-
+import { safeConsoleError } from '@/utils/safe-logging';
 interface SwissSubscriptionGuardProps {
   children: React.ReactNode;
 }
@@ -34,7 +34,7 @@ export const SwissSubscriptionGuard: React.FC<SwissSubscriptionGuardProps> = ({ 
         const result = await checkUserAccess(user.id);
         setHasAccess(result.hasAccess);
       } catch (error) {
-        console.error('Error checking access:', error);
+        safeConsoleError('Error checking access:', error);
         setHasAccess(false);
       } finally {
         setLoading(false);

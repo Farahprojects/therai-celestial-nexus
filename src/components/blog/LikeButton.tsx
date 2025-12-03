@@ -3,7 +3,7 @@ import { Heart } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { motion } from 'framer-motion';
 import type { Database, Tables } from '@/integrations/supabase/types';
-
+import { safeConsoleError } from '@/utils/safe-logging';
 type BlogPostRow = Tables<'blog_posts'>;
 
 interface LikeButtonProps {
@@ -48,7 +48,7 @@ export const LikeButton: React.FC<LikeButtonProps> = ({ postId, initialLikes }) 
         .update(updatePayload)
         .eq(idColumn, postId);
     } catch (error) {
-      console.error('Error updating like count:', error);
+      safeConsoleError('Error updating like count:', error);
       // Rollback optimistic update
       setLikes(prev => prev - 1);
       setIsLiked(false);

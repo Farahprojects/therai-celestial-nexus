@@ -2,7 +2,7 @@
 import { ReportData } from './reportContentExtraction';
 
 import { isSynastryData, parseAstroData } from '@/lib/astroFormatter';
-
+import { safeConsoleError } from '@/utils/safe-logging';
 const isSynastryReport = (reportData: ReportData): boolean => {
   if (!reportData.swiss_data) return false;
 
@@ -39,7 +39,7 @@ export const renderAstroDataAsText = (reportData: ReportData): string => {
       return renderIndividualAsText(reportData);
     }
   } catch (error) {
-    console.error('Error rendering astro data as text:', error);
+    safeConsoleError('Error rendering astro data as text:', error);
     return 'Error: Unable to process astronomical data.';
   }
 };

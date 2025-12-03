@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { showToast } from "@/utils/notifications";
 import { useAuth } from "@/contexts/AuthContext";
-
+import { safeConsoleError } from '@/utils/safe-logging';
 type ViewMode = 'grid' | 'list';
 
 interface UseClientViewModeReturn {
@@ -52,7 +52,7 @@ export function useClientViewMode(): UseClientViewModeReturn {
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : "Failed to load view preference";
       setError(errorMessage);
-      console.error("Error loading client view mode:", err);
+      safeConsoleError("Error loading client view mode:", err);
     } finally {
       setLoading(false);
     }
@@ -85,7 +85,7 @@ export function useClientViewMode(): UseClientViewModeReturn {
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : "Failed to save view preference";
       setError(errorMessage);
-      console.error("Error updating client view mode:", err);
+      safeConsoleError("Error updating client view mode:", err);
       
       showToast({
         title: "Error",

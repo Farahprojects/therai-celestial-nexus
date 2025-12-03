@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { FolderDocument } from '@/services/folder-documents';
-
+import { safeConsoleError } from '@/utils/safe-logging';
 interface DocumentData {
   document: FolderDocument | null;
   fileUrl: string | null;
@@ -64,7 +64,7 @@ export const useDocumentLoader = (documentId: string | null) => {
         error: null,
       });
     } catch (err: unknown) {
-      console.error('[useDocumentLoader] Failed to load document:', err);
+      safeConsoleError('[useDocumentLoader] Failed to load document:', err);
       setData({
         document: null,
         fileUrl: null,

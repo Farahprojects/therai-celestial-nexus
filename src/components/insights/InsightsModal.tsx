@@ -5,6 +5,7 @@ import { ReportFormData } from '@/types/report-form';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { getInsightTitle } from '@/utils/reportTitles';
+import { safeConsoleError, safeConsoleLog } from '@/utils/safe-logging';
 interface InsightsModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -98,12 +99,12 @@ export const InsightsModal: React.FC<InsightsModalProps> = ({
           .single();
 
         if (error) {
-          console.error('[InsightsModal] Polling error:', error);
+          safeConsoleError('[InsightsModal] Polling error:', error);
           return;
         }
 
         if (data?.is_ready === true) {
-          console.log('[InsightsModal] Report ready:', data.id);
+          safeConsoleLog('[InsightsModal] Report ready:', data.id);
           // Stop polling
           if (pollingIntervalRef.current) {
             clearInterval(pollingIntervalRef.current);
@@ -116,7 +117,7 @@ export const InsightsModal: React.FC<InsightsModalProps> = ({
           onReportReady?.(data.id);
         }
       } catch (error) {
-        console.error('[InsightsModal] Polling error:', error);
+        safeConsoleError('[InsightsModal] Polling error:', error);
       }
     };
 
@@ -138,7 +139,7 @@ export const InsightsModal: React.FC<InsightsModalProps> = ({
 
     // If single-person report AND profile exists, skip form and trigger report directly
     if (!isDualPerson && profileData && user) {
-      console.log('[InsightsModal] Using folder profile, creating insight report directly', {
+      safeConsoleLog('[InsightsModal] Using folder profile, creating insight report directly', {
         folderId,
         profileId: profileData.id,
       });
@@ -196,7 +197,7 @@ export const InsightsModal: React.FC<InsightsModalProps> = ({
         setPollingInsightId(conversationId); // Start polling for this insight
 
       } catch (error) {
-        console.error('[InsightsModal] Failed to create insight report:', error);
+        safeConsoleError('[InsightsModal] Failed to create insight report:', error);
         // Fall back to showing the form
         setShowAstroForm(true);
       }

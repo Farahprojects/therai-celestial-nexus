@@ -3,7 +3,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useChatStore, ReportData } from '@/core/store';
 import { chatController } from '@/features/chat/ChatController';
 import { supabase } from '@/integrations/supabase/client';
-
+import { safeConsoleError } from '@/utils/safe-logging';
 export const useAstroConversation = () => {
   const { user } = useAuth();
   const { addThread } = useChatStore();
@@ -63,7 +63,7 @@ export const useAstroConversation = () => {
         removeThread(chatId, user!.id);
         clearChat();
       } catch (error) {
-        console.error('[useAstroConversation] Cleanup error:', error);
+        safeConsoleError('[useAstroConversation] Cleanup error:', error);
       }
     },
     [user?.id]

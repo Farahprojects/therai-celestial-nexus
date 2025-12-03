@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
+import { safeConsoleError, safeConsoleLog } from '@/utils/safe-logging';
 import {
   Card,
   CardHeader,
@@ -26,13 +27,13 @@ const ResetPassword: React.FC = () => {
   const processedRef = useRef(false);
 
   const finishSuccess = async (token: string) => {
-    console.log(`[PASSWORD-VERIFY] ✓ SUCCESS: password reset verification completed`);
+    safeConsoleLog(`[PASSWORD-VERIFY] ✓ SUCCESS: password reset verification completed`);
 
     setMessage('Setting up password reset...');
 
     try {
       // Call secure edge function to verify token and get session
-      console.log('[PASSWORD-VERIFY] Calling verify-token edge function...');
+      safeConsoleLog('[PASSWORD-VERIFY] Calling verify-token edge function...');
 
       const { data, error } = await supabase.functions.invoke('verify-token', {
         body: {
@@ -42,7 +43,7 @@ const ResetPassword: React.FC = () => {
       });
 
       if (error) {
-        console.error('[PASSWORD-VERIFY] Edge function error:', error);
+        safeConsoleError('[PASSWORD-VERIFY] Edge function error:', error);
         
         // Handle different types of edge function errors
         if (error.message?.includes('non-2xx status code')) {
@@ -65,13 +66,13 @@ const ResetPassword: React.FC = () => {
       if (data.session) {
         const { error: sessionError } = await supabase.auth.setSession(data.session);
         if (sessionError) {
-          console.error('[PASSWORD-VERIFY] Session error:', sessionError);
+          safeConsoleError('[PASSWORD-VERIFY] Session error:', sessionError);
           throw new Error('Failed to establish session');
         }
       }
 
     } catch (error) {
-      console.error('[PASSWORD-VERIFY] Critical verification error:', error);
+      safeConsoleError('[PASSWORD-VERIFY] Critical verification error:', error);
       setStatus('error');
       setMessage('Failed to verify your password reset link. Please try again or contact support.');
       showToast({
@@ -132,15 +133,15 @@ const ResetPassword: React.FC = () => {
         const tokenType = hash.get('type') || search.get('type');
         const email = hash.get('email') || search.get('email');
 
-        console.log(`[PASSWORD-VERIFY:${requestId}] → Flow: OTP method`);
-        console.log(`[PASSWORD-VERIFY:${requestId}] OTP params - token: ${!!token}, type: ${tokenType}, email: ${email}`);
+        safeConsoleLog(`[PASSWORD-VERIFY:${requestId}] → Flow: OTP method`);
+        safeConsoleLog(`[PASSWORD-VERIFY:${requestId}] OTP params - token: ${!!token}, type: ${tokenType}, email: ${email}`);
 
         if (!token) {
           throw new Error('Invalid link – missing token');
         }
 
         // Pre-verification logging
-        console.log(`[PASSWORD-VERIFY:${requestId}] Starting verification with edge function:`, {
+        safeConsoleLog(`[PASSWORD-VERIFY:${requestId}] Starting verification with edge function:`, {
           tokenLength: token.length,
         });
 
@@ -149,12 +150,7 @@ const ResetPassword: React.FC = () => {
 
       } catch (err: unknown) {
         const error = err as Error & { status?: number; code?: string };
-        console.error(`[PASSWORD-VERIFY:${requestId}] ✗ VERIFICATION FAILED:`, {
-          message: error?.message,
-          status: error?.status,
-          code: error?.code,
-          details: error,
-        });
+        console.error(`[PASSWORD-VERIFY:${requestId}] ✗ VERIFICATION FAILED:`, '[REDACTED ERROR OBJECT - Check for sensitive data]');
 
         setStatus('error');
         const msg = error?.message ?? 'Verification failed – link may have expired.';

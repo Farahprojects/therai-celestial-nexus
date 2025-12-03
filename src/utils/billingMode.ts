@@ -1,5 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
-
+import { safeConsoleError } from '@/utils/safe-logging';
 export type BillingMode = 'SUBSCRIPTION';
 
 export interface UserAccessResult {
@@ -30,7 +30,7 @@ export const checkUserAccess = async (userId: string): Promise<UserAccessResult>
       .single();
 
     if (error) {
-      console.error('Error fetching subscription status:', error);
+      safeConsoleError('Error fetching subscription status:', error);
       return {
         hasAccess: false,
         loading: false,
@@ -51,7 +51,7 @@ export const checkUserAccess = async (userId: string): Promise<UserAccessResult>
       subscriptionPlan: data?.subscription_plan || null,
     };
   } catch (err) {
-    console.error('Exception in checkUserAccess:', err);
+    safeConsoleError('Exception in checkUserAccess:', err);
     return {
       hasAccess: false,
       loading: false,

@@ -12,7 +12,7 @@ import { validateEmail } from '@/utils/authValidation';
 import { Mail } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { getRedirectPath } from '@/utils/redirectUtils';
-
+import { safeConsoleError } from '@/utils/safe-logging';
 // Debug utility - logs enabled in production for debugging
 const debug = (...args: unknown[]) => {
   console.log('[Signup]', ...args);
@@ -154,7 +154,7 @@ const Signup = () => {
       });
       
       if (error) {
-        console.error('Resend verification error:', error);
+        safeConsoleError('Resend verification error:', error);
         showToast({
           title: 'Error',
           description: 'Failed to resend verification email. Please try again.',
@@ -201,7 +201,7 @@ const Signup = () => {
         });
       }
     } catch (err) {
-      console.error('Exception during resend:', err);
+      safeConsoleError('Exception during resend:', err);
       showToast({
         title: 'Error',
         description: 'An error occurred while resending the email.',

@@ -1,6 +1,6 @@
 
 import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
-
+import { safeConsoleError } from '@/utils/safe-logging';
 interface ModalState {
   showNewClientModal: boolean;
   showJournalModal: boolean;
@@ -45,7 +45,7 @@ export const ModalStateProvider = ({ children }: ModalStateProviderProps) => {
           const parsedState = JSON.parse(savedState);
           setModalStateInternal(prevState => ({ ...prevState, ...parsedState }));
         } catch (error) {
-          console.error('Failed to restore modal state:', error);
+          safeConsoleError('Failed to restore modal state:', error);
         }
       }
     }
@@ -83,7 +83,7 @@ export const ModalStateProvider = ({ children }: ModalStateProviderProps) => {
           const parsedState = JSON.parse(savedState);
           setModalStateInternal(prevState => ({ ...prevState, ...parsedState }));
         } catch (error) {
-          console.error('Failed to restore modal state:', error);
+          safeConsoleError('Failed to restore modal state:', error);
         }
       }
     }

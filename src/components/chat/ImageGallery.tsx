@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { MessageCircle, Share2, Download, X, ArrowLeft, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { safeConsoleError } from '@/utils/safe-logging';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -82,7 +83,7 @@ export const ImageGallery = ({
         .range(currentCount, currentCount + limit - 1);
 
       if (error) {
-        console.error('Failed to load images:', error);
+        safeConsoleError('Failed to load images:', error);
         if (!loadMore) setImages([]);
       } else {
         // Transform user_images format to ImageMessage format for compatibility
@@ -111,7 +112,7 @@ export const ImageGallery = ({
         imagePreloader.preloadRecentImages(imageUrls);
       }
     } catch (error) {
-      console.error('Error loading images:', error);
+      safeConsoleError('Error loading images:', error);
       if (!loadMore) setImages([]);
     } finally {
       setLoading(false);
@@ -171,7 +172,7 @@ export const ImageGallery = ({
       setShareSuccess(true);
       setTimeout(() => setShareSuccess(false), 2000);
     } catch (error) {
-      console.error('Failed to copy to clipboard:', error);
+      safeConsoleError('Failed to copy to clipboard:', error);
     }
   };
   const handleDownload = async (image: ImageMessage) => {
@@ -187,7 +188,7 @@ export const ImageGallery = ({
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
     } catch (error) {
-      console.error('Failed to download image:', error);
+      safeConsoleError('Failed to download image:', error);
     }
   };
   const handleDelete = (image: ImageMessage) => {
@@ -214,7 +215,7 @@ export const ImageGallery = ({
             .remove([deleteImage.meta.image_path]);
         } catch (storageError) {
           // Storage deletion is optional - log but don't fail
-          console.warn('Failed to delete from storage:', storageError);
+          safeConsoleWarn('Failed to delete from storage:', storageError);
         }
       }
       
@@ -235,7 +236,7 @@ export const ImageGallery = ({
       
       setDeleteImage(null);
     } catch (error) {
-      console.error('Failed to delete image:', error);
+      safeConsoleError('Failed to delete image:', error);
       showToast({
         title: "Error",
         description: "Could not delete image.",

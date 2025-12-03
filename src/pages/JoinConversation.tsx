@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import ChatContainer from './ChatContainer';
 import { setRedirectPath, encodeRedirectPath } from '@/utils/redirectUtils';
-
+import { safeConsoleError, safeConsoleLog } from '@/utils/safe-logging';
 const JoinConversation: React.FC = () => {
   const { chatId } = useParams<{ chatId: string }>();
   const navigate = useNavigate();
@@ -48,7 +48,7 @@ const JoinConversation: React.FC = () => {
       // If user is not authenticated, preserve redirect and prompt for auth
       // This prevents RLS errors when querying conversations
       if (!isAuthenticated) {
-        console.log('[JoinConversation] User not authenticated - preserving redirect for chat');
+        safeConsoleLog('[JoinConversation] User not authenticated - preserving redirect for chat');
         const redirectPath = setRedirectPath(`/c/${chatId}`);
         const encodedRedirect = encodeRedirectPath(redirectPath);
         
@@ -67,7 +67,7 @@ const JoinConversation: React.FC = () => {
       // User is authenticated - navigate immediately for seamless UX
       // Add as participant in background
       if (isAuthenticated && user) {
-        console.log('[JoinConversation] User authenticated - navigating immediately');
+        safeConsoleLog('[JoinConversation] User authenticated - navigating immediately');
         
         // Navigate first for instant, seamless transition
         navigate(`/c/${chatId}`, { replace: true });
@@ -101,7 +101,7 @@ const JoinConversation: React.FC = () => {
               // Ignore
             }
           } catch (err) {
-            console.error('[JoinConversation] Error adding participant in background:', err);
+            safeConsoleError('[JoinConversation] Error adding participant in background:', err);
           }
         })();
         

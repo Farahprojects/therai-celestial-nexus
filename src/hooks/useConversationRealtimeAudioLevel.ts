@@ -7,7 +7,7 @@
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-
+import { safeConsoleError } from '@/utils/safe-logging';
 interface UseConversationRealtimeAudioLevelOptions {
   updateIntervalMs?: number; // How often to update React state (default: 50ms = 20fps)
   smoothingFactor?: number;
@@ -41,7 +41,7 @@ export const useConversationRealtimeAudioLevel = ({
       // We're just reading from the existing analysis chain
       
     } catch (error) {
-      console.error('[useConversationRealtimeAudioLevel] ❌ Failed to initialize:', error);
+      safeConsoleError('[useConversationRealtimeAudioLevel] ❌ Failed to initialize:', error);
     }
   }, []);
 
@@ -89,7 +89,7 @@ export const useConversationRealtimeAudioLevel = ({
       smoothedLevelRef.current = smoothedLevelRef.current * smoothingFactor + rms * (1 - smoothingFactor);
 
     } catch (error) {
-      console.error('[useConversationRealtimeAudioLevel] ❌ Error reading audio data:', error);
+      safeConsoleError('[useConversationRealtimeAudioLevel] ❌ Error reading audio data:', error);
     }
 
     // Continue the loop

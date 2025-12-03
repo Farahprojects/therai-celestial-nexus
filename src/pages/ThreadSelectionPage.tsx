@@ -9,7 +9,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Plus, MessageSquare, Clock } from 'lucide-react';
 import Logo from '@/components/Logo';
 import { toast } from 'sonner';
-
+import { safeConsoleError } from '@/utils/safe-logging';
 const ThreadSelectionPage: React.FC = () => {
   const { user } = useAuth();
   const { isSubscriptionActive } = useSubscription();
@@ -35,7 +35,7 @@ const ThreadSelectionPage: React.FC = () => {
       const threadId = await addThread(user.id, 'chat', 'Chat'); // Placeholder title, upgraded on first message
       navigate(`/c/${threadId}`);
     } catch (error) {
-      console.error('Failed to create new thread:', error);
+      safeConsoleError('Failed to create new thread:', error);
     } finally {
       setIsCreating(false);
     }

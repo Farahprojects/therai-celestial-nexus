@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { useLocation } from 'react-router-dom';
 import { isPasswordResetUrl } from '@/utils/urlUtils';
-
+import { safeConsoleError } from '@/utils/safe-logging';
 type NavigationStateContextType = {
   lastRoute: string;
   setLastRoute: (route: string) => void;
@@ -62,7 +62,7 @@ const cleanupPasswordResetURLs = () => {
       localStorage.removeItem('last_route_params');
     }
   } catch (e) {
-    console.error('Error cleaning up password reset URLs:', e);
+    safeConsoleError('Error cleaning up password reset URLs:', e);
   }
 };
 
@@ -74,7 +74,7 @@ const NavigationStateProvider: React.FC<NavigationStateProviderProps> = ({ child
       const storedRoute = localStorage.getItem('last_route');
       return storedRoute && typeof storedRoute === 'string' ? storedRoute : '/';
     } catch (e) {
-      console.error('Error reading last_route from localStorage:', e);
+      safeConsoleError('Error reading last_route from localStorage:', e);
       return '/';
     }
   });
@@ -85,7 +85,7 @@ const NavigationStateProvider: React.FC<NavigationStateProviderProps> = ({ child
       const storedParams = localStorage.getItem('last_route_params');
       return storedParams && typeof storedParams === 'string' ? storedParams : '';
     } catch (e) {
-      console.error('Error reading last_route_params from localStorage:', e);
+      safeConsoleError('Error reading last_route_params from localStorage:', e);
       return '';
     }
   });
@@ -125,7 +125,7 @@ const NavigationStateProvider: React.FC<NavigationStateProviderProps> = ({ child
           setLastRouteParams('');
         }
       } catch (e) {
-        console.error('Error saving route to localStorage:', e);
+        safeConsoleError('Error saving route to localStorage:', e);
       }
     }
   }, [location.pathname, location.search]);
@@ -140,7 +140,7 @@ const NavigationStateProvider: React.FC<NavigationStateProviderProps> = ({ child
       setLastRoute('/');
       setLastRouteParams('');
     } catch (e) {
-      console.error('Error clearing navigation state:', e);
+      safeConsoleError('Error clearing navigation state:', e);
     }
   }, []);
 
@@ -170,7 +170,7 @@ const NavigationStateProvider: React.FC<NavigationStateProviderProps> = ({ child
 
       return `${storedPath}${storedParams}`;
     } catch (e) {
-      console.error('Error in getSafeRedirectPath:', e);
+      safeConsoleError('Error in getSafeRedirectPath:', e);
       return '/';
     }
   }, [lastRoute, lastRouteParams]);

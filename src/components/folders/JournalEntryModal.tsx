@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { useUniversalMic } from '@/hooks/microphone/useUniversalMic';
 import { createJournalEntry, JournalEntry } from '@/services/journal';
 import { toast } from 'sonner';
-
+import { safeConsoleError } from '@/utils/safe-logging';
 interface JournalEntryModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -41,7 +41,7 @@ export const JournalEntryModal: React.FC<JournalEntryModalProps> = ({
       setText(prev => prev ? `${prev} ${transcription}` : transcription);
     },
     onError: (error) => {
-      console.error('[JournalEntryModal] Transcription error:', error);
+      safeConsoleError('[JournalEntryModal] Transcription error:', error);
       toast.error('Failed to transcribe audio');
     },
   });
@@ -82,7 +82,7 @@ export const JournalEntryModal: React.FC<JournalEntryModalProps> = ({
       toast.success('Journal entry saved');
       onClose();
     } catch (error) {
-      console.error('[JournalEntryModal] Failed to save journal entry:', error);
+      safeConsoleError('[JournalEntryModal] Failed to save journal entry:', error);
       toast.error('Failed to save journal entry');
     } finally {
       setIsSaving(false);

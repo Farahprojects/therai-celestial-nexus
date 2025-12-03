@@ -3,7 +3,7 @@
 import { STTLimitExceededError } from '@/services/voice/stt-errors';
 import { Capacitor } from '@capacitor/core';
 import BluetoothAudio from '@/plugins/BluetoothAudio';
-
+import { safeConsoleError, safeConsoleWarn } from '@/utils/safe-logging';
 export interface STTRecorderOptions {
   onTranscriptReady?: (transcript: string) => void;
   onError?: (error: Error) => void;
@@ -163,10 +163,10 @@ export class UniversalSTTRecorder {
           try {
             await BluetoothAudio.isBluetoothConnected();
           } catch (error) {
-            if (this.debug) console.warn('[UniversalSTTRecorder] Bluetooth connection check failed:', error);
+            if (this.debug) safeConsoleWarn('[UniversalSTTRecorder] Bluetooth connection check failed:', error);
           }
         } catch (error) {
-          if (this.debug) console.warn('[UniversalSTTRecorder] Bluetooth audio not started:', error);
+          if (this.debug) safeConsoleWarn('[UniversalSTTRecorder] Bluetooth audio not started:', error);
         }
       }
 
@@ -199,7 +199,7 @@ export class UniversalSTTRecorder {
         if (this.debug) console.log('[UniversalSTTRecorder] Preferring audio input device:', bluetoothLike.label);
       }
     } catch (e) {
-      if (this.debug) console.warn('[UniversalSTTRecorder] enumerateDevices failed:', e);
+      if (this.debug) safeConsoleWarn('[UniversalSTTRecorder] enumerateDevices failed:', e);
     }
 
     const audioConstraints: MediaTrackConstraints = {
@@ -247,7 +247,7 @@ export class UniversalSTTRecorder {
       this.isRecording = true;
       this.startCandidateSinceTs = null;
     } catch (e) {
-      console.error('[UniversalSTTRecorder] Failed to start new recording segment:', e);
+      safeConsoleError('[UniversalSTTRecorder] Failed to start new recording segment:', e);
     }
   }
 
@@ -348,7 +348,7 @@ export class UniversalSTTRecorder {
 
       // Audio processing logic moved to processAudioData method
     } catch (e) {
-      console.warn('[UniversalSTTRecorder] AudioWorklet unavailable:', e);
+      safeConsoleWarn('[UniversalSTTRecorder] AudioWorklet unavailable:', e);
     }
 
     // Arrays and baseline
@@ -438,7 +438,7 @@ export class UniversalSTTRecorder {
       if (allZeros) {
         zeroCheckCount++;
         if (zeroCheckCount > 10 && !hasLoggedZeroWarning) {
-          console.error('[VAD] AUDIO INPUT IS ALL ZEROS');
+          safeConsoleError('[VAD] AUDIO INPUT IS ALL ZEROS');
           hasLoggedZeroWarning = true;
         }
         if (zeroCheckCount > 60 && !attemptedDeadInputRecovery && !(window as Window & { Capacitor?: { isNativePlatform?: () => boolean } }).Capacitor?.isNativePlatform?.()) {
@@ -450,7 +450,7 @@ export class UniversalSTTRecorder {
             }
             if (this.audioContext) {
               this.audioContext.close().catch((error) => {
-                console.warn('[UniversalSTTRecorder] Failed to close audio context during recovery:', error);
+                safeConsoleWarn('[UniversalSTTRecorder] Failed to close audio context during recovery:', error);
               });
               this.audioContext = null;
             }
@@ -465,10 +465,10 @@ export class UniversalSTTRecorder {
               this.mediaStream = stream;
               await this.setupEnergyMonitoring();
             }).catch((err) => {
-              console.error('[VAD] Mic recovery failed:', err);
+              safeConsoleError('[VAD] Mic recovery failed:', err);
             });
           } catch (e) {
-            console.error('[VAD] Mic recovery threw error:', e);
+            safeConsoleError('[VAD] Mic recovery threw error:', e);
           }
         }
       } else if (zeroCheckCount > 0) {
@@ -746,7 +746,7 @@ export class UniversalSTTRecorder {
 
     // Notify UI processing start
     try { this.options.onProcessingStart?.(); } catch (error) {
-      console.warn('[UniversalSTTRecorder] onProcessingStart callback failed:', error);
+      safeConsoleWarn('[UniversalSTTRecorder] onProcessingStart callback failed:', error);
     }
 
     // Post-finalize guard to avoid immediate retrigger due to tail noise
@@ -757,23 +757,23 @@ export class UniversalSTTRecorder {
       if (typeof queueMicrotask === 'function') {
         queueMicrotask(() => {
           this.sendToSTT(blob).catch((error) => {
-            console.error('[UniversalSTTRecorder] STT processing failed in microtask:', error);
+            safeConsoleError('[UniversalSTTRecorder] STT processing failed in microtask:', error);
             this.options.onError?.(error as Error);
           });
         });
       } else {
         setTimeout(() => {
           this.sendToSTT(blob).catch((error) => {
-            console.error('[UniversalSTTRecorder] STT processing failed in setTimeout:', error);
+            safeConsoleError('[UniversalSTTRecorder] STT processing failed in setTimeout:', error);
             this.options.onError?.(error as Error);
           });
         }, 0);
       }
     } catch (error) {
-      console.error('[UniversalSTTRecorder] Failed to schedule STT processing:', error);
+      safeConsoleError('[UniversalSTTRecorder] Failed to schedule STT processing:', error);
       setTimeout(() => {
         this.sendToSTT(blob).catch((sttError) => {
-          console.error('[UniversalSTTRecorder] STT processing failed in fallback:', sttError);
+          safeConsoleError('[UniversalSTTRecorder] STT processing failed in fallback:', sttError);
           this.options.onError?.(sttError as Error);
         });
       }, 0);
@@ -803,7 +803,7 @@ export class UniversalSTTRecorder {
           .transcribe(audioBlob, chat_id, {}, this.options.chattype, this.options.mode, this.options.user_id, this.options.user_name)
           .catch((error) => {
             if (!(error instanceof STTLimitExceededError)) {
-              console.error('[UniversalSTTRecorder] STT fire-and-forget failed:', error);
+              safeConsoleError('[UniversalSTTRecorder] STT fire-and-forget failed:', error);
             }
             this.options.onError?.(error as Error);
           });
@@ -825,7 +825,7 @@ export class UniversalSTTRecorder {
       }
     } catch (error) {
       if (!(error instanceof STTLimitExceededError)) {
-        console.error('[UniversalSTTRecorder] STT failed:', error);
+        safeConsoleError('[UniversalSTTRecorder] STT failed:', error);
       }
       this.options.onError?.(error as Error);
     }
@@ -907,37 +907,37 @@ export class UniversalSTTRecorder {
         this.audioWorkletNode.port.onmessage = null;
         this.audioWorkletNode.disconnect();
       } catch (error) {
-        console.warn('[UniversalSTTRecorder] Failed to disconnect audio worklet node:', error);
+        safeConsoleWarn('[UniversalSTTRecorder] Failed to disconnect audio worklet node:', error);
       }
       this.audioWorkletNode = null;
     }
     if (this.silentGain) {
       try { this.silentGain.disconnect(); } catch (error) {
-        console.warn('[UniversalSTTRecorder] Failed to disconnect silent gain:', error);
+        safeConsoleWarn('[UniversalSTTRecorder] Failed to disconnect silent gain:', error);
       }
       this.silentGain = null;
     }
     if (this.adaptiveGain) {
       try { this.adaptiveGain.disconnect(); } catch (error) {
-        console.warn('[UniversalSTTRecorder] Failed to disconnect adaptive gain:', error);
+        safeConsoleWarn('[UniversalSTTRecorder] Failed to disconnect adaptive gain:', error);
       }
       this.adaptiveGain = null;
     }
     if (this.analyser) {
       try { this.analyser.disconnect(); } catch (error) {
-        console.warn('[UniversalSTTRecorder] Failed to disconnect analyser:', error);
+        safeConsoleWarn('[UniversalSTTRecorder] Failed to disconnect analyser:', error);
       }
       this.analyser = null;
     }
     if (this.highPassFilter) {
       try { this.highPassFilter.disconnect(); } catch (error) {
-        console.warn('[UniversalSTTRecorder] Failed to disconnect high pass filter:', error);
+        safeConsoleWarn('[UniversalSTTRecorder] Failed to disconnect high pass filter:', error);
       }
       this.highPassFilter = null;
     }
     if (this.lowPassFilter) {
       try { this.lowPassFilter.disconnect(); } catch (error) {
-        console.warn('[UniversalSTTRecorder] Failed to disconnect low pass filter:', error);
+        safeConsoleWarn('[UniversalSTTRecorder] Failed to disconnect low pass filter:', error);
       }
       this.lowPassFilter = null;
     }
@@ -951,7 +951,7 @@ export class UniversalSTTRecorder {
     // Only close AudioContext if we created it ourselves
     if (this.audioContext && !this.isUsingExternalContext) {
       this.audioContext.close().catch((error) => {
-        console.warn('[UniversalSTTRecorder] Failed to close audio context during cleanup:', error);
+        safeConsoleWarn('[UniversalSTTRecorder] Failed to close audio context during cleanup:', error);
       });
     }
     this.audioContext = null;

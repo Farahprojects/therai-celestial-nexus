@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useMemo } from 'react';
 import { useAuth } from './AuthContext';
 import { Conversation } from '@/core/types';
-
+import { safeConsoleError } from '@/utils/safe-logging';
 interface ThreadsContextType {
   threads: Conversation[];
   loading: boolean;
@@ -45,7 +45,7 @@ export const ThreadsProvider: React.FC<ThreadsProviderProps> = ({ children }) =>
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to load threads';
       setError(errorMessage);
-      console.error('[ThreadsProvider] Error loading threads:', err);
+      safeConsoleError('[ThreadsProvider] Error loading threads:', err);
     } finally {
       setLoading(false);
     }

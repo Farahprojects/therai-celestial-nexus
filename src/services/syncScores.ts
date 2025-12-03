@@ -1,5 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
-
+import { safeConsoleError } from '@/utils/safe-logging';
 export interface MemeCaption {
   format: 'top_bottom' | 'quote' | 'text_only';
   topText?: string;
@@ -31,7 +31,7 @@ export const calculateSyncScore = async (
   });
 
   if (error) {
-    console.error('[syncMeme] Error generating meme:', error);
+    safeConsoleError('[syncMeme] Error generating meme:', error);
     throw new Error('Failed to generate sync meme');
   }
 
@@ -53,7 +53,7 @@ export const getSyncScore = async (conversationId: string): Promise<MemeData | n
     .single();
 
   if (error) {
-    console.error('[syncMeme] Error fetching conversation:', error);
+    safeConsoleError('[syncMeme] Error fetching conversation:', error);
     return null;
   }
 
@@ -74,7 +74,7 @@ export const getConversationPersons = async (
     .single();
 
   if (error) {
-    console.error('[syncScores] Error fetching conversation:', error);
+    safeConsoleError('[syncScores] Error fetching conversation:', error);
     return null;
   }
 

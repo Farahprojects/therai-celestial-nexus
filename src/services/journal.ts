@@ -1,5 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
-
+import { safeConsoleError } from '@/utils/safe-logging';
 export interface JournalEntry {
   id: string;
   client_id: string;
@@ -37,7 +37,7 @@ export async function createJournalEntry(
     .single();
 
   if (error) {
-    console.error('[Journal] Failed to create journal entry:', error);
+    safeConsoleError('[Journal] Failed to create journal entry:', error);
     throw new Error(error.message || 'Failed to create journal entry');
   }
 
@@ -55,7 +55,7 @@ export async function getJournalEntries(folderId: string): Promise<JournalEntry[
     .order('created_at', { ascending: false });
 
   if (error) {
-    console.error('[Journal] Failed to fetch journal entries:', error);
+    safeConsoleError('[Journal] Failed to fetch journal entries:', error);
     throw new Error(error.message || 'Failed to fetch journal entries');
   }
 
@@ -73,7 +73,7 @@ export async function getJournalEntry(entryId: string): Promise<JournalEntry | n
     .single();
 
   if (error) {
-    console.error('[Journal] Failed to fetch journal entry:', error);
+    safeConsoleError('[Journal] Failed to fetch journal entry:', error);
     return null;
   }
 
@@ -99,7 +99,7 @@ export async function updateJournalEntry(
     .single();
 
   if (error) {
-    console.error('[Journal] Failed to update journal entry:', error);
+    safeConsoleError('[Journal] Failed to update journal entry:', error);
     throw new Error(error.message || 'Failed to update journal entry');
   }
 
@@ -116,7 +116,7 @@ export async function deleteJournalEntry(entryId: string): Promise<void> {
     .eq('id', entryId);
 
   if (error) {
-    console.error('[Journal] Failed to delete journal entry:', error);
+    safeConsoleError('[Journal] Failed to delete journal entry:', error);
     throw new Error(error.message || 'Failed to delete journal entry');
   }
 }
@@ -132,7 +132,7 @@ export async function getUserJournalEntries(userId: string): Promise<JournalEntr
     .order('created_at', { ascending: false });
 
   if (error) {
-    console.error('[Journal] Failed to fetch user journal entries:', error);
+    safeConsoleError('[Journal] Failed to fetch user journal entries:', error);
     throw new Error(error.message || 'Failed to fetch user journal entries');
   }
 

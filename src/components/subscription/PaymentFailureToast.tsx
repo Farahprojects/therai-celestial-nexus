@@ -4,7 +4,7 @@ import { X, AlertTriangle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-
+import { safeConsoleError } from '@/utils/safe-logging';
 interface PaymentFailureToastProps {
   isVisible: boolean;
   onDismiss: () => void;
@@ -37,7 +37,7 @@ export const PaymentFailureToast: React.FC<PaymentFailureToastProps> = ({
         onDismiss();
       }
     } catch (error) {
-      console.error('Error opening customer portal:', error);
+      safeConsoleError('Error opening customer portal:', error);
       toast.error('Failed to open payment portal');
     } finally {
       setIsOpening(false);

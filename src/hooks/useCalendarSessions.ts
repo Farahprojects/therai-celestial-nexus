@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { CalendarSession } from "@/types/calendar";
 import { calendarSessionsService } from "@/services/calendarSessions";
-
+import { safeConsoleError } from '@/utils/safe-logging';
 // Hook for CRUD calendar sessions from Supabase
 export function useCalendarSessions() {
   const [sessions, setSessions] = useState<CalendarSession[]>([]);
@@ -18,7 +18,7 @@ export function useCalendarSessions() {
       const data = await calendarSessionsService.getSessions();
       setSessions(data);
     } catch (e) {
-      console.error("Failed to load calendar sessions", e);
+      safeConsoleError("Failed to load calendar sessions", e);
     } finally {
       setLoading(false);
     }
@@ -29,7 +29,7 @@ export function useCalendarSessions() {
       const newSession = await calendarSessionsService.createSession(event);
       setSessions((prev) => [...prev, newSession]);
     } catch (e) {
-      console.error("Failed to create calendar session", e);
+      safeConsoleError("Failed to create calendar session", e);
     }
   }
 
@@ -40,7 +40,7 @@ export function useCalendarSessions() {
         prev.map((s) => (s.id === id ? updated : s))
       );
     } catch (e) {
-      console.error("Failed to update calendar session", e);
+      safeConsoleError("Failed to update calendar session", e);
     }
   }
 
@@ -49,7 +49,7 @@ export function useCalendarSessions() {
       await calendarSessionsService.deleteSession(id);
       setSessions((prev) => prev.filter((s) => s.id !== id));
     } catch (e) {
-      console.error("Failed to delete calendar session", e);
+      safeConsoleError("Failed to delete calendar session", e);
     }
   }
 

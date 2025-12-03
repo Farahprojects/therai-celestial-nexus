@@ -1,6 +1,6 @@
 
 import { supabase } from "@/integrations/supabase/client";
-
+import { safeConsoleError } from '@/utils/safe-logging';
 export interface ClientReportFormData {
   reportType: string;
   relationshipType?: string;
@@ -86,7 +86,7 @@ export const clientReportsService = {
     });
 
     if (error) {
-      console.error('Error generating client report:', error);
+      safeConsoleError('Error generating client report:', error);
       throw new Error(error.message || 'Failed to generate report');
     }
 
@@ -102,7 +102,7 @@ export const clientReportsService = {
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('Error fetching client reports:', error);
+      safeConsoleError('Error fetching client reports:', error);
       throw error;
     }
 
@@ -116,7 +116,7 @@ export const clientReportsService = {
       .eq('id', reportId);
 
     if (error) {
-      console.error('Error archiving client report:', error);
+      safeConsoleError('Error archiving client report:', error);
       throw new Error('Failed to archive report');
     }
   }

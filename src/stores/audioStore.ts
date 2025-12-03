@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-
+import { safeConsoleError } from '@/utils/safe-logging';
 interface AudioState {
   audioContext: AudioContext | null;
   isAudioUnlocked: boolean;
@@ -36,7 +36,7 @@ export const useAudioStore = create<AudioState>((set, get) => ({
         set({ isAudioUnlocked: true });
         return true;
       } catch (error) {
-        console.error('[AudioStore] ❌ Failed to resume AudioContext:', error);
+        safeConsoleError('[AudioStore] ❌ Failed to resume AudioContext:', error);
         return false;
       }
     } else {
@@ -53,7 +53,7 @@ export const useAudioStore = create<AudioState>((set, get) => ({
         await audioContext.close();
         console.log('[AudioStore] 🔥 AudioContext closed');
       } catch (error) {
-        console.error('[AudioStore] ❌ Failed to close AudioContext:', error);
+        safeConsoleError('[AudioStore] ❌ Failed to close AudioContext:', error);
       }
     }
     // Always reset state

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { X, Search, MessageSquare, Clock, ChevronRight } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-
+import { safeConsoleError } from '@/utils/safe-logging';
 const hasConversationShape = (value: unknown): value is { id: string; title: string | null; created_at: string; mode?: string | null } => {
   if (!value || typeof value !== 'object') return false;
   const candidate = value as { id?: unknown; title?: unknown; created_at?: unknown; mode?: unknown };
@@ -81,14 +81,14 @@ export const SearchModal: React.FC<SearchModalProps> = ({
         .limit(20); // Show last 20 conversations
 
       if (error) {
-        console.error('Error fetching recent conversations:', error);
+        safeConsoleError('Error fetching recent conversations:', error);
         return;
       }
 
       const normalized = (Array.isArray(data) ? data.filter(hasConversationShape) : []) as Array<{ id: string; title: string | null; created_at: string }>;
       setRecentConversations(normalized);
     } catch (error) {
-      console.error('Error fetching recent conversations:', error);
+      safeConsoleError('Error fetching recent conversations:', error);
     } finally {
       setIsLoadingRecent(false);
     }
@@ -118,7 +118,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
         .order('created_at', { ascending: false });
 
       if (convError) {
-        console.error('Conversations fetch error:', convError);
+        safeConsoleError('Conversations fetch error:', convError);
         return;
       }
 
@@ -142,7 +142,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
         .limit(50); // Limit results for performance
 
       if (msgError) {
-        console.error('Messages search error:', msgError);
+        safeConsoleError('Messages search error:', msgError);
         return;
       }
 
@@ -209,7 +209,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
 
       setResults(sortedResults);
     } catch (error) {
-      console.error('Search failed:', error);
+      safeConsoleError('Search failed:', error);
     } finally {
       setIsLoading(false);
     }

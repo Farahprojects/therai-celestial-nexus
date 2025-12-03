@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, ReactNode, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { ReportSlideOver } from '@/components/report-viewer/ReportSlideOver';
-
+import { safeConsoleWarn } from '@/utils/safe-logging';
 interface ModalContext {
   open: (reportId: string, onLoad?: (error?: string | null) => void) => void;
   close: () => void;
@@ -21,7 +21,7 @@ export const ReportModalProvider = ({ children }: { children: ReactNode }) => {
 
   const open = useCallback((reportId: string, onLoad?: (error?: string | null) => void) => {
     if (!reportId) {
-      console.warn('[ReportModal] No report ID provided');
+      safeConsoleWarn('[ReportModal] No report ID provided');
       return;
     }
     

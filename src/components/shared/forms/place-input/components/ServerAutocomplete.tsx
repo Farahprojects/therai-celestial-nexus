@@ -3,7 +3,7 @@ import { Input } from '@/components/ui/input';
 import { Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { PlaceData } from '../utils/extractPlaceData';
-
+import { safeConsoleError } from '@/utils/safe-logging';
 interface ServerAutocompleteProps {
   id: string;
   value: string;
@@ -72,7 +72,7 @@ export const ServerAutocomplete: React.FC<ServerAutocompleteProps> = ({
       setIsOpen(true);
       setHighlightedIndex(-1);
     } catch (error) {
-      console.error('Error searching places:', error);
+      safeConsoleError('Error searching places:', error);
       setPredictions([]);
       setIsOpen(false);
     } finally {
@@ -122,7 +122,7 @@ export const ServerAutocomplete: React.FC<ServerAutocompleteProps> = ({
           onPlaceSelect(placeData);
         }
       } catch (error) {
-        console.error('Error getting place details:', error);
+        safeConsoleError('Error getting place details:', error);
         // Fallback to basic data
         const placeData: PlaceData = {
           name: prediction.description,

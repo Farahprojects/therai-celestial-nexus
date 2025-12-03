@@ -7,6 +7,7 @@ import { useChatStore } from '@/core/store';
 import { useMessageStore } from '@/stores/messageStore';
 import { AstroDataForm } from '@/components/chat/AstroDataForm';
 import { ReportFormData } from '@/types/report-form';
+import { safeConsoleError } from '@/utils/safe-logging';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -62,7 +63,7 @@ export const SwissNewChartButton: React.FC<SwissNewChartButtonProps> = ({ classN
       setShowAstroModal(false);
       navigate(`/astro?chat_id=${newChatId}`, { replace: true });
     } catch (error) {
-      console.error('[SwissNewChartButton] Failed to navigate to Swiss conversation:', error);
+      safeConsoleError('[SwissNewChartButton] Failed to navigate to Swiss conversation:', error);
     }
   };
 

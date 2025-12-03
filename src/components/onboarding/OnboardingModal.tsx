@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import type { Database, Tables, TablesUpdate } from '@/integrations/supabase/types';
 import { createFolder, moveConversationToFolder, updateFolderProfile } from '@/services/folders';
 import { clearPrimaryProfileIdCache } from '@/services/conversations-static';
+import { safeConsoleError, safeConsoleLog } from '@/utils/safe-logging';
 type ProfileRow = Tables<'profiles'>;
 type UserProfileRow = Tables<'user_profile_list'>;
 
@@ -74,7 +75,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
 
       setCurrentStep('profile');
     } catch (error) {
-      console.error('Error updating display name:', error);
+      safeConsoleError('Error updating display name:', error);
       toast.error('Failed to save name. Please try again.');
     } finally {
       setIsLoading(false);
@@ -236,7 +237,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
       );
 
       if (starterError) {
-        console.error('Error creating starter conversation:', starterError);
+        safeConsoleError('Error creating starter conversation:', starterError);
         toast.error('Failed to create conversation. Please try again.');
         return; // Don't proceed if we can't create the conversation
       } else if (starterConversation?.success && starterConversation?.data?.id) {
@@ -244,12 +245,12 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
         const chatId = starterConversation.data.id;
         setOnboardingChatId(chatId);
         localStorage.setItem('onboarding_chat_id', chatId);
-        console.log('[OnboardingModal] Starter conversation created:', chatId);
+        safeConsoleLog('[OnboardingModal] Starter conversation created:', chatId);
         
         // Create folder and move conversation into it
         try {
           const folder = await createFolder(user.id, 'My Folder');
-          console.log('[OnboardingModal] Folder created:', folder.id);
+          safeConsoleLog('[OnboardingModal] Folder created:', folder.id);
           
           // Link folder to primary profile so insights use saved data
           if (primaryProfileId) {
@@ -261,12 +262,12 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
           console.log('[OnboardingModal] Conversation moved to folder');
         } catch (folderError) {
           // Don't block onboarding if folder creation fails
-          console.error('[OnboardingModal] Failed to create folder:', folderError);
+          safeConsoleError('[OnboardingModal] Failed to create folder:', folderError);
           // User can still use the chat, just not in a folder
         }
       } else {
         // Edge function returned but with success: false
-        console.error('Starter conversation creation failed:', starterConversation);
+        safeConsoleError('Starter conversation creation failed:', starterConversation);
         toast.error('Failed to create conversation. Please try again.');
         return; // Don't proceed if conversation creation failed
       }
@@ -274,7 +275,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
       toast.success('Profile created successfully!');
       setCurrentStep('subscription');
     } catch (error) {
-      console.error('Error creating profile:', error);
+      safeConsoleError('Error creating profile:', error);
       toast.error('Failed to create profile. Please try again.');
     } finally {
       setIsLoading(false);
@@ -310,14 +311,14 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
       // Close the modal
       onComplete();
     } catch (error) {
-      console.error('Error marking onboarding complete:', error);
+      safeConsoleError('Error marking onboarding complete:', error);
       toast.error('Something went wrong. Please try again.');
     }
   };
 
   const handleSubscribe = async () => {
     if (!onboardingChatId) {
-      console.error('[OnboardingModal] No onboardingChatId - cannot proceed');
+      safeConsoleError('[OnboardingModal] No onboardingChatId - cannot proceed');
       toast.error('Something went wrong. Please try again.');
       return;
     }
@@ -329,14 +330,14 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
       // Navigate to subscription page with return URL to chat
       navigate(`/subscription-paywall?returnTo=/c/${onboardingChatId}?new=true`);
     } catch (error) {
-      console.error('[OnboardingModal] Error in handleSubscribe:', error);
+      safeConsoleError('[OnboardingModal] Error in handleSubscribe:', error);
       // Don't show toast here - markOnboardingComplete already shows one
     }
   };
 
   const handleSkipSubscription = async () => {
     if (!onboardingChatId) {
-      console.error('[OnboardingModal] No onboardingChatId - cannot proceed');
+      safeConsoleError('[OnboardingModal] No onboardingChatId - cannot proceed');
       toast.error('Something went wrong. Please try again.');
       return;
     }
@@ -348,7 +349,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
       // Navigate to chat with ?new=true - this triggers starter questions
       navigate(`/c/${onboardingChatId}?new=true`);
     } catch (error) {
-      console.error('[OnboardingModal] Error in handleSkipSubscription:', error);
+      safeConsoleError('[OnboardingModal] Error in handleSkipSubscription:', error);
       // Don't show toast here - markOnboardingComplete already shows one
     }
   };

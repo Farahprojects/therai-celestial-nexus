@@ -12,7 +12,7 @@ import { showToast } from "@/utils/notifications";
 import { validateEmail } from "@/utils/authValidation";
 import { supabase } from "@/integrations/supabase/client";
 import { SEO } from "@/components/SEO";
-
+import { safeConsoleError } from '@/utils/safe-logging';
 const Contact = () => {
   const [searchParams] = useSearchParams();
   
@@ -63,7 +63,7 @@ const Contact = () => {
         localStorage.removeItem("contactFormPrefill");
         console.log('📝 Cleared contact form prefill data from localStorage');
       } catch (error) {
-        console.error("Error parsing contact form prefill data:", error);
+        safeConsoleError("Error parsing contact form prefill data:", error);
         localStorage.removeItem("contactFormPrefill");
       }
     }
@@ -216,7 +216,7 @@ const Contact = () => {
         variant: "destructive"
       });
       
-      console.error("Error sending contact form:", error);
+      safeConsoleError("Error sending contact form:", error);
       setIsSubmitting(false);
     }
   };

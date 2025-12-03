@@ -12,6 +12,7 @@ import { ReportData } from '@/utils/reportContentExtraction';
 import { AstroDataRenderer } from './AstroDataRenderer';
 import { useSystemPrompts, SystemPrompt } from '@/hooks/useSystemPrompts';
 import { useDocumentLoader } from '@/hooks/useDocumentLoader';
+import { safeConsoleError } from '@/utils/safe-logging';
 import {
   Dialog,
   DialogContent,
@@ -105,7 +106,7 @@ export const ReportSlideOver: React.FC<ReportSlideOverProps> = ({
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'An error occurred';
       setError(errorMessage);
-      console.error('Error fetching report data:', err);
+      safeConsoleError('Error fetching report data:', err);
     } finally {
       setIsLoading(false);
     }
@@ -344,7 +345,7 @@ export const ReportSlideOver: React.FC<ReportSlideOverProps> = ({
         setShowPromptSelector(false);
       }, 2000);
     } catch (err) {
-      console.error('[ReportSlideOver] Failed to copy:', err);
+      safeConsoleError('[ReportSlideOver] Failed to copy:', err);
       toast.error('Failed to copy data');
     }
   };

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-
+import { safeConsoleError } from '@/utils/safe-logging';
 interface UserProfile {
   id: string;
   email: string;
@@ -29,13 +29,13 @@ export const useUserProfile = () => {
           .single();
 
         if (error) {
-          console.error('Error fetching profile:', error);
+          safeConsoleError('Error fetching profile:', error);
           setProfile(null);
         } else {
           setProfile(data);
         }
       } catch (err) {
-        console.error('Error fetching profile:', err);
+        safeConsoleError('Error fetching profile:', err);
         setProfile(null);
       } finally {
         setLoading(false);

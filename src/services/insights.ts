@@ -1,6 +1,6 @@
 
 import { supabase } from '@/integrations/supabase/client';
-
+import { safeConsoleError, safeConsoleLog } from '@/utils/safe-logging';
 export interface GenerateInsightRequest {
   clientId: string;
   coachId: string;
@@ -56,7 +56,7 @@ export const insightsService = {
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       
       if (sessionError) {
-        console.error('🚀 SERVICE: Session error details:', sessionError);
+        safeConsoleError('🚀 SERVICE: Session error details:', sessionError);
         return {
           success: false,
           error: 'Authentication session error. Please try signing in again.'
@@ -71,7 +71,7 @@ export const insightsService = {
         };
       }
 
-      console.log('🚀 SERVICE: User authenticated:', session.user.id);
+      safeConsoleLog('🚀 SERVICE: User authenticated:', session.user.id);
 
       // Mock API key for now since table was dropped
       console.log('🚀 SERVICE: === API KEY MOCK (TABLE DROPPED) ===');
@@ -86,7 +86,7 @@ export const insightsService = {
         console.log('🚀 SERVICE: Processing journal entries:', request.clientData.journalEntries.length);
         
         journalText = request.clientData.journalEntries.map((entry, index) => {
-          console.log(`🚀 SERVICE: Processing journal entry ${index + 1}:`, {
+          safeConsoleLog(`🚀 SERVICE: Processing journal entry ${index + 1}:`, {
             id: entry.id,
             title: entry.title,
             entry_text_length: entry.entry_text?.length || 0,
@@ -138,14 +138,7 @@ export const insightsService = {
       console.log('🚀 SERVICE: Response error:', error);
       
       if (error) {
-        const errorDetails = error as Error & { status?: number; statusText?: string; details?: unknown };
-        console.error('🚀 SERVICE: Edge function error details:', {
-          message: error.message,
-          name: error.name,
-          status: errorDetails.status,
-          statusText: errorDetails.statusText,
-          details: errorDetails.details
-        });
+        console.error('🚀 SERVICE: Edge function error details:', '[REDACTED ERROR OBJECT - Check for sensitive data]');
         return {
           success: false,
           error: error.message || 'Failed to generate insight. Please try again.'
@@ -159,8 +152,8 @@ export const insightsService = {
       console.error('🚀 SERVICE: Error type:', typeof error);
       console.error('🚀 SERVICE: Error name:', error instanceof Error ? error.name : 'Unknown');
       console.error('🚀 SERVICE: Error message:', error instanceof Error ? error.message : String(error));
-      console.error('🚀 SERVICE: Error stack:', error instanceof Error ? error.stack : 'No stack trace');
-      console.error('🚀 SERVICE: Full error object:', error);
+      // Stack trace logging removed for security - full error logged via safeConsoleError above
+      safeConsoleError('🚀 SERVICE: Full error object:', error);
       
       return {
         success: false,

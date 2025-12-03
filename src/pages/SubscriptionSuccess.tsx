@@ -7,7 +7,7 @@ import Logo from '@/components/Logo';
 import { CheckCircle, Loader2, AlertCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-
+import { safeConsoleError } from '@/utils/safe-logging';
 const SubscriptionSuccess: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -58,7 +58,7 @@ const SubscriptionSuccess: React.FC = () => {
         setError('Subscription verification failed. Please try again.');
       }
     } catch (err) {
-      console.error('Error checking subscription:', err);
+      safeConsoleError('Error checking subscription:', err);
       setError(err instanceof Error ? err.message : 'Failed to verify subscription');
     } finally {
       setLoading(false);

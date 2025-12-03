@@ -5,7 +5,7 @@ import { useMessageStore } from '@/stores/messageStore';
 import { unifiedWebSocketService } from '@/services/websocket/UnifiedWebSocketService';
 import { unifiedChannel } from '@/services/websocket/UnifiedChannelService';
 import { Message } from '@/core/types';
-
+import { safeConsoleError, safeConsoleWarn } from '@/utils/safe-logging';
 class ChatController {
   private conversationServiceInitialized = false;
   private isResetting = false;
@@ -39,7 +39,7 @@ class ChatController {
     
     // CRITICAL: Block invalid chat_id values
     if (targetChatId === "1" || targetChatId.length < 10) {
-      console.error('[ChatController] BLOCKED: Invalid chat_id detected:', targetChatId);
+      safeConsoleError('[ChatController] BLOCKED: Invalid chat_id detected:', targetChatId);
       setMessageLoadError('Invalid chat ID');
       return;
     }
@@ -51,14 +51,14 @@ class ChatController {
       // Explicitly fetch to ensure we have latest data
       await fetchMessages();
     } catch (error) {
-      console.error('[ChatController] Error loading existing messages:', error);
+      safeConsoleError('[ChatController] Error loading existing messages:', error);
       setMessageLoadError(error instanceof Error ? error.message : 'Failed to load messages');
     }
   }
 
   async initializeForConversation(chat_id: string) {
     if (!chat_id) {
-      console.error('[ChatController] initializeForConversation: FAIL FAST - chat_id is required');
+      safeConsoleError('[ChatController] initializeForConversation: FAIL FAST - chat_id is required');
       throw new Error('chat_id is required for conversation initialization');
     }
     
@@ -110,7 +110,7 @@ class ChatController {
       
       return true;
     } catch (error) {
-      console.error('[ChatController] Error verifying conversation exists:', error);
+      safeConsoleError('[ChatController] Error verifying conversation exists:', error);
       return false;
     }
   }
@@ -141,7 +141,7 @@ class ChatController {
         .select('id', { head: true, count: 'exact' })
         .eq('chat_id', chat_id);
     } catch (error) {
-      console.warn('[ChatController] ensureRealtimeReady ping failed (continuing):', error);
+      safeConsoleWarn('[ChatController] ensureRealtimeReady ping failed (continuing):', error);
     }
   }
 
@@ -180,16 +180,16 @@ class ChatController {
   // Audio pipeline methods removed - using universal mic system
   public async initializeAudioPipeline() {
     // Audio pipeline removed - using universal mic system
-    console.log('[ChatController] Audio pipeline removed - using universal mic system');
+    // Audio pipeline removed - using universal mic system (removed noisy log)
   }
 
   // Simple pause/unpause - no turn management needed
   public pauseMic() {
-    console.log('[ChatController] pauseMic: Using universal mic system');
+    // pauseMic: Using universal mic system (removed noisy log)
   }
 
   public unpauseMic() {
-    console.log('[ChatController] unpauseMic: Using universal mic system');
+    // unpauseMic: Using universal mic system (removed noisy log)
   }
 
 
@@ -197,7 +197,7 @@ class ChatController {
 
 
   public cancelMic() {
-    console.log('[ChatController] cancelMic: Using universal mic system');
+    // cancelMic: Using universal mic system (removed noisy log)
   }
 
   public resetConversationService() {
@@ -288,7 +288,7 @@ class ChatController {
     };
 
     addMessage(progressMessage);
-    console.log(`[ChatController] Added payment progress message: ${message}`);
+    // Added payment progress message (removed noisy log)
   }
 
   public removePaymentFlowProgress(): void {
@@ -305,13 +305,13 @@ class ChatController {
       updateMessage(msg.id, { status: 'complete' });
     });
     
-    console.log(`[ChatController] Removed ${progressMessages.length} payment progress messages`);
+    // Removed payment progress messages (removed noisy log)
   }
 
   public setPaymentFlowStopIcon(show: boolean): void {
     const { setPaymentFlowStopIcon } = useChatStore.getState();
     setPaymentFlowStopIcon(show);
-    console.log(`[ChatController] Payment flow stop icon: ${show ? 'ON' : 'OFF'}`);
+    // Payment flow stop icon toggled (removed noisy log)
   }
 
   public setTtsMode(enabled: boolean): void {

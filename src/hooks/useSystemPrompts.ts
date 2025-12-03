@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-
+import { safeConsoleError } from '@/utils/safe-logging';
 export interface SystemPrompt {
   id: string;
   category: string;
@@ -46,7 +46,7 @@ export function useSystemPrompts() {
       setPrompts(grouped);
       setError(null);
     } catch (err) {
-      console.error('[useSystemPrompts] Error fetching prompts:', err);
+      safeConsoleError('[useSystemPrompts] Error fetching prompts:', err);
       setError('Failed to load system prompts');
     } finally {
       setLoading(false);

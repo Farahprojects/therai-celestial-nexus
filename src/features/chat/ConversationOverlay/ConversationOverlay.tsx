@@ -21,6 +21,7 @@ import { Mic } from 'lucide-react';
 import { UpgradeNotification } from '@/components/subscription/UpgradeNotification';
 import { Capacitor } from '@capacitor/core';
 import BluetoothAudio from '@/plugins/BluetoothAudio';
+import { safeConsoleError, safeConsoleWarn } from '@/utils/safe-logging';
 // Lazy import for audio arbitrator to avoid circular dependencies
 const audioArbitratorImport = () => import('@/services/audio/AudioArbitrator');
 
@@ -76,15 +77,15 @@ export const ConversationOverlay: React.FC = () => {
         console.log('[ConversationOverlay] ✅ Messages resynced after reset');
       }
     } catch (e) {
-      console.error('[ConversationOverlay] Failed to disable TTS mode:', e);
+      safeConsoleError('[ConversationOverlay] Failed to disable TTS mode:', e);
     }
 
     // Force cleanup all resources (fire-and-forget)
     ttsPlaybackService.destroy().catch((error) => {
-      console.warn('[ConversationOverlay] Failed to destroy TTS playback service:', error);
+      safeConsoleWarn('[ConversationOverlay] Failed to destroy TTS playback service:', error);
     });
     try { recorderRef.current?.dispose(); } catch (error) {
-      console.warn('[ConversationOverlay] Failed to dispose recorder:', error);
+      safeConsoleWarn('[ConversationOverlay] Failed to dispose recorder:', error);
     }
 
     // Cleanup WebSocket connection
@@ -124,7 +125,7 @@ export const ConversationOverlay: React.FC = () => {
       // Resume AudioContext
       const success = await resumeAudioContext();
       if (!success) {
-        console.error('[ConversationOverlay] ❌ Failed to unlock AudioContext');
+        safeConsoleError('[ConversationOverlay] ❌ Failed to unlock AudioContext');
       }
     };
 
@@ -143,7 +144,7 @@ export const ConversationOverlay: React.FC = () => {
   // WebSocket connection setup - now uses unified channel
   const establishConnection = useCallback(async () => {
     if (!chat_id || !user) {
-      console.error('[ConversationOverlay] ❌ No chat_id or user available for unified channel');
+      safeConsoleError('[ConversationOverlay] ❌ No chat_id or user available for unified channel');
       return false;
     }
 
@@ -177,7 +178,7 @@ export const ConversationOverlay: React.FC = () => {
               }, 200);
             }
           }).catch((e) => {
-            console.error('[ConversationOverlay] ❌ TTS base64 playback failed:', e);
+            safeConsoleError('[ConversationOverlay] ❌ TTS base64 playback failed:', e);
             // Fallback: just continue without audio playback for now
           });
         }
@@ -214,13 +215,14 @@ export const ConversationOverlay: React.FC = () => {
       wasSubscribedRef.current = true;
       return true;
     } catch (error) {
-      console.error('[ConversationOverlay] Connection failed:', error);
+      safeConsoleError('[ConversationOverlay] Connection failed:', error);
       resetToTapToStart();
       return false;
     }
   }, [chat_id, user, addMessage]);
 
   // TTS playback
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const playAudioImmediately = useCallback(async (audioBytes: number[]) => {
     if (isShuttingDown.current) return;
 
@@ -249,7 +251,7 @@ export const ConversationOverlay: React.FC = () => {
         }
       });
     } catch (error) {
-      console.error('[ConversationOverlay] ❌ TTS playback failed:', error);
+      safeConsoleError('[ConversationOverlay] ❌ TTS playback failed:', error);
       resetToTapToStart();
     }
   }, [resetToTapToStart]);
@@ -259,7 +261,7 @@ export const ConversationOverlay: React.FC = () => {
     // 1. IDEMPOTENT GUARD - Prevent multiple simultaneous starts
     if (isStartingRef.current || isActiveRef.current || !chat_id || !mode) {
       if (!mode) {
-        console.error('[ConversationOverlay] Cannot start: mode is not set');
+        safeConsoleError('[ConversationOverlay] Cannot start: mode is not set');
       }
       return;
     }
@@ -272,16 +274,18 @@ export const ConversationOverlay: React.FC = () => {
       if (Capacitor.isNativePlatform()) {
         try {
           console.log('[ConversationOverlay] 🔵 Starting Bluetooth SCO for conversation session...');
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
           const result = await BluetoothAudio.startBluetoothAudio();
-          console.log('[ConversationOverlay] ✅ Bluetooth audio session established:', result);
+          // Bluetooth audio session established (removed noisy log)
 
           // Wait for routing to stabilize
           await new Promise(resolve => setTimeout(resolve, 500));
 
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
           const status = await BluetoothAudio.isBluetoothConnected();
-          console.log('[ConversationOverlay] Bluetooth connection status:', status);
+          // Bluetooth connection status changed (removed noisy log)
         } catch (error) {
-          console.warn('[ConversationOverlay] Bluetooth audio setup failed:', error);
+          safeConsoleWarn('[ConversationOverlay] Bluetooth audio setup failed:', error);
           // Continue anyway - might not have Bluetooth connected
         }
       }
@@ -292,7 +296,7 @@ export const ConversationOverlay: React.FC = () => {
         // Immediately stop tracks to release mic
         stream.getTracks().forEach(track => track.stop());
       } catch (error) {
-        console.error('[ConversationOverlay] Mic permission denied:', error);
+        safeConsoleError('[ConversationOverlay] Mic permission denied:', error);
         throw new Error('Microphone permission required for conversation mode');
       }
 
@@ -357,7 +361,7 @@ export const ConversationOverlay: React.FC = () => {
           }
 
           // Log other errors normally
-          console.error('[ConversationOverlay] Audio recorder error:', error);
+          safeConsoleError('[ConversationOverlay] Audio recorder error:', error);
           resetToTapToStart();
         }
       });
@@ -379,7 +383,7 @@ export const ConversationOverlay: React.FC = () => {
       setState('listening');
 
     } catch (error) {
-      console.error('[ConversationOverlay] Start failed:', error);
+      safeConsoleError('[ConversationOverlay] Start failed:', error);
       resetToTapToStart();
     } finally {
       isStartingRef.current = false;
@@ -393,7 +397,7 @@ export const ConversationOverlay: React.FC = () => {
     // IMMEDIATE audio stop - no race condition
     ttsPlaybackService.stop();
     ttsPlaybackService.destroy().catch((error) => {
-      console.warn('[ConversationOverlay] Failed to destroy TTS service on modal close:', error);
+      safeConsoleWarn('[ConversationOverlay] Failed to destroy TTS service on modal close:', error);
     });
 
     // Fire-and-forget microphone release
@@ -406,9 +410,9 @@ export const ConversationOverlay: React.FC = () => {
       try {
         console.log('[ConversationOverlay] 🔴 Stopping Bluetooth SCO session...');
         await BluetoothAudio.stopBluetoothAudio();
-        console.log('[ConversationOverlay] ✅ Bluetooth audio session ended');
+        // Bluetooth audio session ended (removed noisy log)
       } catch (error) {
-        console.warn('[ConversationOverlay] Bluetooth audio stop failed:', error);
+        safeConsoleWarn('[ConversationOverlay] Bluetooth audio stop failed:', error);
       }
     }
 
@@ -439,7 +443,7 @@ export const ConversationOverlay: React.FC = () => {
         console.log('[ConversationOverlay] ✅ Messages resynced after conversation mode');
       }
     } catch (error) {
-      console.error('[ConversationOverlay] Error during cleanup:', error);
+      safeConsoleError('[ConversationOverlay] Error during cleanup:', error);
     }
 
     // Reset state
@@ -464,10 +468,10 @@ export const ConversationOverlay: React.FC = () => {
       // Disable TTS mode proactively
       import('@/features/chat/ChatController').then(({ chatController }) => {
         try { chatController.setTtsMode(false); } catch (error) {
-          console.warn('[ConversationOverlay] Failed to disable TTS mode:', error);
+          safeConsoleWarn('[ConversationOverlay] Failed to disable TTS mode:', error);
         }
       }).catch((error) => {
-        console.warn('[ConversationOverlay] Failed to import ChatController:', error);
+        safeConsoleWarn('[ConversationOverlay] Failed to import ChatController:', error);
       });
 
       // Idempotent cleanup when returning to tap-to-start
@@ -485,10 +489,10 @@ export const ConversationOverlay: React.FC = () => {
         try {
           chatController.cleanup();
         } catch (e) {
-          console.error('[ConversationOverlay] Failed to cleanup ChatController:', e);
+          safeConsoleError('[ConversationOverlay] Failed to cleanup ChatController:', e);
         }
       }).catch((error) => {
-        console.warn('[ConversationOverlay] Failed to import ChatController for cleanup:', error);
+        safeConsoleWarn('[ConversationOverlay] Failed to import ChatController for cleanup:', error);
       });
 
       try { recorderRef.current?.dispose(); } catch {

@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { showToast } from "@/utils/notifications";
 import { useAuth } from "@/contexts/AuthContext";
-
+import { safeConsoleError } from '@/utils/safe-logging';
 export interface UserPreferences {
   id: string;
   user_id: string;
@@ -167,7 +167,7 @@ export function useUserPreferences() {
       if (isMounted()) setPreferences(data as UserPreferences);
 
     } catch (err: unknown) {
-      console.error("Failed to create default preferences:", err);
+      safeConsoleError("Failed to create default preferences:", err);
     }
   };
 
@@ -226,7 +226,7 @@ export function useUserPreferences() {
       
       return true;
     } catch (err: unknown) {
-      console.error("Error updating main toggle:", err);
+      safeConsoleError("Error updating main toggle:", err);
       
       // Revert optimistic update on error
       if (isMounted()) {
@@ -318,7 +318,7 @@ export function useUserPreferences() {
       
       return true;
     } catch (err: unknown) {
-      console.error("Error updating client view mode:", err);
+      safeConsoleError("Error updating client view mode:", err);
       
       // Revert optimistic update on error
       if (isMounted()) {

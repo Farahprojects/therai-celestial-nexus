@@ -12,7 +12,7 @@ export const cleanupAuthState = async () => {
     const storeUtils = await import('@/core/store-utils');
     storeUtils.getCurrentChatState().clearAllData();
   } catch (error) {
-    console.warn('Could not clear chat stores during auth cleanup:', error);
+    safeConsoleWarn('Could not clear chat stores during auth cleanup:', error);
   }
   
   // Clear redirect persistence (shared URL persistence)
@@ -29,7 +29,7 @@ export const cleanupAuthState = async () => {
       }
     });
   } catch (error) {
-    console.warn('Could not clear redirect persistence during auth cleanup:', error);
+    safeConsoleWarn('Could not clear redirect persistence during auth cleanup:', error);
   }
   
   // Clear all Supabase auth keys from localStorage (comprehensive patterns)

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Capacitor } from '@capacitor/core';
 import BluetoothAudio, { AudioRoute } from '@/plugins/bluetooth-audio';
-
+import { safeConsoleError } from '@/utils/safe-logging';
 export interface UseAudioRouteReturn {
     currentRoute: AudioRoute;
     isBluetoothAvailable: boolean;
@@ -37,7 +37,7 @@ export const useAudioRoute = (): UseAudioRouteReturn => {
             const bluetoothResult = await BluetoothAudio.isBluetoothConnected();
             setIsBluetoothAvailable(bluetoothResult.connected);
         } catch (error) {
-            console.error('[useAudioRoute] Failed to detect audio route:', error);
+            safeConsoleError('[useAudioRoute] Failed to detect audio route:', error);
             setCurrentRoute('unknown');
             setIsBluetoothAvailable(false);
         }
@@ -60,7 +60,7 @@ export const useAudioRoute = (): UseAudioRouteReturn => {
             // Refresh to get updated route
             await detectAudioRoute();
         } catch (error) {
-            console.error('[useAudioRoute] Failed to enable Bluetooth:', error);
+            safeConsoleError('[useAudioRoute] Failed to enable Bluetooth:', error);
         }
     }, [detectAudioRoute]);
 
@@ -77,7 +77,7 @@ export const useAudioRoute = (): UseAudioRouteReturn => {
             // Refresh to get updated route
             await detectAudioRoute();
         } catch (error) {
-            console.error('[useAudioRoute] Failed to enable speaker:', error);
+            safeConsoleError('[useAudioRoute] Failed to enable speaker:', error);
         }
     }, [detectAudioRoute]);
 
@@ -95,7 +95,7 @@ export const useAudioRoute = (): UseAudioRouteReturn => {
             // Refresh to get updated route
             await detectAudioRoute();
         } catch (error) {
-            console.error('[useAudioRoute] Failed to disable routing:', error);
+            safeConsoleError('[useAudioRoute] Failed to disable routing:', error);
         }
     }, [detectAudioRoute]);
 

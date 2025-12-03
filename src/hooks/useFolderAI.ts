@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
+import { safeConsoleError, safeConsoleWarn } from '@/utils/safe-logging';
 import {
   sendMessageToFolderAI,
   getFolderAIMessages,
@@ -35,7 +36,7 @@ export function useFolderAI(folderId: string | null, userId: string | null) {
       const context = await getFolderContext(folderId);
       setFolderContext(context);
     } catch (err: unknown) {
-      console.error('[useFolderAI] Error loading context:', err);
+      safeConsoleError('[useFolderAI] Error loading context:', err);
       setError(err instanceof Error ? err.message : 'Failed to load folder context');
     } finally {
       setIsLoading(false);
@@ -70,7 +71,7 @@ export function useFolderAI(folderId: string | null, userId: string | null) {
           };
         } catch (err) {
           // Handle old message formats gracefully
-          console.warn('[useFolderAI] Error parsing message:', err, msg);
+          safeConsoleWarn('[useFolderAI] Error parsing message', err);
           return {
             ...msg,
             plainText: msg.content || '',
@@ -83,7 +84,7 @@ export function useFolderAI(folderId: string | null, userId: string | null) {
 
       setMessages(parsedMessages);
     } catch (err: unknown) {
-      console.error('[useFolderAI] Error loading messages:', err);
+      safeConsoleError('[useFolderAI] Error loading messages:', err);
       setError(err instanceof Error ? err.message : 'Failed to load messages');
     } finally {
       setIsLoading(false);
@@ -149,7 +150,7 @@ export function useFolderAI(folderId: string | null, userId: string | null) {
       setMessages(prev => [...prev, assistantMessage]);
 
     } catch (err: unknown) {
-      console.error('[useFolderAI] Error sending message:', err);
+      safeConsoleError('[useFolderAI] Error sending message:', err);
       setError(err instanceof Error ? err.message : 'Failed to send message');
       
       // Add error message to chat

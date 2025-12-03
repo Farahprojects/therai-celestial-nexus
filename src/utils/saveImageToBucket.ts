@@ -1,6 +1,6 @@
 
 import { uploadFeatureImage } from './uploadFeatureImage';
-
+import { safeConsoleError } from '@/utils/safe-logging';
 export const saveUploadedImageToBucket = async (imageUrl: string, fileName: string) => {
   try {
     // Fetch the image from the URL
@@ -22,7 +22,7 @@ export const saveUploadedImageToBucket = async (imageUrl: string, fileName: stri
       throw new Error('Failed to upload image to bucket');
     }
   } catch (error) {
-    console.error('Error saving image to bucket:', error);
+    safeConsoleError('Error saving image to bucket:', error);
     return null;
   }
 };
@@ -42,7 +42,7 @@ export const autoSaveDottedCircleImage = async (): Promise<string | null> => {
     }
     return null;
   } catch (error) {
-    console.error('Failed to save dotted circle image:', error);
+    safeConsoleError('Failed to save dotted circle image:', error);
     return null;
   }
 };

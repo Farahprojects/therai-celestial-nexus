@@ -7,7 +7,7 @@ import { toast } from 'sonner';
 import { useSettingsModal } from '@/contexts/SettingsModalContext';
 import { cn } from '@/lib/utils';
 import { CancelSubscriptionModal } from '@/components/billing/CancelSubscriptionModal';
-
+import { safeConsoleError } from '@/utils/safe-logging';
 interface SubscriptionData {
   subscription_active: boolean;
   subscription_plan: string | null;
@@ -60,7 +60,7 @@ export const BillingPanel = () => {
         subscription_next_charge: data.subscription_next_charge || null,
       });
     } catch (error) {
-      console.error('Error fetching billing data:', error);
+      safeConsoleError('Error fetching billing data:', error);
       toast.error('Failed to load billing information');
     } finally {
       setLoading(false);
@@ -80,7 +80,7 @@ export const BillingPanel = () => {
       console.log('Portal response:', { data, error });
 
       if (error) {
-        console.error('Portal error:', error);
+        safeConsoleError('Portal error:', error);
         throw error;
       }
 
@@ -91,7 +91,7 @@ export const BillingPanel = () => {
       console.log('Redirecting to:', data.url);
       window.location.href = data.url;
     } catch (error) {
-      console.error('Error opening customer portal:', error);
+      safeConsoleError('Error opening customer portal:', error);
       toast.error('Failed to open billing portal');
       setManageLoading(false);
     }

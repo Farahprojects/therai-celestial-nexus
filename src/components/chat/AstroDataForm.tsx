@@ -23,7 +23,7 @@ import { useProfileSaver } from '@/hooks/useProfileSaver';
 import { AstroTypeStep } from './AstroForm/AstroTypeStep';
 import { AstroDetailsStep } from './AstroForm/AstroDetailsStep';
 import { AstroSecondPersonStep } from './AstroForm/AstroSecondPersonStep';
-
+import { safeConsoleError } from '@/utils/safe-logging';
 interface AstroDataFormProps {
   onClose: () => void;
   onSubmit: (data: ReportFormData & { chat_id?: string }) => void;
@@ -236,7 +236,7 @@ export const AstroDataForm: React.FC<AstroDataFormProps> = ({
         // - Calling onProfileLinked callback
         
       } catch (error) {
-        console.error('[AstroDataForm] Profile submission error:', error);
+        safeConsoleError('[AstroDataForm] Profile submission error:', error);
         toast.error('Failed to submit profile data. Please try again.');
       } finally {
         setIsProcessing(false);
@@ -297,7 +297,7 @@ export const AstroDataForm: React.FC<AstroDataFormProps> = ({
         onClose();
       }
     } catch (error) {
-      console.error('[AstroDataForm] Submission error:', error);
+      safeConsoleError('[AstroDataForm] Submission error:', error);
       toast.error('Failed to submit astro data. Please try again.');
     } finally {
       setIsProcessing(false);

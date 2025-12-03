@@ -2,7 +2,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { CalendarSession } from "@/types/calendar";
 import { mapRowToCalendarSession } from "@/utils/calendarHelpers";
-
+import { safeConsoleError } from '@/utils/safe-logging';
 // Helper to get current user ID
 const getCurrentUserId = () => supabase.auth.getUser().then(res => res.data.user?.id || null);
 
@@ -47,7 +47,7 @@ export const calendarSessionsService = {
       .single();
 
     if (error) {
-      console.error("Supabase error: ", error);
+      safeConsoleError("Supabase error: ", error);
       throw new Error(error.message);
     }
     if (!data) {

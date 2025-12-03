@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-
+import { safeConsoleError } from '@/utils/safe-logging';
 interface ProfileData {
   name: string;
   birthDate: string;
@@ -54,7 +54,7 @@ export const useProfileSaver = () => {
         .single();
 
       if (error) {
-        console.error('[useProfileSaver] Failed to save profile:', error);
+        safeConsoleError('[useProfileSaver] Failed to save profile:', error);
         toast.error('Failed to save profile');
         return { success: false, profileId: null };
       }
@@ -62,7 +62,7 @@ export const useProfileSaver = () => {
       toast.success('Profile saved successfully');
       return { success: true, profileId: profileData.id };
     } catch (err) {
-      console.error('[useProfileSaver] Error saving profile:', err);
+      safeConsoleError('[useProfileSaver] Error saving profile:', err);
       toast.error('Failed to save profile');
       return { success: false, profileId: null };
     } finally {

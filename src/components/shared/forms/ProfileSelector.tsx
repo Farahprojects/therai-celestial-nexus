@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Check, ChevronsUpDown, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import { safeConsoleError } from '@/utils/safe-logging';
 import {
   Command,
   CommandEmpty,
@@ -61,12 +62,12 @@ export const ProfileSelector: React.FC<ProfileSelectorProps> = ({
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('[ProfileSelector] Failed to load profiles:', error);
+        safeConsoleError('[ProfileSelector] Failed to load profiles:', error);
       } else {
         setProfiles(data || []);
       }
     } catch (err) {
-      console.error('[ProfileSelector] Error loading profiles:', err);
+      safeConsoleError('[ProfileSelector] Error loading profiles:', err);
     } finally {
       setIsLoading(false);
     }
@@ -90,7 +91,7 @@ export const ProfileSelector: React.FC<ProfileSelectorProps> = ({
         .eq('user_id', user.id); // Extra safety check
 
       if (error) {
-        console.error('[ProfileSelector] Failed to delete profile:', error);
+        safeConsoleError('[ProfileSelector] Failed to delete profile:', error);
         toast.error('Failed to delete profile');
       } else {
         toast.success(`"${profileName}" deleted`);
@@ -98,7 +99,7 @@ export const ProfileSelector: React.FC<ProfileSelectorProps> = ({
         loadProfiles();
       }
     } catch (err) {
-      console.error('[ProfileSelector] Error deleting profile:', err);
+      safeConsoleError('[ProfileSelector] Error deleting profile:', err);
       toast.error('Error deleting profile');
     }
   };

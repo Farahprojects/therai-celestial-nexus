@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
+import { safeConsoleError, safeConsoleLog } from '@/utils/safe-logging';
 import {
   Card,
   CardHeader,
@@ -25,13 +26,13 @@ const ConfirmEmail: React.FC = () => {
   const processedRef = useRef(false);
 
   const finishSuccess = async (kind: 'signup' | 'email_change', token: string, email: string) => {
-    console.log(`[EMAIL-VERIFY] ✓ SUCCESS: ${kind} verification completed`);
+    safeConsoleLog(`[EMAIL-VERIFY] ✓ SUCCESS: ${kind} verification completed`);
 
     setMessage('Finalizing your account...');
 
     try {
       // Call secure edge function to verify token and update profile
-      console.log('[EMAIL-VERIFY] Calling verify-email-token edge function...');
+      safeConsoleLog('[EMAIL-VERIFY] Calling verify-email-token edge function...');
 
       const { data, error } = await supabase.functions.invoke('verify-email-token', {
         body: {
@@ -42,7 +43,7 @@ const ConfirmEmail: React.FC = () => {
       });
 
       if (error) {
-        console.error('[EMAIL-VERIFY] Edge function error:', error);
+        safeConsoleError('[EMAIL-VERIFY] Edge function error:', error);
         throw new Error(error.message || 'Verification failed');
       }
 
@@ -54,7 +55,7 @@ const ConfirmEmail: React.FC = () => {
       console.log('[EMAIL-VERIFY] ✓ Email verification successful:', data.message);
 
     } catch (error) {
-      console.error('[EMAIL-VERIFY] Critical verification error:', error);
+      safeConsoleError('[EMAIL-VERIFY] Critical verification error:', error);
       setStatus('error');
       setMessage('Failed to verify your email. Please try again or contact support.');
       showToast({
@@ -116,8 +117,8 @@ const ConfirmEmail: React.FC = () => {
         const tokenType: string | null = hash.get('type') || search.get('type');
         const email: string | null = hash.get('email') || search.get('email');
 
-        console.log(`[EMAIL-VERIFY:${requestId}] → Flow: OTP method`);
-        console.log(`[EMAIL-VERIFY:${requestId}] OTP params - token: ${!!token}, type: ${tokenType}, email: ${email}`);
+        safeConsoleLog(`[EMAIL-VERIFY:${requestId}] → Flow: OTP method`);
+        safeConsoleLog(`[EMAIL-VERIFY:${requestId}] OTP params - token: ${!!token}, type: ${tokenType}, email: ${email}`);
 
         if (!token || !tokenType || !email) {
           const missingParams = [];
@@ -125,12 +126,12 @@ const ConfirmEmail: React.FC = () => {
           if (!tokenType) missingParams.push('type');
           if (!email) missingParams.push('email');
           
-          console.error(`[EMAIL-VERIFY:${requestId}] Missing OTP parameters:`, missingParams);
+          safeConsoleError(`[EMAIL-VERIFY:${requestId}] Missing OTP parameters:`, missingParams);
           throw new Error(`Invalid link – missing: ${missingParams.join(', ')}`);
         }
 
         // Pre-verification logging
-        console.log(`[EMAIL-VERIFY:${requestId}] Starting verification with edge function:`, {
+        safeConsoleLog(`[EMAIL-VERIFY:${requestId}] Starting verification with edge function:`, {
           tokenLength: token.length,
           type: tokenType,
           email: email,
@@ -140,12 +141,7 @@ const ConfirmEmail: React.FC = () => {
         finishSuccess(tokenType.startsWith('sign') ? 'signup' : 'email_change', token, email);
 
       } catch (err: unknown) {
-        console.error(`[EMAIL-VERIFY:${requestId}] ✗ VERIFICATION FAILED:`, {
-          message: err?.message,
-          status: err?.status,
-          code: err?.code,
-          details: err,
-        });
+        console.error(`[EMAIL-VERIFY:${requestId}] ✗ VERIFICATION FAILED:`, '[REDACTED ERROR OBJECT - Check for sensitive data]');
         
         setStatus('error');
         const msg = err?.message ?? 'Verification failed – link may have expired.';

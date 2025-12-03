@@ -3,7 +3,7 @@
 // This separation allows dynamic imports of other conversation functions without warnings
 
 import { supabase } from '@/integrations/supabase/client';
-
+import { safeConsoleError } from '@/utils/safe-logging';
 /**
  * Get a conversation by ID
  */
@@ -15,7 +15,7 @@ export const getConversation = async (conversationId: string): Promise<Conversat
     .single();
 
   if (error) {
-    console.error('Error fetching conversation:', error);
+    safeConsoleError('Error fetching conversation:', error);
     return null;
   }
 
@@ -99,7 +99,7 @@ export const getPrimaryProfileId = async (userId: string): Promise<string | null
       .single();
 
     if (error) {
-      console.error('Error fetching primary profile:', error);
+      safeConsoleError('Error fetching primary profile:', error);
       return null;
     }
 
@@ -107,7 +107,7 @@ export const getPrimaryProfileId = async (userId: string): Promise<string | null
     primaryProfileIdCache.set(cacheKey, data.id);
     return data.id;
   } catch (error) {
-    console.error('Error in getPrimaryProfileId:', error);
+    safeConsoleError('Error in getPrimaryProfileId:', error);
     return null;
   }
 };

@@ -1,3 +1,4 @@
+
 /* Dev-only console filter to reduce noise from the Lovable editor network polling
    This does NOT hide real app errors. It only suppresses known, external noise patterns.
 */

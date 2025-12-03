@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { MoreHorizontal } from 'lucide-react';
+import { safeConsoleError } from '@/utils/safe-logging';
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -61,7 +62,7 @@ export const ChatMenuButton: React.FC<ChatMenuButtonProps> = ({
         const userFolders = await getUserFolders(user.id);
         setFolders(userFolders.map(f => ({ id: f.id, name: f.name })));
       } catch (error) {
-        console.error('[ChatMenuButton] Failed to load folders:', error);
+        safeConsoleError('[ChatMenuButton] Failed to load folders:', error);
       }
     };
     
@@ -93,7 +94,7 @@ export const ChatMenuButton: React.FC<ChatMenuButtonProps> = ({
       
       setShowEditDialog(false);
     } catch (error) {
-      console.error('[ChatMenuButton] Error updating title:', error);
+      safeConsoleError('[ChatMenuButton] Error updating title:', error);
     }
   };
 
@@ -124,7 +125,7 @@ export const ChatMenuButton: React.FC<ChatMenuButtonProps> = ({
       setIsDeleting(false);
       navigate('/therai', { replace: true });
     } catch (error) {
-      console.error('[ChatMenuButton] Error deleting conversation:', error);
+      safeConsoleError('[ChatMenuButton] Error deleting conversation:', error);
       setIsDeleting(false);
     }
   };
@@ -145,7 +146,7 @@ export const ChatMenuButton: React.FC<ChatMenuButtonProps> = ({
       const userFolders = await getUserFolders(user.id);
       setFolders(userFolders.map(f => ({ id: f.id, name: f.name })));
     } catch (error) {
-      console.error('[ChatMenuButton] Failed to move conversation to folder:', error);
+      safeConsoleError('[ChatMenuButton] Failed to move conversation to folder:', error);
     }
   };
 
@@ -177,7 +178,7 @@ export const ChatMenuButton: React.FC<ChatMenuButtonProps> = ({
       const userFolders = await getUserFolders(user.id);
       setFolders(userFolders.map(f => ({ id: f.id, name: f.name })));
     } catch (error) {
-      console.error('[ChatMenuButton] Failed to create folder:', error);
+      safeConsoleError('[ChatMenuButton] Failed to create folder:', error);
     }
   };
 

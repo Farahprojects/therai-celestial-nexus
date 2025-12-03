@@ -8,6 +8,7 @@ import { updateJournalEntry, deleteJournalEntry, JournalEntry } from '@/services
 import { deleteDocument, getDocuments, FolderDocument } from '@/services/folder-documents';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { safeConsoleError } from '@/utils/safe-logging';
 
 interface Conversation {
   id: string;
@@ -119,7 +120,7 @@ export const useFolderActions = ({
       setShowEditDialog(false);
       setEditingConversationId(null);
     } catch (error) {
-      console.error('[useFolderActions] Failed to update title:', error);
+      safeConsoleError('[useFolderActions] Failed to update title', error);
     } finally {
       setIsSaving(false);
     }
@@ -162,7 +163,7 @@ export const useFolderActions = ({
         });
       }
     } catch (error) {
-      console.error('[useFolderActions] Error deleting conversation:', error);
+      safeConsoleError('[useFolderActions] Error deleting conversation', error);
       setIsDeleting(false);
     }
   };
@@ -193,7 +194,7 @@ export const useFolderActions = ({
         name: f.name
       })));
     } catch (error) {
-      console.error('[useFolderActions] Failed to move conversation to folder:', error);
+      safeConsoleError('[useFolderActions] Failed to move conversation to folder', error);
     }
   };
 
@@ -218,7 +219,7 @@ export const useFolderActions = ({
         name: f.name
       })));
     } catch (error) {
-      console.error('[useFolderActions] Failed to create folder:', error);
+      safeConsoleError('[useFolderActions] Failed to create folder', error);
     }
   };
 
@@ -252,7 +253,7 @@ export const useFolderActions = ({
       setShowEditJournalDialog(false);
       setEditingJournal(null);
     } catch (err) {
-      console.error('[useFolderActions] Failed to update journal entry:', err);
+      safeConsoleError('[useFolderActions] Failed to update journal entry', err);
     } finally {
       setIsSavingJournal(false);
     }
@@ -271,7 +272,7 @@ export const useFolderActions = ({
       setShowDeleteJournalDialog(false);
       setDeletingJournalId(null);
     } catch (err) {
-      console.error('[useFolderActions] Failed to delete journal entry:', err);
+      safeConsoleError('[useFolderActions] Failed to delete journal entry', err);
     }
   };
 
@@ -281,7 +282,7 @@ export const useFolderActions = ({
       const documentsData = await getDocuments(folderId);
       updateDocuments(documentsData);
     } catch (err) {
-      console.error('[useFolderActions] Failed to reload documents:', err);
+      safeConsoleError('[useFolderActions] Failed to reload documents', err);
     }
   };
 
@@ -299,7 +300,7 @@ export const useFolderActions = ({
       setDeletingDocumentId(null);
       toast.success('Document deleted');
     } catch (err) {
-      console.error('[useFolderActions] Failed to delete document:', err);
+      safeConsoleError('[useFolderActions] Failed to delete document', err);
       toast.error('Failed to delete document');
     }
   };
@@ -316,7 +317,7 @@ export const useFolderActions = ({
       startConversation(newChatId);
       onChatClick(newChatId);
     } catch (error) {
-      console.error('[useFolderActions] Failed to create new chat:', error);
+      safeConsoleError('[useFolderActions] Failed to create new chat', error);
     }
   };
 

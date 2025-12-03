@@ -1,5 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
-
+import { safeConsoleError } from '@/utils/safe-logging';
 export interface EmailVerificationStatus {
   isVerified: boolean;
   needsVerification: boolean;
@@ -36,7 +36,7 @@ export const checkEmailVerificationStatus = async (userId: string): Promise<Emai
     };
 
   } catch (error) {
-    console.error('Error checking email verification status:', error);
+    safeConsoleError('Error checking email verification status:', error);
     return {
       isVerified: false,
       needsVerification: true,

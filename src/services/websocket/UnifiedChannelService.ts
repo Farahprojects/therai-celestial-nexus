@@ -2,7 +2,7 @@
 // Replaces per-chat and per-feature channels with one unified channel
 
 import { supabase } from '@/integrations/supabase/client';
-
+import { safeConsoleError, safeConsoleLog } from '@/utils/safe-logging';
 const DEBUG = import.meta.env.DEV;
 
 export type EventType = 
@@ -39,7 +39,7 @@ class UnifiedChannelService {
 
   async subscribe(userId: string) {
     if (this.channel && this.userId === userId && this.isActive) {
-      if (DEBUG) console.log('[UnifiedChannel] Already subscribed for user:', userId);
+      // Already subscribed - skip (removed noisy log)
       return;
     }
     
@@ -51,19 +51,18 @@ class UnifiedChannelService {
     
     this.userId = userId;
     
-    if (DEBUG) console.log('[UnifiedChannel] 📡 Subscribing to unified channel for user:', userId);
+    // Subscribing to unified channel (removed noisy log)
     
     this.channel = supabase
       .channel(`user-realtime:${userId}`)
       .on('broadcast', { event: '*' }, this.handleEvent.bind(this))
       .subscribe((status) => {
         this.isActive = status === 'SUBSCRIBED';
-        if (DEBUG) console.log('[UnifiedChannel] Status:', status);
-        
+
         if (status === 'SUBSCRIBED') {
-          if (DEBUG) console.log('[UnifiedChannel] ✅ Connected and listening');
+          // Connected successfully (removed noisy log)
         } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-          if (DEBUG) console.warn('[UnifiedChannel] ⚠️ Connection error:', status);
+          if (DEBUG) safeConsoleWarn('[UnifiedChannel] ⚠️ Connection error:', status);
           // Attempt reconnection
           setTimeout(() => this.reconnect(), 1000);
         }
@@ -74,16 +73,10 @@ class UnifiedChannelService {
     const eventType = event as EventType;
     const listeners = this.listeners.get(eventType);
     
-    if (DEBUG) {
-      console.log('[UnifiedChannel] 📥 Event received:', {
-        type: eventType,
-        hasListeners: !!listeners && listeners.size > 0,
-        listenerCount: listeners?.size || 0
-      });
-    }
+    // Event received (removed noisy log)
     
     if (!listeners || listeners.size === 0) {
-      if (DEBUG) console.log('[UnifiedChannel] No listeners for event type:', eventType);
+      // No listeners for this event type (removed noisy log)
       return;
     }
     
@@ -92,7 +85,7 @@ class UnifiedChannelService {
       try {
         callback(payload);
       } catch (error) {
-        console.error('[UnifiedChannel] Error in event callback:', error);
+        safeConsoleError('[UnifiedChannel] Error in event callback:', error);
       }
     });
   }
@@ -104,10 +97,7 @@ class UnifiedChannelService {
     
     this.listeners.get(eventType)!.add(callback);
     
-    if (DEBUG) {
-      console.log('[UnifiedChannel] 🎧 Registered listener for:', eventType, 
-        '(total:', this.listeners.get(eventType)!.size, ')');
-    }
+    // Listener registered (removed noisy log)
     
     // Return unsubscribe function
     return () => this.off(eventType, callback);
@@ -117,10 +107,7 @@ class UnifiedChannelService {
     const listeners = this.listeners.get(eventType);
     if (listeners) {
       listeners.delete(callback);
-      if (DEBUG) {
-        console.log('[UnifiedChannel] 🔇 Removed listener for:', eventType,
-          '(remaining:', listeners.size, ')');
-      }
+      // Listener removed (removed noisy log)
     }
   }
 
@@ -131,7 +118,7 @@ class UnifiedChannelService {
     this.visibilityChangeHandler = () => {
       if (document.hidden) {
         // Tab hidden - start idle timer (close after 5 minutes)
-        if (DEBUG) console.log('[UnifiedChannel] 🌙 Tab hidden, starting idle timer');
+        if (DEBUG) safeConsoleLog('[UnifiedChannel] 🌙 Tab hidden, starting idle timer');
         this.idleTimeout = window.setTimeout(() => {
           if (DEBUG) console.log('[UnifiedChannel] ⏸️  Pausing due to inactivity');
           this.pause();

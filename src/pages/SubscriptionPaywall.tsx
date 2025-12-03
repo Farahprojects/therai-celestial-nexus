@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import Logo from '@/components/Logo';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-
+import { safeConsoleError } from '@/utils/safe-logging';
 interface PricingData {
   id: string;
   name: string;
@@ -135,7 +135,7 @@ const SubscriptionPaywall: React.FC = () => {
           .order('unit_price_usd', { ascending: true });
 
         if (error) {
-          console.error('Error fetching pricing:', error);
+          safeConsoleError('Error fetching pricing:', error);
         } else {
           // Start with clean slate - build exactly what we want to show
           const planMap = new Map<string, PricingData>();
@@ -195,16 +195,13 @@ const SubscriptionPaywall: React.FC = () => {
           });
 
           if (duplicates.length > 0) {
-            console.error('[SubscriptionPaywall] Duplicate plan names detected:', {
-              duplicates,
-              plans: finalPlans
-            });
+            console.error('[SubscriptionPaywall] Duplicate plan names detected:', duplicates.length, 'duplicates found');
           }
 
           setPricingPlans(finalPlans);
         }
       } catch (error) {
-        console.error('Error fetching pricing:', error);
+        safeConsoleError('Error fetching pricing:', error);
       }
     };
 
@@ -220,7 +217,7 @@ const SubscriptionPaywall: React.FC = () => {
       url.searchParams.set('planId', planId);
       window.location.href = url.toString();
     } catch (error) {
-      console.error('Error navigating to checkout:', error);
+      safeConsoleError('Error navigating to checkout:', error);
       toast.error('Something went wrong. Please try again.');
       setLoadingPlanId(null);
     }

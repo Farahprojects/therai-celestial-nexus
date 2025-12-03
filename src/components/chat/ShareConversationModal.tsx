@@ -3,7 +3,7 @@ import { X, Copy, Check, Link } from 'lucide-react';
 import { shareConversation, unshareConversation } from '@/services/conversations-static';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-
+import { safeConsoleError } from '@/utils/safe-logging';
 interface ShareConversationModalProps {
   conversationId: string;
   conversationTitle?: string;
@@ -46,7 +46,7 @@ export const ShareConversationModal: React.FC<ShareConversationModalProps> = ({
         await shareConversation(conversationId, user.id);
         setIsShared(true);
       } catch (error) {
-        console.error('Error sharing conversation:', error);
+        safeConsoleError('Error sharing conversation:', error);
       } finally {
         setIsLoading(false);
       }
@@ -63,7 +63,7 @@ export const ShareConversationModal: React.FC<ShareConversationModalProps> = ({
       await unshareConversation(conversationId, user.id);
       setIsShared(false);
     } catch (error) {
-      console.error('Error unsharing conversation:', error);
+      safeConsoleError('Error unsharing conversation:', error);
     } finally {
       setIsLoading(false);
     }
@@ -76,7 +76,7 @@ export const ShareConversationModal: React.FC<ShareConversationModalProps> = ({
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (error) {
-      console.error('Error copying to clipboard:', error);
+      safeConsoleError('Error copying to clipboard:', error);
     }
   };
 

@@ -11,13 +11,12 @@ export const cleanupOldStorage = (): void => {
     const oldGuestId = localStorage.getItem('therai_guest_id');
     if (oldGuestId) {
       localStorage.removeItem('therai_guest_id');
-      console.log('[CleanupOldStorage] Removed old unused guest ID from localStorage');
+      safeConsoleLog('[CleanupOldStorage] Removed old unused guest ID from localStorage');
     }
     
     // Remove any other legacy keys that might exist
     const legacyKeys = [
-      'guestId',
-      'guest_report_id', 
+      'guestId', 'guest_report_id', 
       'currentGuestReportId',
       'therai_guest_report_id'  // Current active key - clear it too for fresh start
     ];
@@ -34,6 +33,6 @@ export const cleanupOldStorage = (): void => {
     });
     
   } catch (error) {
-    console.warn('[CleanupOldStorage] Error during cleanup:', error);
+    safeConsoleWarn('[CleanupOldStorage] Error during cleanup:', error);
   }
 };

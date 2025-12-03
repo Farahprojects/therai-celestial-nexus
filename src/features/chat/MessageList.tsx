@@ -12,7 +12,7 @@ import remarkGfm from 'remark-gfm';
 // TypewriterText removed - keeping source field logic for future use
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-
+import { safeConsoleError, safeConsoleLog } from '@/utils/safe-logging';
 // ⚡ MEMOIZED USER MESSAGE - Only re-renders when message data changes
 const UserMessage = React.memo(({ message, isOwn }: { message: Message; isOwn: boolean }) => (
   <div className={`flex items-end gap-3 ${isOwn ? 'justify-end' : 'justify-start'} mb-4`}>
@@ -193,7 +193,7 @@ const ImageWithLoading = React.memo(({ message }: { message: Message }) => {
       document.body.removeChild(a);
       toast.success('Image downloaded');
     } catch (error) {
-      console.error('Failed to download image:', error);
+      safeConsoleError('Failed to download image:', error);
       toast.error('Failed to download image');
     }
   };
@@ -351,7 +351,7 @@ const renderMessages = (messages: Message[], currentUserId?: string) => {
 
       // Debug log for ALL assistant messages (development only)
       if (import.meta.env.DEV) {
-        console.log('[renderMessages] 🔍 Assistant message:', {
+        safeConsoleLog('[renderMessages] 🔍 Assistant message:', {
           id: message.id,
           role: message.role,
           text: message.text?.substring(0, 30),
@@ -367,7 +367,7 @@ const renderMessages = (messages: Message[], currentUserId?: string) => {
       
       if (isImageMessage) {
         if (import.meta.env.DEV) {
-          console.log('[renderMessages] 🖼️  Rendering image message:', {
+          safeConsoleLog('[renderMessages] 🖼️  Rendering image message:', {
             id: message.id,
             status: metaData?.status,
             has_image_url: !!metaData?.image_url,

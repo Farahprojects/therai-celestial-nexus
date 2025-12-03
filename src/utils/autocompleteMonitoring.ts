@@ -1,3 +1,5 @@
+
+import { safeConsoleWarn } from '@/utils/safe-logging';
 // Production monitoring for Google Autocomplete functionality
 export interface AutocompleteEvent {
   type: 'load_start' | 'load_success' | 'load_error' | 'fallback_used' | 'retry_attempted';
@@ -39,7 +41,7 @@ class AutocompleteMonitor {
 
   private reportCriticalEvent(event: AutocompleteEvent) {
     // This could send to your analytics service in production
-    console.warn('[CRITICAL] Autocomplete issue:', event);
+    safeConsoleWarn('[CRITICAL] Autocomplete issue:', event);
     
     // Example: Send to analytics service
     // analytics.track('autocomplete_critical_event', event);

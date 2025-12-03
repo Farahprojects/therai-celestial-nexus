@@ -1,6 +1,6 @@
 
 import { supabase } from "@/integrations/supabase/client";
-
+import { safeConsoleError } from '@/utils/safe-logging';
 export const uploadFeatureImage = async (file: File, fileName: string): Promise<string | null> => {
   try {
     const { data, error } = await supabase.storage
@@ -11,7 +11,7 @@ export const uploadFeatureImage = async (file: File, fileName: string): Promise<
       });
 
     if (error) {
-      console.error('Error uploading image:', error);
+      safeConsoleError('Error uploading image:', error);
       return null;
     }
 
@@ -22,7 +22,7 @@ export const uploadFeatureImage = async (file: File, fileName: string): Promise<
 
     return urlData.publicUrl;
   } catch (error) {
-    console.error('Error uploading image:', error);
+    safeConsoleError('Error uploading image:', error);
     return null;
   }
 };

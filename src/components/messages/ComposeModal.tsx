@@ -14,7 +14,7 @@ import { AttachmentDropzone } from './AttachmentDropzone';
 import { supabase } from '@/integrations/supabase/client';
 import { showToast } from '@/utils/notifications';
 import { useIsMobile } from '@/hooks/use-mobile';
-
+import { safeConsoleError } from '@/utils/safe-logging';
 interface Attachment {
   id: string;
   name: string;
@@ -129,7 +129,7 @@ export const ComposeModal = ({ isOpen, onClose, onSend }: ComposeModalProps) => 
         }
       });
       if (error) {
-        console.error('Error sending email:', error);
+        safeConsoleError('Error sending email:', error);
           showToast({
             title: "Error",
             description: "Failed to send email. Please try again.",
@@ -158,7 +158,7 @@ export const ComposeModal = ({ isOpen, onClose, onSend }: ComposeModalProps) => 
       setCurrentColor('#000000');
       onClose();
     } catch (error) {
-      console.error('Unexpected error:', error);
+      safeConsoleError('Unexpected error:', error);
       showToast({
         title: "Error",
         description: "An unexpected error occurred. Please try again.",

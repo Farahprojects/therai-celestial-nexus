@@ -5,7 +5,7 @@ import { getDocuments, FolderDocument } from '@/services/folder-documents';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Database } from '@/integrations/supabase/types';
-
+import { safeConsoleError } from '@/utils/safe-logging';
 interface Conversation {
   id: string;
   title: string;
@@ -112,7 +112,7 @@ export const useFolderData = (folderId: string) => {
             return;
           }
         } catch (err) {
-          console.error('[useFolderData] Failed to load from user folders:', err);
+          safeConsoleError('[useFolderData] Failed to load from user folders:', err);
           // Fall through to try as shared folder
         }
       }
@@ -152,7 +152,7 @@ export const useFolderData = (folderId: string) => {
         isLoading: false,
       }));
     } catch (err) {
-      console.error('[useFolderData] Failed to load folder data:', err);
+      safeConsoleError('[useFolderData] Failed to load folder data:', err);
       setState(prev => ({
         ...prev,
         error: 'Failed to load folder',
@@ -171,7 +171,7 @@ export const useFolderData = (folderId: string) => {
         folderProfile: folderWithProfile.profile as UserProfile || null,
       }));
     } catch (error) {
-      console.error('[useFolderData] Failed to reload folder profile:', error);
+      safeConsoleError('[useFolderData] Failed to reload folder profile:', error);
     }
   }, [folderId]);
 
@@ -211,7 +211,7 @@ export const useFolderData = (folderId: string) => {
           const documentsData = await getDocuments(folderId);
           updateDocuments(documentsData);
         } catch (err) {
-          console.error('[useFolderData] Failed to reload documents:', err);
+          safeConsoleError('[useFolderData] Failed to reload documents:', err);
         }
       })
       .on('postgres_changes', {
@@ -225,7 +225,7 @@ export const useFolderData = (folderId: string) => {
           const documentsData = await getDocuments(folderId);
           updateDocuments(documentsData);
         } catch (err) {
-          console.error('[useFolderData] Failed to reload documents:', err);
+          safeConsoleError('[useFolderData] Failed to reload documents:', err);
         }
       })
       .on('postgres_changes', {
