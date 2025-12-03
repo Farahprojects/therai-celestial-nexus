@@ -24,6 +24,16 @@ function validateEmail(email: string): boolean {
   return emailRegex.test(email);
 }
 
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#x27;')
+    .replace(/\//g, '&#x2F;');
+}
+
 function logMessage(message: string, level: 'debug' | 'info' | 'warn' | 'error', data?: any): void {
   const logObject = {
     level,
@@ -141,21 +151,21 @@ Deno.serve(async (req) => {
     const emailPayload = {
       to: "support@therai.co",
       from: "Therai Contact <no-reply@therai.co>",
-      subject: `Contact Form: ${payload.subject}`,
+      subject: `Contact Form: ${escapeHtml(payload.subject)}`,
       html: `
         <h2>New Contact Message</h2>
-        <p><strong>From:</strong> ${payload.name} (${payload.email})</p>
-        <p><strong>Subject:</strong> ${payload.subject}</p>
+        <p><strong>From:</strong> ${escapeHtml(payload.name)} (${escapeHtml(payload.email)})</p>
+        <p><strong>Subject:</strong> ${escapeHtml(payload.subject)}</p>
         <hr />
         <p><strong>Message:</strong></p>
-        <p>${payload.message.replace(/\n/g, '<br>')}</p>
+        <p>${escapeHtml(payload.message).replace(/\n/g, '<br>')}</p>
       `,
       text: `
         New Contact Message
-        
+
         From: ${payload.name} (${payload.email})
         Subject: ${payload.subject}
-        
+
         Message:
         ${payload.message}
       `
