@@ -80,7 +80,7 @@ export const ChatMenuButton: React.FC<ChatMenuButtonProps> = ({
   };
 
   const confirmEdit = async () => {
-    if (!chat_id || !editTitle.trim()) return;
+    if (!chat_id || !editTitle.trim() || !user?.id) return;
 
     try {
       await updateConversationTitle(chat_id, editTitle, user.id);
@@ -130,7 +130,7 @@ export const ChatMenuButton: React.FC<ChatMenuButtonProps> = ({
   };
 
   const handleMoveToFolder = async (conversationId: string, folderId: string | null) => {
-    if (!user?.id) return;
+    if (!user?.id || !conversationId) return;
     
     try {
       await moveConversationToFolder(conversationId, folderId);
@@ -155,7 +155,7 @@ export const ChatMenuButton: React.FC<ChatMenuButtonProps> = ({
   };
 
   const handleCreateFolder = async (name: string) => {
-    if (!user?.id) return;
+    if (!user?.id || !name?.trim()) return;
     
     try {
       // Create new folder
@@ -190,9 +190,9 @@ export const ChatMenuButton: React.FC<ChatMenuButtonProps> = ({
           </button>
         </DropdownMenuTrigger>
         
-        <ConversationActionsMenuContent 
+        <ConversationActionsMenuContent
           align="end"
-          conversationId={chat_id}
+          conversationId={chat_id || ''}
           currentTitle={currentTitle}
           onEdit={handleEdit}
           onDelete={handleDelete}

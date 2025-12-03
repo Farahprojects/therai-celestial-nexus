@@ -156,7 +156,7 @@ export const ChatCreationProvider: React.FC<ChatCreationProviderProps> = ({
       }
 
       // Validate selectedProfile has required fields
-      const requiredFields = ['name', 'birth_date', 'birth_time', 'birth_location'];
+      const requiredFields: (keyof Profile)[] = ['name', 'birth_date', 'birth_time', 'birth_location'];
       const missingFields = requiredFields.filter(field => !selectedProfile[field]);
       if (missingFields.length > 0) {
         toast.error(`Selected profile is missing required fields: ${missingFields.join(', ')}`);

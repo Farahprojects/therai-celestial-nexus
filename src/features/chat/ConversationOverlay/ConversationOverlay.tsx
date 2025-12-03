@@ -90,7 +90,7 @@ export const ConversationOverlay: React.FC = () => {
     // Cleanup WebSocket connection
     if (connectionRef.current) {
       try {
-        connectionRef.current.cleanup();
+        connectionRef.current.close();
       } catch {
         // Ignore WebSocket cleanup errors
       }
@@ -179,9 +179,9 @@ export const ConversationOverlay: React.FC = () => {
             console.error('[ConversationOverlay] ❌ TTS base64 playback failed:', e);
             resetToTapToStart();
           });
-        } else if (payload.audioBytes) {
+        } else if (payload.audioBase64) {
           setState('replying');
-          playAudioImmediately(payload.audioBytes);
+          playAudioImmediately(payload.audioBase64);
         }
       };
 
@@ -417,7 +417,7 @@ export const ConversationOverlay: React.FC = () => {
     // Fire-and-forget WebSocket cleanup
     if (connectionRef.current) {
       try {
-        connectionRef.current.cleanup();
+        connectionRef.current.close();
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
       } catch (_e) {
         // Ignore WebSocket cleanup errors
@@ -475,7 +475,7 @@ export const ConversationOverlay: React.FC = () => {
       // Idempotent cleanup when returning to tap-to-start
       if (connectionRef.current) {
         try {
-          connectionRef.current.cleanup();
+          connectionRef.current.close();
         } catch {
           // eslint-disable-next-line no-empty
         }

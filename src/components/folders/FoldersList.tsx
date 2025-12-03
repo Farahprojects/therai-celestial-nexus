@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Folder, ChevronRight, ChevronDown, MessageCircle, Sparkles, MoreHorizontal, Pencil, Trash2, Share2 } from 'lucide-react';
 import {
   DropdownMenu,

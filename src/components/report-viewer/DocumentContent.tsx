@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { File, Download, Edit2, Save, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { FolderDocument, updateDocument } from '@/services/folder-documents';

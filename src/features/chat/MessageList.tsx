@@ -100,7 +100,11 @@ const ImageWithLoading = React.memo(({ message }: { message: Message }) => {
   const metaData = message.meta as Record<string, unknown>;
   const imageUrl = metaData?.image_url;
   const imagePrompt = metaData?.image_prompt;
-  const imageVariants = metaData?.image_variants;
+  const imageVariants = metaData?.image_variants as {
+    webp_small?: { url: string };
+    webp?: { url: string };
+    png?: { url: string };
+  } | undefined;
   const [imageLoaded, setImageLoaded] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
   const [blurPhase, setBlurPhase] = useState<0 | 1 | 2>(0); // 0 heavy blur, 1 medium after 3s, 2 none when loaded
@@ -142,7 +146,7 @@ const ImageWithLoading = React.memo(({ message }: { message: Message }) => {
 
   // Generate LQIP (Low Quality Image Placeholder) URL
   const lqipUrl = React.useMemo(() => {
-    if (!imageUrl) return null;
+    if (!imageUrl || typeof imageUrl !== 'string') return null;
     // Create a tiny version by adding transform parameters (if supported by storage)
     const url = new URL(imageUrl);
     // Add resize parameter for tiny preview (64x64)
@@ -173,11 +177,11 @@ const ImageWithLoading = React.memo(({ message }: { message: Message }) => {
   };
 
   const handleDownload = async () => {
-    if (!imageUrl) return;
+    if (!imageUrl || typeof imageUrl !== 'string') return;
     try {
       const response = await fetch(imageUrl);
       const blob = await response.blob();
-      const imagePath = metaData?.image_path || '';
+      const imagePath = typeof metaData?.image_path === 'string' ? metaData.image_path : '';
       const filename = imagePath.split('/').pop() || 'image.png';
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -247,8 +251,8 @@ const ImageWithLoading = React.memo(({ message }: { message: Message }) => {
               {/* Main image with responsive loading */}
               <img
                 ref={imgRef}
-                src={isInView ? imageUrl : undefined}
-                alt={imagePrompt || 'Generated image'}
+                src={isInView && typeof imageUrl === 'string' ? imageUrl : undefined}
+                alt={typeof imagePrompt === 'string' ? imagePrompt : 'Generated image'}
                 className={`absolute inset-0 w-full h-full object-contain cursor-pointer transition-opacity duration-500 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
                 onClick={() => {
                   const sidebarButton = document.querySelector('[data-image-gallery-button]') as HTMLButtonElement;
