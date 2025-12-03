@@ -138,7 +138,8 @@ export const FolderView: React.FC<FolderViewProps> = ({
   const [folderAIMessage, setFolderAIMessage] = useState<string>('');
   // Additional handlers
   const handleProfileLinked = async () => {
-    await reloadProfileData();
+    // Reload all folder data to update the folder name in the UI
+    await loadFolderData();
   };
 
   const handleAstroFormSubmit = async (data: { chat_id?: string }) => {
@@ -158,289 +159,289 @@ export const FolderView: React.FC<FolderViewProps> = ({
   };
   if (isLoading) {
     return <div className="h-full flex items-center justify-center">
-        <div className="text-gray-500 font-light">Loading...</div>
-      </div>;
+      <div className="text-gray-500 font-light">Loading...</div>
+    </div>;
   }
   if (error) {
     return <div className="h-full flex items-center justify-center">
-        <div className="text-red-500 font-light">{error}</div>
-      </div>;
+      <div className="text-red-500 font-light">{error}</div>
+    </div>;
   }
 
   return <div className="h-full flex flex-col bg-white">
-      {/* Folder Header */}
-      <FolderHeader
-        folderName={folderName}
-        folderId={folderId}
-        onJournalClick={() => setShowJournalModal(true)}
-        onInsightsClick={() => setShowInsightsModal(true)}
-        onUploadClick={() => setShowUploadModal(true)}
-        onNewChatClick={handleNewChat}
-        onCompatibilityClick={() => {
-          if (!folderProfile || !folderProfileId) {
-            toast.error('Please set up your profile for this folder first');
-            return;
-          }
-          setShowAstroForm(true);
-        }}
-      />
+    {/* Folder Header */}
+    <FolderHeader
+      folderName={folderName}
+      folderId={folderId}
+      onJournalClick={() => setShowJournalModal(true)}
+      onInsightsClick={() => setShowInsightsModal(true)}
+      onUploadClick={() => setShowUploadModal(true)}
+      onNewChatClick={handleNewChat}
+      onCompatibilityClick={() => {
+        if (!folderProfile || !folderProfileId) {
+          toast.error('Please set up your profile for this folder first');
+          return;
+        }
+        setShowAstroForm(true);
+      }}
+    />
 
-      {/* Profile Setup Banner */}
-      {user && !hasProfileSetup && (
-        <div className="px-6">
-          <FolderProfileSetup
-            folderId={folderId}
-            folderName={folderName}
-            onProfileLinked={handleProfileLinked}
-          />
-        </div>
-      )}
-
-      {/* Journal Section */}
-      <JournalSection
-        journals={journals}
-        onEditJournal={handleOpenEditJournal}
-        onDeleteJournal={handleRequestDeleteJournal}
-      />
-
-      {/* Documents Section */}
-      <DocumentsSection
-        documents={documents}
-        formatFileSize={formatFileSize}
-        onViewDocument={(documentId) => {
-          setViewingDocumentId(documentId);
-          setEditingDocumentId(null);
-        }}
-        onEditDocument={(documentId) => {
-          setViewingDocumentId(documentId);
-          setEditingDocumentId(documentId);
-        }}
-        onDeleteDocument={handleRequestDeleteDocument}
-      />
-
-      {/* Conversations Section */}
-      <div className="flex-1 overflow-y-auto">
-        <ConversationsSection
-          conversations={conversations}
-          folders={folders}
-          currentFolderId={folderId}
-          onChatClick={actionsHandleChatClick}
-          onEditChat={handleEditChat}
-          onDeleteChat={handleDeleteChat}
-          onShareChat={(id) => setShareConversationId(id)}
-          onMoveToFolder={handleMoveToFolder}
-          onCreateFolder={handleCreateFolderAndMove}
+    {/* Profile Setup Banner */}
+    {user && !hasProfileSetup && (
+      <div className="px-6">
+        <FolderProfileSetup
+          folderId={folderId}
+          folderName={folderName}
+          onProfileLinked={handleProfileLinked}
         />
       </div>
+    )}
 
-      {/* Folder Modals */}
-      <FolderModals
-        showEditDialog={showEditDialog}
-        editTitle={editTitle}
-        isSaving={isSaving}
-        onEditTitleChange={setEditTitle}
-        onSaveTitle={handleSaveTitle}
-        onCloseEditDialog={() => {
-          setShowEditDialog(false);
-          setEditingConversationId(null);
-        }}
-        showDeleteDialog={showDeleteDialog}
-        isDeleting={isDeleting}
-        onConfirmDeleteChat={handleConfirmDelete}
-        onCloseDeleteDialog={() => {
-          setShowDeleteDialog(false);
-          setEditingConversationId(null);
-        }}
-        showEditJournalDialog={showEditJournalDialog}
-        editingJournal={editingJournal}
-        editJournalTitle={editJournalTitle}
-        editJournalText={editJournalText}
-        isSavingJournal={isSavingJournal}
-        onEditJournalTitleChange={setEditJournalTitle}
-        onEditJournalTextChange={setEditJournalText}
-        onSaveJournalEdit={handleSaveJournalEdit}
-        onCloseEditJournalDialog={() => {
-          setShowEditJournalDialog(false);
-          setEditingJournal(null);
-        }}
-        showDeleteJournalDialog={showDeleteJournalDialog}
-        onConfirmDeleteJournal={handleConfirmDeleteJournal}
-        onCloseDeleteJournalDialog={() => {
-          setShowDeleteJournalDialog(false);
-          setDeletingJournalId(null);
-        }}
-        showDeleteDocumentDialog={showDeleteDocumentDialog}
-        onConfirmDeleteDocument={handleConfirmDeleteDocument}
-        onCloseDeleteDocumentDialog={() => {
-          setShowDeleteDocumentDialog(false);
-          setDeletingDocumentId(null);
-        }}
-        showFolderModal={showFolderModal}
-        conversationToMoveToNewFolder={conversationToMoveToNewFolder}
-        onCreateFolder={handleCreateFolder}
-        onCloseFolderModal={() => {
-          setShowFolderModal(false);
-          setConversationToMoveToNewFolder(null);
-        }}
-        shareConversationId={shareConversationId}
-        onCloseShareConversationModal={() => setShareConversationId(null)}
-        showFolderShareModal={showFolderShareModal}
-        folderId={folderId}
-        onCloseFolderShareModal={() => setShowFolderShareModal(false)}
-        showAstroForm={showAstroForm}
-        folderProfile={folderProfile}
-        onAstroFormSubmit={handleAstroFormSubmit}
-        onCloseAstroForm={() => setShowAstroForm(false)}
+    {/* Journal Section */}
+    <JournalSection
+      journals={journals}
+      onEditJournal={handleOpenEditJournal}
+      onDeleteJournal={handleRequestDeleteJournal}
+    />
+
+    {/* Documents Section */}
+    <DocumentsSection
+      documents={documents}
+      formatFileSize={formatFileSize}
+      onViewDocument={(documentId) => {
+        setViewingDocumentId(documentId);
+        setEditingDocumentId(null);
+      }}
+      onEditDocument={(documentId) => {
+        setViewingDocumentId(documentId);
+        setEditingDocumentId(documentId);
+      }}
+      onDeleteDocument={handleRequestDeleteDocument}
+    />
+
+    {/* Conversations Section */}
+    <div className="flex-1 overflow-y-auto">
+      <ConversationsSection
+        conversations={conversations}
+        folders={folders}
+        currentFolderId={folderId}
+        onChatClick={actionsHandleChatClick}
+        onEditChat={handleEditChat}
+        onDeleteChat={handleDeleteChat}
+        onShareChat={(id) => setShareConversationId(id)}
+        onMoveToFolder={handleMoveToFolder}
+        onCreateFolder={handleCreateFolderAndMove}
       />
+    </div>
 
-      {/* Journal Entry Modal */}
-      {user && (
-        <JournalEntryModal
-          isOpen={showJournalModal}
-          onClose={() => setShowJournalModal(false)}
-          folderId={folderId}
-          userId={user.id}
-          onEntrySaved={handleJournalSaved}
-        />
-      )}
+    {/* Folder Modals */}
+    <FolderModals
+      showEditDialog={showEditDialog}
+      editTitle={editTitle}
+      isSaving={isSaving}
+      onEditTitleChange={setEditTitle}
+      onSaveTitle={handleSaveTitle}
+      onCloseEditDialog={() => {
+        setShowEditDialog(false);
+        setEditingConversationId(null);
+      }}
+      showDeleteDialog={showDeleteDialog}
+      isDeleting={isDeleting}
+      onConfirmDeleteChat={handleConfirmDelete}
+      onCloseDeleteDialog={() => {
+        setShowDeleteDialog(false);
+        setEditingConversationId(null);
+      }}
+      showEditJournalDialog={showEditJournalDialog}
+      editingJournal={editingJournal}
+      editJournalTitle={editJournalTitle}
+      editJournalText={editJournalText}
+      isSavingJournal={isSavingJournal}
+      onEditJournalTitleChange={setEditJournalTitle}
+      onEditJournalTextChange={setEditJournalText}
+      onSaveJournalEdit={handleSaveJournalEdit}
+      onCloseEditJournalDialog={() => {
+        setShowEditJournalDialog(false);
+        setEditingJournal(null);
+      }}
+      showDeleteJournalDialog={showDeleteJournalDialog}
+      onConfirmDeleteJournal={handleConfirmDeleteJournal}
+      onCloseDeleteJournalDialog={() => {
+        setShowDeleteJournalDialog(false);
+        setDeletingJournalId(null);
+      }}
+      showDeleteDocumentDialog={showDeleteDocumentDialog}
+      onConfirmDeleteDocument={handleConfirmDeleteDocument}
+      onCloseDeleteDocumentDialog={() => {
+        setShowDeleteDocumentDialog(false);
+        setDeletingDocumentId(null);
+      }}
+      showFolderModal={showFolderModal}
+      conversationToMoveToNewFolder={conversationToMoveToNewFolder}
+      onCreateFolder={handleCreateFolder}
+      onCloseFolderModal={() => {
+        setShowFolderModal(false);
+        setConversationToMoveToNewFolder(null);
+      }}
+      shareConversationId={shareConversationId}
+      onCloseShareConversationModal={() => setShareConversationId(null)}
+      showFolderShareModal={showFolderShareModal}
+      folderId={folderId}
+      onCloseFolderShareModal={() => setShowFolderShareModal(false)}
+      showAstroForm={showAstroForm}
+      folderProfile={folderProfile}
+      onAstroFormSubmit={handleAstroFormSubmit}
+      onCloseAstroForm={() => setShowAstroForm(false)}
+    />
 
-      {/* Document Upload Modal */}
-      {user && (
-        <DocumentUploadModal
-          isOpen={showUploadModal}
-          onClose={() => setShowUploadModal(false)}
-          folderId={folderId}
-          userId={user.id}
-          onUploadComplete={handleDocumentUploaded}
-        />
-      )}
-
-      {/* Insights Modal */}
-      <InsightsModal
-        isOpen={showInsightsModal}
-        onClose={() => setShowInsightsModal(false)}
+    {/* Journal Entry Modal */}
+    {user && (
+      <JournalEntryModal
+        isOpen={showJournalModal}
+        onClose={() => setShowJournalModal(false)}
         folderId={folderId}
-        profileData={folderProfile}
-        onReportReady={loadFolderData}
-        onReportCreated={(conversation) => {
-          if (!conversation?.id) return;
-          upsertConversation({
-            id: conversation.id,
-            title: conversation.title || 'Insights',
-            updated_at: new Date().toISOString(),
-            mode: conversation.mode || 'insight'
-          });
-        }}
+        userId={user.id}
+        onEntrySaved={handleJournalSaved}
       />
+    )}
 
-      {/* Document Viewer Slide-Over */}
-      <ReportSlideOver
-        isOpen={!!viewingDocumentId}
+    {/* Document Upload Modal */}
+    {user && (
+      <DocumentUploadModal
+        isOpen={showUploadModal}
+        onClose={() => setShowUploadModal(false)}
+        folderId={folderId}
+        userId={user.id}
+        onUploadComplete={handleDocumentUploaded}
+      />
+    )}
+
+    {/* Insights Modal */}
+    <InsightsModal
+      isOpen={showInsightsModal}
+      onClose={() => setShowInsightsModal(false)}
+      folderId={folderId}
+      profileData={folderProfile}
+      onReportReady={loadFolderData}
+      onReportCreated={(conversation) => {
+        if (!conversation?.id) return;
+        upsertConversation({
+          id: conversation.id,
+          title: conversation.title || 'Insights',
+          updated_at: new Date().toISOString(),
+          mode: conversation.mode || 'insight'
+        });
+      }}
+    />
+
+    {/* Document Viewer Slide-Over */}
+    <ReportSlideOver
+      isOpen={!!viewingDocumentId}
+      onClose={() => {
+        setViewingDocumentId(null);
+        setEditingDocumentId(null);
+      }}
+      documentId={viewingDocumentId || undefined}
+      documentEditMode={editingDocumentId === viewingDocumentId}
+    />
+
+    {/* Folder AI Panel */}
+    {user && (
+      <FolderAIPanel
+        isOpen={showFolderAI}
         onClose={() => {
-          setViewingDocumentId(null);
-          setEditingDocumentId(null);
+          setShowFolderAI(false);
+          setFolderAIMessage('');
         }}
-        documentId={viewingDocumentId || undefined}
-        documentEditMode={editingDocumentId === viewingDocumentId}
+        folderId={folderId}
+        userId={user.id}
+        folderName={folderName}
+        onOpenDocumentCanvas={(draft, docId) => {
+          setCurrentDraft(draft);
+          setCurrentDocumentId(docId ?? null);
+          setShowDocumentCanvas(true);
+        }}
+        initialMessage={folderAIMessage || undefined}
       />
+    )}
 
-      {/* Folder AI Panel */}
-      {user && (
-        <FolderAIPanel
-          isOpen={showFolderAI}
-          onClose={() => {
-            setShowFolderAI(false);
-            setFolderAIMessage('');
-          }}
-          folderId={folderId}
-          userId={user.id}
-          folderName={folderName}
-          onOpenDocumentCanvas={(draft, docId) => {
-            setCurrentDraft(draft);
-            setCurrentDocumentId(docId ?? null);
-            setShowDocumentCanvas(true);
-          }}
-          initialMessage={folderAIMessage || undefined}
-        />
-      )}
+    {/* Folder Footer */}
+    <FolderFooter
+      folderAIMessage={folderAIMessage}
+      showFolderAI={showFolderAI}
+      onMessageChange={setFolderAIMessage}
+      onSendMessage={() => setShowFolderAI(true)}
+    />
 
-      {/* Folder Footer */}
-      <FolderFooter
-        folderAIMessage={folderAIMessage}
-        showFolderAI={showFolderAI}
-        onMessageChange={setFolderAIMessage}
-        onSendMessage={() => setShowFolderAI(true)}
-      />
-
-      {/* Document Canvas */}
-      {user && showDocumentCanvas && (
-        <FolderAIDocumentCanvas
-          isOpen={showDocumentCanvas}
-          onClose={() => {
+    {/* Document Canvas */}
+    {user && showDocumentCanvas && (
+      <FolderAIDocumentCanvas
+        isOpen={showDocumentCanvas}
+        onClose={() => {
+          setShowDocumentCanvas(false);
+          setCurrentDraft(null);
+          setCurrentDocumentId(null);
+        }}
+        draft={currentDraft}
+        documentId={currentDocumentId || undefined}
+        onSave={async (title, content, docId) => {
+          if (!folderId || !user.id) return;
+          try {
+            setIsSavingDraft(true);
+            await saveDocumentDraft(folderId, user.id, title, content, docId);
+            toast.success(docId ? 'Document updated' : 'Document saved to folder');
             setShowDocumentCanvas(false);
             setCurrentDraft(null);
             setCurrentDocumentId(null);
-          }}
-          draft={currentDraft}
-          documentId={currentDocumentId || undefined}
-          onSave={async (title, content, docId) => {
-            if (!folderId || !user.id) return;
-            try {
-              setIsSavingDraft(true);
-              await saveDocumentDraft(folderId, user.id, title, content, docId);
-              toast.success(docId ? 'Document updated' : 'Document saved to folder');
-              setShowDocumentCanvas(false);
-              setCurrentDraft(null);
-              setCurrentDocumentId(null);
-              handleDocumentUploaded();
-            } catch (error) {
-              console.error('[FolderView] Error saving document:', error);
-              toast.error('Failed to save document');
-            } finally {
-              setIsSavingDraft(false);
-            }
-          }}
-          isSaving={isSavingDraft}
-        />
-      )}
+            handleDocumentUploaded();
+          } catch (error) {
+            console.error('[FolderView] Error saving document:', error);
+            toast.error('Failed to save document');
+          } finally {
+            setIsSavingDraft(false);
+          }
+        }}
+        isSaving={isSavingDraft}
+      />
+    )}
 
-      {/* Help Dialog */}
-      <Dialog open={showHelpDialog} onOpenChange={setShowHelpDialog}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="font-light">Folder Features</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-4 text-sm font-light text-gray-700">
-            <div>
-              <h4 className="font-normal text-gray-900 mb-1">Folder AI</h4>
-              <p>Your AI knowledge worker. Ask it to analyze documents, create summaries, or generate new content based on your folder's data.</p>
-            </div>
-            <div>
-              <h4 className="font-normal text-gray-900 mb-1">Journal Entries</h4>
-              <p>Quick notes and reflections saved to this folder. Use the mic button for voice-to-text.</p>
-            </div>
-            <div>
-              <h4 className="font-normal text-gray-900 mb-1">Generate Insights</h4>
-              <p>AI analysis of all content in this folder including chats, journals, and documents.</p>
-            </div>
-            <div>
-              <h4 className="font-normal text-gray-900 mb-1">Upload Documents</h4>
-              <p>Add PDF, DOCX, TXT, MD, or CSV files to analyze alongside your conversations.</p>
-            </div>
-            <div>
-              <h4 className="font-normal text-gray-900 mb-1">New Chat</h4>
-              <p>Start a conversation that's automatically organized in this folder.</p>
-            </div>
-            <div>
-              <h4 className="font-normal text-gray-900 mb-1">Export Data</h4>
-              <p>Download your journals, chats, or all folder content as JSON files.</p>
-            </div>
-            <div>
-              <h4 className="font-normal text-gray-900 mb-1">Folder Profile</h4>
-              <p>Link an astro profile to enable personalized insights for this folder's content.</p>
-            </div>
+    {/* Help Dialog */}
+    <Dialog open={showHelpDialog} onOpenChange={setShowHelpDialog}>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle className="font-light">Folder Features</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 py-4 text-sm font-light text-gray-700">
+          <div>
+            <h4 className="font-normal text-gray-900 mb-1">Folder AI</h4>
+            <p>Your AI knowledge worker. Ask it to analyze documents, create summaries, or generate new content based on your folder's data.</p>
           </div>
-        </DialogContent>
-      </Dialog>
-    </div>;
+          <div>
+            <h4 className="font-normal text-gray-900 mb-1">Journal Entries</h4>
+            <p>Quick notes and reflections saved to this folder. Use the mic button for voice-to-text.</p>
+          </div>
+          <div>
+            <h4 className="font-normal text-gray-900 mb-1">Generate Insights</h4>
+            <p>AI analysis of all content in this folder including chats, journals, and documents.</p>
+          </div>
+          <div>
+            <h4 className="font-normal text-gray-900 mb-1">Upload Documents</h4>
+            <p>Add PDF, DOCX, TXT, MD, or CSV files to analyze alongside your conversations.</p>
+          </div>
+          <div>
+            <h4 className="font-normal text-gray-900 mb-1">New Chat</h4>
+            <p>Start a conversation that's automatically organized in this folder.</p>
+          </div>
+          <div>
+            <h4 className="font-normal text-gray-900 mb-1">Export Data</h4>
+            <p>Download your journals, chats, or all folder content as JSON files.</p>
+          </div>
+          <div>
+            <h4 className="font-normal text-gray-900 mb-1">Folder Profile</h4>
+            <p>Link an astro profile to enable personalized insights for this folder's content.</p>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  </div>;
 };

@@ -1,5 +1,5 @@
 import React from 'react';
-import { MoreHorizontal } from 'lucide-react';
+import { MoreHorizontal, BookOpen } from 'lucide-react';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent } from '@/components/ui/dropdown-menu';
 import { JournalEntry } from '@/services/journal';
 
@@ -25,49 +25,72 @@ export const JournalSection: React.FC<JournalSectionProps> = ({
           </p>
         </div>
 
-        <div className="flex flex-col space-y-2">
-          {journals.map(journal => (
-            <div
-              key={journal.id}
-              className="flex items-start justify-between gap-4 py-3 px-4 rounded-2xl hover:bg-gray-50 transition-colors group"
-            >
-              <div className="flex-1 min-w-0">
-                {!!journal.title && (
-                  <p className="text-sm font-light text-gray-900 mb-0.5 truncate">
-                    {journal.title}
-                  </p>
-                )}
-                <p className="text-sm font-light text-gray-900 mb-0.5">
-                  {journal.entry_text}
-                </p>
-                <p className="text-xs font-light text-gray-500">
-                  {new Date(journal.created_at).toLocaleDateString()}
-                </p>
-              </div>
+        <div className="flex flex-col space-y-1">
+          {journals.map(journal => {
+            // Truncate text preview to ~50 characters
+            const textPreview = journal.entry_text.length > 50
+              ? journal.entry_text.substring(0, 50) + '...'
+              : journal.entry_text;
 
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button className="p-1 hover:bg-gray-100 rounded transition-colors" aria-label="Journal actions">
-                    <MoreHorizontal className="w-4 h-4 text-gray-600" />
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-40">
-                  <button
-                    className="w-full text-left px-2 py-1.5 text-sm hover:bg-gray-100 rounded"
-                    onClick={() => onEditJournal(journal)}
-                  >
-                    Edit
-                  </button>
-                  <button
-                    className="w-full text-left px-2 py-1.5 text-sm text-red-600 hover:bg-gray-100 rounded"
-                    onClick={() => onDeleteJournal(journal.id)}
-                  >
-                    Delete
-                  </button>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-          ))}
+            return (
+              <div
+                key={journal.id}
+                className="flex items-center gap-3 py-2.5 px-3 rounded-xl hover:bg-gray-50 transition-colors group"
+              >
+                {/* Icon */}
+                <BookOpen className="w-4 h-4 text-gray-400 flex-shrink-0" />
+
+                {/* Content - single line */}
+                <div className="flex-1 min-w-0 flex items-center gap-2">
+                  {/* Title if exists */}
+                  {journal.title && (
+                    <>
+                      <span className="text-sm font-medium text-gray-900 flex-shrink-0">
+                        {journal.title}
+                      </span>
+                      <span className="text-gray-300">—</span>
+                    </>
+                  )}
+
+                  {/* Text preview */}
+                  <span className="text-sm text-gray-600 truncate">
+                    {textPreview}
+                  </span>
+                </div>
+
+                {/* Date */}
+                <span className="text-xs text-gray-500 flex-shrink-0">
+                  {new Date(journal.created_at).toLocaleDateString('en-US', {
+                    month: 'short',
+                    day: 'numeric'
+                  })}
+                </span>
+
+                {/* Actions */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button className="p-1 hover:bg-gray-100 rounded transition-colors opacity-0 group-hover:opacity-100" aria-label="Journal actions">
+                      <MoreHorizontal className="w-4 h-4 text-gray-600" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-40">
+                    <button
+                      className="w-full text-left px-2 py-1.5 text-sm hover:bg-gray-100 rounded"
+                      onClick={() => onEditJournal(journal)}
+                    >
+                      Edit
+                    </button>
+                    <button
+                      className="w-full text-left px-2 py-1.5 text-sm text-red-600 hover:bg-gray-100 rounded"
+                      onClick={() => onDeleteJournal(journal.id)}
+                    >
+                      Delete
+                    </button>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            );
+          })}
         </div>
       </div>
     </div>

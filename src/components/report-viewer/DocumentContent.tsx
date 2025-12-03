@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { File, Download, Edit2, Save, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { FolderDocument, updateDocument } from '@/services/folder-documents';
@@ -201,14 +201,14 @@ export const DocumentContent: React.FC<DocumentContentProps> = ({
     // Priority 3: For other file types with URLs, show embedded viewer or download
     if (fileUrl) {
       const ext = document.file_extension.toLowerCase();
-      
+
       // Images - show directly
       const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'];
       if (imageExtensions.includes(ext)) {
         return (
           <div className="w-full flex justify-center">
-            <img 
-              src={fileUrl} 
+            <img
+              src={fileUrl}
               alt={document.file_name}
               className="max-w-full max-h-[80vh] object-contain rounded-lg"
             />
@@ -252,7 +252,7 @@ export const DocumentContent: React.FC<DocumentContentProps> = ({
             {formatFileSize(document.file_size)} • {document.file_extension.toUpperCase()}
           </p>
           <p className="text-sm text-gray-500 mb-4">
-            {ext === 'xlsx' || ext === 'xls' || ext === 'pptx' || ext === 'ppt' 
+            {ext === 'xlsx' || ext === 'xls' || ext === 'pptx' || ext === 'ppt'
               ? 'Text extraction not yet available for this file type'
               : 'Text extraction not available for this file type'}
           </p>

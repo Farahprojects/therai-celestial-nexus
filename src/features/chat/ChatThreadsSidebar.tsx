@@ -33,6 +33,8 @@ import { ShareConversationModal } from '@/components/chat/ShareConversationModal
 import { ShareFolderModal } from '@/components/folders/ShareFolderModal';
 import { getConversation, updateConversationTitle } from '@/services/conversations-static';
 import { getUserFolders, createFolder, updateFolderName, deleteFolder, getFolderConversations, getSharedFolder, moveConversationToFolder } from '@/services/folders';
+import { updateConversationTitle as updateChatTitle, deleteConversation, getConversationMessages } from '@/services/chat';
+import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { PullToRefresh } from '@/components/ui/PullToRefresh';
 
@@ -199,8 +201,8 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
     ? folders.find((f) => f.id === folderPendingDelete)
     : null;
 
-  /** Load folders on mount and when user/folder changes */
-  useEffect(() => { load(); }, [load]);
+  // Load folders on mount and when folderId changes (to refresh names)
+  useEffect(() => { load(); }, [load, folderId]);
 
   /** Listen for folder creation events (e.g., from onboarding) */
   useEffect(() => {
@@ -208,7 +210,7 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
       // Reload folders when a new folder is created elsewhere
       load();
     };
-    
+
     window.addEventListener('folders:created', handleFolderCreated);
     return () => window.removeEventListener('folders:created', handleFolderCreated);
   }, [load]);
@@ -234,7 +236,7 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
             useChatStore.setState({ threads: [conversation, ...threads] });
           }
         }
-      } catch {/* noop */}
+      } catch {/* noop */ }
     })();
   }, [chat_id, user?.id]);
 
@@ -282,7 +284,7 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
     };
 
     const interval = setInterval(checkAndPoll, 2000);
-    
+
     return () => clearInterval(interval);
   }, [isAuthenticated, user?.id]);
 
@@ -328,7 +330,7 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
       onCloseMobileSidebar?.();
       return;
     }
-    
+
     // If clicking from a folder, keep folder view mode and don't collapse folders
     // If clicking from history (no folderId), switch to chat view and collapse folders
     if (folderId) {
@@ -340,7 +342,7 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
       try {
         const { chatController } = await import('@/features/chat/ChatController');
         await chatController.switchToChat(conversationId);
-      } catch {/* ignore socket handoff errors to avoid blocking nav */}
+      } catch {/* ignore socket handoff errors to avoid blocking nav */ }
       navigate(`/folders/${folderId}?chat_id=${conversationId}`, { replace: true });
       closeSidebar();
       return;
@@ -348,13 +350,13 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
       setViewMode('chat', null); // Clear folder context
       setShouldCollapseFolders(true); // Collapse folders when switching to History item
     }
-    
+
     setChatId(conversationId);
     startConversation(conversationId);
     try {
       const { chatController } = await import('@/features/chat/ChatController');
       await chatController.switchToChat(conversationId);
-    } catch {/* ignore socket handoff errors to avoid blocking nav */}
+    } catch {/* ignore socket handoff errors to avoid blocking nav */ }
     navigate(`/c/${conversationId}`, { replace: true });
     closeSidebar();
   };
@@ -459,6 +461,32 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
     }
   };
 
+  /** Instant folder creation - no modal, just create and enter **/
+  const handleCreateFolderInstantly = async () => {
+    if (!user?.id) return;
+
+    try {
+      // Create folder with placeholder name
+      const placeholderName = 'Untitled Folder';
+      const newFolder = await createFolder(user.id, placeholderName);
+
+      // Optimistically update folders list
+      setFolders(prev => [...prev, {
+        id: newFolder.id,
+        name: newFolder.name,
+        chatsCount: 0,
+        chats: []
+      }]);
+
+      // Immediately navigate into the new folder
+      navigate(`/folders/${newFolder.id}`, { replace: true });
+      onCloseMobileSidebar?.();
+    } catch (e) {
+      console.error('[ChatThreadsSidebar] instant folder creation failed', e);
+      toast.error('Failed to create folder');
+    }
+  };
+
   const handleMoveToFolder = async (conversationId: string, folderId: string | null) => {
     if (!user?.id) return;
     try {
@@ -513,7 +541,7 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
     <div className={cn('w-full h-full flex flex-col', className)}>
       {/* Scrollable content area */}
       <div className="flex-1 min-h-0 overflow-hidden">
-        <PullToRefresh 
+        <PullToRefresh
           onRefresh={handleRefresh}
           disabled={!isMobile}
         >
@@ -539,9 +567,9 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
                 >
                   <Search className="w-4 h-4" /> Search Chat
                 </Button>
-                <Button 
-                  variant="ghost" 
-                  className="w-full justify-start gap-2 px-3 py-1 text-sm font-light" 
+                <Button
+                  variant="ghost"
+                  className="w-full justify-start gap-2 px-3 py-1 text-sm font-light"
                   onClick={() => {
                     setShowImageGallery(true);
                     closeSidebar();
@@ -574,31 +602,31 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
                   <AddFolderButton
                     onClick={() => {
                       if (!isAuthenticated) return setShowAuthModal(true);
-                      setEditingFolder(null);
-                      setShowFolderModal(true);
+                      // Instantly create folder and enter it (no modal)
+                      handleCreateFolderInstantly();
                     }}
                   />
                   <FoldersList
-                  folders={folders}
-                  onFolderClick={(id) => { 
-                    setShouldCollapseFolders(false); // Don't collapse when clicking on folder
-                    navigate(`/folders/${id}`, { replace: true }); 
-                    onCloseMobileSidebar?.(); 
-                  }}
-                  onChatClick={(folderId, chatId) => switchToChat(chatId, folderId)}
-                  onEditFolder={isAuthenticated ? (id, name) => { setEditingFolder({ id, name }); setShowFolderModal(true); } : undefined}
-                  onDeleteFolder={isAuthenticated ? requestDeleteFolder : undefined}
-                  onEditChat={isAuthenticated ? (id, current) => { setEditTitleFor(id); setEditTitle(current || ''); } : undefined}
-                  onDeleteChat={isAuthenticated ? (id) => setConfirmDeleteFor(id) : undefined}
-                  onMoveToFolder={isAuthenticated ? handleMoveToFolder : undefined}
-                  onCreateFolder={isAuthenticated ? (id) => { setConversationToMoveToNewFolder(id); setShowFolderModal(true); } : undefined}
-                  onShareChat={isAuthenticated ? (id) => setShareConversationId(id) : undefined}
-                  onShareFolder={isAuthenticated ? (id) => setShareFolderId(id) : undefined}
-                  allFolders={folders.map(f => ({ id: f.id, name: f.name }))}
-                  activeChatId={chat_id}
-                  activeFolderId={selectedFolderId}
-                  collapseAllFolders={shouldCollapseFolders}
-                />
+                    folders={folders}
+                    onFolderClick={(id) => {
+                      setShouldCollapseFolders(false); // Don't collapse when clicking on folder
+                      navigate(`/folders/${id}`, { replace: true });
+                      onCloseMobileSidebar?.();
+                    }}
+                    onChatClick={(folderId, chatId) => switchToChat(chatId, folderId)}
+                    onEditFolder={isAuthenticated ? (id, name) => { setEditingFolder({ id, name }); setShowFolderModal(true); } : undefined}
+                    onDeleteFolder={isAuthenticated ? requestDeleteFolder : undefined}
+                    onEditChat={isAuthenticated ? (id, current) => { setEditTitleFor(id); setEditTitle(current || ''); } : undefined}
+                    onDeleteChat={isAuthenticated ? (id) => setConfirmDeleteFor(id) : undefined}
+                    onMoveToFolder={isAuthenticated ? handleMoveToFolder : undefined}
+                    onCreateFolder={isAuthenticated ? (id) => { setConversationToMoveToNewFolder(id); setShowFolderModal(true); } : undefined}
+                    onShareChat={isAuthenticated ? (id) => setShareConversationId(id) : undefined}
+                    onShareFolder={isAuthenticated ? (id) => setShareFolderId(id) : undefined}
+                    allFolders={folders.map(f => ({ id: f.id, name: f.name }))}
+                    activeChatId={chat_id}
+                    activeFolderId={selectedFolderId}
+                    collapseAllFolders={shouldCollapseFolders}
+                  />
                 </div>
               )}
             </div>
@@ -621,7 +649,7 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
                     const isPending = (c.meta as { isPending?: boolean })?.isPending || pendingInsightThreads.has(c.id);
 
                     return (
-                      <div key={c.id} className={cn('group flex items-center gap-2 py-1.5 px-3 rounded-lg transition-colors', isActive ? 'bg-gray-100' : 'hover:bg-gray-100', isPending && 'opacity-60') }>
+                      <div key={c.id} className={cn('group flex items-center gap-2 py-1.5 px-3 rounded-lg transition-colors', isActive ? 'bg-gray-100' : 'hover:bg-gray-100', isPending && 'opacity-60')}>
                         {isPending && (
                           <svg className="w-4 h-4 animate-spin text-gray-600" viewBox="0 0 24 24">
                             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
@@ -683,8 +711,8 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
         {isAuthenticated ? (
           <div className="px-2 pb-2">
             {isMobile ? (
-              <Button 
-                variant="ghost" 
+              <Button
+                variant="ghost"
                 className="w-full justify-start p-0 h-auto rounded-none bg-transparent hover:bg-gray-100"
                 onClick={() => {
                   onCloseMobileSidebar?.();
