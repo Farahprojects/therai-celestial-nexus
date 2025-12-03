@@ -236,11 +236,15 @@ class ChatController {
       this.networkRetryHandler = null;
     }
     
-    // Clean up unified WebSocket service
+    // Clean up unified WebSocket service (voice-specific)
     unifiedWebSocketService.cleanup();
 
-    // Clean up unified channel subscriptions
-    unifiedChannel.cleanup();
+    // ⚠️ DO NOT cleanup unifiedChannel here!
+    // The unified channel is a shared singleton for ALL message broadcasts (text + voice).
+    // It should only be cleaned up on:
+    // 1. User sign-out (handled in messageStore.ts)
+    // 2. Full memory cleanup/page unload (handled in memoryCleanup.ts)
+    // Cleaning it here would break text message receiving when voice mode resets.
 
     this.isResetting = false;
     this.isUnlocked = false; // Lock on cleanup
