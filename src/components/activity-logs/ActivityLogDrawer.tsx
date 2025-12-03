@@ -15,26 +15,14 @@ import {
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-// PDF functionality removed to reduce bundle size
 import { ReportRenderer } from '@/components/shared/ReportRenderer';
+import { ReportData } from '@/utils/reportContentExtraction';
 
 // Strict types for report data structures
 interface StructuredReport {
   title: string;
   content: string | unknown;
   generated_at?: string | number | Date;
-}
-
-interface LegacyReportData {
-  report_content: string;
-  swiss_data: null;
-  metadata: {
-    content_type: 'ai' | 'astro' | 'both' | 'none';
-    has_ai_report: boolean;
-    has_swiss_data: boolean;
-    is_ready: boolean;
-    report_type: string;
-  };
 }
 
 type ActivityReportData = string | StructuredReport | Record<string, unknown>;
@@ -77,7 +65,7 @@ const isStructuredReport = (report: ActivityReportData): report is StructuredRep
 };
 
 // Helper function to convert legacy string content to ReportData format
-const createLegacyReportData = (content: string): LegacyReportData => {
+const createReportDataFromString = (content: string): ReportData => {
   return {
     report_content: content,
     swiss_data: null,
@@ -145,7 +133,7 @@ const ActivityLogDrawer = ({ isOpen, onClose, logData }: ActivityLogDrawerProps)
   const renderReport = (report: ActivityReportData) => {
     // Handle string reports (legacy format)
     if (isStringReport(report)) {
-      const reportData = createLegacyReportData(report);
+      const reportData = createReportDataFromString(report);
       return <ReportRenderer reportData={reportData} className="text-gray-700" />;
     }
 
@@ -157,7 +145,7 @@ const ActivityLogDrawer = ({ isOpen, onClose, logData }: ActivityLogDrawerProps)
         <div>
           <h4 className="font-medium mb-2">{title}</h4>
           {typeof content === 'string' ? (
-            <ReportRenderer reportData={createLegacyReportData(content)} className="text-gray-700" />
+            <ReportRenderer reportData={createReportDataFromString(content)} className="text-gray-700" />
           ) : (
             <div className="whitespace-pre-wrap">{JSON.stringify(content, null, 2)}</div>
           )}
