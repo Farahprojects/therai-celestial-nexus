@@ -20,8 +20,44 @@ interface DailyScore {
   events: string[];
 }
 
+interface Peaks {
+  dates?: string[];
+  max_score?: number;
+}
+
+interface TopEvents {
+  items?: TopEvent[];
+}
+
+interface DailyIndex {
+  scores?: DailyScore[];
+}
+
+interface Components {
+  peaks?: Peaks;
+  top_events?: TopEvents;
+  daily_index?: DailyIndex;
+}
+
+interface MetaData {
+  range?: string;
+  [key: string]: unknown;
+}
+
+interface SubjectData {
+  name?: string;
+  [key: string]: unknown;
+}
+
+interface SwissData {
+  components?: Components;
+  meta?: MetaData;
+  subject?: SubjectData;
+  [key: string]: unknown;
+}
+
 interface WeeklyAstroFormatterProps {
-  swissData: Record<string, unknown>;
+  swissData: SwissData;
   reportData: {
     guest_report?: {
       report_data?: {
@@ -47,8 +83,6 @@ const ScoreBadge = ({ score }: { score: number }) => {
 
 export const WeeklyAstroFormatter: React.FC<WeeklyAstroFormatterProps> = ({
   swissData,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  reportData: _reportData,
   className = ''
 }) => {
   const components = swissData?.components;
@@ -200,4 +234,3 @@ export const WeeklyAstroFormatter: React.FC<WeeklyAstroFormatterProps> = ({
     </div>
   );
 };
-

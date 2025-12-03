@@ -10,6 +10,15 @@ import { ChartAngles } from './shared/ChartAngles';
 import { HouseCusps } from './shared/HouseCusps';
 import { PlanetaryPositions } from './shared/PlanetaryPositions';
 
+interface Planet {
+  name: string;
+  sign: string;
+  deg: number;
+  unicode?: string;
+  house?: number;
+  retro?: boolean;
+}
+
 interface SynastryAstroFormatterProps {
   swissData: Record<string, unknown>;
   reportData: {
@@ -46,6 +55,23 @@ export const SynastryAstroFormatter: React.FC<SynastryAstroFormatterProps> = ({
     );
   }
 
+  // Convert composite_chart to array if it has planets property
+  const compositeChartPlanets: Planet[] = composite_chart?.planets 
+    ? (composite_chart.planets as Planet[])
+    : [];
+
+  // Map aspects to ensure proper types
+  const mapAspects = (aspects: unknown[]) => {
+    if (!aspects) return [];
+    return aspects.map((aspect: unknown) => {
+      const a = aspect as Record<string, unknown>;
+      return {
+        ...a,
+        type: (a.type || a.aspect || 'Unknown') as string,
+      };
+    });
+  };
+
   return (
     <div className={`font-inter max-w-4xl mx-auto py-8 ${className}`}>
       <ChartHeader
@@ -68,13 +94,13 @@ export const SynastryAstroFormatter: React.FC<SynastryAstroFormatterProps> = ({
               <p className="text-gray-600 mb-4">
                 These aspects show the fundamental interactions between your two personalities.
               </p>
-              <AspectTable aspects={synastry_aspects.aspects} />
+              <AspectTable aspects={mapAspects(synastry_aspects.aspects as unknown[])} />
             </CardContent>
           </Card>
         )}
 
         {/* Composite Chart */}
-        {composite_chart && (
+        {compositeChartPlanets.length > 0 && (
           <Card>
             <CardHeader>
               <CardTitle className="text-2xl font-light text-gray-800">
@@ -95,7 +121,7 @@ export const SynastryAstroFormatter: React.FC<SynastryAstroFormatterProps> = ({
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {composite_chart?.map((planet: Record<string, unknown>) => (
+                    {compositeChartPlanets.map((planet) => (
                       <TableRow key={planet.name}>
                         <TableCell className="font-medium whitespace-nowrap text-xs md:text-sm">
                           <span className="mr-2">{planet.unicode}</span> {planet.name}
@@ -153,7 +179,7 @@ export const SynastryAstroFormatter: React.FC<SynastryAstroFormatterProps> = ({
                           <PlanetaryPositions planets={subject.natal.planets} title="Planetary Positions" />
                         )}
                         {subject.natal?.aspects && subject.natal.aspects.length > 0 && (
-                          <AspectTable aspects={subject.natal.aspects} title="Natal Aspects" />
+                          <AspectTable aspects={mapAspects(subject.natal.aspects)} title="Natal Aspects" />
                         )}
                       </div>
                     </div>
@@ -185,7 +211,7 @@ export const SynastryAstroFormatter: React.FC<SynastryAstroFormatterProps> = ({
                           )}
                           {subject.transits?.aspects_to_natal && subject.transits.aspects_to_natal.length > 0 && (
                             <AspectTable 
-                              aspects={subject.transits.aspects_to_natal} 
+                              aspects={mapAspects(subject.transits.aspects_to_natal)} 
                               title="Transits to Natal" 
                             />
                           )}

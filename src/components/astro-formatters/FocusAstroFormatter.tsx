@@ -35,7 +35,7 @@ interface TimeBlock {
 
 interface CategoryData {
   label: string;
-  icon: React.ComponentType;
+  icon: React.ComponentType<{ className?: string }>;
   color: string;
   hours: number;
   blocks: TimeBlock[];
@@ -90,7 +90,7 @@ const formatTimeRange = (startHour: number, endHour: number): string => {
 };
 
 // Get category for score
-const getCategoryForScore = (score: number): { label: string; icon: React.ComponentType; color: string } => {
+const getCategoryForScore = (score: number): { label: string; icon: React.ComponentType<{ className?: string }>; color: string } => {
   if (score >= 2) {
     return { label: 'Deep Work', icon: TrendingUp, color: 'text-green-600' };
   } else if (score === 1) {

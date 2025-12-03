@@ -6,27 +6,70 @@ import { HouseCusps } from './shared/HouseCusps';
 import { ChartAngles } from './shared/ChartAngles';
 import { PlanetaryPositions } from './shared/PlanetaryPositions';
 
+interface Planet {
+  name: string;
+  sign: string;
+  deg: number;
+  house?: number;
+  retro?: boolean;
+}
+
+interface House {
+  number: number;
+  sign: string;
+  deg: number;
+}
+
+interface Angle {
+  name: string;
+  sign: string;
+  deg: number;
+}
+
+interface Aspect {
+  a?: string;
+  b?: string;
+  type: string;
+  orb?: number;
+  [key: string]: unknown;
+}
+
+interface MetaData {
+  location?: string;
+  lat?: number;
+  lon?: number;
+  house_system?: string;
+  zodiac_type?: string;
+  engine?: string;
+  tz?: string;
+  [key: string]: unknown;
+}
+
 interface SwissData {
-  planets?: unknown;
-  houses?: unknown;
-  angles?: unknown;
-  aspects?: unknown;
-  meta?: unknown;
+  planets?: Planet[];
+  houses?: House[];
+  angles?: Angle[];
+  aspects?: Aspect[];
+  meta?: MetaData;
   datetime_local?: string;
+  [key: string]: unknown;
 }
 
 interface ReportData {
   guest_report?: {
     report_data?: {
       name?: string;
+      [key: string]: unknown;
     };
+    [key: string]: unknown;
   };
   name?: string;
+  [key: string]: unknown;
 }
 
 interface SolarReturnFormatterProps {
-  swissData: Record<string, unknown>;
-  reportData: Record<string, unknown>;
+  swissData: SwissData;
+  reportData: ReportData;
   className?: string;
 }
 
@@ -44,8 +87,7 @@ export const SolarReturnFormatter: React.FC<SolarReturnFormatterProps> = ({
   }
 
   // Solar Return data has flat structure: { planets, houses, angles, aspects, meta }
-  const data = swissData as SwissData;
-  const { planets, houses, angles, aspects, meta, datetime_local } = data;
+  const { planets, houses, angles, aspects, meta, datetime_local } = swissData;
 
   // Extract return date
   let returnDate = '';
@@ -61,8 +103,7 @@ export const SolarReturnFormatter: React.FC<SolarReturnFormatterProps> = ({
   }
 
   // Get name from reportData if available
-  const reportDataTyped = reportData as ReportData;
-  const name = reportDataTyped?.guest_report?.report_data?.name || reportDataTyped?.name || 'Your';
+  const name = reportData?.guest_report?.report_data?.name || reportData?.name || 'Your';
   
   return (
     <div className={`font-inter max-w-4xl mx-auto py-4 md:py-8 px-4 md:px-0 ${className}`}>
@@ -101,27 +142,35 @@ export const SolarReturnFormatter: React.FC<SolarReturnFormatterProps> = ({
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <span className="text-gray-600 font-light">House System:</span>
-                  <span className="ml-2 font-medium">
-                    {meta.house_system === 'P' ? 'Placidus' : 
-                     meta.house_system === 'K' ? 'Koch' : 
-                     meta.house_system === 'W' ? 'Whole Sign' : 
-                     meta.house_system}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-gray-600 font-light">Zodiac:</span>
-                  <span className="ml-2 font-medium">{meta.zodiac_type || 'Tropical'}</span>
-                </div>
-                <div>
-                  <span className="text-gray-600 font-light">Engine:</span>
-                  <span className="ml-2 font-medium">{meta.engine || 'Swiss Ephemeris'}</span>
-                </div>
-                <div>
-                  <span className="text-gray-600 font-light">Timezone:</span>
-                  <span className="ml-2 font-medium">{meta.tz}</span>
-                </div>
+                {meta.house_system && (
+                  <div>
+                    <span className="text-gray-600 font-light">House System:</span>
+                    <span className="ml-2 font-medium">
+                      {meta.house_system === 'P' ? 'Placidus' : 
+                       meta.house_system === 'K' ? 'Koch' : 
+                       meta.house_system === 'W' ? 'Whole Sign' : 
+                       meta.house_system}
+                    </span>
+                  </div>
+                )}
+                {meta.zodiac_type && (
+                  <div>
+                    <span className="text-gray-600 font-light">Zodiac:</span>
+                    <span className="ml-2 font-medium">{meta.zodiac_type}</span>
+                  </div>
+                )}
+                {meta.engine && (
+                  <div>
+                    <span className="text-gray-600 font-light">Engine:</span>
+                    <span className="ml-2 font-medium">{meta.engine}</span>
+                  </div>
+                )}
+                {meta.tz && (
+                  <div>
+                    <span className="text-gray-600 font-light">Timezone:</span>
+                    <span className="ml-2 font-medium">{meta.tz}</span>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -130,4 +179,3 @@ export const SolarReturnFormatter: React.FC<SolarReturnFormatterProps> = ({
     </div>
   );
 };
-

@@ -424,9 +424,6 @@ function storeMemeMetadataAsync(chat_id: string, memeData: MemeData): void {
       } else {
         console.log('[Metadata] ✓ Stored');
       }
-    })
-    .catch((error: unknown) => {
-      console.error('[Metadata] Error:', error);
     });
 }
 

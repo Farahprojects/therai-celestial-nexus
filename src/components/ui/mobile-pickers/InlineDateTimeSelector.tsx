@@ -7,13 +7,14 @@ import { Calendar, Clock } from 'lucide-react';
 import InlineDateWheel from './InlineDateWheel';
 import InlineTimeWheel from './InlineTimeWheel';
 
-interface InlineDateTimeSelectorProps {
+export interface InlineDateTimeSelectorProps {
   type: 'date' | 'time';
   value: string;
   onChange: (value: string) => void;
   onConfirm: () => void;
+  onCancel?: () => void; // Optional cancel handler
   isOpen: boolean;
-  placeholder: string;
+  placeholder?: string;
   hasError?: boolean;
   onOpen?: () => void;
 }
