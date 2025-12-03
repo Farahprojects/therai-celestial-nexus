@@ -19,10 +19,10 @@ export interface SecondPersonData {
   birth_date: string;
   birth_time: string;
   location: string;
-  latitude?: number;
-  longitude?: number;
-  place_id?: string;
-  timezone?: string;
+  latitude?: number | null;
+  longitude?: number | null;
+  place_id?: string | null;
+  timezone?: string | null;
 }
 
 interface SavedProfile {
@@ -32,10 +32,10 @@ interface SavedProfile {
   birth_date: string;
   birth_time: string;
   birth_location: string;
-  birth_latitude?: number;
-  birth_longitude?: number;
-  birth_place_id?: string;
-  timezone?: string;
+  birth_latitude?: number | null;
+  birth_longitude?: number | null;
+  birth_place_id?: string | null;
+  timezone?: string | null;
 }
 
 export const SecondPersonForm: React.FC<SecondPersonFormProps> = ({
@@ -59,12 +59,6 @@ export const SecondPersonForm: React.FC<SecondPersonFormProps> = ({
   const [placeId, setPlaceId] = useState<string>('');
 
   // Load user's saved profiles
-  useEffect(() => {
-    if (isOpen && user?.id) {
-      loadProfiles();
-    }
-  }, [isOpen, user?.id, loadProfiles]);
-
   const loadProfiles = useCallback(async () => {
     if (!user?.id) return;
 
@@ -78,6 +72,12 @@ export const SecondPersonForm: React.FC<SecondPersonFormProps> = ({
       setProfiles(data);
     }
   }, [user?.id]);
+
+  useEffect(() => {
+    if (isOpen && user?.id) {
+      loadProfiles();
+    }
+  }, [isOpen, user?.id, loadProfiles]);
 
   const handleLocationSelect = (placeData: {
     name: string;

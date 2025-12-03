@@ -330,8 +330,6 @@ export const FolderAIPanel: React.FC<FolderAIPanelProps> = ({
               <MessageBubble
                 key={message.id}
                 message={message}
-                folderId={folderId}
-                userId={userId}
                 onDraftSelect={handleOpenDraft}
               />
             ))}
