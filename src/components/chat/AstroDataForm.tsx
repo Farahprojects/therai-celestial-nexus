@@ -84,6 +84,7 @@ export const AstroDataForm: React.FC<AstroDataFormProps> = ({
   mode: explicitMode,
   defaultName,
   prefillPersonA,
+  nameFieldAddon,
 }) => {
   // State
   const isInsights = variant === 'insights';
