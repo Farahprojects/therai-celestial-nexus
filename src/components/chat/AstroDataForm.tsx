@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { ReportFormData } from '@/types/public-report';
+import { ReportFormData } from '@/types/report-form';
 import { ReportType } from '@/utils/reportHelpers';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { toast } from 'sonner';

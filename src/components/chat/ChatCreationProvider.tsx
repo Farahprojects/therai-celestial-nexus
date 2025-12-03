@@ -25,7 +25,7 @@ interface Profile {
   house_system: string | null;
   is_primary: boolean;
 }
-import { ReportFormData } from '@/types/public-report';
+import { ReportFormData } from '@/types/report-form';
 import { AuthModal } from '@/components/auth/AuthModal';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';

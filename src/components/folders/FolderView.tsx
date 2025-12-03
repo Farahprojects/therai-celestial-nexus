@@ -4,7 +4,7 @@ import { FolderProfileSetup } from './FolderProfileSetup';
 import { JournalEntryModal } from './JournalEntryModal';
 import { DocumentUploadModal } from './DocumentUploadModal';
 import { InsightsModal } from '@/components/insights/InsightsModal';
-import { ReportSlideOver } from '@/components/public-report/ReportSlideOver';
+import { ReportSlideOver } from '@/components/report-viewer/ReportSlideOver';
 import { FolderAIPanel } from '@/components/folders/FolderAIPanel';
 import { FolderAIDocumentCanvas } from '@/components/folders/FolderAIDocumentCanvas';
 import { saveDocumentDraft, DraftDocument } from '@/services/folder-ai';

@@ -5,7 +5,7 @@ import { Sparkles, User, CreditCard } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { AstroDataForm } from '@/components/chat/AstroDataForm';
-import { ReportFormData } from '@/types/public-report';
+import { ReportFormData } from '@/types/report-form';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import type { Database, Tables, TablesUpdate } from '@/integrations/supabase/types';
