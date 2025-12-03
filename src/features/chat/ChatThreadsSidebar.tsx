@@ -450,6 +450,9 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
         await load();
       } else {
         setFolders(prev => [...prev, { id: newFolder.id, name: newFolder.name, chatsCount: 0, chats: [] }]);
+        // Navigate to the newly created folder
+        navigate(`/folders/${newFolder.id}`, { replace: true });
+        onCloseMobileSidebar?.();
       }
     } catch (e) {
       console.error('[ChatThreadsSidebar] create/rename folder failed', e);
