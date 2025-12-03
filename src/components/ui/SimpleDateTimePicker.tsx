@@ -164,7 +164,7 @@ export const SimpleDateTimePicker: React.FC<SimpleDateTimePickerProps> = ({
       </div>
 
       {/* Time Picker */}
-      <div className="space-y-2">
+      <div className="space-y-2 flex flex-col items-end">
         <label className="text-sm font-medium text-gray-700">Time *</label>
         <div className="flex items-center gap-2">
           <Popover open={isTimeOpen} onOpenChange={setIsTimeOpen}>
