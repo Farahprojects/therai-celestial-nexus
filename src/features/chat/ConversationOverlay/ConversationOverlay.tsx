@@ -160,6 +160,7 @@ export const ConversationOverlay: React.FC = () => {
         if (isShuttingDown.current) return;
         if (payload.audioBase64) {
           setState('replying');
+          // Try TTS service first, fallback to direct playback
           ttsPlaybackService.playBase64(payload.audioBase64, () => {
             setState('listening');
             if (!isShuttingDown.current) {
@@ -176,12 +177,10 @@ export const ConversationOverlay: React.FC = () => {
               }, 200);
             }
           }).catch((e) => {
-            console.error('[ConversationOverlay] ❌ TTS base64 playback failed:', e);
-            resetToTapToStart();
+            console.error('[ConversationOverlay] ❌ TTS base64 playback failed, using direct playback:', e);
+            // Fallback to direct audio playback
+            playAudioImmediately(payload.audioBase64);
           });
-        } else if (payload.audioBase64) {
-          setState('replying');
-          playAudioImmediately(payload.audioBase64);
         }
       };
 
