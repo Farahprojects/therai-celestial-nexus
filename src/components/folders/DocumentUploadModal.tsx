@@ -174,6 +174,11 @@ export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
           successCount++;
         } catch (error) {
           safeConsoleError(`[DocumentUpload] Failed to upload file: ${fileItem.file.name}`, error);
+          // Show specific error message to user if it's a security violation
+          const errorMessage = error?.message || 'Upload failed';
+          if (errorMessage.includes('SECURITY VIOLATION')) {
+            toast.error(`${fileItem.file.name}: ${errorMessage}`);
+          }
           errorCount++;
         }
       }

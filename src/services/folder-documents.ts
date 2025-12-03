@@ -150,13 +150,64 @@ export async function deleteDocument(documentId: string): Promise<void> {
 }
 
 /**
+ * Validate file before upload using Edge Function (single source of truth)
+ * Frontend is kept "dumb" - all validation logic is on the server
+ */
+async function validateFileForUpload(file: File): Promise<void> {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.access_token) {
+      throw new Error('Please log in to upload files');
+    }
+
+    const response = await fetch(`${supabase.supabaseUrl}/functions/v1/validate-file-upload`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({
+        bucket: 'folder-documents',
+        fileName: file.name,
+        fileType: file.type || 'application/octet-stream',
+        fileSize: file.size,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || 'File validation failed');
+    }
+
+    const result = await response.json();
+    if (!result.valid) {
+      throw new Error(result.message);
+    }
+
+    // Validation passed
+  } catch (error) {
+    // Network errors or validation failures
+    if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
+      throw new Error('Unable to validate file. Please check your connection and try again.');
+    }
+
+    // Re-throw validation errors from server
+    throw error;
+  }
+}
+
+/**
  * Upload file to Supabase Storage
+ * Includes server-side validation via Edge Function before upload
  */
 export async function uploadFileToStorage(
   userId: string,
   folderId: string,
   file: File
 ): Promise<string> {
+  // Validate file using Edge Function (server-side validation)
+  await validateFileForUpload(file);
+
   const fileName = `${userId}/${folderId}/${Date.now()}_${file.name}`;
 
   const { data, error } = await supabase.storage
@@ -164,6 +215,10 @@ export async function uploadFileToStorage(
     .upload(fileName, file, {
       cacheControl: '3600',
       upsert: false,
+      // Include MIME type in metadata for additional validation
+      metadata: {
+        mimetype: file.type || 'application/octet-stream',
+      },
     });
 
   if (error) {
