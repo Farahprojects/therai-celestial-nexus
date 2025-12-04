@@ -91,7 +91,7 @@ function inferMimeType(fileName: string, providedMime: string): string {
   }
 
   return providedMime
-} limit
+}
 
 Deno.serve(async (req) => {
   // Handle CORS
@@ -207,12 +207,13 @@ Deno.serve(async (req) => {
       validatedMimeType = inferMimeType(fileName, fileType)
       console.log(`[VALIDATE] File: ${fileName}, Provided MIME: ${fileType}, Validated MIME: ${validatedMimeType}`)
     } catch (mimeError) {
-      console.warn(`[VALIDATE] MIME spoofing detected: ${fileName} - ${mimeError.message}`)
+      const errorMessage = mimeError instanceof Error ? mimeError.message : 'Unknown MIME validation error'
+      console.warn(`[VALIDATE] MIME spoofing detected: ${fileName} - ${errorMessage}`)
       return new Response(
         JSON.stringify({
           valid: false,
           error: 'MIME type spoofing detected',
-          message: mimeError.message
+          message: errorMessage
         }),
         {
           status: 400,
