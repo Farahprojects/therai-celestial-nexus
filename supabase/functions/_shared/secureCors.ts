@@ -28,7 +28,8 @@ export function getSecureCorsHeaders(request: Request): Record<string, string> {
   const isAllowed = ALLOWED_ORIGINS.includes(origin) ||
     origin.endsWith('.therai.co') ||
     origin.endsWith('.supabase.co') ||
-    origin.endsWith('.loveable.dev');
+    origin.endsWith('.loveable.dev') ||
+    origin.endsWith('.lovableproject.com');
 
   return {
     'Access-Control-Allow-Origin': isAllowed ? origin : ALLOWED_ORIGINS[0],
