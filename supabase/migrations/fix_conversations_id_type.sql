@@ -22,15 +22,18 @@ USING (
   )
 );
 
--- Also update the messages RLS policy to match
-DROP POLICY IF EXISTS "Allow access to valid chat messages" ON messages;
-
-CREATE POLICY "Allow access to valid chat messages"
-ON public.messages
-FOR ALL
-TO anon, authenticated
-USING (
-  chat_id IN (
-    SELECT id FROM public.conversations
-  )
-);
+-- =================================================================
+-- IMPORTANT: Messages RLS Policy History
+-- =================================================================
+-- This file previously contained an INSECURE messages policy:
+-- CREATE POLICY "Allow access to valid chat messages" ON messages FOR ALL
+-- TO anon, authenticated USING (chat_id IN (SELECT id FROM conversations))
+--
+-- This was VULNERABLE because it only checked conversation existence,
+-- not user permissions or ownership.
+--
+-- The secure replacement policies are documented in:
+-- 20250101000000_messages_rls_secure_policies.sql
+--
+-- Current secure policies: msg_select_participants, msg_insert_participants, etc.
+-- =================================================================
