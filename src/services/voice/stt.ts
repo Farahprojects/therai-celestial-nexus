@@ -4,7 +4,7 @@ import { useChatStore } from '@/core/store';
 import { STTLimitExceededError } from './stt-errors';
 import { safeConsoleError } from '@/utils/safe-logging';
 class SttService {
-  async transcribe(audioBlob: Blob, chat_id?: string, meta?: Record<string, unknown>, chattype?: string, mode?: string, user_id?: string, user_name?: string): Promise<{ transcript: string }> {
+  async transcribe(audioBlob: Blob, chat_id?: string, _meta?: Record<string, unknown>, chattype?: string, mode?: string, user_id?: string, user_name?: string): Promise<{ transcript: string }> {
     
     // Validate audio blob before processing
     if (!audioBlob || audioBlob.size === 0) {
@@ -76,17 +76,7 @@ class SttService {
     };
   }
 
-  private async blobToBase64(blob: Blob): Promise<string> {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        const base64 = (reader.result as string).split(',')[1];
-        resolve(base64);
-      };
-      reader.onerror = reject;
-      reader.readAsDataURL(blob);
-    });
-  }
+  // Reserved for future use
 }
 
 export const sttService = new SttService();
