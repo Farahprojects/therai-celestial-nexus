@@ -30,6 +30,7 @@ export const BillingPanel = () => {
   const [subscriptionData, setSubscriptionData] = useState<SubscriptionData | null>(null);
   const [manageLoading, setManageLoading] = useState(false);
   const [upgradeLoading, setUpgradeLoading] = useState(false);
+  const [cancelLoading, setCancelLoading] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
 
   const fetchBillingData = useCallback(async () => {
@@ -102,6 +103,16 @@ export const BillingPanel = () => {
     setUpgradeLoading(true);
     closeSettings();
     window.location.href = '/subscription-paywall';
+  };
+
+  const handleCancelSubscription = () => {
+    if (cancelLoading) return;
+    setCancelLoading(true);
+    // Show loading for a brief moment, then open modal
+    setTimeout(() => {
+      setShowCancelModal(true);
+      setCancelLoading(false);
+    }, 300);
   };
 
   if (loading) {
@@ -204,13 +215,20 @@ export const BillingPanel = () => {
               <p className="text-sm font-light text-gray-600 flex-1">Update payment method or view invoices</p>
               <Button
                 onClick={handleManageSubscription}
-                aria-pressed={manageLoading}
+                disabled={manageLoading}
                 className={cn(
                   'bg-gray-900 hover:bg-gray-800 text-white font-light px-6 py-2 rounded-full transition-all duration-200 flex-shrink-0',
-                  manageLoading && 'translate-y-[2px] scale-[0.98] shadow-inner pointer-events-none cursor-wait'
+                  manageLoading && 'cursor-wait'
                 )}
               >
-                Manage
+                {manageLoading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Loading...
+                  </>
+                ) : (
+                  'Manage'
+                )}
               </Button>
             </div>
             
@@ -233,10 +251,21 @@ export const BillingPanel = () => {
             <div className="flex items-center justify-between gap-4">
               <p className="text-sm font-light text-gray-600 flex-1">Cancel your subscription</p>
               <Button
-                onClick={() => setShowCancelModal(true)}
-                className="bg-gray-900 hover:bg-gray-800 text-white font-light px-6 py-2 rounded-full transition-all duration-200 flex-shrink-0"
+                onClick={handleCancelSubscription}
+                disabled={cancelLoading}
+                className={cn(
+                  'bg-gray-900 hover:bg-gray-800 text-white font-light px-6 py-2 rounded-full transition-all duration-200 flex-shrink-0',
+                  cancelLoading && 'cursor-wait'
+                )}
               >
-                Cancel
+                {cancelLoading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Loading...
+                  </>
+                ) : (
+                  'Cancel'
+                )}
               </Button>
             </div>
           </div>
@@ -247,10 +276,14 @@ export const BillingPanel = () => {
       {isActive && (
         <CancelSubscriptionModal
           isOpen={showCancelModal}
-          onClose={() => setShowCancelModal(false)}
+          onClose={() => {
+            setShowCancelModal(false);
+            setCancelLoading(false);
+          }}
           onSuccess={() => {
             fetchBillingData();
             toast.success('Subscription cancelled');
+            setCancelLoading(false);
           }}
           currentPeriodEnd={subscriptionData?.subscription_next_charge}
         />
