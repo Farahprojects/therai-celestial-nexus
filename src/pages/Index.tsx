@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import UnifiedNavigation from '@/components/UnifiedNavigation';
 import Footer from '@/components/Footer';
 import { useAuth } from '@/contexts/AuthContext';
-import { useLandingPageImages } from '@/hooks/useLandingPageImages';
+
 import { SEO } from '@/components/SEO';
 
 /**
@@ -18,7 +18,7 @@ const Index = () => {
     user,
     loading
   } = useAuth();
-  useLandingPageImages();
+  
 
   // Rotating words for the "Your..." animation
   const rotatingWords = ['Self', 'Mind', 'Bae', 'Soul', 'Will'];
