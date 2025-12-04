@@ -79,10 +79,16 @@ return data.user.id;
 // Handlers
 const handlers: Record<string, (ctx: HandlerCtx) => Promise<Response>> = {
 // Update conversation profile (link primary profile for memory tracking)
-async update_conversation_profile({ admin, body, userId }: HandlerCtx) {
+async update_conversation_profile({ req, admin, body, userId }: HandlerCtx) {
   const { conversation_id, profile_id } = body;
-  if (!conversation_id) return errorJson('conversation_id is required', req);
-  if (!profile_id) return errorJson('profile_id is required', req);
+  if (!conversation_id) {
+    console.error('[conversation-manager] update_conversation_profile REJECTED: missing conversation_id', { userId });
+    return errorJson('conversation_id is required', req);
+  }
+  if (!profile_id) {
+    console.error('[conversation-manager] update_conversation_profile REJECTED: missing profile_id', { userId, conversation_id });
+    return errorJson('profile_id is required', req);
+  }
 
   // Verify profile belongs to user and is primary
   const { data: profile, error: profileError } = await admin
@@ -92,14 +98,17 @@ async update_conversation_profile({ admin, body, userId }: HandlerCtx) {
     .single();
 
   if (profileError || !profile) {
+    console.error('[conversation-manager] update_conversation_profile REJECTED: profile not found', { userId, profile_id, profileError });
     return errorJson('Profile not found', req, 404);
   }
 
   if (profile.user_id !== userId) {
+    console.error('[conversation-manager] update_conversation_profile REJECTED: profile ownership mismatch', { userId, profile_id, profile_owner: profile.user_id });
     return errorJson('Profile does not belong to user', req, 403);
   }
 
   if (!profile.is_primary) {
+    console.error('[conversation-manager] update_conversation_profile REJECTED: not primary profile', { userId, profile_id });
     return errorJson('Only primary profile can be linked for memory tracking', req, 400);
   }
 
@@ -111,7 +120,7 @@ async update_conversation_profile({ admin, body, userId }: HandlerCtx) {
     .eq('user_id', userId);
 
   if (updateError) {
-    console.error('[update_conversation_profile] Update failed:', updateError);
+    console.error('[conversation-manager] update_conversation_profile REJECTED: db update failed', { userId, conversation_id, profile_id, updateError });
     return errorJson('Failed to update conversation', req, 500);
   }
 
@@ -121,17 +130,21 @@ async update_conversation_profile({ admin, body, userId }: HandlerCtx) {
 // Create a new conversation
 async create_conversation({ req, admin, body, userId }: HandlerCtx) {
 const { title, mode, report_data, email, name, profile_mode, profile_id, folder_id } = body;
-if (!mode) return errorJson('mode is required for conversation creation', req);
+if (!mode) {
+  console.error('[conversation-manager] create_conversation REJECTED: missing mode', { userId, body });
+  return errorJson('mode is required for conversation creation', req);
+}
 
 // Check if profile_mode flag is present
 const isProfileMode = profile_mode === true;
 
 // ✅ sync_score can only be created from UI left panel (meme button) - NOT from folders
 if (mode === 'sync_score' && folder_id) {
+  console.error('[conversation-manager] create_conversation REJECTED: sync_score in folder not allowed', { userId, folder_id });
   return jsonResponse({
     success: false,
     error: 'sync_score conversations cannot be created in folders. Please use the meme button from the left panel.'
-  });
+  }, req);
 }
 
 // ✅ Check image generation limit for sync_score mode (6 images per day)
@@ -139,10 +152,11 @@ if (mode === 'sync_score') {
   const limitCheck = await checkLimit(admin, userId, 'image_generation', 1);
   
   if (!limitCheck.allowed || (limitCheck.current_usage !== undefined && limitCheck.current_usage >= 6)) {
+    console.error('[conversation-manager] create_conversation REJECTED: image limit exceeded', { userId, current_usage: limitCheck.current_usage });
     return jsonResponse({
       success: false,
       error: 'Daily limit exceeded. You\'ve used 6 images today. Try again tomorrow or upgrade for unlimited access.'
-    });
+    }, req);
   }
 }
 
@@ -287,7 +301,7 @@ return jsonResponse({
 },
 
 // Return existing or create a new conversation
-async get_or_create_conversation({ admin, body, userId }: HandlerCtx) {
+async get_or_create_conversation({ req, admin, body, userId }: HandlerCtx) {
 const { conversation_id, title, mode, report_data, email, name } = body;
 
 if (conversation_id) {
@@ -297,11 +311,17 @@ if (conversation_id) {
     .eq('id', conversation_id)
     .eq('user_id', userId)
     .single();
-  if (error || !data) return errorJson('Conversation not found or access denied', 404);
+  if (error || !data) {
+    console.error('[conversation-manager] get_or_create_conversation REJECTED: not found or access denied', { userId, conversation_id, error });
+    return errorJson('Conversation not found or access denied', req, 404);
+  }
   return json(data, req);
 }
 
-if (!mode) return errorJson('mode is required for conversation creation', req);
+if (!mode) {
+  console.error('[conversation-manager] get_or_create_conversation REJECTED: missing mode', { userId });
+  return errorJson('mode is required for conversation creation', req);
+}
 
 // ✅ NEW: Free users can create conversations - limits enforced at message level
 // No subscription check needed here - feature gating happens in llm-handler-gemini
@@ -331,15 +351,21 @@ const { data, error } = await admin
   .select()
   .single();
 
-if (error) return errorJson('Failed to create conversation', 500);
+if (error) {
+  console.error('[conversation-manager] get_or_create_conversation REJECTED: insert failed', { userId, mode, error });
+  return errorJson('Failed to create conversation', req, 500);
+}
 
 return json(data, req);
 },
 
 // Update updated_at and optional title
-async update_conversation_activity({ admin, body, userId }: HandlerCtx) {
+async update_conversation_activity({ req, admin, body, userId }: HandlerCtx) {
 const { conversation_id, title } = body;
-if (!conversation_id) return errorJson('conversation_id is required', req);
+if (!conversation_id) {
+  console.error('[conversation-manager] update_conversation_activity REJECTED: missing conversation_id', { userId });
+  return errorJson('conversation_id is required', req);
+}
 const { error } = await admin
 .from('conversations')
 .update({
@@ -348,13 +374,16 @@ updated_at: new Date().toISOString(),
 })
 .eq('id', conversation_id)
 .eq('user_id', userId);
-if (error) return errorJson('Failed to update conversation activity', 500);
+if (error) {
+  console.error('[conversation-manager] update_conversation_activity REJECTED: update failed', { userId, conversation_id, error });
+  return errorJson('Failed to update conversation activity', req, 500);
+}
 return json({ success: true, conversation_id }, req);
 },
 
 // List owned + shared (deduped)
 // Exclude folder-owned conversations from history (they're shown under folders)
-async list_conversations({ admin, userId }: HandlerCtx) {
+async list_conversations({ req, admin, userId }: HandlerCtx) {
 const [{ data: owned, error: ownedErr }, { data: shared, error: sharedErr }] = await Promise.all([
 admin
 .from('conversations')
@@ -370,7 +399,10 @@ admin
 .order('updated_at', { ascending: false }),
 ]);
 
-if (ownedErr || sharedErr) return errorJson('Failed to list conversations', 500);
+if (ownedErr || sharedErr) {
+  console.error('[conversation-manager] list_conversations REJECTED: query failed', { userId, ownedErr, sharedErr });
+  return errorJson('Failed to list conversations', req, 500);
+}
 
 // Merge and dedupe by id (shared takes precedence)
 const map = new Map<string, any>();
@@ -385,9 +417,12 @@ return json(conversations, req);
 },
 
 // Delete conversation and messages
-async delete_conversation({ admin, body, userId }: HandlerCtx) {
+async delete_conversation({ req, admin, body, userId }: HandlerCtx) {
 const { conversation_id } = body;
-if (!conversation_id) return errorJson('conversation_id is required', req);
+if (!conversation_id) {
+  console.error('[conversation-manager] delete_conversation REJECTED: missing conversation_id', { userId });
+  return errorJson('conversation_id is required', req);
+}
 
 // Ensure ownership
 const { data: conv, error: convErr } = await admin
@@ -395,44 +430,68 @@ const { data: conv, error: convErr } = await admin
   .select('id, owner_user_id')
   .eq('id', conversation_id)
   .single();
-if (convErr || !conv) return errorJson('Conversation not found', 404);
-if (conv.owner_user_id !== userId) return errorJson('Only the owner can delete the conversation', 403);
+if (convErr || !conv) {
+  console.error('[conversation-manager] delete_conversation REJECTED: not found', { userId, conversation_id, convErr });
+  return errorJson('Conversation not found', req, 404);
+}
+if (conv.owner_user_id !== userId) {
+  console.error('[conversation-manager] delete_conversation REJECTED: not owner', { userId, conversation_id, owner: conv.owner_user_id });
+  return errorJson('Only the owner can delete the conversation', req, 403);
+}
 
 const [{ error: msgErr }, { error: convErr2 }] = await Promise.all([
   admin.from('messages').delete().eq('chat_id', conversation_id),
   admin.from('conversations').delete().eq('id', conversation_id).eq('owner_user_id', userId),
 ]);
 
-if (msgErr || convErr2) return errorJson('Failed to delete conversation', 500);
+if (msgErr || convErr2) {
+  console.error('[conversation-manager] delete_conversation REJECTED: delete failed', { userId, conversation_id, msgErr, convErr2 });
+  return errorJson('Failed to delete conversation', req, 500);
+}
 return json({ success: true, conversation_id }, req);
 },
 
 // Update title
-async update_conversation_title({ admin, body, userId }: HandlerCtx) {
+async update_conversation_title({ req, admin, body, userId }: HandlerCtx) {
 const { conversation_id, title } = body;
-if (!conversation_id) return errorJson('conversation_id is required', req);
-if (!title) return errorJson('title is required', req);
+if (!conversation_id) {
+  console.error('[conversation-manager] update_conversation_title REJECTED: missing conversation_id', { userId });
+  return errorJson('conversation_id is required', req);
+}
+if (!title) {
+  console.error('[conversation-manager] update_conversation_title REJECTED: missing title', { userId, conversation_id });
+  return errorJson('title is required', req);
+}
 
 const { error } = await admin
   .from('conversations')
   .update({ title, updated_at: new Date().toISOString() })
   .eq('id', conversation_id)
   .eq('user_id', userId);
-if (error) return errorJson('Failed to update title', 500);
+if (error) {
+  console.error('[conversation-manager] update_conversation_title REJECTED: update failed', { userId, conversation_id, error });
+  return errorJson('Failed to update title', req, 500);
+}
 return json({ success: true, conversation_id }, req);
 },
 
 // Make public (owner only) and ensure owner appears in participants
-async share_conversation({ admin, body, userId }: HandlerCtx) {
+async share_conversation({ req, admin, body, userId }: HandlerCtx) {
 const { conversation_id } = body;
-if (!conversation_id) return errorJson('conversation_id is required', req);
+if (!conversation_id) {
+  console.error('[conversation-manager] share_conversation REJECTED: missing conversation_id', { userId });
+  return errorJson('conversation_id is required', req);
+}
 
 const { error } = await admin
   .from('conversations')
   .update({ is_public: true, updated_at: new Date().toISOString() })
   .eq('id', conversation_id)
   .eq('owner_user_id', userId);
-if (error) return errorJson('Failed to share conversation', 500);
+if (error) {
+  console.error('[conversation-manager] share_conversation REJECTED: update failed', { userId, conversation_id, error });
+  return errorJson('Failed to share conversation', req, 500);
+}
 
 await admin
   .from('conversations_participants')
@@ -441,28 +500,37 @@ await admin
     { onConflict: 'conversation_id,user_id' },
   );
 
-return json({ success: true, conversation_id, is_public: true });
+return json({ success: true, conversation_id, is_public: true }, req);
 },
 
 // Make private (owner only)
-async unshare_conversation({ admin, body, userId }: HandlerCtx) {
+async unshare_conversation({ req, admin, body, userId }: HandlerCtx) {
 const { conversation_id } = body;
-if (!conversation_id) return errorJson('conversation_id is required', req);
+if (!conversation_id) {
+  console.error('[conversation-manager] unshare_conversation REJECTED: missing conversation_id', { userId });
+  return errorJson('conversation_id is required', req);
+}
 
 const { error } = await admin
   .from('conversations')
   .update({ is_public: false, updated_at: new Date().toISOString() })
   .eq('id', conversation_id)
   .eq('owner_user_id', userId);
-if (error) return errorJson('Failed to unshare conversation', 500);
+if (error) {
+  console.error('[conversation-manager] unshare_conversation REJECTED: update failed', { userId, conversation_id, error });
+  return errorJson('Failed to unshare conversation', req, 500);
+}
 
-return json({ success: true, conversation_id, is_public: false });
+return json({ success: true, conversation_id, is_public: false }, req);
 },
 
 // Join public conversation
-async join_conversation({ admin, body, userId }: HandlerCtx) {
+async join_conversation({ req, admin, body, userId }: HandlerCtx) {
 const { conversation_id } = body;
-if (!conversation_id) return errorJson('conversation_id is required', req);
+if (!conversation_id) {
+  console.error('[conversation-manager] join_conversation REJECTED: missing conversation_id', { userId });
+  return errorJson('conversation_id is required', req);
+}
 
 const { data: conv, error } = await admin
   .from('conversations')
@@ -471,7 +539,10 @@ const { data: conv, error } = await admin
   .eq('is_public', true)
   .single();
 
-if (error || !conv) return errorJson('Conversation not found or not public', 404);
+if (error || !conv) {
+  console.error('[conversation-manager] join_conversation REJECTED: not found or not public', { userId, conversation_id, error });
+  return errorJson('Conversation not found or not public', req, 404);
+}
 
 await admin
   .from('conversations_participants')
@@ -507,15 +578,16 @@ if (body?.user_id && body.user_id !== userId) {
 }
 
 const handler = handlers[action];
-if (!handler) return errorJson('Invalid action', req);
+if (!handler) {
+  console.error('[conversation-manager] REJECTED: invalid action', { action, userId });
+  return errorJson('Invalid action', req);
+}
 
 // Use top-level admin client (no per-request overhead)
 const res = await handler({ req, params, admin: adminClient, userId, body: body || {} });
 return res;
 } catch (err: any) {
-if (DEBUG) {
-console.error('Unhandled error:', { message: err?.message, stack: err?.stack });
-}
+console.error('[conversation-manager] UNHANDLED ERROR:', { message: err?.message, stack: err?.stack });
 const message = err?.message || 'Internal server error';
 const status = message.includes('Authorization') || message.includes('token') ? 401 : 500;
 return errorJson(message, req, status);
