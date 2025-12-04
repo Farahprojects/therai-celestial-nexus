@@ -23,10 +23,9 @@ export default defineConfig(({ mode }) => ({
     mode === 'development' && componentTagger(),
     checker({
       typescript: true,
-      // ESLint disabled temporarily due to flat config compatibility issues
-      // eslint: {
-      //   lintCommand: 'eslint "./src/**/*.{ts,tsx}" --config ./eslint.config.js',
-      // },
+      eslint: {
+        lintCommand: 'eslint "./src/**/*.{ts,tsx}"',
+      },
     }),
   ].filter(Boolean),
   resolve: {

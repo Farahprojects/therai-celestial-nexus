@@ -129,7 +129,8 @@ export class ImageCacheManager {
   private cacheExpirationDays = 7; // Cache for 7 days
 
   async init(): Promise<void> {
-    if ('serviceWorker' in navigator && 'caches' in window) {
+    // Only register service worker in production to avoid dev server conflicts
+    if (import.meta.env.PROD && 'serviceWorker' in navigator && 'caches' in window) {
       try {
         // Register service worker for image caching
         await navigator.serviceWorker.register('/sw.js');
@@ -140,6 +141,8 @@ export class ImageCacheManager {
       } catch (error) {
         safeConsoleWarn('Service Worker registration failed:', error);
       }
+    } else if (import.meta.env.DEV) {
+      console.log('Service Worker skipped in development mode');
     }
   }
 

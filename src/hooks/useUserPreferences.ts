@@ -146,9 +146,9 @@ export function useUserPreferences() {
 
       // No channel cleanup needed - realtime listener removed
     };
-  }, [user, isMounted, retryCount]); // createDefaultPreferences is stable, no need in deps
+  }, [user, isMounted, retryCount, createDefaultPreferences]);
 
-  const createDefaultPreferences = async (userId: string) => {
+  const createDefaultPreferences = useCallback(async (userId: string) => {
     try {
       const defaultPrefs = {
         user_id: userId,
@@ -169,7 +169,7 @@ export function useUserPreferences() {
     } catch (err: unknown) {
       safeConsoleError("Failed to create default preferences:", err);
     }
-  };
+  }, [isMounted]);
 
   const updateMainNotificationsToggle = async (
     enabled: boolean,

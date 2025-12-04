@@ -68,7 +68,7 @@ export const FoldersList: React.FC<FoldersListProps> = ({
     }
     // Note: We don't automatically collapse folders when activeFolderId becomes null
     // Folders stay expanded until user explicitly interacts with non-folder content
-  }, [activeFolderId]);
+  }, [activeFolderId, expandedFolders]);
   
   // Collapse all folders when collapseAllFolders signal is true
   useEffect(() => {
