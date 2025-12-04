@@ -18,7 +18,10 @@ export const DocumentsSection: React.FC<DocumentsSectionProps> = ({
   onEditDocument,
   onDeleteDocument,
 }) => {
-  if (documents.length === 0) return null;
+  // Only show completed documents
+  const completedDocuments = documents.filter(doc => doc.upload_status === 'completed');
+  
+  if (completedDocuments.length === 0) return null;
 
   return (
     <div className="px-6 py-4">
@@ -30,7 +33,7 @@ export const DocumentsSection: React.FC<DocumentsSectionProps> = ({
         </div>
 
         <div className="flex flex-col space-y-1">
-          {documents.map(document => (
+          {completedDocuments.map(document => (
             <div
               key={document.id}
               className="flex items-center gap-3 py-2.5 px-3 rounded-xl hover:bg-gray-50 transition-colors group cursor-pointer"
@@ -58,26 +61,6 @@ export const DocumentsSection: React.FC<DocumentsSectionProps> = ({
                 <span className="text-xs text-gray-500">
                   {formatFileSize(document.file_size)}
                 </span>
-
-                {/* Status indicator */}
-                {document.upload_status === 'completed' && (
-                  <>
-                    <span className="text-xs text-gray-400">•</span>
-                    <span className="text-xs text-green-600">Uploaded</span>
-                  </>
-                )}
-                {document.upload_status === 'pending' && (
-                  <>
-                    <span className="text-xs text-gray-400">•</span>
-                    <span className="text-xs text-yellow-600">Processing</span>
-                  </>
-                )}
-                {document.upload_status === 'failed' && (
-                  <>
-                    <span className="text-xs text-gray-400">•</span>
-                    <span className="text-xs text-red-600">Failed</span>
-                  </>
-                )}
               </div>
 
               {/* Actions */}
