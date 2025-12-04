@@ -92,7 +92,7 @@ const PaymentMethodForm: React.FC<{
         <Button
           type="submit"
           disabled={loading || !stripe}
-          className="bg-gray-900 hover:bg-gray-800 text-white rounded-full font-light px-6"
+          className="bg-[#635BFF] hover:bg-[#4F46E5] text-white rounded-full font-light px-6"
         >
           {loading ? (
             <>
@@ -227,8 +227,8 @@ const SubscriptionManagementPage: React.FC = () => {
       <div className="p-10 flex flex-col justify-between bg-white">
         <div className="max-w-md w-full space-y-8 text-center">
           <div className="mb-4">
-            <a 
-              href="https://therai.co/therai" 
+            <a
+              href="https://therai.co/therai"
               className="text-blue-600 hover:text-blue-700 text-sm font-medium transition-colors"
             >
               ← Return to Therai.co
@@ -239,7 +239,7 @@ const SubscriptionManagementPage: React.FC = () => {
           </div>
           <h1 className="text-4xl font-light">Therai <span className="italic">Subscription Management</span></h1>
           <div className="text-xs text-gray-400 mt-6">
-            <div>Farah Projects PTY LTD</div>
+            <div>Therai</div>
             <div>ACN 676 280 229</div>
           </div>
         </div>
@@ -298,7 +298,7 @@ const SubscriptionManagementPage: React.FC = () => {
                   {!showAddPaymentMethod && (
                     <Button
                       onClick={handleAddPaymentMethod}
-                      className="bg-gray-900 hover:bg-gray-800 text-white rounded-full font-light px-4 text-sm"
+                      className="bg-[#635BFF] hover:bg-[#4F46E5] text-white rounded-full font-light px-4 text-sm"
                     >
                       Add Payment Method
                     </Button>

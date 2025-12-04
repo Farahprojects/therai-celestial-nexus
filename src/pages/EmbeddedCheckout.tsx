@@ -19,7 +19,7 @@ const EmbeddedCheckoutPage: React.FC = () => {
     (async () => {
       const planId = searchParams.get('planId');
       if (!planId || !user?.id) return;
-      
+
       // planId is the internal price_list.id (e.g., "10_monthly")
       // Edge function will look it up and get the stripe_price_id
       const returnUrl = `${window.location.origin}/success`;
@@ -53,7 +53,7 @@ const EmbeddedCheckoutPage: React.FC = () => {
           </div>
           <h1 className="text-4xl font-light italic">Therai partners with Stripe for simplified billing.</h1>
           <div className="text-xs text-gray-400 mt-6">
-            <div>Therai.co is powered by Farah Projects PTY LTD</div>
+            <div>Therai.co is powered by Therai</div>
             <div>ACN 676 280 229</div>
             <div>Australian registered company (fully legit as)</div>
           </div>
