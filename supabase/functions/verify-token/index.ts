@@ -1,12 +1,9 @@
 // @ts-nocheck - Deno runtime, types checked at deployment
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2?target=deno&deno-std=0.224.0";
+import { getSecureCorsHeaders } from "../_shared/secureCors.ts";
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
-
-const respond = (body: any, status = 200) => {
+const respond = (body: any, status = 200, req: Request) => {
+  const corsHeaders = getSecureCorsHeaders(req);
   return new Response(JSON.stringify(body), {
     status,
     headers: { 'Content-Type': 'application/json', ...corsHeaders },
@@ -16,6 +13,7 @@ const respond = (body: any, status = 200) => {
 Deno.serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
+    const corsHeaders = getSecureCorsHeaders(req);
     return new Response(null, { headers: corsHeaders });
   }
 
@@ -26,7 +24,7 @@ Deno.serve(async (req) => {
       return respond({
         success: false,
         error: 'Missing required parameter: token'
-      }, 400);
+      }, 400, req);
     }
 
     const supabase = createClient(
@@ -61,7 +59,7 @@ Deno.serve(async (req) => {
       return respond({
         success: false,
         error: 'Invalid or expired token'
-      }, 400);
+      }, 400, req);
     }
 
     // Check if token has expired
@@ -70,7 +68,7 @@ Deno.serve(async (req) => {
       return respond({
         success: false,
         error: 'Token has expired'
-      }, 400);
+      }, 400, req);
     }
 
     const email = mappingData.email;
@@ -83,13 +81,13 @@ Deno.serve(async (req) => {
       success: true,
       message: 'Token verified successfully',
       email: email
-    });
+    }, 200, req);
 
   } catch (error) {
     console.error('[verify-token] Unexpected error:', error);
     return respond({
       success: false,
       error: 'Internal server error'
-    }, 500);
+    }, 500, req);
   }
 });
