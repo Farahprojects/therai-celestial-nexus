@@ -24,7 +24,7 @@ const JoinConversation: React.FC = () => {
     checkAuth();
     
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {                                                                    
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {                                                                    
       setUser(session?.user || null);
       setIsAuthenticated(!!session?.user);
       setAuthLoading(false);
@@ -124,26 +124,8 @@ const JoinConversation: React.FC = () => {
     );
   }
 
-  // Component handles navigation internally - show loading or ChatContainer
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-8 h-8 border-2 border-gray-300 border-t-gray-900 rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600 font-light">Loading conversation...</p>
-        </div>
-      </div>
-    );
-  }
-  
-  if (!conversation || error) {
-    // Will navigate to /therai - show ChatContainer in meantime
-    return <ChatContainer />;
-  }
-
-  return (
-    <ChatContainer />
-  );
+  // Component handles navigation internally - show ChatContainer as fallback
+  return <ChatContainer />;
 };
 
 export default JoinConversation;

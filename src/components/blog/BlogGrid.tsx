@@ -5,14 +5,14 @@ interface BlogPost {
   id: string;
   title: string;
   slug: string;
-  cover_image_url?: string;
-  author_name?: string;
-  created_at: string;
-  like_count: number;
-  share_count: number;
-  tags?: string[];
+  cover_image_url?: string | null;
+  author_name?: string | null;
+  created_at: string | null;
+  like_count: number | null;
+  share_count: number | null;
+  tags?: string[] | null;
   content_type?: string | null;
-  featured?: boolean;
+  featured?: boolean | null;
 }
 
 interface BlogGridProps {

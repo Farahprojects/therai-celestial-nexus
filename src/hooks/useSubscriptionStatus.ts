@@ -68,7 +68,7 @@ export function useSubscriptionStatus() {
         return;
       }
 
-      const isActive = data?.subscription_active && 
+      const isActive = (data?.subscription_active === true) && 
                       ['active', 'trialing'].includes(data?.subscription_status || '');
       
       const isPastDue = data?.subscription_status === 'past_due';

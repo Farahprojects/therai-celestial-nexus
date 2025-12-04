@@ -31,8 +31,12 @@ export const useUserProfile = () => {
         if (error) {
           safeConsoleError('Error fetching profile:', error);
           setProfile(null);
-        } else {
-          setProfile(data);
+        } else if (data) {
+          setProfile({
+            id: data.id,
+            email: data.email || '',
+            email_verified: data.email_verified || false
+          });
         }
       } catch (err) {
         safeConsoleError('Error fetching profile:', err);

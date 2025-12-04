@@ -45,46 +45,47 @@ export type SyncVM = {
 };
 
 export function normalizeSync(payload: unknown): SyncVM {
-  
-  const meta = payload?.meta ?? {};
-  let analysisDate = [meta.date, meta.time].filter(Boolean).join(" ");
-  const timeBasis = meta.time_basis;
+  const p = payload as Record<string, unknown> | null | undefined;
+  const meta = (p?.meta as Record<string, unknown>) ?? {};
+  let analysisDate = [(meta.date as string), (meta.time as string)].filter(Boolean).join(" ");
+  const timeBasis = meta.time_basis as string | undefined;
 
-  const natalSubjects = payload?.natal?.subjects ?? {};
-  const trans = payload?.transits ?? {};
+  const natal = p?.natal as Record<string, unknown> | undefined;
+  const natalSubjects = (natal?.subjects as Record<string, unknown>) ?? {};
+  const trans = (p?.transits as Record<string, unknown>) ?? {};
 
   // Prefer subject-specific local datetime if provided by Swiss payload
-  const rlA = trans?.person_a?.requested_local_datetime || trans?.person_a?.requested_local_time;
-  const rlB = trans?.person_b?.requested_local_datetime || trans?.person_b?.requested_local_time;
+  const transA = trans?.person_a as Record<string, unknown> | undefined;
+  const transB = trans?.person_b as Record<string, unknown> | undefined;
+  const rlA = (transA?.requested_local_datetime as string) || (transA?.requested_local_time as string);
+  const rlB = (transB?.requested_local_datetime as string) || (transB?.requested_local_time as string);
   if (rlA) analysisDate = rlA;
   else if (rlB) analysisDate = rlB;
 
   const makeSubject = (key: PersonKey): SubjectVM | null => {
-    const natal = natalSubjects?.[key] ?? {};
-    const transits = trans?.[key];
-    
-
+    const natal = (natalSubjects?.[key] as Record<string, unknown>) ?? {};
+    const transits = trans?.[key] as TransitBlock | undefined;
     
     if (!natal && !transits) {
       return null;
     }
 
     const name =
-      natal?.name ??
-      transits?.name ??
+      (natal?.name as string) ??
+      ((transits as Record<string, unknown>)?.name as string) ??
       (key === "person_a" ? "Person A" : "Person B");
 
+    const transitsRecord = transits as Record<string, unknown> | undefined;
+    const natalMeta = natal?.meta as Record<string, unknown> | undefined;
     const tzDisplay =
-      (transits?.timezone && transits.timezone !== 'UTC') 
-        ? transits.timezone 
-        : natal?.meta?.tz || undefined;
-
-
+      (transitsRecord?.timezone && transitsRecord.timezone !== 'UTC') 
+        ? transitsRecord.timezone as string
+        : (natalMeta?.tz as string) || undefined;
 
     return { 
       key, 
       name, 
-      natal: natal || {}, 
+      natal: natal as NatalBlock || {}, 
       transits, 
       tzDisplay 
     };
@@ -94,11 +95,14 @@ export function normalizeSync(payload: unknown): SyncVM {
     .map(makeSubject)
     .filter(Boolean) as SubjectVM[];
 
+  const synastryAspects = p?.synastry_aspects as Record<string, unknown> | undefined;
+  const compositeChart = p?.composite_chart as Record<string, unknown> | undefined;
+  
   return {
     analysisDate,
     timeBasis,
     subjects,
-    synastryPairs: payload?.synastry_aspects?.pairs ?? [],
-    compositePlanets: payload?.composite_chart?.planets ?? {},
+    synastryPairs: (synastryAspects?.pairs as AspectData[]) ?? [],
+    compositePlanets: (compositeChart?.planets as Record<string, { deg?: number; sign?: string }>) ?? {},
   };
 }

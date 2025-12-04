@@ -8,8 +8,8 @@ import { Database } from '@/integrations/supabase/types';
 import { safeConsoleError } from '@/utils/safe-logging';
 interface Conversation {
   id: string;
-  title: string;
-  updated_at: string;
+  title: string | null;
+  updated_at: string | null;
   mode: string | null;
 }
 
@@ -57,7 +57,7 @@ export const useFolderData = (folderId: string) => {
     setState(prev => ({
       ...prev,
       conversations: [...prev.conversations.filter(c => c.id !== normalized.id), normalized]
-        .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
+        .sort((a, b) => new Date(b.updated_at || '').getTime() - new Date(a.updated_at || '').getTime())
     }));
   }, []);
 

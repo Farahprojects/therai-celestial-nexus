@@ -154,13 +154,14 @@ export function useFolderAI(folderId: string | null, userId: string | null) {
       setError(err instanceof Error ? err.message : 'Failed to send message');
       
       // Add error message to chat
+      const errMsg = err instanceof Error ? err.message : 'Unknown error';
       const errorMessage: ParsedMessage = {
         id: crypto.randomUUID(),
         folder_id: folderId,
         user_id: userId,
         role: 'system',
-        content: `Error: ${err.message}`,
-        plainText: `Error: ${err.message}`,
+        content: `Error: ${errMsg}`,
+        plainText: `Error: ${errMsg}`,
         metadata: { error: true },
         created_at: new Date().toISOString()
       };

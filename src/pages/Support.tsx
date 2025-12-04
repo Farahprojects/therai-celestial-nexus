@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
@@ -121,7 +121,7 @@ const Support = () => {
               </div>
 
               {/* FAQ Accordions */}
-              <FAQSection faqs={filteredFAQs} searchQuery="" />
+              <FAQSection faqs={filteredFAQs} />
             </div>
           </div>
         </section>

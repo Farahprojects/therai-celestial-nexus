@@ -15,6 +15,7 @@ export const CheckoutSuccessPage: React.FC = () => {
   const [paymentVerified, setPaymentVerified] = useState(false);
   const [purchasedCredits, setPurchasedCredits] = useState<number | null>(null);
   const [amountUsd, setAmountUsd] = useState<number | null>(null);
+  const [, setNewBalance] = useState<number | null>(null);
 
   const sessionId = searchParams.get('session_id');
   const paymentIntentId = searchParams.get('payment_intent');

@@ -122,7 +122,7 @@ const SubscriptionManagementPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
-  const [subscriptionData, setSubscriptionData] = useState<{ subscription_status?: string; subscription_next_charge?: string } | null>(null);
+  const [subscriptionData, setSubscriptionData] = useState<{ subscription_active?: boolean | null; subscription_status?: string | null; subscription_next_charge?: string | null } | null>(null);
   const [showAddPaymentMethod, setShowAddPaymentMethod] = useState(false);
   const [setupIntentClientSecret, setSetupIntentClientSecret] = useState<string | null>(null);
   const [showCancelModal, setShowCancelModal] = useState(false);
