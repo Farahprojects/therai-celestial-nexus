@@ -207,26 +207,9 @@ async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent)
     return
   }
 
-  // Handle guest report payment
-  const guestId = (paymentIntent.metadata?.guest_id as string) || ''
-  
-  if (!guestId) {
-    console.log('[Webhook] No guest_id or credits found in metadata, skipping');
-    return
-  }
-
-  console.log(`[Webhook] Updating guest_reports for guest_id: ${guestId}`);
-
-  const { error } = await supabase
-    .from('guest_reports')
-    .update({ payment_status: 'paid', updated_at: new Date().toISOString() })
-    .eq('id', guestId)
-
-  if (error) {
-    console.error(`[Webhook] Failed to update guest_reports for ${guestId}:`, error);
-  } else {
-    console.log(`[Webhook] ✅ Successfully updated guest_reports payment_status to 'paid' for ${guestId}`);
-  }
+  // Guest report payments are no longer supported
+  console.log('[Webhook] No credits or user_id found in metadata, skipping');
+  return
 }
 
 async function resolveUserId(customerId: string, clientReferenceId?: string, metadata?: any): Promise<string | null> {
@@ -518,34 +501,6 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
         status: 'failed',
         credited: false
       })
-    }
-    return
-  }
-  
-  // Check if this is a guest checkout by looking for guest_id in URLs
-  const successUrl = session.success_url
-  const cancelUrl = session.cancel_url
-  
-  // Look for guest_id in either success_url or cancel_url
-  const guestIdMatch = successUrl?.match(/guest_id=([a-f0-9-]+)/) || cancelUrl?.match(/guest_id=([a-f0-9-]+)/)
-  
-  if (guestIdMatch && guestIdMatch[1]) {
-    const guestId = guestIdMatch[1]
-    console.log(`Processing guest checkout completion for guest_id: ${guestId}`)
-    
-    // Update guest_reports payment_status to 'paid'
-    const { error: guestUpdateError } = await supabase
-      .from('guest_reports')
-      .update({ 
-        payment_status: 'paid',
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', guestId)
-
-    if (guestUpdateError) {
-      console.error(`Failed to update guest payment status for ${guestId}:`, guestUpdateError)
-    } else {
-      console.log(`✅ Successfully updated guest payment status to 'paid' for ${guestId}`)
     }
     return
   }

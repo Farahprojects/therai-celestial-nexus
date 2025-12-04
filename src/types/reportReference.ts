@@ -1,6 +1,6 @@
 // Minimal report reference - no full payload data
 export interface ReportReference {
-  guestReportId: string;
+  reportId: string;
   reportType: string;
   engine: string;
   timestamp: number;
@@ -19,5 +19,5 @@ export interface CachedReport {
 
 // Report cache management
 export interface ReportCache {
-  [guestReportId: string]: CachedReport;
+  [reportId: string]: CachedReport;
 } 

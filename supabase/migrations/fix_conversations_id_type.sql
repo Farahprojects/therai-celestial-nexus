@@ -19,8 +19,6 @@ TO anon, authenticated
 USING (
   user_id IN (
     SELECT id FROM public.conversations
-    UNION
-    SELECT chat_id FROM public.guest_reports
   )
 );
 
@@ -34,7 +32,5 @@ TO anon, authenticated
 USING (
   chat_id IN (
     SELECT id FROM public.conversations
-    UNION
-    SELECT chat_id FROM public.guest_reports
   )
 );

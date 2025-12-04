@@ -13,13 +13,6 @@ interface FocusAstroFormatterProps {
     [key: string]: unknown;
   };
   reportData: {
-    guest_report?: {
-      report_data?: {
-        birthDate?: string;
-        [key: string]: unknown;
-      };
-      [key: string]: unknown;
-    };
     [key: string]: unknown;
   };
   className?: string;

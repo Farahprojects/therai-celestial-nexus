@@ -10,13 +10,7 @@ import { parseAstroData } from '@/lib/astroFormatter';
 import { TransitMetadata } from './shared/TransitMetadata';
 
 interface ReportData {
-  guest_report?: {
-    report_data?: {
-      birthDate?: string;
-      [key: string]: unknown;
-    };
-    [key: string]: unknown;
-  };
+  birthDate?: string;
   [key: string]: unknown;
 }
 
@@ -61,9 +55,9 @@ export const IndividualAstroFormatter: React.FC<IndividualAstroFormatterProps> =
   const { subject, natal, transits } = astroData;
 
   // Extract birth date from swiss_data blocks.natal.meta
-  let birthDate = reportData.guest_report?.report_data?.birthDate;
-  
-  // If not in guest_report, try to extract from swiss_data
+  let birthDate = reportData.birthDate;
+
+  // If not in reportData, try to extract from swiss_data
   if (!birthDate && swissData?.blocks?.natal?.meta) {
     const natalMeta = swissData.blocks.natal.meta;
     // Extract date from UTC timestamp or use meta.date and meta.time

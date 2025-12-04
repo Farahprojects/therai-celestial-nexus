@@ -39,10 +39,8 @@ export interface ReportFormData {
   returnYear?: string;
   notes?: string;
   promoCode?: string;
-  is_guest?: boolean;
   // Chat-related fields
   chat_id?: string;
-  guest_report_id?: string;
   // Profile linking
   profile_id?: string;
 }

@@ -1469,7 +1469,6 @@ export type Database = {
           error_message: string | null
           has_error: boolean
           id: string
-          is_guest: boolean | null
           metadata: Json | null
           report_text: string | null
           report_type: string | null
@@ -1484,7 +1483,6 @@ export type Database = {
           error_message?: string | null
           has_error?: boolean
           id?: string
-          is_guest?: boolean | null
           metadata?: Json | null
           report_text?: string | null
           report_type?: string | null
@@ -1499,7 +1497,6 @@ export type Database = {
           error_message?: string | null
           has_error?: boolean
           id?: string
-          is_guest?: boolean | null
           metadata?: Json | null
           report_text?: string | null
           report_type?: string | null
@@ -1688,7 +1685,6 @@ export type Database = {
           chat_hash: string | null
           created_at: string | null
           expires_at: string | null
-          guest_report_id: string | null
           id: string
           last_save_attempt_at: string | null
           metadata: Json | null
@@ -1704,7 +1700,6 @@ export type Database = {
           chat_hash?: string | null
           created_at?: string | null
           expires_at?: string | null
-          guest_report_id?: string | null
           id?: string
           last_save_attempt_at?: string | null
           metadata?: Json | null
@@ -1720,7 +1715,6 @@ export type Database = {
           chat_hash?: string | null
           created_at?: string | null
           expires_at?: string | null
-          guest_report_id?: string | null
           id?: string
           last_save_attempt_at?: string | null
           metadata?: Json | null
@@ -1811,7 +1805,6 @@ export type Database = {
           google_geo: boolean | null
           id: string
           is_archived: boolean
-          is_guest: boolean
           processing_time_ms: number | null
           report_tier: string | null
           request_payload: Json | null
@@ -1828,7 +1821,6 @@ export type Database = {
           google_geo?: boolean | null
           id?: string
           is_archived?: boolean
-          is_guest?: boolean
           processing_time_ms?: number | null
           report_tier?: string | null
           request_payload?: Json | null
@@ -1845,7 +1837,6 @@ export type Database = {
           google_geo?: boolean | null
           id?: string
           is_archived?: boolean
-          is_guest?: boolean
           processing_time_ms?: number | null
           report_tier?: string | null
           request_payload?: Json | null

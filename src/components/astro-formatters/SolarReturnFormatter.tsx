@@ -56,13 +56,6 @@ interface SwissData {
 }
 
 interface ReportData {
-  guest_report?: {
-    report_data?: {
-      name?: string;
-      [key: string]: unknown;
-    };
-    [key: string]: unknown;
-  };
   name?: string;
   [key: string]: unknown;
 }
@@ -103,7 +96,7 @@ export const SolarReturnFormatter: React.FC<SolarReturnFormatterProps> = ({
   }
 
   // Get name from reportData if available
-  const name = reportData?.guest_report?.report_data?.name || reportData?.name || 'Your';
+  const name = reportData?.name || 'Your';
   
   return (
     <div className={`font-inter max-w-4xl mx-auto py-4 md:py-8 px-4 md:px-0 ${className}`}>

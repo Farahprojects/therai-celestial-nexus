@@ -32,7 +32,6 @@ export type PersonData = z.infer<typeof PersonDataSchema>;
 export type MappedReport = z.infer<typeof MappedReportSchema>;
 
 export interface RawReportPayload {
-  guest_report?: Record<string, unknown>;
   report_content?: string;
   swiss_data?: Record<string, unknown> | null;
   metadata?: Record<string, unknown>;

@@ -21,16 +21,9 @@ interface Aspect {
 }
 
 interface ReportData {
-  guest_report?: {
-    report_data?: {
-      birthDate?: string;
-      birthLocation?: string;
-      name?: string;
-      [key: string]: unknown;
-    };
-    [key: string]: unknown;
-  };
   name?: string;
+  birthDate?: string;
+  birthLocation?: string;
   [key: string]: unknown;
 }
 
@@ -65,20 +58,19 @@ export const ProgressionsFormatter: React.FC<ProgressionsFormatterProps> = ({
 
   // Calculate progression date from days after birth
   let progressionDate: string | null = null;
-  const birthDateStr = reportData.guest_report?.report_data?.birthDate;
+  const birthDateStr = reportData.birthDate;
   if (days_after_birth && birthDateStr) {
     const birthDate = new Date(birthDateStr);
     const progressionDateObj = new Date(birthDate.getTime() + (days_after_birth * 24 * 60 * 60 * 1000));
-    progressionDate = progressionDateObj.toLocaleDateString('en-US', { 
-      year: 'numeric', 
-      month: 'long', 
-      day: 'numeric' 
+    progressionDate = progressionDateObj.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
     });
   }
 
   // Get the correct name from reportData
-  const name = reportData?.guest_report?.report_data?.name || 
-               reportData?.name || 
+  const name = reportData?.name || 
                'Your Progressed Chart';
 
   return (
@@ -86,7 +78,7 @@ export const ProgressionsFormatter: React.FC<ProgressionsFormatterProps> = ({
       <ChartHeader
         name={name}
         birthDate={birthDateStr}
-        birthLocation={reportData.guest_report?.report_data?.birthLocation}
+        birthLocation={reportData.birthLocation}
       />
 
       <div className="space-y-4 md:space-y-8 mt-4 md:mt-8">

@@ -54,7 +54,7 @@ const renderIndividualAsText = (reportData: ReportData): string => {
   text += `${name}'s Astro Data\n`;
   text += '='.repeat(name.length + 12) + '\n\n';
 
-  // Birth info removed since guest_report.report_data is no longer available
+  // Birth info removed as guest reports are no longer supported
   text += '\n';
   if (natal?.angles?.length > 0) {
     text += 'CHART ANGLES\n------------\n';
