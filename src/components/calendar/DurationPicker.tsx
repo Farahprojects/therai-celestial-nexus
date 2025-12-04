@@ -15,7 +15,7 @@ export const DurationPicker: React.FC<DurationPickerProps> = ({
   onChange,
   className,
   disabled,
-}) => {
+}: DurationPickerProps) => {
   return (
     <div
       className={cn(

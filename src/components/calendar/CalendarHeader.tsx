@@ -95,7 +95,7 @@ export const CalendarHeader = ({
           <ToggleGroup
             type="single"
             value={view}
-            onValueChange={v => v && setView(v as "month" | "week")}
+            onValueChange={(v: string | undefined) => v && setView(v as "month" | "week")}
             className="gap-2"
             size="sm"
           >
@@ -198,7 +198,7 @@ export const CalendarHeader = ({
           <ToggleGroup
             type="single"
             value={view}
-            onValueChange={v => v && setView(v as "month" | "week" | "day")}
+            onValueChange={(v: string | undefined) => v && setView(v as "month" | "week" | "day")}
             className="gap-2"
             size="sm"
           >

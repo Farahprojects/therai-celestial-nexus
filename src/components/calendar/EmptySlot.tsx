@@ -13,7 +13,7 @@ const EmptySlot: React.FC<EmptySlotProps> = ({
   onCreate,
   interactive = true,
   height = 40, // Default to 40px to match slotHeight in DayView
-}) => {
+}: EmptySlotProps) => {
   return (
     <div
       className={`

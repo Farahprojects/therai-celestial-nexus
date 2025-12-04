@@ -94,7 +94,7 @@ export const EventCard = ({
             type="button"
             variant="ghost"
             size="icon"
-            onClick={e => {
+            onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
               e.stopPropagation();
               onDelete?.();
             }}
@@ -138,7 +138,7 @@ export const EventCard = ({
             type="button"
             variant="ghost"
             size="icon"
-            onClick={e => {
+            onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
               e.stopPropagation();
               onDelete?.();
             }}

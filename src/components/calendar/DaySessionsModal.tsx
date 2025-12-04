@@ -27,7 +27,7 @@ export const DaySessionsModal: React.FC<Props> = ({
   isMobile,
   onEditSession,
   onAddSession,
-}) => {
+}: Props) => {
   const dateStr = date.toLocaleDateString(undefined, {
     weekday: "long",
     year: "numeric",
@@ -38,7 +38,7 @@ export const DaySessionsModal: React.FC<Props> = ({
   // Get client name for each session
   const clientMap = React.useMemo(() => {
     const map: Record<string, string> = {};
-    clients.forEach(c => (map[c.id] = c.name));
+    clients.forEach((c: { id: string; name: string }) => (map[c.id] = c.name));
     return map;
   }, [clients]);
 
@@ -47,7 +47,7 @@ export const DaySessionsModal: React.FC<Props> = ({
       <h2 className="text-lg font-semibold mb-1">{dateStr}</h2>
       {sessions.length ? (
         <div className="flex flex-col gap-3">
-          {sessions.map((session) => (
+          {sessions.map((session: CalendarSession) => (
             <div key={session.id}>
               <EventCard
                 session={session}
@@ -77,7 +77,7 @@ export const DaySessionsModal: React.FC<Props> = ({
   // Mobile: sheet, Desktop: dialog
   if (isMobile) {
     return (
-      <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
+        <Sheet open={open} onOpenChange={(v: boolean) => !v && onClose()}>
         <SheetContent
           side="bottom"
           className="!max-w-full !w-screen h-[80dvh] p-0 flex flex-col"
@@ -89,7 +89,7 @@ export const DaySessionsModal: React.FC<Props> = ({
   }
   // Desktop
   return (
-    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+      <Dialog open={open} onOpenChange={(v: boolean) => !v && onClose()}>
       <DialogContent className="max-w-md">{modalContent}</DialogContent>
     </Dialog>
   );

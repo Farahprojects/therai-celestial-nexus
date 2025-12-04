@@ -33,7 +33,7 @@ export const MobileDaySelector: React.FC<Props> = ({
   selectedDay,
   onSelect,
   sessions,
-}) => {
+}: Props) => {
   const weekStart = getStartOfWeek(weekDate);
   const today = new Date();
 
