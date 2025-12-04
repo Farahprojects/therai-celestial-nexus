@@ -4,7 +4,7 @@ import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { uploadDocument, uploadFileToStorage, updateDocument, extractTextFromFile } from '@/services/folder-documents';
 import { toast } from 'sonner';
-import { safeConsoleWarn, safeConsoleError } from '@/utils/safe-logging';
+import { safeConsoleWarn } from '@/utils/safe-logging';
 interface DocumentUploadModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -137,7 +137,7 @@ export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
     return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
   };
 
-  const handleUpload = async () => {
+const handleUpload = async () => {
     if (files.length === 0) {
       toast.error('Please select files to upload');
       return;
@@ -145,7 +145,7 @@ export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
 
     setIsUploading(true);
     let successCount = 0;
-    let errorCount = 0;
+    const failedFiles: { name: string; error: string }[] = [];
 
     try {
       for (const fileItem of files) {
@@ -153,7 +153,7 @@ export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
           // 1. Create database record
           const document = await uploadDocument(userId, folderId, fileItem.file);
 
-          // 2. Upload file to storage
+          // 2. Upload file to storage (includes server-side validation)
           const filePath = await uploadFileToStorage(userId, folderId, fileItem.file);
 
           // 3. Extract text content (for text-based files)
@@ -173,26 +173,29 @@ export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
 
           successCount++;
         } catch (error) {
-          safeConsoleError(`[DocumentUpload] Failed to upload file: ${fileItem.file.name}`, error);
-          // Show specific error message to user if it's a security violation
-          const errorMessage = error?.message || 'Upload failed';
-          if (errorMessage.includes('SECURITY VIOLATION')) {
-            toast.error(`${fileItem.file.name}: ${errorMessage}`);
-          }
-          errorCount++;
+          const errorMessage = error instanceof Error ? error.message : 'Upload failed';
+          failedFiles.push({ name: fileItem.file.name, error: errorMessage });
         }
       }
 
+      // Show results
       if (successCount > 0) {
         toast.success(`${successCount} file${successCount > 1 ? 's' : ''} uploaded successfully`);
       }
-      if (errorCount > 0) {
-        toast.error(`${errorCount} file${errorCount > 1 ? 's' : ''} failed to upload`);
-      }
+      
+      // Show inline errors for failed files
+      failedFiles.forEach(({ name, error }) => {
+        toast.error(`${name}: ${error}`);
+      });
 
       if (successCount === files.length) {
         onUploadComplete?.();
         onClose();
+      } else {
+        // Remove successful files, keep failed ones for retry
+        setFiles(prev => prev.filter(f => 
+          failedFiles.some(failed => failed.name === f.file.name)
+        ));
       }
     } finally {
       setIsUploading(false);

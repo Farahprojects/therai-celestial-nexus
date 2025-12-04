@@ -105,11 +105,11 @@ Deno.serve(async (req) => {
       return new Response(
         JSON.stringify({
           valid: false,
-          error: 'Unauthorized',
+          error: 'unauthorized',
           message: 'Please log in to upload files'
         }),
         {
-          status: 401,
+          status: 200,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         }
       )
@@ -124,11 +124,11 @@ Deno.serve(async (req) => {
       return new Response(
         JSON.stringify({
           valid: false,
-          error: 'Invalid bucket',
+          error: 'invalid_bucket',
           message: 'Files can only be uploaded to the folder-documents bucket'
         }),
         {
-          status: 400,
+          status: 200,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         }
       )
@@ -147,11 +147,11 @@ Deno.serve(async (req) => {
       return new Response(
         JSON.stringify({
           valid: false,
-          error: 'Security violation',
-          message: `SECURITY VIOLATION: Files with .${fileExtension} extension are not allowed`
+          error: 'dangerous_extension',
+          message: `File type not supported: .${fileExtension} files are not allowed`
         }),
         {
-          status: 400,
+          status: 200,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         }
       )
@@ -164,11 +164,11 @@ Deno.serve(async (req) => {
       return new Response(
         JSON.stringify({
           valid: false,
-          error: 'Invalid filename',
-          message: 'SECURITY VIOLATION: Files with multiple extensions are not allowed'
+          error: 'invalid_filename',
+          message: 'File type not supported: files with multiple extensions are not allowed'
         }),
         {
-          status: 400,
+          status: 200,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         }
       )
@@ -179,11 +179,11 @@ Deno.serve(async (req) => {
       return new Response(
         JSON.stringify({
           valid: false,
-          error: 'File too large',
-          message: `File size ${Math.round(fileSize / 1024 / 1024)}MB exceeds maximum allowed size of ${Math.round(MAX_FILE_SIZE / 1024 / 1024)}MB`
+          error: 'file_too_large',
+          message: `File too large: ${Math.round(fileSize / 1024 / 1024)}MB exceeds the ${Math.round(MAX_FILE_SIZE / 1024 / 1024)}MB limit`
         }),
         {
-          status: 400,
+          status: 200,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         }
       )
@@ -200,11 +200,11 @@ Deno.serve(async (req) => {
       return new Response(
         JSON.stringify({
           valid: false,
-          error: 'MIME type spoofing detected',
-          message: errorMessage
+          error: 'mime_mismatch',
+          message: 'File type not supported: file extension does not match content type'
         }),
         {
-          status: 400,
+          status: 200,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         }
       )
@@ -212,14 +212,15 @@ Deno.serve(async (req) => {
 
     // Validate MIME type against allowlist
     if (!ALLOWED_MIME_TYPES.includes(validatedMimeType)) {
+      const ext = fileExtension ? `.${fileExtension}` : 'this'
       return new Response(
         JSON.stringify({
           valid: false,
-          error: 'Invalid file type',
-          message: `File type not allowed. Only safe document types are permitted.`
+          error: 'unsupported_type',
+          message: `File type not supported: ${ext} files are not allowed. Supported: PDF, Word, Excel, PowerPoint, TXT, MD, CSV, and images.`
         }),
         {
-          status: 400,
+          status: 200,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         }
       )
@@ -248,11 +249,11 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({
         valid: false,
-        error: 'Validation failed',
+        error: 'server_error',
         message: 'Unable to validate file. Please try again.'
       }),
       {
-        status: 500,
+        status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
     )
