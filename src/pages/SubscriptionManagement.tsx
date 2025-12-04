@@ -242,9 +242,9 @@ const SubscriptionManagementPage: React.FC = () => {
             <a href="https://stripe.com" target="_blank" rel="noopener noreferrer" className="text-[#635BFF] hover:text-[#4F46E5] font-medium transition-colors" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>Stripe</a>
           </div>
           <div className="space-x-4">
-            <a href="https://stripe.com/billing" target="_blank" rel="noopener noreferrer" className="hover:text-gray-700 underline">Learn more about Stripe Billing</a>
-            <a href="https://stripe.com/legal/terms" target="_blank" rel="noopener noreferrer" className="hover:text-gray-700 underline">Terms</a>
-            <a href="https://stripe.com/legal/privacy" target="_blank" rel="noopener noreferrer" className="hover:text-gray-700 underline">Privacy</a>
+            <a href="https://stripe.com/billing" target="_blank" rel="noopener noreferrer" className="text-[#635BFF] hover:text-[#4F46E5] font-medium transition-colors underline" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>Learn more about Stripe Billing</a>
+            <a href="https://stripe.com/legal/terms" target="_blank" rel="noopener noreferrer" className="text-[#635BFF] hover:text-[#4F46E5] font-medium transition-colors underline" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>Terms</a>
+            <a href="https://stripe.com/legal/privacy" target="_blank" rel="noopener noreferrer" className="text-[#635BFF] hover:text-[#4F46E5] font-medium transition-colors underline" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>Privacy</a>
           </div>
         </div>
       </div>
