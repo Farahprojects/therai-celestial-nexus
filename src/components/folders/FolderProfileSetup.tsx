@@ -17,6 +17,7 @@ export const FolderProfileSetup: React.FC<FolderProfileSetupProps> = ({
   onProfileLinked,
 }) => {
   const [isDismissed, setIsDismissed] = useState(false);
+  const [isLinking, setIsLinking] = useState(false);
 
   const handleAstroFormSubmit = async (data: ReportFormData & { chat_id?: string }) => {
     try {
@@ -81,6 +82,7 @@ export const FolderProfileSetup: React.FC<FolderProfileSetupProps> = ({
               preselectedType="essence"
               reportType="essence"
               isProfileFlow={true}
+              isLoading={isLinking}
             />
           </div>
         </div>

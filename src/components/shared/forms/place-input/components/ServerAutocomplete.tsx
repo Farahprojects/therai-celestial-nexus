@@ -38,7 +38,7 @@ export const ServerAutocomplete: React.FC<ServerAutocompleteProps> = ({
   disabled,
   className = '',
   autoComplete = "off",
-  autoCorrect = "off",
+  autoCorrect = "off", 
   autoCapitalize = "off",
   spellCheck = false,
   'data-lpignore': dataLpIgnore = "true",

@@ -69,7 +69,7 @@ export const ChatMenuButton: React.FC<ChatMenuButtonProps> = ({
     loadFolders();
   }, [user?.id]);
 
-  const handleEdit = async (conversationId: string, title: string) => {
+  const handleEdit = async (_conversationId: string, title: string) => {
     setEditTitle(title);
     setShowEditDialog(true);
     if (onEditStart) onEditStart();

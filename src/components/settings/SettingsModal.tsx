@@ -42,7 +42,7 @@ export const SettingsModal = () => {
     }
   }, [isOpen]);
 
-  const handleTabChange = (value) => {
+  const handleTabChange = (value: string) => {
     setActivePanel(value);
   };
 

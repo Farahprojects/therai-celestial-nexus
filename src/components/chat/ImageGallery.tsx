@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { MessageCircle, Share2, Download, X, ArrowLeft, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { safeConsoleError } from '@/utils/safe-logging';
+import { safeConsoleError, safeConsoleWarn } from '@/utils/safe-logging';
 import {
   AlertDialog,
   AlertDialogAction,

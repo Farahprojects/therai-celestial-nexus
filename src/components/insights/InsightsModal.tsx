@@ -104,7 +104,7 @@ export const InsightsModal: React.FC<InsightsModalProps> = ({
         }
 
         if (data?.is_ready === true) {
-          safeConsoleLog('[InsightsModal] Report ready:', data.id);
+          safeConsoleLog('[InsightsModal] Report ready:', { id: data.id });
           // Stop polling
           if (pollingIntervalRef.current) {
             clearInterval(pollingIntervalRef.current);

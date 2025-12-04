@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useAstrologyFacts } from '@/components/birth-details/hooks/useAstrologyFacts';
 
 interface TheraLoaderProps {

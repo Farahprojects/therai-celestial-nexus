@@ -109,11 +109,17 @@ export const SearchModal: React.FC<SearchModalProps> = ({
   const performSearch = useCallback(async (searchQuery: string) => {
     setIsLoading(true);
     try {
+      if (!user?.id) {
+        safeConsoleError('No user ID available for search', null);
+        setIsLoading(false);
+        return;
+      }
+
       // First, get all user's conversations (excluding Profile conversations)
       const { data: conversations, error: convError } = await supabase
         .from('conversations')
         .select('id, title, created_at')
-        .eq('user_id' as never, user?.id ?? null)
+        .eq('user_id' as never, user.id)
         .neq('mode' as never, 'profile') // Exclude Profile conversations (internal use only)
         .order('created_at', { ascending: false });
 

@@ -250,7 +250,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
         // Create folder and move conversation into it
         try {
           const folder = await createFolder(user.id, 'My Folder');
-          safeConsoleLog('[OnboardingModal] Folder created:', folder.id);
+          safeConsoleLog('[OnboardingModal] Folder created:', { id: folder.id });
           
           // Link folder to primary profile so insights use saved data
           if (primaryProfileId) {
@@ -318,7 +318,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
 
   const handleSubscribe = async () => {
     if (!onboardingChatId) {
-      safeConsoleError('[OnboardingModal] No onboardingChatId - cannot proceed');
+      safeConsoleError('[OnboardingModal] No onboardingChatId - cannot proceed', null);
       toast.error('Something went wrong. Please try again.');
       return;
     }
@@ -337,7 +337,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
 
   const handleSkipSubscription = async () => {
     if (!onboardingChatId) {
-      safeConsoleError('[OnboardingModal] No onboardingChatId - cannot proceed');
+      safeConsoleError('[OnboardingModal] No onboardingChatId - cannot proceed', null);
       toast.error('Something went wrong. Please try again.');
       return;
     }

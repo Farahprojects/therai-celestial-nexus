@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import PickerWheel from './PickerWheel';
 import { safeConsoleLog } from '@/utils/safe-logging';
 interface MobileDatePickerProps {

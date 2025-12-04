@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { FcGoogle } from 'react-icons/fc';
 import { FaApple } from 'react-icons/fa';
@@ -15,7 +15,7 @@ export function CapacitorSocialLogin({ onSuccess, onError }: CapacitorSocialLogi
 
   const handleOAuthSignIn = async (provider: 'google' | 'apple') => {
     try {
-      safeConsoleLog('[CapacitorSocialLogin] Button clicked:', provider);
+      safeConsoleLog('[CapacitorSocialLogin] Button clicked:', { provider });
       setIsLoading(provider);
       
       const authManager = getAuthManager();
