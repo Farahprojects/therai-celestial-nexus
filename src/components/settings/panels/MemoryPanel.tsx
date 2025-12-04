@@ -25,7 +25,8 @@ export function MemoryPanel() {
   // Clean up deletedIds when memories are refetched (remove IDs that are no longer in memories)
   useEffect(() => {
     if (deletedIds.size > 0) {
-      const memoryIds = new Set(memories.map((m: any) => m.id));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const memoryIds = new Set(memories.map((m: any) => m.id)); // Memory type from useUserMemory
       setDeletedIds(prev => {
         const next = new Set<string>();
         for (const id of Array.from(prev)) {
@@ -38,12 +39,14 @@ export function MemoryPanel() {
         return next;
       });
     }
-  }, [memories]);
+  }, [memories, deletedIds.size]);
 
   // Filter out optimistically deleted memories
-  const visibleMemories = memories.filter((m: any) => !deletedIds.has(m.id));
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const visibleMemories = memories.filter((m: any) => !deletedIds.has(m.id)); // Memory type from useUserMemory
 
-  const filteredMemories = visibleMemories.filter((m: any) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const filteredMemories = visibleMemories.filter((m: any) => { // Memory type from useUserMemory
     const matchesSearch = m.memory_text.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesType = filterType === 'all' || m.memory_type === filterType;
     return matchesSearch && matchesType;
@@ -82,7 +85,8 @@ export function MemoryPanel() {
 
   const handleExport = async () => {
     const exportData = {
-      memories: memories.map((m: any) => ({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      memories: memories.map((m: any) => ({ // Memory type from useUserMemory
         text: m.memory_text,
         type: m.memory_type,
         created: m.created_at
@@ -156,7 +160,7 @@ export function MemoryPanel() {
         <div className="text-center py-12 bg-gray-50 rounded-xl border border-gray-200">
           <Brain className="w-12 h-12 text-gray-300 mx-auto mb-3" />
           <h4 className="text-base font-light text-gray-900 mb-1">
-            {searchTerm || filterType !== 'all' 
+            {searchTerm || filterType !== 'all'
               ? 'No memories match your filters'
               : 'No memories yet'}
           </h4>
@@ -168,7 +172,8 @@ export function MemoryPanel() {
         </div>
       ) : (
         <div className="space-y-3">
-          {filteredMemories.map((mem: any) => (
+          {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+          {filteredMemories.map((mem: any) => ( // Memory type from useUserMemory
             <div
               key={mem.id}
               className="bg-white border border-gray-200 rounded-xl p-4 hover:border-gray-300 transition-colors"
@@ -213,7 +218,8 @@ export function MemoryPanel() {
             </p>
           </div>
           <div className="space-y-3">
-            {summaries.map((summary: any) => (
+            {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+            {summaries.map((summary: any) => ( // MonthlySummary type from useUserMemory
               <div
                 key={summary.id}
                 className="bg-white border border-gray-200 rounded-xl p-5 hover:border-gray-300 transition-colors"
@@ -232,6 +238,7 @@ export function MemoryPanel() {
                 </p>
                 {summary.key_themes && summary.key_themes.length > 0 && (
                   <div className="flex flex-wrap gap-2">
+                    {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                     {summary.key_themes.map((theme: any, i: number) => (
                       <span
                         key={i}

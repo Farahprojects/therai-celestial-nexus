@@ -134,7 +134,7 @@ export const ThreadsProvider: React.FC<ThreadsProviderProps> = ({ children }) =>
       setThreads([]);
       setError(null);
     }
-  }, [isAuthenticated, user?.id]);
+  }, [isAuthenticated, user]);
 
   const value = useMemo(() => ({
     threads,

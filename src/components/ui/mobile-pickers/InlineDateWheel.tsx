@@ -75,7 +75,7 @@ const InlineDateWheel = ({ value, onChange }: InlineDateWheelProps) => {
     debounceTimer.current = setTimeout(() => {
       const maxDays = getDaysInMonth(month, year);
       const adjustedDay = Math.min(day, maxDays);
-
+      
       const dateString = `${year}-${month.toString().padStart(2, '0')}-${adjustedDay.toString().padStart(2, '0')}`;
       onChange(dateString);
     }, 100) as unknown as number; // 100ms debounce

@@ -459,7 +459,7 @@ export const MessageList = () => {
   // Auto-scroll handled by messages.length changes
 
   // ⚡ OPTIMIZED: Memoize rendered messages - prevents recreating JSX for unchanged messages
-  const renderedMessages = useMemo(() =>
+  const renderedMessages = useMemo(() => 
     renderMessages(messages, user?.id),
     [messages, user?.id]
   );

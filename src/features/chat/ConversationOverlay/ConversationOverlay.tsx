@@ -134,13 +134,16 @@ export const ConversationOverlay: React.FC = () => {
     };
 
     // Add event listeners for user gestures
-    overlayRef.current.addEventListener('click', handleUserGesture, { once: true });
-    overlayRef.current.addEventListener('touchstart', handleUserGesture, { once: true });
+    const overlayElement = overlayRef.current;
+    if (overlayElement) {
+      overlayElement.addEventListener('click', handleUserGesture, { once: true });
+      overlayElement.addEventListener('touchstart', handleUserGesture, { once: true });
+    }
 
     return () => {
-      if (overlayRef.current) {
-        overlayRef.current.removeEventListener('click', handleUserGesture);
-        overlayRef.current.removeEventListener('touchstart', handleUserGesture);
+      if (overlayElement) {
+        overlayElement.removeEventListener('click', handleUserGesture);
+        overlayElement.removeEventListener('touchstart', handleUserGesture);
       }
     };
   }, [audioContext, isAudioUnlocked, initializeAudioContext, resumeAudioContext]);
@@ -228,7 +231,7 @@ export const ConversationOverlay: React.FC = () => {
       resetToTapToStart();
       return false;
     }
-  }, [chat_id, user, addMessage]);
+  }, [chat_id, user, addMessage, resetToTapToStart]);
 
 
   // Start conversation - ROBUST SEQUENCE with validation

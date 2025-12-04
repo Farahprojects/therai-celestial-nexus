@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -39,7 +39,7 @@ interface Invoice {
   description: string;
 }
 
-const PaymentMethodForm: React.FC<{ 
+const PaymentMethodForm: React.FC<{
   clientSecret: string;
   onSuccess: () => void;
   onCancel: () => void;
@@ -127,12 +127,7 @@ const SubscriptionManagementPage: React.FC = () => {
   const [setupIntentClientSecret, setSetupIntentClientSecret] = useState<string | null>(null);
   const [showCancelModal, setShowCancelModal] = useState(false);
 
-  useEffect(() => {
-    if (!user) return;
-    fetchData();
-  }, [user, fetchData]);
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     if (!user) return;
 
     setLoading(true);
@@ -163,7 +158,12 @@ const SubscriptionManagementPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
+    fetchData();
+  }, [user, fetchData]);
 
   const handleAddPaymentMethod = async () => {
     try {
@@ -186,7 +186,7 @@ const SubscriptionManagementPage: React.FC = () => {
   const handlePaymentMethodAdded = async () => {
     setShowAddPaymentMethod(false);
     setSetupIntentClientSecret(null);
-    
+
     // Wait a moment for webhook to process, then refresh
     setTimeout(() => {
       fetchData();

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Card, CardContent } from '@/components/ui/card';
@@ -27,10 +27,10 @@ const SubscriptionSuccess: React.FC = () => {
     return 'Premium';
   };
 
-  const checkSubscription = async () => {
+  const checkSubscription = useCallback(async () => {
     try {
       const { data, error } = await supabase.functions.invoke('check-subscription');
-      
+
       if (error) {
         throw new Error(error.message);
       }
@@ -40,15 +40,15 @@ const SubscriptionSuccess: React.FC = () => {
         const planId = data?.subscription_plan || null;
         const tier = getPlanTier(planId);
         setPlanName(tier);
-        
+
         // Check if this is part of onboarding flow
         const onboardingChatId = localStorage.getItem('onboarding_chat_id');
-        
+
         // Success! Redirect after a brief moment
         setTimeout(() => {
           if (onboardingChatId) {
             // Redirect to onboarding chat with starter questions
-            navigate(`/c/${onboardingChatId}?new=true`, { replace: true });
+            navigate(`/ c / ${onboardingChatId}?new= true`, { replace: true });
           } else {
             // Normal subscription success flow
             navigate('/therai?payment_status=success', { replace: true });
@@ -63,7 +63,7 @@ const SubscriptionSuccess: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [navigate]);
 
   const retryVerification = async () => {
     setRetryLoading(true);
@@ -75,7 +75,7 @@ const SubscriptionSuccess: React.FC = () => {
   const openCustomerPortal = async () => {
     try {
       const { data, error } = await supabase.functions.invoke('customer-portal');
-      
+
       if (error) {
         toast.error('Failed to open customer portal');
         return;
@@ -112,7 +112,7 @@ const SubscriptionSuccess: React.FC = () => {
                 <div className="flex items-center justify-center h-16 w-16 mx-auto">
                   <Loader2 className="h-8 w-8 text-gray-900 animate-spin" />
                 </div>
-                
+
                 <div className="space-y-3">
                   <h1 className="text-2xl font-light text-gray-900">
                     Verifying your subscription...
@@ -153,7 +153,7 @@ const SubscriptionSuccess: React.FC = () => {
                 <div className="flex items-center justify-center h-16 w-16 mx-auto rounded-full bg-red-100">
                   <AlertCircle className="h-8 w-8 text-red-600" />
                 </div>
-                
+
                 <div className="space-y-3">
                   <h1 className="text-2xl font-light text-gray-900">
                     Verification Issue
@@ -178,7 +178,7 @@ const SubscriptionSuccess: React.FC = () => {
                       'Retry Verification'
                     )}
                   </Button>
-                  
+
                   <Button
                     onClick={openCustomerPortal}
                     variant="outline"
@@ -219,7 +219,7 @@ const SubscriptionSuccess: React.FC = () => {
               >
                 <CheckCircle className="h-8 w-8 text-green-600" />
               </motion.div>
-              
+
               <div className="space-y-3">
                 <h1 className="text-2xl font-light text-gray-900">
                   Welcome to <span className="italic">{planName}</span>!
@@ -234,7 +234,7 @@ const SubscriptionSuccess: React.FC = () => {
                   onClick={() => {
                     const onboardingChatId = localStorage.getItem('onboarding_chat_id');
                     if (onboardingChatId) {
-                      navigate(`/c/${onboardingChatId}?new=true`, { replace: true });
+                      navigate(`/ c / ${onboardingChatId}?new= true`, { replace: true });
                     } else {
                       navigate('/therai?payment_status=success', { replace: true });
                     }

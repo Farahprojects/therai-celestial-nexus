@@ -33,11 +33,11 @@ export interface ChatFolder {
   id: string;
   user_id: string;
   name: string;
-  created_at: string;
-  updated_at: string;
-  is_public?: boolean;
+  created_at: string | null;
+  updated_at: string | null;
+  is_public?: boolean | null;
   profile_id?: string | null;
-  has_profile_setup?: boolean;
+  has_profile_setup?: boolean | null;
 }
 
 /**
@@ -66,14 +66,18 @@ export async function getUserFolders(userId: string): Promise<ChatFolder[]> {
     safeConsoleError('[folders] Failed to fetch participant folders:', participantError);
     // Return owned folders only if participant fetch fails
     return (ownedFolders || []).sort(
-      (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+      (a, b) => {
+        const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
+        const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
+        return dateA - dateB;
+      }
     );
   }
 
   // Step 3: Get participant folders by ID (only if there are any)
   let participantFolders: ChatFolder[] = [];
   const participantFolderIds = (participantRecords || []).map(p => p.folder_id);
-  
+
   if (participantFolderIds.length > 0) {
     const { data: folders, error: foldersError } = await supabase
       .from('chat_folders')
@@ -93,7 +97,11 @@ export async function getUserFolders(userId: string): Promise<ChatFolder[]> {
 
   // Sort by created_at
   return uniqueFolders.sort(
-    (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+    (a, b) => {
+      const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
+      const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
+      return dateA - dateB;
+    }
   );
 }
 
@@ -181,8 +189,8 @@ export async function moveConversationToFolder(conversationId: string, folderId:
  */
 export async function getFolderConversations(folderId: string): Promise<Array<{
   id: string;
-  title: string;
-  updated_at: string;
+  title: string | null;
+  updated_at: string | null;
   mode: string | null;
 }>> {
   const { data, error } = await supabase
@@ -244,8 +252,7 @@ export async function shareFolderPublic(folderId: string): Promise<void> {
  * @param permissions - Custom permissions for participants joining via link
  */
 export async function shareFolderPrivate(
-  folderId: string, 
-  permissions: FolderPermissions = DEFAULT_PERMISSIONS
+  folderId: string
 ): Promise<void> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('User not authenticated');
@@ -264,11 +271,11 @@ export async function shareFolderPrivate(
 
   // Add owner as participant with full access
   await addFolderParticipant(folderId, user.id, 'owner', FULL_ACCESS_PERMISSIONS);
-  
+
   // Store permissions for new joiners in folder metadata (we'll use this when they join)
   await supabase
     .from('chat_folders')
-    .update({ 
+    .update({
       updated_at: new Date().toISOString()
     })
     .eq('id', folderId);
@@ -321,7 +328,7 @@ export async function addFolderParticipant(
   permissions: FolderPermissions = DEFAULT_PERMISSIONS
 ): Promise<void> {
   safeConsoleLog('[addFolderParticipant] Starting', { folderId, userId, role, permissions });
-  
+
   const { data, error } = await supabase
     .from('chat_folder_participants')
     .upsert(
@@ -340,14 +347,14 @@ export async function addFolderParticipant(
     safeConsoleError('[addFolderParticipant] Error:', error);
     throw new Error(`Failed to add participant: ${error.message}`);
   }
-  
+
   console.log('[addFolderParticipant] Success:', data);
 }
 
 /**
  * Get default permissions for a folder (set by owner when sharing)
  */
-export async function getFolderDefaultPermissions(folderId: string): Promise<FolderPermissions> {
+export async function getFolderDefaultPermissions(): Promise<FolderPermissions> {
   // For now, return default permissions
   // In the future, this could read from a folder_sharing_config table
   return DEFAULT_PERMISSIONS;
@@ -358,7 +365,7 @@ export async function getFolderDefaultPermissions(folderId: string): Promise<Fol
  */
 export async function isFolderParticipant(folderId: string, userId: string): Promise<boolean> {
   safeConsoleLog('[isFolderParticipant] Checking', { folderId, userId });
-  
+
   const { data, error } = await supabase
     .from('chat_folder_participants')
     .select('folder_id')

@@ -40,7 +40,7 @@ export function useUserPreferences() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState(0);
-  
+
   // Track user initiated changes to prevent real-time updates from overriding them
   const pendingChangesRef = useRef<Map<string, boolean | string>>(new Map());
   // Track the timestamp of the last user update to ignore real-time events too close to it
@@ -114,12 +114,12 @@ export function useUserPreferences() {
 
           if (retryCount < 3) {
             const retryDelay = Math.min(2000 * (retryCount + 1), 6000);
-            
+
             // Clear any existing retry timeout
             if (retryTimeoutRef.current) {
               clearTimeout(retryTimeoutRef.current);
             }
-            
+
             retryTimeoutRef.current = setTimeout(() => {
               setRetryCount((prev) => prev + 1);
               loadUserPreferences();
@@ -131,22 +131,22 @@ export function useUserPreferences() {
 
     // Removed realtime listener - user_preferences broadcasts are disabled
     // Preferences are loaded once on mount and saved optimistically
-    
+
     loadUserPreferences();
 
     return () => {
       isMountedRef.current = false;
       clearTimeout(loadTimeout);
-      
+
       // Clear retry timeout
       if (retryTimeoutRef.current) {
         clearTimeout(retryTimeoutRef.current);
         retryTimeoutRef.current = null;
       }
-      
+
       // No channel cleanup needed - realtime listener removed
     };
-  }, [user, isMounted, retryCount]);
+  }, [user, isMounted, retryCount]); // createDefaultPreferences is stable, no need in deps
 
   const createDefaultPreferences = async (userId: string) => {
     try {
@@ -178,7 +178,7 @@ export function useUserPreferences() {
     if (!user?.id || !preferences) return false;
 
     const { showToast: shouldShowToast = true } = options;
-    
+
     // Record this change as pending
     pendingChangesRef.current.set("email_notifications_enabled", enabled);
     // Record the timestamp of this update
@@ -188,9 +188,9 @@ export function useUserPreferences() {
     setPreferences((prev) =>
       prev
         ? {
-            ...prev,
-            email_notifications_enabled: enabled,
-          }
+          ...prev,
+          email_notifications_enabled: enabled,
+        }
         : null
     );
 
@@ -214,30 +214,29 @@ export function useUserPreferences() {
       if (shouldShowToast) {
         showToast({
           title: "Preferences Saved",
-          description: `Email notifications ${
-            enabled ? "enabled" : "disabled"
-          }`,
+          description: `Email notifications ${enabled ? "enabled" : "disabled"
+            }`,
           variant: "success",
         });
       }
 
       // After successful update, we can remove this change from pending changes
       pendingChangesRef.current.delete("email_notifications_enabled");
-      
+
       return true;
     } catch (err: unknown) {
       safeConsoleError("Error updating main toggle:", err);
-      
+
       // Revert optimistic update on error
       if (isMounted()) {
         setPreferences((prev) => {
           if (!prev) return null;
           return {
-            ...prev, 
+            ...prev,
             email_notifications_enabled: !enabled
           };
         });
-        
+
         if (shouldShowToast) {
           showToast({
             title: "Error",
@@ -246,10 +245,10 @@ export function useUserPreferences() {
           });
         }
       }
-      
+
       // Remove from pending changes on error
       pendingChangesRef.current.delete("email_notifications_enabled");
-      
+
       return false;
     } finally {
       if (isMounted()) {
@@ -282,9 +281,9 @@ export function useUserPreferences() {
     setPreferences((prev) =>
       prev
         ? {
-            ...prev,
-            client_view_mode: viewMode,
-          }
+          ...prev,
+          client_view_mode: viewMode,
+        }
         : null
     );
 
@@ -315,21 +314,21 @@ export function useUserPreferences() {
 
       // After successful update, we can remove this change from pending changes
       pendingChangesRef.current.delete("client_view_mode");
-      
+
       return true;
     } catch (err: unknown) {
       safeConsoleError("Error updating client view mode:", err);
-      
+
       // Revert optimistic update on error
       if (isMounted()) {
         setPreferences((prev) => {
           if (!prev) return null;
           return {
-            ...prev, 
+            ...prev,
             client_view_mode: viewMode === 'grid' ? 'list' : 'grid'
           };
         });
-        
+
         if (shouldShowToast) {
           showToast({
             title: "Error",
@@ -338,10 +337,10 @@ export function useUserPreferences() {
           });
         }
       }
-      
+
       // Remove from pending changes on error
       pendingChangesRef.current.delete("client_view_mode");
-      
+
       return false;
     } finally {
       if (isMounted()) {

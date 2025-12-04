@@ -15,10 +15,10 @@ export const useTabVisibility = (options: UseTabVisibilityOptions = {}) => {
   useEffect(() => {
     const handleVisibilityChange = () => {
       const isVisible = !document.hidden;
-      
+
       if (isVisible !== isVisibleRef.current) {
         isVisibleRef.current = isVisible;
-        
+
         if (isVisible) {
           onTabVisible?.();
           // Broadcast that this tab is now active with unique tab ID
@@ -33,12 +33,12 @@ export const useTabVisibility = (options: UseTabVisibilityOptions = {}) => {
 
     // Listen for visibility changes
     document.addEventListener('visibilitychange', handleVisibilityChange);
-    
+
     // Check if another tab is already active
     const checkOtherTabs = () => {
       const lastActive = localStorage.getItem('activeTab');
       const lastActiveTabId = localStorage.getItem('activeTabId');
-      
+
       if (lastActive && lastActiveTabId !== tabIdRef.current) {
         const timeSinceLastActive = Date.now() - parseInt(lastActive);
         // If another tab was active within last 5 seconds, this tab should pause
@@ -63,13 +63,16 @@ export const useTabVisibility = (options: UseTabVisibilityOptions = {}) => {
     // Add beforeunload listener for cleanup
     window.addEventListener('beforeunload', handleBeforeUnload);
 
+    // Capture ref value for cleanup
+    const currentTabId = tabIdRef.current;
+
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('beforeunload', handleBeforeUnload);
-      
+
       // Cleanup on unmount if this tab was the active one
       const currentActiveTabId = localStorage.getItem('activeTabId');
-      if (currentActiveTabId === tabIdRef.current) {
+      if (currentActiveTabId === currentTabId) {
         localStorage.removeItem('activeTab');
         localStorage.removeItem('activeTabId');
       }

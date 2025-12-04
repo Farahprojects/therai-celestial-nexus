@@ -37,7 +37,7 @@ export const useAstroConversation = () => {
 
       return conversationId;
     },
-    [user?.id, addThread]
+    [user, addThread]
   );
 
   const cleanupEmptyConversation = useCallback(
@@ -66,7 +66,7 @@ export const useAstroConversation = () => {
         safeConsoleError('[useAstroConversation] Cleanup error:', error);
       }
     },
-    [user?.id]
+    [user]
   );
 
   return { createConversation, cleanupEmptyConversation };
