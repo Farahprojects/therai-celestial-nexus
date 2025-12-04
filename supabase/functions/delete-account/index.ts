@@ -1,10 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import Stripe from 'https://esm.sh/stripe@12.18.0'
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+import { getSecureCorsHeaders } from "../_shared/secureCors.ts";
 
 // Helper function for structured logging to admin_logs
 const logToAdmin = async (supabase: any, userId: string, eventType: string, message: string, metadata: any = {}) => {
@@ -28,13 +24,15 @@ const logToAdmin = async (supabase: any, userId: string, eventType: string, mess
 
 Deno.serve(async (req) => {
   console.log('🚀 Delete account function invoked')
-  
+
   if (req.method === 'OPTIONS') {
     console.log('📋 Handling CORS preflight request')
+    const corsHeaders = getSecureCorsHeaders(req);
     return new Response(null, { headers: corsHeaders })
   }
 
   console.log('📨 Request method:', req.method)
+  const corsHeaders = getSecureCorsHeaders(req);
   
   // Initialize Supabase client with service role key
   const supabaseUrl = Deno.env.get('SUPABASE_URL')!

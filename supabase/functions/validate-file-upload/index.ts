@@ -1,5 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { corsHeaders } from '../_shared/cors.ts'
+import { getSecureCorsHeaders } from '../_shared/secureCors.ts'
 
 interface FileValidationRequest {
   bucket: string
@@ -84,8 +84,11 @@ function inferMimeType(fileName: string, providedMime: string): string {
 Deno.serve(async (req) => {
   // Handle CORS
   if (req.method === 'OPTIONS') {
+    const corsHeaders = getSecureCorsHeaders(req);
     return new Response('ok', { headers: corsHeaders })
   }
+
+  const corsHeaders = getSecureCorsHeaders(req);
 
   try {
     // Create Supabase client
