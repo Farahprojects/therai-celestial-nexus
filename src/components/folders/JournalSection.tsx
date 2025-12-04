@@ -69,7 +69,7 @@ export const JournalSection: React.FC<JournalSectionProps> = ({
                 {/* Actions */}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <button className="p-1 hover:bg-gray-100 rounded transition-colors opacity-0 group-hover:opacity-100" aria-label="Journal actions">
+                    <button className="p-1 hover:bg-gray-100 rounded transition-colors" aria-label="Journal actions">
                       <MoreHorizontal className="w-4 h-4 text-gray-600" />
                     </button>
                   </DropdownMenuTrigger>

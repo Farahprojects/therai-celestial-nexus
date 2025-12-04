@@ -67,7 +67,7 @@ export const DocumentsSection: React.FC<DocumentsSectionProps> = ({
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button
-                    className="p-1 hover:bg-gray-100 rounded transition-colors opacity-0 group-hover:opacity-100"
+                    className="p-1 hover:bg-gray-100 rounded transition-colors"
                     aria-label="Document actions"
                     onClick={e => e.stopPropagation()}
                   >
