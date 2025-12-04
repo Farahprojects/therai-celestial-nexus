@@ -55,7 +55,7 @@ export const useSwissDataPolling = (chatId: string | null, enabled: boolean = tr
           }
 
           // Success - data is ready
-          setSwissData(data.swiss_data);
+          setSwissData(data.swiss_data as Record<string, unknown> | null);
           setRequestType(data.request_type || null);
           setIsLoading(false);
           if (pollInterval) clearInterval(pollInterval);

@@ -6,7 +6,7 @@ export interface SystemPrompt {
   category: string;
   subcategory: string;
   prompt_text: string;
-  display_order: number;
+  display_order: number | null;
 }
 
 export interface GroupedPrompts {

@@ -5,9 +5,9 @@ type Memory = {
   id: string;
   memory_text: string;
   memory_type: string;
-  confidence_score: number;
-  created_at: string;
-  reference_count: number;
+  confidence_score: number | null;
+  created_at: string | null;
+  reference_count: number | null;
 };
 
 type MonthlySummary = {
@@ -15,8 +15,8 @@ type MonthlySummary = {
   year: number;
   month: number;
   emotional_summary: string;
-  key_themes: string[];
-  created_at: string;
+  key_themes: string[] | null;
+  created_at: string | null;
 };
 
 export function useUserMemory() {

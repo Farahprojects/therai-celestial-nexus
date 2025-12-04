@@ -157,7 +157,9 @@ export function useUserData() {
       // Sync TTS voice into chat store for conversation mode
       try {
         const voice = (preferencesResult.data as { tts_voice?: string })?.tts_voice || getDefaultPreferences(user.id).tts_voice;
-        useChatStore.getState().setTtsVoice(voice);
+        if (voice) {
+          useChatStore.getState().setTtsVoice(voice);
+        }
       } catch {
         // Ignore errors when syncing TTS voice - use default
       }
