@@ -10,29 +10,24 @@
     {
       "src": "/theraiiconset/favicon-192x192.png",
       "sizes": "192x192",
-      "type": "image/png",
+      "type": "image/webp",
       "purpose": "any maskable"
     },
     {
       "src": "/theraiiconset/android-icon-192x192.png",
       "sizes": "192x192",
-      "type": "image/png",
+      "type": "image/webp",
       "purpose": "any maskable"
-    },
-    {
-      "src": "/theraiiconset/ms-icon-144x144.png",
-      "sizes": "144x144",
-      "type": "image/png"
     },
     {
       "src": "/theraiiconset/apple-icon-152x152.png",
       "sizes": "152x152",
-      "type": "image/png"
+      "type": "image/webp"
     },
     {
       "src": "/theraiiconset/apple-icon-180x180.png",
       "sizes": "180x180",
-      "type": "image/png"
+      "type": "image/webp"
     }
   ]
 }
