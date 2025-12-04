@@ -54,9 +54,16 @@ self.addEventListener('fetch', (event) => {
   // Only handle GET requests
   if (event.request.method !== 'GET') return;
 
-  // Skip Stripe JS requests - let browser handle them directly to avoid CSP issues
-  if (url.hostname === 'js.stripe.com') {
-    return; // Don't intercept Stripe requests
+  // Only intercept same-origin requests or specific known external resources
+  const isSameOrigin = url.origin === location.origin;
+  const isKnownExternal = IMAGE_CACHE_RULES.strategies.generated.test(event.request.url) ||
+                          IMAGE_CACHE_RULES.strategies.static.test(event.request.url) ||
+                          url.hostname === 'fonts.googleapis.com' ||
+                          url.hostname === 'fonts.gstatic.com';
+
+  // Skip all other external requests - let browser handle them directly
+  if (!isSameOrigin && !isKnownExternal) {
+    return;
   }
 
   // Skip service worker, manifest, and favicon requests
@@ -79,7 +86,13 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Default network-first for other requests
+  // Handle font requests with cache-first strategy
+  if (url.hostname === 'fonts.googleapis.com' || url.hostname === 'fonts.gstatic.com') {
+    event.respondWith(handleFontRequest(event.request));
+    return;
+  }
+
+  // Default network-first for same-origin requests
   event.respondWith(
     fetch(event.request)
       .catch(() => caches.match(event.request))
@@ -155,6 +168,26 @@ async function handleStaticAssetRequest(request) {
     if (cachedResponse) {
       return cachedResponse;
     }
+    throw error;
+  }
+}
+
+// Cache-first strategy for fonts
+async function handleFontRequest(request) {
+  const cache = await caches.open(STATIC_CACHE);
+  const cachedResponse = await cache.match(request);
+
+  if (cachedResponse) {
+    return cachedResponse;
+  }
+
+  try {
+    const networkResponse = await fetch(request);
+    if (networkResponse.ok) {
+      cache.put(request, networkResponse.clone());
+    }
+    return networkResponse;
+  } catch (error) {
     throw error;
   }
 }
