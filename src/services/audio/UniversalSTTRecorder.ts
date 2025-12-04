@@ -79,7 +79,7 @@ export class UniversalSTTRecorder {
 
   // Desktop gain
   private currentGain = 1;
-  private desktopTargetRMS = 0.12;
+  private desktopTargetRMS = 0.20;
 
   // Baseline adaptation
   private ambientEma = 0;
@@ -114,13 +114,13 @@ export class UniversalSTTRecorder {
   constructor(options: STTRecorderOptions = {}) {
     this.options = {
       baselineCaptureDuration: 600,
-      silenceMargin: 0.15,
-      silenceHangover: 300,
-      triggerPercent: 0.2,
+      silenceMargin: 0.10,
+      silenceHangover: 800,
+      triggerPercent: 0.15,
       preRollMs: 800,
       startHoldMs: 80,
       postFinalizeGuardMs: 450,
-      minActiveMs: 280,
+      minActiveMs: 400,
       maxActiveMs: 15000,
       minSegSnrFactor: 1.3,
       startSpectralFlatnessMax: 0.65,
@@ -438,7 +438,7 @@ export class UniversalSTTRecorder {
       if (allZeros) {
         zeroCheckCount++;
         if (zeroCheckCount > 10 && !hasLoggedZeroWarning) {
-          safeConsoleError('[VAD] AUDIO INPUT IS ALL ZEROS');
+          safeConsoleError('[VAD]', 'AUDIO INPUT IS ALL ZEROS');
           hasLoggedZeroWarning = true;
         }
         if (zeroCheckCount > 60 && !attemptedDeadInputRecovery && !(window as Window & { Capacitor?: { isNativePlatform?: () => boolean } }).Capacitor?.isNativePlatform?.()) {
@@ -517,7 +517,7 @@ export class UniversalSTTRecorder {
           if (!this.isMobileDevice() && this.adaptiveGain) {
             const target = this.desktopTargetRMS;
             const rawGain = target / Math.max(1e-6, this.baselineEnergy);
-            this.currentGain = Math.max(0.5, Math.min(6, rawGain));
+            this.currentGain = Math.max(0.5, Math.min(8, rawGain));
             this.adaptiveGain.gain.value = this.currentGain;
           }
         } else if (now - this.baselineStartTime >= (this.options.baselineCaptureDuration || 600)) {
@@ -527,7 +527,7 @@ export class UniversalSTTRecorder {
           if (!this.isMobileDevice() && this.adaptiveGain) {
             const target = this.desktopTargetRMS;
             const rawGain = target / Math.max(1e-6, this.baselineEnergy);
-            this.currentGain = Math.max(0.5, Math.min(6, rawGain));
+            this.currentGain = Math.max(0.5, Math.min(8, rawGain));
             this.adaptiveGain.gain.value = this.currentGain;
           }
         }
@@ -543,8 +543,8 @@ export class UniversalSTTRecorder {
       if (!this.isMobileDevice() && this.adaptiveGain) {
         const target = this.desktopTargetRMS;
         const desired = target / Math.max(1e-6, rms);
-        const headroom = peak > 0 ? 0.9 / peak : 6;
-        const clamped = Math.max(0.5, Math.min(6, Math.min(desired, headroom)));
+        const headroom = peak > 0 ? 0.9 / peak : 8;
+        const clamped = Math.max(0.5, Math.min(8, Math.min(desired, headroom)));
         this.currentGain = this.currentGain * 0.9 + clamped * 0.1;
         this.adaptiveGain.gain.value = this.currentGain;
       }
@@ -780,7 +780,7 @@ export class UniversalSTTRecorder {
     }
   }
 
-  private processRecording(): void {}
+  private processRecording(): void { }
 
   private async sendToSTT(audioBlob: Blob): Promise<void> {
     try {

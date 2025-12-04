@@ -30,7 +30,7 @@ export const useUniversalMic = (options: UseUniversalMicOptions = {}) => {
   const [audioLevel, setAudioLevel] = useState(0);
   const recorderRef = useRef<UniversalSTTRecorder | null>(null);
   const levelRef = useRef(0);
-  
+
 
   // Smooth UI animations
   useEffect(() => {
@@ -70,17 +70,17 @@ export const useUniversalMic = (options: UseUniversalMicOptions = {}) => {
         chattype: resolvedChatType,
         audioContextProvider: () => audioContext,
         onTranscriptReady: (transcript) => {
-          
+
           // 1. First: Turn off browser mic (dispose recorder)
           if (recorderRef.current) {
             recorderRef.current.dispose();
             recorderRef.current = null;
           }
-          
+
           // 2. Second: Stop wave animation (set recording state)
           setIsRecording(false);
           setIsProcessing(false);
-          
+
           // 3. Third: Show text in UI
           options.onTranscriptReady?.(transcript);
         },
@@ -92,19 +92,19 @@ export const useUniversalMic = (options: UseUniversalMicOptions = {}) => {
               recorderRef.current.dispose();
               recorderRef.current = null;
             }
-            
+
             // 2. Reset state
             setIsRecording(false);
             setIsProcessing(false);
             levelRef.current = 0;
-            
+
             // 3. Pass error to parent component (ChatInput) to show upgrade modal
             options.onError?.(error);
             return;
           }
-          
+
           safeConsoleError('[useUniversalMic] Recorder error:', error);
-          
+
           let errorMessage = 'Could not access microphone.';
           if (error.message.includes('Permission denied') || error.message.includes('NotAllowedError')) {
             errorMessage = 'Microphone permission denied. Please allow microphone access in your browser settings.';
@@ -113,7 +113,7 @@ export const useUniversalMic = (options: UseUniversalMicOptions = {}) => {
           } else if (error.message.includes('NotReadableError')) {
             errorMessage = 'Microphone is being used by another application.';
           }
-          
+
           showToast({
             title: 'Microphone Error',
             description: errorMessage,
@@ -131,8 +131,8 @@ export const useUniversalMic = (options: UseUniversalMicOptions = {}) => {
           setIsProcessing(true);
         },
         // Use smart defaults from recorder (600ms baseline with early voice detection)
-        silenceMargin: 0.15, // 15% below baseline
-        silenceHangover: 600, // 600ms silence detection (slight hang)
+        silenceMargin: 0.10, // 10% below baseline
+        silenceHangover: 1000, // 1000ms silence detection (slight hang)
         user_id: user?.id, // Add user_id for message attribution
         user_name: displayName || 'User', // Add user_name for message attribution
         mode: resolvedMode, // Add mode for message context (defaults to chat)
@@ -144,7 +144,7 @@ export const useUniversalMic = (options: UseUniversalMicOptions = {}) => {
 
     } catch (error) {
       safeConsoleError('[useUniversalMic] Start recording failed:', error);
-      
+
       let errorMessage = 'Please allow microphone access and try again.';
       if (error instanceof Error) {
         if (error.message.includes('Permission denied') || error.message.includes('NotAllowedError')) {
@@ -157,7 +157,7 @@ export const useUniversalMic = (options: UseUniversalMicOptions = {}) => {
           errorMessage = 'Microphone access requires HTTPS. Please use a secure connection.';
         }
       }
-      
+
       showToast({
         title: 'Microphone Access Failed',
         description: errorMessage,
