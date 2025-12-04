@@ -226,25 +226,32 @@ const SubscriptionManagementPage: React.FC = () => {
       {/* Left Sidebar - Same as EmbeddedCheckout */}
       <div className="p-10 flex flex-col justify-between bg-white">
         <div className="max-w-md w-full space-y-8 text-center">
+          <div className="mb-4">
+            <a 
+              href="https://therai.co/therai" 
+              className="text-blue-600 hover:text-blue-700 text-sm font-medium transition-colors"
+            >
+              ← Return to Therai.co
+            </a>
+          </div>
           <div className="flex justify-center mb-6">
             <Logo size="lg" asLink={false} />
           </div>
-          <h1 className="text-4xl font-light italic">Therai partners with Stripe for simplified billing.</h1>
+          <h1 className="text-4xl font-light">Therai <span className="italic">Subscription Management</span></h1>
           <div className="text-xs text-gray-400 mt-6">
-            <div>Therai.co is powered by Farah Projects PTY LTD</div>
+            <div>Farah Projects PTY LTD</div>
             <div>ACN 676 280 229</div>
-            <div>Australian registered company (fully legit as)</div>
           </div>
         </div>
         <div className="max-w-md w-full space-y-4 text-center text-sm text-gray-500">
           <div className="flex items-center justify-center space-x-2">
             <span>Powered by</span>
-            <a href="https://stripe.com" target="_blank" rel="noopener noreferrer" className="text-[#635BFF] hover:text-[#4F46E5] font-medium transition-colors" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>Stripe</a>
+            <a href="https://stripe.com" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-700 font-medium transition-colors">Stripe</a>
           </div>
           <div className="space-x-4">
-            <a href="https://stripe.com/billing" target="_blank" rel="noopener noreferrer" className="text-[#635BFF] hover:text-[#4F46E5] font-medium transition-colors underline" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>Learn more about Stripe Billing</a>
-            <a href="https://stripe.com/legal/terms" target="_blank" rel="noopener noreferrer" className="text-[#635BFF] hover:text-[#4F46E5] font-medium transition-colors underline" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>Terms</a>
-            <a href="https://stripe.com/legal/privacy" target="_blank" rel="noopener noreferrer" className="text-[#635BFF] hover:text-[#4F46E5] font-medium transition-colors underline" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>Privacy</a>
+            <a href="https://stripe.com/billing" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-700 transition-colors underline">Learn about Stripe Billing</a>
+            <a href="https://stripe.com/legal/terms" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-700 transition-colors underline">Terms</a>
+            <a href="https://stripe.com/legal/privacy" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-700 transition-colors underline">Privacy</a>
           </div>
         </div>
       </div>
