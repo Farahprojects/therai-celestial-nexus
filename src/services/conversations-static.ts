@@ -4,6 +4,10 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { safeConsoleError } from '@/utils/safe-logging';
+import type { Database } from '@/integrations/supabase/types';
+
+type Conversation = Database['public']['Tables']['conversations']['Row'];
+
 /**
  * Get a conversation by ID
  */
