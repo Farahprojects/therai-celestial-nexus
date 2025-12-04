@@ -1,6 +1,7 @@
 // @ts-nocheck - Deno runtime, types checked at deployment
 import { createClient, type SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { checkLimit } from '../_shared/limitChecker.ts';
+import { getSecureCorsHeaders } from '../_shared/secureCors.ts';
 
 type Json = Record<string, unknown> | Array<unknown> | string | number | boolean | null;
 
@@ -36,12 +37,6 @@ const adminClient = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
   auth: { persistSession: false, autoRefreshToken: false },
 });
 
-const corsHeaders = {
-'Access-Control-Allow-Origin': '*',
-'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-'Access-Control-Allow-Methods': 'POST, OPTIONS',
-};
-
 function mustGetEnv(key: string): string {
 const v = Deno.env.get(key);
 if (!v) {
@@ -50,20 +45,21 @@ throw new Error(`Missing required environment variable: ${key}`);
 return v;
 }
 
-function json(data: Json, init: ResponseInit = {}) {
+function json(data: Json, req: Request, init: ResponseInit = {}) {
+const corsHeaders = getSecureCorsHeaders(req);
 return new Response(JSON.stringify(data), {
 ...init,
 headers: { 'Content-Type': 'application/json', ...corsHeaders, ...(init.headers || {}) },
 });
 }
 
-function errorJson(message: string, status = 400) {
-return json({ error: message }, { status });
+function errorJson(message: string, req: Request, status = 400) {
+return json({ error: message }, req, { status });
 }
 
 // Return success/error in JSON payload with 200 status (better for Edge Functions)
-function jsonResponse(payload: { success: boolean; error?: string; data?: any }) {
-return json(payload, { status: 200 });
+function jsonResponse(payload: { success: boolean; error?: string; data?: any }, req: Request) {
+return json(payload, req, { status: 200 });
 }
 
 async function getAuthUserId(req: Request): Promise<string> {
@@ -85,8 +81,8 @@ const handlers: Record<string, (ctx: HandlerCtx) => Promise<Response>> = {
 // Update conversation profile (link primary profile for memory tracking)
 async update_conversation_profile({ admin, body, userId }: HandlerCtx) {
   const { conversation_id, profile_id } = body;
-  if (!conversation_id) return errorJson('conversation_id is required');
-  if (!profile_id) return errorJson('profile_id is required');
+  if (!conversation_id) return errorJson('conversation_id is required', req);
+  if (!profile_id) return errorJson('profile_id is required', req);
 
   // Verify profile belongs to user and is primary
   const { data: profile, error: profileError } = await admin
@@ -96,15 +92,15 @@ async update_conversation_profile({ admin, body, userId }: HandlerCtx) {
     .single();
 
   if (profileError || !profile) {
-    return errorJson('Profile not found', 404);
+    return errorJson('Profile not found', req, 404);
   }
 
   if (profile.user_id !== userId) {
-    return errorJson('Profile does not belong to user', 403);
+    return errorJson('Profile does not belong to user', req, 403);
   }
 
   if (!profile.is_primary) {
-    return errorJson('Only primary profile can be linked for memory tracking', 400);
+    return errorJson('Only primary profile can be linked for memory tracking', req, 400);
   }
 
   // Update conversation
@@ -116,16 +112,16 @@ async update_conversation_profile({ admin, body, userId }: HandlerCtx) {
 
   if (updateError) {
     console.error('[update_conversation_profile] Update failed:', updateError);
-    return errorJson('Failed to update conversation', 500);
+    return errorJson('Failed to update conversation', req, 500);
   }
 
-  return json({ success: true, profile_id });
+  return json({ success: true, profile_id }, req);
 },
 
 // Create a new conversation
 async create_conversation({ req, admin, body, userId }: HandlerCtx) {
 const { title, mode, report_data, email, name, profile_mode, profile_id, folder_id } = body;
-if (!mode) return errorJson('mode is required for conversation creation');
+if (!mode) return errorJson('mode is required for conversation creation', req);
 
 // Check if profile_mode flag is present
 const isProfileMode = profile_mode === true;
@@ -185,7 +181,7 @@ const { data, error } = await admin
 
 if (error) {
   console.error('[conversation-manager] Insert error:', error);
-  return errorJson(`Failed to create conversation: ${error.message || JSON.stringify(error)}`, 500);
+  return errorJson(`Failed to create conversation: ${error.message || JSON.stringify(error, req)}`, 500);
 }
 
 // Profile mode: Skip messages table insertion, but call translator-edge for chart generation
@@ -302,10 +298,10 @@ if (conversation_id) {
     .eq('user_id', userId)
     .single();
   if (error || !data) return errorJson('Conversation not found or access denied', 404);
-  return json(data);
+  return json(data, req);
 }
 
-if (!mode) return errorJson('mode is required for conversation creation');
+if (!mode) return errorJson('mode is required for conversation creation', req);
 
 // ✅ NEW: Free users can create conversations - limits enforced at message level
 // No subscription check needed here - feature gating happens in llm-handler-gemini
@@ -337,13 +333,13 @@ const { data, error } = await admin
 
 if (error) return errorJson('Failed to create conversation', 500);
 
-return json(data);
+return json(data, req);
 },
 
 // Update updated_at and optional title
 async update_conversation_activity({ admin, body, userId }: HandlerCtx) {
 const { conversation_id, title } = body;
-if (!conversation_id) return errorJson('conversation_id is required');
+if (!conversation_id) return errorJson('conversation_id is required', req);
 const { error } = await admin
 .from('conversations')
 .update({
@@ -353,7 +349,7 @@ updated_at: new Date().toISOString(),
 .eq('id', conversation_id)
 .eq('user_id', userId);
 if (error) return errorJson('Failed to update conversation activity', 500);
-return json({ success: true, conversation_id });
+return json({ success: true, conversation_id }, req);
 },
 
 // List owned + shared (deduped)
@@ -385,13 +381,13 @@ const conversations = Array.from(map.values()).sort(
   (a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime(),
 );
 
-return json(conversations);
+return json(conversations, req);
 },
 
 // Delete conversation and messages
 async delete_conversation({ admin, body, userId }: HandlerCtx) {
 const { conversation_id } = body;
-if (!conversation_id) return errorJson('conversation_id is required');
+if (!conversation_id) return errorJson('conversation_id is required', req);
 
 // Ensure ownership
 const { data: conv, error: convErr } = await admin
@@ -408,14 +404,14 @@ const [{ error: msgErr }, { error: convErr2 }] = await Promise.all([
 ]);
 
 if (msgErr || convErr2) return errorJson('Failed to delete conversation', 500);
-return json({ success: true, conversation_id });
+return json({ success: true, conversation_id }, req);
 },
 
 // Update title
 async update_conversation_title({ admin, body, userId }: HandlerCtx) {
 const { conversation_id, title } = body;
-if (!conversation_id) return errorJson('conversation_id is required');
-if (!title) return errorJson('title is required');
+if (!conversation_id) return errorJson('conversation_id is required', req);
+if (!title) return errorJson('title is required', req);
 
 const { error } = await admin
   .from('conversations')
@@ -423,13 +419,13 @@ const { error } = await admin
   .eq('id', conversation_id)
   .eq('user_id', userId);
 if (error) return errorJson('Failed to update title', 500);
-return json({ success: true, conversation_id });
+return json({ success: true, conversation_id }, req);
 },
 
 // Make public (owner only) and ensure owner appears in participants
 async share_conversation({ admin, body, userId }: HandlerCtx) {
 const { conversation_id } = body;
-if (!conversation_id) return errorJson('conversation_id is required');
+if (!conversation_id) return errorJson('conversation_id is required', req);
 
 const { error } = await admin
   .from('conversations')
@@ -451,7 +447,7 @@ return json({ success: true, conversation_id, is_public: true });
 // Make private (owner only)
 async unshare_conversation({ admin, body, userId }: HandlerCtx) {
 const { conversation_id } = body;
-if (!conversation_id) return errorJson('conversation_id is required');
+if (!conversation_id) return errorJson('conversation_id is required', req);
 
 const { error } = await admin
   .from('conversations')
@@ -466,7 +462,7 @@ return json({ success: true, conversation_id, is_public: false });
 // Join public conversation
 async join_conversation({ admin, body, userId }: HandlerCtx) {
 const { conversation_id } = body;
-if (!conversation_id) return errorJson('conversation_id is required');
+if (!conversation_id) return errorJson('conversation_id is required', req);
 
 const { data: conv, error } = await admin
   .from('conversations')
@@ -484,12 +480,13 @@ await admin
     { onConflict: 'conversation_id,user_id' },
   );
 
-return json({ success: true, conversation_id });
+return json({ success: true, conversation_id }, req);
 },
 };
 
 Deno.serve(async (req) => {
 if (req.method === 'OPTIONS') {
+const corsHeaders = getSecureCorsHeaders(req);
 return new Response(null, { headers: corsHeaders });
 }
 
@@ -510,7 +507,7 @@ if (body?.user_id && body.user_id !== userId) {
 }
 
 const handler = handlers[action];
-if (!handler) return errorJson('Invalid action');
+if (!handler) return errorJson('Invalid action', req);
 
 // Use top-level admin client (no per-request overhead)
 const res = await handler({ req, params, admin: adminClient, userId, body: body || {} });
@@ -529,7 +526,7 @@ async function safeJson(req: Request): Promise<unknown> {
 const contentType = req.headers.get('content-type') || '';
 if (!contentType.toLowerCase().includes('application/json')) return {};
 try {
-return await req.json();
+return await req.json(, req);
 } catch (error) {
 console.error('[conversation-manager] Failed to parse JSON body:', error);
 return {};
