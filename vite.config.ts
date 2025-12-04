@@ -12,6 +12,11 @@ export default defineConfig(({ mode }) => ({
     cors: {
       origin: true,
       credentials: true
+    },
+    headers: {
+      'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https:; media-src 'self' data: blob:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.supabase.io wss://*.supabase.io https://api.therai.co wss://api.therai.co https://fonts.googleapis.com https://fonts.gstatic.com https://api.stripe.com https://js.stripe.com https://billing.stripe.com; font-src 'self' https://fonts.gstatic.com; frame-src https://js.stripe.com/* https://hooks.stripe.com https://billing.stripe.com; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self';",
+      'X-Frame-Options': 'SAMEORIGIN',
+      'X-Content-Type-Options': 'nosniff'
     }
   },
   plugins: [
