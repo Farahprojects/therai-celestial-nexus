@@ -1,6 +1,4 @@
 
-import React from 'react';
-
 interface TypingCursorProps {
   visible: boolean;
   className?: string;
