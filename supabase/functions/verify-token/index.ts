@@ -32,10 +32,7 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    console.log(`[verify-token] Verifying token: ${token.substring(0, 8)}...`);
-
     // Look up email from token_hash mapping (stored when link was generated)
-    console.log(`[verify-token] Looking up email for token_hash...`);
     const { data: mappingData, error: mappingError } = await supabase
       .from('password_reset_tokens')
       .select('email, expires_at, token_hash')
@@ -72,10 +69,8 @@ Deno.serve(async (req) => {
     }
 
     const email = mappingData.email;
-    console.log(`[verify-token] Found email for token: ${email.replace(/(.{2})(.*)(@.*)/, '$1***$3')}`);
 
     // Just return success - we'll verify the OTP later when user submits the form
-    console.log(`[verify-token] ✓ Token lookup successful, ready for password form`);
 
     return respond({
       success: true,

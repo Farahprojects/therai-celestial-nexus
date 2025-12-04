@@ -564,8 +564,6 @@ Deno.serve(async (req: Request) => {
       return JSON_RESPONSE(400, { error: 'Missing required fields: folder_id, user_id, message' });
     }
 
-    console.log(`[FolderAI] Request ${requestId}: folder=${folder_id}, user=${user_id}`);
-
     // Create Supabase client
     const supabase = createPooledClient();
 

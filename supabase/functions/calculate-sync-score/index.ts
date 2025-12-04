@@ -365,9 +365,6 @@ function generateMemeImageAsync(
     image_id: message_id,
   };
 
-  console.log('[ImageGen] Final payload:', JSON.stringify(payload));
-  console.log('[ImageGen] Meme metadata:', JSON.stringify(memeData));
-
   fetch(imageGenUrl, {
     method: 'POST',
     headers: {
@@ -384,8 +381,7 @@ function generateMemeImageAsync(
       }
       
       const imageData = await response.json();
-      console.log('[ImageGen] ✓ Success:', imageData.image_url);
-      
+
       // Update conversation meta with image URL
       await supabase
         .from('conversations')
@@ -398,8 +394,6 @@ function generateMemeImageAsync(
           },
         })
         .eq('id', chat_id);
-      
-      console.log('[ImageGen] ✓ Conversation updated with image URL');
     })
     .catch((error) => {
       console.error('[ImageGen] Error:', error);

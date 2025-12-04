@@ -23,7 +23,6 @@ async function fetchDocumentData(
 
   try {
     // 1. Fetch document metadata
-    console.log(`[get-report-data][${requestId}] 📄 Fetching document: ${documentId}`);
     const { data: document, error: docError } = await supabase
       .from("folder_documents")
       .select("*")
@@ -44,7 +43,6 @@ async function fetchDocumentData(
 
     // 2. If we already have text content, return it
     if (document.content_text) {
-      console.log(`[get-report-data][${requestId}] ✅ Using cached text content`);
       return new Response(
         JSON.stringify({ 
           ok: true,
@@ -60,8 +58,6 @@ async function fetchDocumentData(
 
     // 3. If we have a file_path, fetch and extract text
     if (document.file_path) {
-      console.log(`[get-report-data][${requestId}] 📥 Fetching file from storage: ${document.file_path}`);
-      
       // Download file from storage
       const { data: fileData, error: storageError } = await supabase.storage
         .from("folder-documents")
@@ -135,7 +131,6 @@ async function fetchDocumentData(
 
       // 5. Update document with extracted text if we got any
       if (extractedText) {
-        console.log(`[get-report-data][${requestId}] ✅ Extracted ${extractedText.length} characters`);
         await supabase
           .from("folder_documents")
           .update({ content_text: extractedText })
@@ -197,7 +192,6 @@ async function fetchDocumentData(
 Deno.serve(async (req) => {
   const startTime = Date.now();
   const requestId = Math.random().toString(36).substring(7);
-  console.log(`[get-report-data][${requestId}] 🚀 Request started at ${new Date().toISOString()} - DEPLOYMENT TRIGGER`);
 
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -224,8 +218,7 @@ Deno.serve(async (req) => {
     let requestBody;
     try {
       requestBody = await req.json();
-      console.log("[get-report-data] Request body received:", { keys: Object.keys(requestBody) });
-      
+
       // Warm-up check
       if (requestBody?.warm === true) {
         return new Response("Warm-up", { status: 200, headers: corsHeaders });
@@ -273,13 +266,10 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log(`[get-report-data][${requestId}] 📋 Fetching report data`);
-
     // Initialize Supabase client with service role
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Step 1: Check conversation mode to determine data source
-    console.log(`[get-report-data][${requestId}] 🔍 Checking conversation mode...`);
     const { data: conversation, error: convError } = await supabase
       .from("conversations")
       .select("mode, user_id")
@@ -300,16 +290,12 @@ Deno.serve(async (req) => {
 
     const conversationMode = conversation.mode;
     const userId = conversation.user_id;
-    console.log(`[get-report-data][${requestId}] Conversation mode: ${conversationMode}, user_id: ${userId}`);
 
     // Step 2: Determine which chat_id to use for fetching astro data
     let dataChatId = chat_id; // Default: use the current chat_id
-    console.log(`[get-report-data][${requestId}] Original chat_id: ${chat_id}`);
 
     // For chat/together modes, fetch from the user's profile conversation
     if (conversationMode === 'chat' || conversationMode === 'together') {
-      console.log(`[get-report-data][${requestId}] Chat/Together mode detected, looking up profile conversation...`);
-      
       const { data: profileConv, error: profileError } = await supabase
         .from("conversations")
         .select("id")
@@ -321,17 +307,13 @@ Deno.serve(async (req) => {
       
       if (profileConv) {
         dataChatId = profileConv.id;
-        console.log(`[get-report-data][${requestId}] ⚠️ SWITCHING chat_id: ${chat_id} → ${dataChatId} (profile conversation)`);
       } else {
         console.warn(`[get-report-data][${requestId}] No profile conversation found for user: ${userId}, using original chat_id`);
         // Continue with original chat_id - may not find data, but that's expected
       }
-    } else {
-      console.log(`[get-report-data][${requestId}] Using original chat_id (mode: ${conversationMode})`);
     }
 
     // Step 3: Fetch report data from report_logs
-    console.log(`[get-report-data][${requestId}] 🔍 Fetching report_logs data from: ${dataChatId}...`);
     const { data: reportLogs, error: reportLogsError } = await supabase
       .from("report_logs")
       .select("report_text, created_at")
@@ -346,7 +328,6 @@ Deno.serve(async (req) => {
     }
 
     // Step 4: Fetch translator data from translator_logs
-    console.log(`[get-report-data][${requestId}] 🔍 Fetching translator_logs data from: ${dataChatId}...`);
     const { data: translatorLogs, error: translatorLogsError } = await supabase
       .from("translator_logs")
       .select("swiss_data, request_type, created_at")
@@ -392,8 +373,7 @@ Deno.serve(async (req) => {
     };
 
     const processingTime = Date.now() - startTime;
-    console.log(`[get-report-data][${requestId}] ✅ Report data retrieved in ${processingTime}ms`);
-    
+
     // Return report data
     return new Response(
       JSON.stringify({ 

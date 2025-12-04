@@ -149,8 +149,7 @@ Deno.serve(async (req) => {
       template_type: "email_verification"
     };
 
-    console.log(`[create-user-and-verify] OTP generated successfully (redacted for security)`);
-    console.log(`[create-user-and-verify] Sending verification email to: ${email}`);
+    // OTP generated successfully
 
     const { error: emailError } = await supabaseClient.functions.invoke('email-verification', {
       body: emailPayload

@@ -40,10 +40,11 @@ export const DeleteAccountPanel = () => {
     try {
       safeConsoleLog('🚀 Calling delete-account edge function...');
       
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data } = await supabase.auth.getSession();
+      const session = data.session;
       if (!session) throw new Error('No session found');
       
-      const { data, error } = await supabase.functions.invoke('delete-account', {
+      const { error } = await supabase.functions.invoke('delete-account', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${session.access_token}`,
@@ -55,11 +56,8 @@ export const DeleteAccountPanel = () => {
         safeConsoleError('❌ Edge function error:', error);
         throw new Error(error.message || 'Failed to delete account')
       }
-      
-      console.log('✅ Account deletion successful:', data);
-      
+
       // Immediately clear all auth state and sign out
-      console.log('🚪 Clearing auth state after successful account deletion...');
       
       // 1. Clean up storage first
       const { cleanupAuthState } = await import('@/utils/authCleanup');
@@ -68,7 +66,6 @@ export const DeleteAccountPanel = () => {
       // 2. Force global sign out from Supabase
       try {
         await supabase.auth.signOut({ scope: 'global' });
-        console.log('✅ Supabase global signOut completed');
       } catch (signOutError) {
         safeConsoleWarn('⚠️ Supabase signOut failed but continuing:', signOutError);
       }
@@ -76,7 +73,6 @@ export const DeleteAccountPanel = () => {
       // 3. Use AuthContext signOut for complete cleanup
       try {
         await signOut();
-        console.log('✅ AuthContext signOut completed');
       } catch (contextSignOutError) {
         safeConsoleWarn('⚠️ AuthContext signOut failed:', contextSignOutError);
       }

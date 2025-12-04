@@ -32,10 +32,8 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    console.log(`[update-password] Updating password for email: ${email.replace(/(.{2})(.*)(@.*)/, '$1***$3')}`);
 
     // Step 1: Verify the token with Supabase
-    console.log(`[update-password] Verifying token with Supabase...`);
     const { data, error } = await supabase.auth.verifyOtp({
       email: email,
       token: token_hash,
@@ -58,10 +56,7 @@ Deno.serve(async (req) => {
       }, 404, req);
     }
 
-    console.log(`[update-password] Token verified for user: ${data.user.id}`);
-
     // Step 2: Update the user's password
-    console.log(`[update-password] Updating password...`);
     const { error: updateError } = await supabase.auth.admin.updateUserById(data.user.id, {
       password: newPassword
     });
@@ -75,13 +70,10 @@ Deno.serve(async (req) => {
     }
 
     // Step 3: Clean up the token mapping (optional)
-    console.log(`[update-password] Cleaning up token mapping...`);
     await supabase
       .from('password_reset_tokens')
       .delete()
       .eq('token_hash', token_hash);
-
-    console.log(`[update-password] ✓ Password updated successfully`);
 
     return respond({
       success: true,

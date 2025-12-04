@@ -52,8 +52,6 @@ const ConfirmEmail: React.FC = () => {
         throw new Error(data?.error || 'Verification failed');
       }
 
-      console.log('[EMAIL-VERIFY] ✓ Email verification successful:', data.message);
-
     } catch (error) {
       safeConsoleError('[EMAIL-VERIFY] Critical verification error:', error);
       setStatus('error');
@@ -69,7 +67,6 @@ const ConfirmEmail: React.FC = () => {
     // Sign out any auto-created session from the magic link
     // This ensures users must sign in manually after verification
     await supabase.auth.signOut();
-    console.log('[EMAIL-VERIFY] ✓ Signed out auto-created session');
 
     setStatus('success');
     const msg = kind === 'signup'
@@ -86,28 +83,10 @@ const ConfirmEmail: React.FC = () => {
 
       // Entry point logging
       const requestId = crypto.randomUUID().substring(0, 8);
-      console.log(`[EMAIL-VERIFY:${requestId}] ⚠️ CONFIRMEMAIL COMPONENT - Starting verification process`);
-      console.log(`[EMAIL-VERIFY:${requestId}] Full URL:`, window.location.href);
-      console.log(`[EMAIL-VERIFY:${requestId}] Hash:`, location.hash);
-      console.log(`[EMAIL-VERIFY:${requestId}] Search:`, location.search);
 
       try {
         const hash = new URLSearchParams(location.hash.slice(1));
         const search = new URLSearchParams(location.search);
-
-        // Parameter extraction logging
-        const extractedParams = {
-          accessToken: !!hash.get('access_token'),
-          refreshToken: !!hash.get('refresh_token'),
-          pkceCode: !!hash.get('code'),
-          hashType: hash.get('type'),
-          token: hash.get('token') || search.get('token'),
-          tokenType: hash.get('type') || search.get('type'),
-          email: hash.get('email') || search.get('email'),
-          newEmail: hash.get('email') || search.get('email'),
-        };
-
-        console.log(`[EMAIL-VERIFY:${requestId}] Extracted parameters:`, extractedParams);
 
         // Only support OTP flow (custom email verification)
         // ACCESS_TOKEN and PKCE flows removed for simplicity

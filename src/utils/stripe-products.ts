@@ -37,7 +37,6 @@ export const fetchStripeProducts = async (): Promise<StripeProduct[]> => {
 
 export const getProductByName = async (name: string): Promise<StripeProduct | null> => {
   try {
-    console.log(`Searching for product with name: ${name}`);
     // First try exact match
     let { data, error } = await supabase
       .from('stripe_products')
@@ -48,7 +47,6 @@ export const getProductByName = async (name: string): Promise<StripeProduct | nu
     
     // If no exact match, try case-insensitive partial match
     if (!data && !error) {
-      console.log('No exact match found, trying case-insensitive search');
       const response = await supabase
         .from('stripe_products')
         .select('*')
@@ -64,8 +62,7 @@ export const getProductByName = async (name: string): Promise<StripeProduct | nu
       safeConsoleError(`Error fetching product with name ${name}:`, error);
       return null;
     }
-    
-    console.log(`Found product:`, data);
+
     return data;
   } catch (err) {
     safeConsoleError(`Failed to fetch product with name ${name}:`, err);
@@ -132,7 +129,7 @@ export const ensureCreditProduct = async () => {
     
     // If no credit product exists, create one
     if (!data) {
-      console.log('No credit product found, please add one in the Supabase dashboard');
+      // No credit product found, please add one in the Supabase dashboard
     }
   } catch (err) {
     safeConsoleError('Failed to ensure credit product:', err);

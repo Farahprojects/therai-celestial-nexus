@@ -325,7 +325,7 @@ export async function addFolderParticipant(
 ): Promise<void> {
   safeConsoleLog('[addFolderParticipant] Starting', { folderId, userId, role, permissions });
 
-  const { data, error } = await supabase
+  const { error } = await supabase
     .from('chat_folder_participants')
     .upsert(
       {
@@ -344,7 +344,6 @@ export async function addFolderParticipant(
     throw new Error(`Failed to add participant: ${error.message}`);
   }
 
-  console.log('[addFolderParticipant] Success:', data);
 }
 
 /**
@@ -375,7 +374,6 @@ export async function isFolderParticipant(folderId: string, userId: string): Pro
   }
 
   const isParticipant = !!data;
-  console.log('[isFolderParticipant] Result:', isParticipant);
   return isParticipant;
 }
 

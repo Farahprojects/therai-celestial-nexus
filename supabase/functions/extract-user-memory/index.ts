@@ -24,11 +24,7 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
 });
 
 const debugLog = (event, payload = {}) => {
-  try {
-    console.log(`[extract-user-memory] ${event}`, payload);
-  } catch (_) {
-    // Swallow logging errors to avoid breaking execution
-  }
+  // Logging removed for security
 };
 
 const json = (status, data) =>
@@ -100,10 +96,6 @@ Deno.serve(async (req) => {
 
   try {
     const { conversation_id, message_id, user_id } = await req.json();
-
-    console.log("[extract-user-memory] Request received:", {
-      conversation_id,
-      message_id,
       user_id
     });
 
@@ -124,9 +116,6 @@ Deno.serve(async (req) => {
       return json(400, { error: "Message not found" });
     }
     if (msg.role !== "assistant" || msg.status !== "complete") {
-      console.log("[extract-user-memory] Message not eligible:", {
-        role: msg.role,
-        status: msg.status
       });
       return json(200, { message: "Not an eligible assistant message", skipped: true });
     }
@@ -141,7 +130,6 @@ Deno.serve(async (req) => {
       .maybeSingle();
 
     if (existing) {
-      console.log("[extract-user-memory] Memory already extracted for message:", message_id);
       return json(200, { message: "Already extracted", skipped: true });
     }
 
@@ -151,10 +139,6 @@ Deno.serve(async (req) => {
       .select("id, profile_id, mode, user_id")
       .eq("id", conversation_id)
       .single();
-
-    console.log("[extract-user-memory] Conversation lookup:", {
-      conversation_id,
-      profile_id: conv?.profile_id,
       mode: conv?.mode,
       found: !!conv,
       error: convErr?.message
@@ -176,9 +160,6 @@ Deno.serve(async (req) => {
     // Only extract memories for 'chat' mode conversations
     // Other modes (astro, swiss, profile, together, etc.) are not about the user
     if (conv.mode !== 'chat') {
-      console.log("[extract-user-memory] Skipping extraction - not chat mode", {
-        conversation_id,
-        mode: conv.mode
       });
       return json(200, { message: "Not chat mode", skipped: true });
     }
@@ -187,8 +168,6 @@ Deno.serve(async (req) => {
     let profileId = conv.profile_id;
 
     if (!profileId) {
-      console.log("[extract-user-memory] No profile_id on conversation - looking up primary profile");
-      
       const { data: primaryProfile } = await supabase
         .from("user_profile_list")
         .select("id")
@@ -197,12 +176,10 @@ Deno.serve(async (req) => {
         .maybeSingle();
       
       if (!primaryProfile) {
-        console.log("[extract-user-memory] No primary profile found for user - skipping extraction");
         return json(200, { message: "No primary profile", skipped: true });
       }
-      
+
       profileId = primaryProfile.id;
-      console.log("[extract-user-memory] Using primary profile:", profileId);
     }
 
     // Validate profile ownership (only if profile was already on conversation)
@@ -212,10 +189,6 @@ Deno.serve(async (req) => {
         .select("id, is_primary, user_id")
         .eq("id", profileId)
         .single();
-
-      console.log("[extract-user-memory] Profile validation:", {
-        profile_id: profileId,
-        found: !!profile,
         is_primary: profile?.is_primary,
         error: profileErr?.message
       });
@@ -226,18 +199,11 @@ Deno.serve(async (req) => {
       }
       
       if (!profile.is_primary || profile.user_id !== user_id) {
-        console.log("[extract-user-memory] Profile not eligible:", {
-          is_primary: profile.is_primary,
-          profile_user_id: profile.user_id,
           request_user_id: user_id
         });
         return json(200, { message: "Not primary profile or user mismatch", skipped: true });
       }
     }
-
-    console.log("[extract-user-memory] All checks passed - starting extraction", {
-      conversation_id,
-      message_id,
       profile_id: profileId,
       mode: conv.mode
     });
@@ -365,10 +331,6 @@ Deno.serve(async (req) => {
 
     const insertRes = await supabase.from("user_memory_buffer").insert([bufferRow]);
     if (insertRes.error) throw insertRes.error;
-    
-    console.log("[extract-user-memory] Observation buffered (awaiting validation):", {
-      message_id,
-      conversation_id,
       profile_id: profileId,
       type: mem.type,
       confidence: mem.confidence,

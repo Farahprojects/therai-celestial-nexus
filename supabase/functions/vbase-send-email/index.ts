@@ -112,13 +112,6 @@ Deno.serve(async (req) => {
       request_id: requestId,        // Tracking ID
       timestamp: timestamp          // Request timestamp
     };
-
-    console.log(`[vbase-send-email] Sending email to ${to} from ${from}@vbase.co`);
-    console.log(`[vbase-send-email] Subject: ${subject}`);
-    console.log(`[vbase-send-email] Request ID: ${requestId}`);
-    console.log(`[vbase-send-email] Payload:`, {
-      slug: vpsPayload.slug,
-      domain: vpsPayload.domain,
       to_email: vpsPayload.to_email,
       subject: vpsPayload.subject,
       bodyLength: vpsPayload.body.length,
@@ -134,9 +127,6 @@ Deno.serve(async (req) => {
       },
       body: JSON.stringify(vpsPayload)
     });
-
-    // Log response status
-    console.log(`[vbase-send-email] VPS response status: ${response.status}`);
 
     // Handle VPS response
     if (!response.ok) {
@@ -158,7 +148,6 @@ Deno.serve(async (req) => {
     }
 
     const result = await response.text();
-    console.log(`[vbase-send-email] Email sent successfully: ${result}`);
 
     return new Response(
       JSON.stringify({ 

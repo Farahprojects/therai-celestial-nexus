@@ -51,8 +51,6 @@ const SignupModal: React.FC<SignupModalProps> = ({ onSuccess }) => {
     setErrorMsg('');
 
     try {
-      console.log('[SignupModal] Attempting signup for:', email);
-      
       // Add timeout to catch hanging requests
       const timeoutPromise = new Promise<never>((_, reject) => 
         setTimeout(() => reject(new Error('Request timeout - please try again')), 15000)

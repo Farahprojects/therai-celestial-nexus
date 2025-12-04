@@ -17,7 +17,6 @@ Deno.serve(async (req) => {
   try {
     const { email }: ResendVerificationRequest = await req.json();
 
-    console.log('[resend-verification] Request for email:', email.replace(/(.{2})(.*)(@.*)/, '$1***$3'));
 
     if (!email) {
       return new Response(
@@ -48,7 +47,6 @@ Deno.serve(async (req) => {
     const user = users.users.find(u => u.email === email && !u.email_confirmed_at);
 
     if (!user) {
-      console.log('[resend-verification] User already verified for email:', email.replace(/(.{2})(.*)(@.*)/, '$1***$3'));
       return new Response(
         JSON.stringify({
           success: false,
@@ -61,7 +59,6 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log('[resend-verification] Generating new verification link for existing unverified user:', email.replace(/(.{2})(.*)(@.*)/, '$1***$3'));
 
     // Generate email verification link for existing unverified user
     const { data, error } = await supabase.auth.admin.generateLink({
@@ -135,7 +132,6 @@ Deno.serve(async (req) => {
       template_type: "email_verification"
     };
 
-    console.log('[resend-verification] Final payload prepared for email service');
 
     const { error: emailError } = await supabase.functions.invoke('email-verification', {
       body: emailPayload

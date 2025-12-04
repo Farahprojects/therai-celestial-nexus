@@ -61,8 +61,6 @@ const Auth: React.FC = () => {
         throw new Error(data?.error || 'Token verification failed. Please try again.');
       }
 
-      console.log('[PASSWORD-VERIFY] ✓ Token verification successful:', data.message);
-
       // Set session if provided
       if (data.session) {
         const { error: sessionError } = await supabase.auth.setSession(data.session);
@@ -112,23 +110,10 @@ const Auth: React.FC = () => {
 
       // Entry point logging
       const requestId = crypto.randomUUID().substring(0, 8);
-      console.log(`[AUTH-VERIFY:${requestId}] 🔥 AUTH COMPONENT - Starting verification process`);
-      console.log(`[AUTH-VERIFY:${requestId}] Full URL:`, window.location.href);
-      console.log(`[AUTH-VERIFY:${requestId}] Hash:`, location.hash);
-      console.log(`[AUTH-VERIFY:${requestId}] Search:`, location.search);
 
       try {
         const hash = new URLSearchParams(location.hash.slice(1));
         const search = new URLSearchParams(location.search);
-
-        // Parameter extraction logging
-        const extractedParams = {
-          token: hash.get('token') || search.get('token'),
-          tokenType: hash.get('type') || search.get('type'),
-          email: hash.get('email') || search.get('email'),
-        };
-
-        console.log(`[AUTH-VERIFY:${requestId}] Extracted parameters:`, extractedParams);
 
         const token = hash.get('token') || search.get('token');
 
@@ -137,7 +122,6 @@ const Auth: React.FC = () => {
         }
 
         // Just pass the token to the edge function and let it determine the type
-        console.log(`[AUTH-VERIFY:${requestId}] → Verifying token with edge function`);
         finishPasswordSuccess(token);
 
       } catch (err: unknown) {

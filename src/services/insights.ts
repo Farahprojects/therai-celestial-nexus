@@ -47,12 +47,8 @@ export const insightsService = {
       previousAstroDataText?: string;  // Existing field for astro data
     };
   }): Promise<GenerateInsightResponse> {
-    console.log('🚀 === INSIGHTS SERVICE: Starting generateInsight ===');
-    console.log('🚀 SERVICE: Raw request received:', request);
-    
     try {
       // Get current session with better error handling
-      console.log('🚀 SERVICE: === AUTHENTICATION STEP ===');
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       
       if (sessionError) {
@@ -74,17 +70,12 @@ export const insightsService = {
       safeConsoleLog('🚀 SERVICE: User authenticated:', session.user.id);
 
       // Mock API key for now since table was dropped
-      console.log('🚀 SERVICE: === API KEY MOCK (TABLE DROPPED) ===');
       const mockApiKey = 'mock_api_key_for_insights';
-      console.log('🚀 SERVICE: Using mock API key for insights generation');
 
       // Extract plain text from journal entries (if included)
-      console.log('🚀 SERVICE: === DATA TRANSFORMATION ===');
       let journalText = 'No journal entries available.';
       
       if (request.clientData.journalEntries) {
-        console.log('🚀 SERVICE: Processing journal entries:', request.clientData.journalEntries.length);
-        
         journalText = request.clientData.journalEntries.map((entry, index) => {
           safeConsoleLog(`🚀 SERVICE: Processing journal entry ${index + 1}:`, {
             id: entry.id,
@@ -98,8 +89,6 @@ export const insightsService = {
           return `${title}Date: ${date}\nContent: ${entry.entry_text}`;
         }).join('\n\n---\n\n');
       }
-
-      console.log('🚀 SERVICE: Transformed journal text length:', journalText.length);
 
       // Create the payload object with flexible data fields
       const payload = {
@@ -117,12 +106,6 @@ export const insightsService = {
           ...(request.clientData.previousAstroDataText && { previousAstroDataText: request.clientData.previousAstroDataText })
         }
       };
-
-      console.log('🚀 SERVICE: === CALLING EDGE FUNCTION ===');
-      console.log('🚀 SERVICE: Final payload being sent:', payload);
-      console.log('🚀 SERVICE: Payload includes report texts:', !!payload.clientData.previousReportTexts);
-      console.log('🚀 SERVICE: Payload includes astro data:', !!payload.clientData.previousAstroDataText);
-      console.log('🚀 SERVICE: About to call supabase.functions.invoke...');
       
       // Use the safe pattern - send raw object, let Supabase handle stringification and headers
       const { data, error } = await supabase.functions.invoke('generate-insights', {
@@ -133,10 +116,6 @@ export const insightsService = {
         }
       });
 
-      console.log('🚀 SERVICE: === EDGE FUNCTION RESPONSE ===');
-      console.log('🚀 SERVICE: Response data:', data);
-      console.log('🚀 SERVICE: Response error:', error);
-      
       if (error) {
         console.error('🚀 SERVICE: Edge function error details:', '[REDACTED ERROR OBJECT - Check for sensitive data]');
         return {
@@ -145,7 +124,6 @@ export const insightsService = {
         };
       }
 
-      console.log('🚀 SERVICE: Edge function call successful, returning data');
       return data;
     } catch (error) {
       console.error('🚀 SERVICE: === CRITICAL ERROR IN INSIGHTS SERVICE ===');

@@ -46,8 +46,6 @@ export const BillingPanel = () => {
 
       if (error) throw error;
 
-      console.log('Billing data fetched:', data);
-
       setSubscriptionData({
         subscription_active: data.subscription_active || false,
         subscription_plan: data.subscription_plan || null,
@@ -70,15 +68,12 @@ export const BillingPanel = () => {
 
   const handleManageSubscription = async () => {
     if (manageLoading) return;
-    console.log('handleManageSubscription clicked');
     try {
       setManageLoading(true);
 
       const { data, error } = await supabase.functions.invoke('customer-portal', {
         body: {}
       });
-
-      console.log('Portal response:', { data, error });
 
       if (error) {
         safeConsoleError('Portal error:', error);
@@ -89,7 +84,6 @@ export const BillingPanel = () => {
         throw new Error('No portal URL received');
       }
 
-      console.log('Redirecting to:', data.url);
       window.location.href = data.url;
     } catch (error) {
       safeConsoleError('Error opening customer portal:', error);

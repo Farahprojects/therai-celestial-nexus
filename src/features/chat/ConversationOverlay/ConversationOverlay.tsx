@@ -74,7 +74,6 @@ export const ConversationOverlay: React.FC = () => {
         // Small delay to ensure all async message operations complete
         await new Promise(resolve => setTimeout(resolve, 300));
         await fetchMessages();
-        console.log('[ConversationOverlay] ✅ Messages resynced after reset');
       }
     } catch (e) {
       safeConsoleError('[ConversationOverlay] Failed to disable TTS mode:', e);
@@ -204,7 +203,6 @@ export const ConversationOverlay: React.FC = () => {
       const handleMessageInsert = (payload: { message?: unknown; chat_id?: string }) => {
         if (isShuttingDown.current) return;
         if (payload.message && payload.chat_id === chat_id) {
-          console.log('[ConversationOverlay] Received message-insert, adding to store:', payload.message);
           // Validate that message has required properties before adding
           const message = payload.message as StoreMessage;
           if (message && typeof message === 'object' && message.id && message.chat_id) {
@@ -254,7 +252,6 @@ export const ConversationOverlay: React.FC = () => {
       // 2. BLUETOOTH ROUTING - SESSION LEVEL (ONCE for entire conversation)
       if (Capacitor.isNativePlatform()) {
         try {
-          console.log('[ConversationOverlay] 🔵 Starting Bluetooth SCO for conversation session...');
           await BluetoothAudio.startBluetoothAudio();
           // Bluetooth audio session established
 
@@ -323,8 +320,6 @@ export const ConversationOverlay: React.FC = () => {
         onError: (error: Error) => {
           // Check if this is an STT limit exceeded error FIRST - don't log it
           if (error instanceof STTLimitExceededError) {
-            console.log('[ConversationOverlay] STT limit exceeded, showing upgrade notification');
-
             // Close overlay immediately
             closeConversation();
 
@@ -387,7 +382,6 @@ export const ConversationOverlay: React.FC = () => {
     // BLUETOOTH ROUTING - SESSION LEVEL CLEANUP (ONCE when conversation ends)
     if (Capacitor.isNativePlatform()) {
       try {
-        console.log('[ConversationOverlay] 🔴 Stopping Bluetooth SCO session...');
         await BluetoothAudio.stopBluetoothAudio();
         // Bluetooth audio session ended (removed noisy log)
       } catch (error) {
@@ -423,7 +417,6 @@ export const ConversationOverlay: React.FC = () => {
         // Small delay to ensure all async message operations complete
         await new Promise(resolve => setTimeout(resolve, 300));
         await fetchMessages();
-        console.log('[ConversationOverlay] ✅ Messages resynced after conversation mode');
       }
     } catch (error) {
       safeConsoleError('[ConversationOverlay] Error during cleanup:', error);
