@@ -1,1 +1,0 @@
-This is a harmless text file, but I've renamed it with a malicious extension to test the security system. The file upload should be rejected because the filename suggests it might be executable, even though the content is completely safe.
