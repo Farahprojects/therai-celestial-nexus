@@ -526,7 +526,7 @@ async function safeJson(req: Request): Promise<unknown> {
 const contentType = req.headers.get('content-type') || '';
 if (!contentType.toLowerCase().includes('application/json')) return {};
 try {
-return await req.json(, req);
+return await req.json();
 } catch (error) {
 console.error('[conversation-manager] Failed to parse JSON body:', error);
 return {};
