@@ -12,10 +12,35 @@ export function encodeRedirectPath(path: string): string {
 
 /**
  * Decodes a redirect path from URL parameters
+ * SECURITY: Only allows relative paths to prevent open redirect attacks
  */
 export function decodeRedirectPath(encodedPath: string): string {
   try {
-    return decodeURIComponent(encodedPath);
+    const decoded = decodeURIComponent(encodedPath);
+
+    // SECURITY: Prevent open redirect attacks by only allowing relative paths
+    // Check if the path is relative (starts with /) and doesn't contain dangerous protocols
+    if (!decoded.startsWith('/')) {
+      console.warn('[SECURITY] Blocked external redirect attempt:', decoded);
+      return '/therai';
+    }
+
+    // Additional security: prevent protocol-relative URLs that could be exploited
+    if (decoded.startsWith('//')) {
+      console.warn('[SECURITY] Blocked protocol-relative redirect attempt:', decoded);
+      return '/therai';
+    }
+
+    // Prevent URL-encoded protocols (e.g., %2F%2F for //)
+    const decodedLower = decoded.toLowerCase();
+    if (decodedLower.includes('javascript:') ||
+        decodedLower.includes('data:') ||
+        decodedLower.includes('vbscript:')) {
+      console.warn('[SECURITY] Blocked dangerous protocol in redirect:', decoded);
+      return '/therai';
+    }
+
+    return decoded;
   } catch {
     return '/therai';
   }

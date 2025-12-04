@@ -29,22 +29,29 @@ class SSRErrorBoundary extends Component<Props, State> {
 
   public render() {
     if (this.state.hasError) {
+      // SECURITY: Only show detailed error information in development
+      const isDevelopment = import.meta.env.DEV;
+
       return (
         <div style={{ padding: 32, backgroundColor: '#fee', border: '1px solid #f00' }}>
-          <h1>🔥 Error Boundary Caught an Error</h1>
-          <p><strong>Error:</strong> {this.state.error?.message}</p>
+          <h1>🔥 Something went wrong</h1>
+          <p>We're sorry, but an unexpected error occurred. Please try refreshing the page.</p>
           <p><strong>Environment:</strong> {typeof window === 'undefined' ? 'SSR' : 'Client'}</p>
-          <details style={{ marginTop: 16 }}>
-            <summary>Error Details</summary>
-            <pre style={{ whiteSpace: 'pre-wrap', fontSize: '12px' }}>
-              {this.state.error?.stack}
-            </pre>
-            {this.state.errorInfo && (
+
+          {isDevelopment && (
+            <details style={{ marginTop: 16 }}>
+              <summary>Development Error Details</summary>
+              <p><strong>Error:</strong> {this.state.error?.message}</p>
               <pre style={{ whiteSpace: 'pre-wrap', fontSize: '12px' }}>
-                {this.state.errorInfo.componentStack}
+                {this.state.error?.stack}
               </pre>
-            )}
-          </details>
+              {this.state.errorInfo && (
+                <pre style={{ whiteSpace: 'pre-wrap', fontSize: '12px' }}>
+                  {this.state.errorInfo.componentStack}
+                </pre>
+              )}
+            </details>
+          )}
         </div>
       );
     }
