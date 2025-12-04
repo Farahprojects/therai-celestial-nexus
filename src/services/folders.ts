@@ -249,10 +249,12 @@ export async function shareFolderPublic(folderId: string): Promise<void> {
 
 /**
  * Share a folder privately (requires sign-in, adds user as participant)
+ * @param folderId - The folder ID to share
  * @param permissions - Custom permissions for participants joining via link
  */
 export async function shareFolderPrivate(
-  folderId: string
+  folderId: string,
+  permissions: FolderPermissions = DEFAULT_PERMISSIONS
 ): Promise<void> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('User not authenticated');
@@ -272,13 +274,7 @@ export async function shareFolderPrivate(
   // Add owner as participant with full access
   await addFolderParticipant(folderId, user.id, 'owner', FULL_ACCESS_PERMISSIONS);
 
-  // Store permissions for new joiners in folder metadata (we'll use this when they join)
-  await supabase
-    .from('chat_folders')
-    .update({
-      updated_at: new Date().toISOString()
-    })
-    .eq('id', folderId);
+  safeConsoleLog('[folders] Folder shared privately with permissions:', permissions);
 }
 
 /**
