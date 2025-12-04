@@ -197,30 +197,31 @@ export const FolderView: React.FC<FolderViewProps> = ({
       </div>
     )}
 
-    {/* Journal Section */}
-    <JournalSection
-      journals={journals}
-      onEditJournal={handleOpenEditJournal}
-      onDeleteJournal={handleRequestDeleteJournal}
-    />
-
-    {/* Documents Section */}
-    <DocumentsSection
-      documents={documents}
-      formatFileSize={formatFileSize}
-      onViewDocument={(documentId) => {
-        setViewingDocumentId(documentId);
-        setEditingDocumentId(null);
-      }}
-      onEditDocument={(documentId) => {
-        setViewingDocumentId(documentId);
-        setEditingDocumentId(documentId);
-      }}
-      onDeleteDocument={handleRequestDeleteDocument}
-    />
-
-    {/* Conversations Section */}
+    {/* Scrollable content area */}
     <div className="flex-1 overflow-y-auto">
+      {/* Journal Section */}
+      <JournalSection
+        journals={journals}
+        onEditJournal={handleOpenEditJournal}
+        onDeleteJournal={handleRequestDeleteJournal}
+      />
+
+      {/* Documents Section */}
+      <DocumentsSection
+        documents={documents}
+        formatFileSize={formatFileSize}
+        onViewDocument={(documentId) => {
+          setViewingDocumentId(documentId);
+          setEditingDocumentId(null);
+        }}
+        onEditDocument={(documentId) => {
+          setViewingDocumentId(documentId);
+          setEditingDocumentId(documentId);
+        }}
+        onDeleteDocument={handleRequestDeleteDocument}
+      />
+
+      {/* Conversations Section */}
       <ConversationsSection
         conversations={conversations}
         folders={folders}
