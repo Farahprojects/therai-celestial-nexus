@@ -12,7 +12,6 @@ class ChatController {
   private resetTimeout: NodeJS.Timeout | null = null;
   private lastFailedMessage: { text: string; mode?: string } | null = null;
   private isUnlocked = false; // New flag to control microphone access
-  // Using unified message store for all message management
   private isProcessingRef = false;
   private isInitializing = false; // Guard against concurrent initializations
   private networkRetryHandler: ((event: Event) => void) | null = null;
@@ -58,7 +57,7 @@ class ChatController {
 
   async initializeForConversation(chat_id: string) {
     if (!chat_id) {
-      safeConsoleError('[ChatController] initializeForConversation: FAIL FAST - chat_id is required');
+      safeConsoleError('[ChatController] initializeForConversation', 'FAIL FAST - chat_id is required');
       throw new Error('chat_id is required for conversation initialization');
     }
     
@@ -126,24 +125,13 @@ class ChatController {
     await unifiedWebSocketService.subscribe(chat_id);
 
     // Ensure unified channel is subscribed for message delivery
-    const { user } = await supabase.auth.getUser();
+    const { data: { user } } = await supabase.auth.getUser();
     if (user?.id) {
       await unifiedChannel.subscribe(user.id);
     }
   }
 
 
-  private async ensureRealtimeReady(chat_id: string): Promise<void> {
-    try {
-      // Lightweight ping to wake network/client
-      await supabase
-        .from('messages')
-        .select('id', { head: true, count: 'exact' })
-        .eq('chat_id', chat_id);
-    } catch (error) {
-      safeConsoleWarn('[ChatController] ensureRealtimeReady ping failed (continuing):', error);
-    }
-  }
 
   public pauseRealtimeSubscription() {
     unifiedWebSocketService.pauseRealtimeSubscription();
@@ -167,11 +155,6 @@ class ChatController {
   // REMOVED: scrollToNewTurn - redundant with MessageList auto-scroll
 
 
-  private initializeConversationService() {
-    if (this.conversationServiceInitialized) return;
-    
-    this.conversationServiceInitialized = true;
-  }
 
   public unlock(): void {
     this.isUnlocked = true;
@@ -263,7 +246,7 @@ class ChatController {
       
       // Retry sending the message
       setTimeout(() => {
-        unifiedWebSocketService.sendMessageDirect(text, mode);
+        unifiedWebSocketService.sendMessageDirect();
       }, 1000); // Small delay before retry
     }
   }
@@ -295,12 +278,12 @@ class ChatController {
     const { messages, updateMessage } = useMessageStore.getState();
     
     // Find and remove payment progress messages
-    const progressMessages = messages.filter(m => {
+    const progressMessages = messages.filter((m: any) => {
       const meta = m.meta as { type?: string };
       return meta?.type === 'payment-progress';
     });
     
-    progressMessages.forEach(msg => {
+    progressMessages.forEach((msg: any) => {
       // Mark as complete instead of actually removing
       updateMessage(msg.id, { status: 'complete' });
     });
@@ -315,7 +298,7 @@ class ChatController {
   }
 
   public setTtsMode(enabled: boolean): void {
-    unifiedWebSocketService.setTtsMode(enabled);
+    unifiedWebSocketService.setTtsMode();
   }
 
 }

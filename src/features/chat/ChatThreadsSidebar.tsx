@@ -95,7 +95,7 @@ const useFolders = (userId?: string, currentFolderId?: string) => {
             id: f.id,
             name: f.name,
             chatsCount: conversations.length,
-            chats: conversations.map((c: Conversation) => ({
+            chats: conversations.map((c: any) => ({
               id: c.id,
               title: c.title || 'New Chat',
               mode: c.mode,
@@ -115,7 +115,7 @@ const useFolders = (userId?: string, currentFolderId?: string) => {
               id: shared.id,
               name: shared.name,
               chatsCount: conversations.length,
-              chats: conversations.map((c: Conversation) => ({
+              chats: conversations.map((c: any) => ({
                 id: c.id,
                 title: c.title || 'New Chat',
                 mode: c.mode,

@@ -1,5 +1,5 @@
 // src/features/chat/ChatInput.tsx
-import React, { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import TextareaAutosize from 'react-textarea-autosize';
 import { Mic, AudioLines, ArrowRight, Loader2 } from 'lucide-react';
 import { chatController } from './ChatController';
@@ -235,7 +235,7 @@ export const ChatInput = () => {
         createdAt: new Date().toISOString(),
         status: 'thinking',
         client_msg_id,
-        mode: mode,
+        mode: mode || undefined,
         user_id: user?.id,
         user_name: displayName || 'User'
       };
@@ -259,7 +259,6 @@ export const ChatInput = () => {
             user_name: displayName || 'User',
             analyze: isAnalyzeMode // Pass analyze flag for Together Mode
           },
-          // @ts-expect-error - signal is supported but not in types
           signal: abortController.signal
         }).catch((error) => {
           if (error.name === 'AbortError') {
@@ -316,7 +315,7 @@ export const ChatInput = () => {
       // Send stop signal to backend via websocket
       const { chat_id } = useChatStore.getState();
       if (chat_id) {
-        unifiedWebSocketService.sendMessageDirect('__STOP__', mode || 'chat');
+        unifiedWebSocketService.sendMessageDirect();
       }
     } else if (text.trim()) {
       handleSend();
