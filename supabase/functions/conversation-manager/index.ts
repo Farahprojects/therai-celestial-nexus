@@ -181,7 +181,7 @@ const { data, error } = await admin
 
 if (error) {
   console.error('[conversation-manager] Insert error:', error);
-  return errorJson(`Failed to create conversation: ${error.message || JSON.stringify(error, req)}`, 500);
+  return errorJson(`Failed to create conversation: ${error.message || JSON.stringify(error)}`, req, 500);
 }
 
 // Profile mode: Skip messages table insertion, but call translator-edge for chart generation
@@ -518,7 +518,7 @@ console.error('Unhandled error:', { message: err?.message, stack: err?.stack });
 }
 const message = err?.message || 'Internal server error';
 const status = message.includes('Authorization') || message.includes('token') ? 401 : 500;
-return errorJson(message, status);
+return errorJson(message, req, status);
 }
 });
 
