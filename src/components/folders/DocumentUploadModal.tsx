@@ -1,10 +1,10 @@
 import React, { useState, useCallback } from 'react';
-import { X, Upload, File, Trash2, Loader2 } from 'lucide-react';
+import { X, Upload, File, Trash2, Loader2, AlertCircle } from 'lucide-react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { uploadDocument, uploadFileToStorage, updateDocument, extractTextFromFile } from '@/services/folder-documents';
-import { toast } from 'sonner';
 import { safeConsoleWarn } from '@/utils/safe-logging';
+
 interface DocumentUploadModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -19,9 +19,7 @@ interface FileWithPreview {
 }
 
 // Expanded list of accepted document formats
-// We accept these file types - text extraction will work for some, others will be stored for download
 const ACCEPTED_FORMATS = {
-  // Documents
   'application/pdf': '.pdf',
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document': '.docx',
   'application/msword': '.doc',
@@ -29,7 +27,6 @@ const ACCEPTED_FORMATS = {
   'application/vnd.ms-excel': '.xls',
   'application/vnd.openxmlformats-officedocument.presentationml.presentation': '.pptx',
   'application/vnd.ms-powerpoint': '.ppt',
-  // Text files
   'text/plain': '.txt',
   'text/markdown': '.md',
   'text/csv': '.csv',
@@ -40,11 +37,9 @@ const ACCEPTED_FORMATS = {
   'text/javascript': '.js',
   'application/typescript': '.ts',
   'text/typescript': '.ts',
-  // Archives (for storage, not text extraction)
   'application/zip': '.zip',
   'application/x-rar-compressed': '.rar',
   'application/x-7z-compressed': '.7z',
-  // Images (for reference documents)
   'image/jpeg': '.jpg',
   'image/jpg': '.jpg',
   'image/png': '.png',
@@ -53,7 +48,6 @@ const ACCEPTED_FORMATS = {
   'image/svg+xml': '.svg',
 };
 
-// File extensions that we can extract text from (for server-side processing)
 export const TEXT_EXTRACTABLE_EXTENSIONS = [
   'pdf', 'docx', 'doc', 'txt', 'md', 'csv', 'html', 'xml', 'json'
 ];
@@ -68,11 +62,13 @@ export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
   const [files, setFiles] = useState<FileWithPreview[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // Reset files when modal closes
+  // Reset state when modal closes
   React.useEffect(() => {
     if (!isOpen) {
       setFiles([]);
+      setErrorMessage(null);
     }
   }, [isOpen]);
 
@@ -89,7 +85,6 @@ export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
-
     const droppedFiles = Array.from(e.dataTransfer.files);
     addFiles(droppedFiles);
   }, []);
@@ -102,20 +97,26 @@ export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
   };
 
   const addFiles = (newFiles: File[]) => {
+    setErrorMessage(null);
+    const invalidFiles: string[] = [];
+    
     const validFiles = newFiles.filter(file => {
       const extension = '.' + file.name.split('.').pop()?.toLowerCase();
       const mimeType = file.type;
       
-      // Check by MIME type first, then by extension as fallback
       const isValid = ACCEPTED_FORMATS[mimeType as keyof typeof ACCEPTED_FORMATS] === extension ||
                      Object.values(ACCEPTED_FORMATS).includes(extension);
       
       if (!isValid) {
-        toast.error(`${file.name} is not a supported format. Supported: PDF, DOCX, DOC, XLSX, PPTX, TXT, MD, CSV, HTML, JSON, images, and archives.`);
+        invalidFiles.push(file.name);
       }
       
       return isValid;
     });
+
+    if (invalidFiles.length > 0) {
+      setErrorMessage(`Unsupported format: ${invalidFiles.join(', ')}`);
+    }
 
     const filesWithPreview: FileWithPreview[] = validFiles.map(file => ({
       file,
@@ -127,6 +128,7 @@ export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
 
   const removeFile = (id: string) => {
     setFiles(prev => prev.filter(f => f.id !== id));
+    setErrorMessage(null);
   };
 
   const formatFileSize = (bytes: number): string => {
@@ -137,26 +139,23 @@ export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
     return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
   };
 
-const handleUpload = async () => {
+  const handleUpload = async () => {
     if (files.length === 0) {
-      toast.error('Please select files to upload');
+      setErrorMessage('Please select files to upload');
       return;
     }
 
     setIsUploading(true);
+    setErrorMessage(null);
     let successCount = 0;
     const failedFiles: { name: string; error: string }[] = [];
 
     try {
       for (const fileItem of files) {
         try {
-          // 1. Create database record
           const document = await uploadDocument(userId, folderId, fileItem.file);
-
-          // 2. Upload file to storage (includes server-side validation)
           const filePath = await uploadFileToStorage(userId, folderId, fileItem.file);
 
-          // 3. Extract text content (for text-based files)
           let contentText = '';
           try {
             contentText = await extractTextFromFile(fileItem.file);
@@ -164,7 +163,6 @@ const handleUpload = async () => {
             safeConsoleWarn('[DocumentUpload] Text extraction failed:', extractError);
           }
 
-          // 4. Update document with storage path and content
           await updateDocument(document.id, {
             upload_status: 'completed',
             file_path: filePath,
@@ -173,29 +171,22 @@ const handleUpload = async () => {
 
           successCount++;
         } catch (error) {
-          const errorMessage = error instanceof Error ? error.message : 'Upload failed';
-          failedFiles.push({ name: fileItem.file.name, error: errorMessage });
+          const errorMsg = error instanceof Error ? error.message : 'Upload failed';
+          failedFiles.push({ name: fileItem.file.name, error: errorMsg });
         }
       }
 
-      // Show results
-      if (successCount > 0) {
-        toast.success(`${successCount} file${successCount > 1 ? 's' : ''} uploaded successfully`);
+      if (failedFiles.length > 0) {
+        const errorLines = failedFiles.map(f => `${f.name}: ${f.error}`);
+        setErrorMessage(errorLines.join('\n'));
+        setFiles(prev => prev.filter(f => 
+          failedFiles.some(failed => failed.name === f.file.name)
+        ));
       }
-      
-      // Show inline errors for failed files
-      failedFiles.forEach(({ name, error }) => {
-        toast.error(`${name}: ${error}`);
-      });
 
       if (successCount === files.length) {
         onUploadComplete?.();
         onClose();
-      } else {
-        // Remove successful files, keep failed ones for retry
-        setFiles(prev => prev.filter(f => 
-          failedFiles.some(failed => failed.name === f.file.name)
-        ));
       }
     } finally {
       setIsUploading(false);
@@ -289,6 +280,14 @@ const handleUpload = async () => {
               ))}
             </div>
           )}
+
+          {/* Inline Error Message */}
+          {errorMessage && (
+            <div className="flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+              <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" />
+              <p className="text-sm text-red-700 whitespace-pre-line">{errorMessage}</p>
+            </div>
+          )}
         </div>
 
         {/* Footer */}
@@ -320,4 +319,3 @@ const handleUpload = async () => {
     </Dialog>
   );
 };
-
