@@ -29,6 +29,7 @@ export function getSecureCorsHeaders(request: Request): Record<string, string> {
     origin.endsWith('.therai.co') ||
     origin.endsWith('.supabase.co') ||
     origin.endsWith('.loveable.dev') ||
+    origin.endsWith('.lovable.app') ||
     origin.endsWith('.lovableproject.com');
 
   return {

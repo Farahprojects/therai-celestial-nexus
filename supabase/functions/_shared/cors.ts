@@ -20,7 +20,8 @@ export function getCorsHeaders(request: Request): Record<string, string> {
   const origin = request.headers.get('origin') || '';
   const isAllowed = ALLOWED_ORIGINS.includes(origin) || 
                     origin.endsWith('.therai.co') ||
-                    origin.endsWith('.supabase.co');
+                    origin.endsWith('.supabase.co') ||
+                    origin.endsWith('.lovable.app');
   
   return {
     ...corsHeaders,

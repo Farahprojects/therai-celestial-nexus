@@ -72,7 +72,7 @@ Deno.serve(async (req) => {
           enabled: false,
         },
       },
-      default_return_url: `${origin}/therai`,
+      default_return_url: 'https://therai.co/therai',
     });
     
     const configurationId = config.id;
@@ -80,7 +80,7 @@ Deno.serve(async (req) => {
     // Create billing portal session with configuration
     const portalSession = await stripe.billingPortal.sessions.create({
       customer: customerId,
-      return_url: `${origin}/therai`,
+      return_url: 'https://therai.co/therai',
       configuration: configurationId,
     });
 
