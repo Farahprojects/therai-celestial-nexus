@@ -1,4 +1,3 @@
-import React from "react";
 import { CalendarSession } from "@/types/calendar";
 import MonthView from "./views/MonthView";
 import WeekView from "./views/WeekView";

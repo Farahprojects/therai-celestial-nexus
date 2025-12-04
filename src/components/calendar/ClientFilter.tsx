@@ -1,5 +1,4 @@
 
-import React from "react";
 
 type Client = { id: string; name: string };
 interface Props {

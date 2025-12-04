@@ -1,4 +1,3 @@
-import React from "react";
 import { CalendarSession } from "@/types/calendar";
 
 type Props = {

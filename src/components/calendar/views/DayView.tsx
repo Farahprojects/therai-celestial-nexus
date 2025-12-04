@@ -1,5 +1,4 @@
 
-import React from "react";
 import { CalendarSession } from "@/types/calendar";
 import { EventCard } from "../EventCard";
 
