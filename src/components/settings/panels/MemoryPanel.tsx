@@ -25,10 +25,10 @@ export function MemoryPanel() {
   // Clean up deletedIds when memories are refetched (remove IDs that are no longer in memories)
   useEffect(() => {
     if (deletedIds.size > 0) {
-      const memoryIds = new Set(memories.map(m => m.id));
+      const memoryIds = new Set(memories.map((m: any) => m.id));
       setDeletedIds(prev => {
         const next = new Set<string>();
-        for (const id of prev) {
+        for (const id of Array.from(prev)) {
           // Only keep IDs that are still in memories (means delete hasn't completed yet or failed)
           // If ID is not in memories, it was successfully deleted, so remove from Set
           if (memoryIds.has(id)) {
@@ -41,9 +41,9 @@ export function MemoryPanel() {
   }, [memories]);
 
   // Filter out optimistically deleted memories
-  const visibleMemories = memories.filter(m => !deletedIds.has(m.id));
+  const visibleMemories = memories.filter((m: any) => !deletedIds.has(m.id));
 
-  const filteredMemories = visibleMemories.filter(m => {
+  const filteredMemories = visibleMemories.filter((m: any) => {
     const matchesSearch = m.memory_text.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesType = filterType === 'all' || m.memory_type === filterType;
     return matchesSearch && matchesType;
@@ -82,7 +82,7 @@ export function MemoryPanel() {
 
   const handleExport = async () => {
     const exportData = {
-      memories: memories.map(m => ({
+      memories: memories.map((m: any) => ({
         text: m.memory_text,
         type: m.memory_type,
         created: m.created_at
@@ -135,7 +135,7 @@ export function MemoryPanel() {
           type="text"
           placeholder="Search memories..."
           value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
           className="flex-1"
         />
         <select
@@ -168,7 +168,7 @@ export function MemoryPanel() {
         </div>
       ) : (
         <div className="space-y-3">
-          {filteredMemories.map((mem) => (
+          {filteredMemories.map((mem: any) => (
             <div
               key={mem.id}
               className="bg-white border border-gray-200 rounded-xl p-4 hover:border-gray-300 transition-colors"
@@ -213,7 +213,7 @@ export function MemoryPanel() {
             </p>
           </div>
           <div className="space-y-3">
-            {summaries.map((summary) => (
+            {summaries.map((summary: any) => (
               <div
                 key={summary.id}
                 className="bg-white border border-gray-200 rounded-xl p-5 hover:border-gray-300 transition-colors"
@@ -232,7 +232,7 @@ export function MemoryPanel() {
                 </p>
                 {summary.key_themes && summary.key_themes.length > 0 && (
                   <div className="flex flex-wrap gap-2">
-                    {summary.key_themes.map((theme, i) => (
+                    {summary.key_themes.map((theme: any, i: number) => (
                       <span
                         key={i}
                         className="text-xs px-2.5 py-1 bg-gray-100 text-gray-700 rounded-full font-medium"

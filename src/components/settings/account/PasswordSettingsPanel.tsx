@@ -67,7 +67,6 @@ export const PasswordSettingsPanel = () => {
     
     setIsUpdatingPassword(true);
     setInvalidPasswordError(false);
-    setUpdateSuccess(false);
     
     try {
       // Get the current user's email
@@ -108,7 +107,6 @@ export const PasswordSettingsPanel = () => {
     }
     
     setIsUpdatingPassword(true);
-    setUpdateSuccess(false);
     
     try {
       // Get current user ID
@@ -186,7 +184,7 @@ export const PasswordSettingsPanel = () => {
               <FormField
                 control={passwordForm.control}
                 name="currentPassword"
-                render={({ field }) => (
+                render={({ field }: { field: any }) => (
                   <FormItem>
                     <FormLabel>Current Password</FormLabel>
                     <FormControl>
@@ -256,7 +254,7 @@ export const PasswordSettingsPanel = () => {
                 <FormField
                   control={passwordForm.control}
                   name="newPassword"
-                  render={({ field }) => (
+                  render={({ field }: { field: any }) => (
                     <FormItem>
                       <FormLabel>New Password</FormLabel>
                       <FormControl>
@@ -293,14 +291,14 @@ export const PasswordSettingsPanel = () => {
                   <FormField
                     control={passwordForm.control}
                     name="confirmPassword"
-                    render={({ field }) => (
+                    render={({ field }: { field: any }) => (
                       <FormItem>
                         <FormLabel>Confirm New Password</FormLabel>
                         <FormControl>
                           <PasswordInput
                             password={field.value}
                             isValid={field.value === newPassword && field.value.length > 0}
-                            onChange={(value) => passwordForm.setValue("confirmPassword", value)}
+                            onChange={(value: string) => passwordForm.setValue("confirmPassword", value)}
                             showRequirements={false}
                             placeholder="Confirm your new password"
                             id="confirmPassword"

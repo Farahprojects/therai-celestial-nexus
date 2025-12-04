@@ -18,7 +18,7 @@ export const SettingsButton: React.FC<SettingsButtonProps> = ({
   variant = "outline",
   size,
   ...props
-}) => {
+}: SettingsButtonProps) => {
   const { openSettings } = useSettingsModal();
   
   const handleClick = (e: React.MouseEvent) => {

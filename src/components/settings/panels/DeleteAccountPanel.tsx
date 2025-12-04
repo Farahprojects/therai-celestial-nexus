@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
-import { safeConsoleError, safeConsoleLog } from '@/utils/safe-logging';
+import { safeConsoleError, safeConsoleLog, safeConsoleWarn } from '@/utils/safe-logging';
 import {
   Dialog,
   DialogContent,

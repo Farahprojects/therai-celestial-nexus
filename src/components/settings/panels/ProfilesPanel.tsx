@@ -71,7 +71,7 @@ export const ProfilesPanel = () => {
   };
 
   const resetForm = () => {
-    setProfileName('');
+    setName('');
     setName('');
     setBirthDate('');
     setBirthTime('');
@@ -236,7 +236,7 @@ export const ProfilesPanel = () => {
               <Input
                 id="name"
                 value={name}
-                onChange={(e) => setName(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
                 placeholder="e.g., John Smith"
                 className="mt-1"
                 required

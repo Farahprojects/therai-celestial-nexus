@@ -49,7 +49,7 @@ const DisplayNamePanel: React.FC = () => {
         <Input
           id="display-name"
           value={newDisplayName}
-          onChange={(e) => setNewDisplayName(e.target.value)}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewDisplayName(e.target.value)}
           onBlur={handleBlurSave}
           disabled={saving}
           className="h-9 rounded-full px-4 w-[220px]"

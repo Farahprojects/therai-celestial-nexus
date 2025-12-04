@@ -48,8 +48,8 @@ export const ContactSupportPanel = () => {
       return;
     }
     
-    const validFiles = [];
-    const invalidFiles = [];
+    const validFiles: File[] = [];
+    const invalidFiles: string[] = [];
     
     newFiles.forEach(file => {
       if (!SUPPORTED_FORMATS.includes(file.type)) {
@@ -200,7 +200,7 @@ export const ContactSupportPanel = () => {
                 placeholder="Type your message here..."
                 className="min-h-[150px] rounded-lg resize-y"
                 value={message}
-                onChange={(e) => setMessage(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setMessage(e.target.value)}
               />
             </div>
             
@@ -304,7 +304,7 @@ export const ContactSupportPanel = () => {
                 placeholder="Type your message here..."
                 className="min-h-[150px] rounded-lg resize-y"
                 value={message}
-                onChange={(e) => setMessage(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setMessage(e.target.value)}
               />
             </div>
             
