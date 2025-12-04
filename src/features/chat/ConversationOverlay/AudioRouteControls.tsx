@@ -1,12 +1,15 @@
 import React, { useEffect } from 'react';
 import { Bluetooth, Volume2 } from 'lucide-react';
 import { useAudioRoute } from '@/hooks/useAudioRoute';
+import { useIsNativeApp } from '@/hooks/use-native-app';
 
 /**
  * Audio routing control buttons for conversation mode
  * Shows Bluetooth and Speaker toggle buttons in top-right corner
+ * Only renders on native iOS/Android apps
  */
 export const AudioRouteControls: React.FC = () => {
+    const isNative = useIsNativeApp();
     const {
         isBluetoothAvailable,
         isSpeakerActive,
@@ -16,14 +19,21 @@ export const AudioRouteControls: React.FC = () => {
         refresh,
     } = useAudioRoute();
 
-    // Refresh audio route  periodically during conversation
+    // Refresh audio route periodically during conversation (only on native)
     useEffect(() => {
+        if (!isNative) return;
+        
         const interval = setInterval(() => {
             refresh();
-        }, 3000); // Check every 3 seconds
+        }, 3000);
 
         return () => clearInterval(interval);
-    }, [refresh]);
+    }, [refresh, isNative]);
+
+    // Only render on native iOS/Android apps
+    if (!isNative) {
+        return null;
+    }
 
     const handleBluetoothToggle = async () => {
         if (isBluetoothActive) {
