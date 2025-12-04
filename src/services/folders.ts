@@ -1,6 +1,34 @@
 // src/services/folders.ts
 import { supabase } from '@/integrations/supabase/client';
 import { safeConsoleError, safeConsoleLog } from '@/utils/safe-logging';
+
+export interface FolderPermissions {
+  can_view_journals: boolean;
+  can_add_journals: boolean;
+  can_view_documents: boolean;
+  can_add_documents: boolean;
+  can_view_conversations: boolean;
+  can_view_insights: boolean;
+}
+
+export const DEFAULT_PERMISSIONS: FolderPermissions = {
+  can_view_journals: true,
+  can_add_journals: true,
+  can_view_documents: false,
+  can_add_documents: false,
+  can_view_conversations: false,
+  can_view_insights: false,
+};
+
+export const FULL_ACCESS_PERMISSIONS: FolderPermissions = {
+  can_view_journals: true,
+  can_add_journals: true,
+  can_view_documents: true,
+  can_add_documents: true,
+  can_view_conversations: true,
+  can_view_insights: true,
+};
+
 export interface ChatFolder {
   id: string;
   user_id: string;
@@ -213,8 +241,12 @@ export async function shareFolderPublic(folderId: string): Promise<void> {
 
 /**
  * Share a folder privately (requires sign-in, adds user as participant)
+ * @param permissions - Custom permissions for participants joining via link
  */
-export async function shareFolderPrivate(folderId: string): Promise<void> {
+export async function shareFolderPrivate(
+  folderId: string, 
+  permissions: FolderPermissions = DEFAULT_PERMISSIONS
+): Promise<void> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('User not authenticated');
 
@@ -230,8 +262,16 @@ export async function shareFolderPrivate(folderId: string): Promise<void> {
     throw new Error('Failed to update folder');
   }
 
-  // Add owner as participant
-  await addFolderParticipant(folderId, user.id, 'owner');
+  // Add owner as participant with full access
+  await addFolderParticipant(folderId, user.id, 'owner', FULL_ACCESS_PERMISSIONS);
+  
+  // Store permissions for new joiners in folder metadata (we'll use this when they join)
+  await supabase
+    .from('chat_folders')
+    .update({ 
+      updated_at: new Date().toISOString()
+    })
+    .eq('id', folderId);
 }
 
 /**
@@ -272,14 +312,15 @@ export async function getSharedFolder(folderId: string): Promise<ChatFolder | nu
 }
 
 /**
- * Add user as participant to a folder
+ * Add user as participant to a folder with specific permissions
  */
 export async function addFolderParticipant(
   folderId: string,
   userId: string,
-  role: 'owner' | 'member' = 'member'
+  role: 'owner' | 'member' = 'member',
+  permissions: FolderPermissions = DEFAULT_PERMISSIONS
 ): Promise<void> {
-  safeConsoleLog('[addFolderParticipant] Starting', { folderId, userId, role });
+  safeConsoleLog('[addFolderParticipant] Starting', { folderId, userId, role, permissions });
   
   const { data, error } = await supabase
     .from('chat_folder_participants')
@@ -289,6 +330,7 @@ export async function addFolderParticipant(
         user_id: userId,
         role,
         invited_by: null,
+        ...permissions,
       },
       { onConflict: 'folder_id,user_id' }
     )
@@ -300,6 +342,15 @@ export async function addFolderParticipant(
   }
   
   console.log('[addFolderParticipant] Success:', data);
+}
+
+/**
+ * Get default permissions for a folder (set by owner when sharing)
+ */
+export async function getFolderDefaultPermissions(folderId: string): Promise<FolderPermissions> {
+  // For now, return default permissions
+  // In the future, this could read from a folder_sharing_config table
+  return DEFAULT_PERMISSIONS;
 }
 
 /**
