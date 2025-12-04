@@ -23,9 +23,9 @@ Deno.serve(async (req) => {
     const { token_hash, email, newPassword } = await req.json();
 
     if (!token_hash || !email || !newPassword) {
-      return respond({ 
-        success: false, 
-        error: 'Missing required parameters: token_hash, email, newPassword' 
+      return respond({
+        success: false,
+        error: 'Missing required parameters: token_hash, email, newPassword'
       }, 400);
     }
 
@@ -34,7 +34,7 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    console.log(`[update-password] Updating password for email: ${email}`);
+    console.log(`[update-password] Updating password for email: ${email.replace(/(.{2})(.*)(@.*)/, '$1***$3')}`);
 
     // Step 1: Verify the token with Supabase
     console.log(`[update-password] Verifying token with Supabase...`);
@@ -46,17 +46,17 @@ Deno.serve(async (req) => {
 
     if (error) {
       console.error(`[update-password] Token verification failed:`, error);
-      return respond({ 
-        success: false, 
-        error: 'Invalid or expired token' 
+      return respond({
+        success: false,
+        error: 'Invalid or expired token'
       }, 400);
     }
 
     if (!data.user) {
       console.error(`[update-password] No user found after verification`);
-      return respond({ 
-        success: false, 
-        error: 'User not found' 
+      return respond({
+        success: false,
+        error: 'User not found'
       }, 404);
     }
 
@@ -70,9 +70,9 @@ Deno.serve(async (req) => {
 
     if (updateError) {
       console.error(`[update-password] Password update failed:`, updateError);
-      return respond({ 
-        success: false, 
-        error: 'Failed to update password' 
+      return respond({
+        success: false,
+        error: 'Failed to update password'
       }, 500);
     }
 
@@ -92,9 +92,9 @@ Deno.serve(async (req) => {
 
   } catch (error) {
     console.error('[update-password] Unexpected error:', error);
-    return respond({ 
-      success: false, 
-      error: 'Internal server error' 
+    return respond({
+      success: false,
+      error: 'Internal server error'
     }, 500);
   }
 });

@@ -14,19 +14,15 @@ declare const Deno: {
 
 // @ts-ignore - ESM import works in Deno runtime
 import { createPooledClient } from "../_shared/supabaseClient.ts";
+import { getSecureCorsHeaders } from "../_shared/secureCors.ts";
 
-const corsHeaders = {
-"Access-Control-Allow-Origin": "*",
-"Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, accept",
-"Access-Control-Allow-Methods": "POST, OPTIONS",
-"Vary": "Origin"
-};
 
-const json = (status: number, data: any) =>
-new Response(JSON.stringify(data), {
-status,
-headers: { ...corsHeaders, "Content-Type": "application/json" }
-});
+
+const json = (status: number, data: any, corsHeaders: Record<string, string>) =>
+  new Response(JSON.stringify(data), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" }
+  });
 
 // Env
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
@@ -51,16 +47,16 @@ const supabase = createPooledClient();
 
 // Simple sanitizer: strips common markdown and extra whitespace
 function sanitizePlainText(input: string) {
-const s = typeof input === "string" ? input : "";
-return s
-.replace(/```[\s\S]*?```/g, "") // code blocks
-.replace(/`([^`]+)`/g, "$1") // inline code
-.replace(/!\[[^\]]+\]\([^)]+\)/g, "") // images
-.replace(/\[[^\]]+\]\([^)]+\)/g, "$1") // links
-.replace(/[>_~#*]+/g, "") // md symbols (including bold/italic *)
-.replace(/-{3,}/g, " ")
-.replace(/\s+/g, " ")
-.trim();
+  const s = typeof input === "string" ? input : "";
+  return s
+    .replace(/```[\s\S]*?```/g, "") // code blocks
+    .replace(/`([^`]+)`/g, "$1") // inline code
+    .replace(/!\[[^\]]+\]\([^)]+\)/g, "") // images
+    .replace(/\[[^\]]+\]\([^)]+\)/g, "$1") // links
+    .replace(/[>_~#*]+/g, "") // md symbols (including bold/italic *)
+    .replace(/-{3,}/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 const systemPrompt = `You are an AI guide for self-awareness.
@@ -84,240 +80,241 @@ No labels , human led conversation
 Check-in: Close with a simple, open question.`;
 
 Deno.serve(async (req) => {
-const totalStartTime = Date.now();
-console.log("[llm-handler-chatgpt] ⏱️  Request received");
+  const totalStartTime = Date.now();
+  const corsHeaders = getSecureCorsHeaders(req);
+  console.log("[llm-handler-chatgpt] ⏱️  Request received");
 
-if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
-if (req.method !== "POST") return json(405, { error: "Method not allowed" });
+  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  if (req.method !== "POST") return json(405, { error: "Method not allowed" }, corsHeaders);
 
-const startedAt = Date.now();
+  const startedAt = Date.now();
 
-let body;
-try {
-body = await req.json();
-console.log(`[llm-handler-chatgpt] ⏱️  JSON parsed (+${Date.now() - totalStartTime}ms)`);
-} catch {
-return json(400, { error: "Invalid JSON body" });
-}
-
-const { chat_id, text, mode, chattype, voice, user_id, user_name } = body || {};
-
-if (!chat_id || typeof chat_id !== "string") return json(400, { error: "Missing or invalid field: chat_id" });
-if (!text || typeof text !== "string") return json(400, { error: "Missing or invalid field: text" });
-
-// Fetch recent messages (history + optional system)
-const HISTORY_LIMIT = 6;
-
-// Type for message data from DB
-type MessageRow = {
-  role: string;
-  text: string;
-  created_at: string;
-};
-
-let systemText = "";
-let history: MessageRow[] = [];
-
-try {
-  console.log(`[llm-handler-chatgpt] ⏱️  Starting DB fetch for history (+${Date.now() - totalStartTime}ms)`);
-  
-  // Fetch system message and history in parallel with proper filtering and limits
-  const [systemRes, historyRes] = await Promise.all([
-    // System message (most recent)
-    supabase
-      .from("messages")
-      .select("text")
-      .eq("chat_id", chat_id)
-      .eq("role", "system")
-      .eq("status", "complete")
-      .not("text", "is", null)
-      .neq("text", "")
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle(),
-    // Recent history (excluding system messages, with limit)
-    supabase
-      .from("messages")
-      .select("role, text, created_at")
-      .eq("chat_id", chat_id)
-      .neq("role", "system")
-      .eq("status", "complete")
-      .not("text", "is", null)
-      .neq("text", "")
-      .order("created_at", { ascending: false })
-      .limit(HISTORY_LIMIT)
-  ]);
-
-  if (systemRes.error) {
-    console.warn("[llm-handler-chatgpt] system message fetch warning:", systemRes.error.message);
-  }
-  if (historyRes.error) {
-    console.warn("[llm-handler-chatgpt] history fetch warning:", historyRes.error.message);
+  let body;
+  try {
+    body = await req.json();
+    console.log(`[llm-handler-chatgpt] ⏱️  JSON parsed (+${Date.now() - totalStartTime}ms)`);
+  } catch {
+    return json(400, { error: "Invalid JSON body" }, corsHeaders);
   }
 
-  // Extract system text
-  if (systemRes.data?.text) {
-    systemText = String(systemRes.data.text);
+  const { chat_id, text, mode, chattype, voice, user_id, user_name } = body || {};
+
+  if (!chat_id || typeof chat_id !== "string") return json(400, { error: "Missing or invalid field: chat_id" }, corsHeaders);
+  if (!text || typeof text !== "string") return json(400, { error: "Missing or invalid field: text" }, corsHeaders);
+
+  // Fetch recent messages (history + optional system)
+  const HISTORY_LIMIT = 6;
+
+  // Type for message data from DB
+  type MessageRow = {
+    role: string;
+    text: string;
+    created_at: string;
+  };
+
+  let systemText = "";
+  let history: MessageRow[] = [];
+
+  try {
+    console.log(`[llm-handler-chatgpt] ⏱️  Starting DB fetch for history (+${Date.now() - totalStartTime}ms)`);
+
+    // Fetch system message and history in parallel with proper filtering and limits
+    const [systemRes, historyRes] = await Promise.all([
+      // System message (most recent)
+      supabase
+        .from("messages")
+        .select("text")
+        .eq("chat_id", chat_id)
+        .eq("role", "system")
+        .eq("status", "complete")
+        .not("text", "is", null)
+        .neq("text", "")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+      // Recent history (excluding system messages, with limit)
+      supabase
+        .from("messages")
+        .select("role, text, created_at")
+        .eq("chat_id", chat_id)
+        .neq("role", "system")
+        .eq("status", "complete")
+        .not("text", "is", null)
+        .neq("text", "")
+        .order("created_at", { ascending: false })
+        .limit(HISTORY_LIMIT)
+    ]);
+
+    if (systemRes.error) {
+      console.warn("[llm-handler-chatgpt] system message fetch warning:", systemRes.error.message);
+    }
+    if (historyRes.error) {
+      console.warn("[llm-handler-chatgpt] history fetch warning:", historyRes.error.message);
+    }
+
+    // Extract system text
+    if (systemRes.data?.text) {
+      systemText = String(systemRes.data.text);
+    }
+
+    // Extract history (reverse to get chronological order)
+    if (historyRes.data && Array.isArray(historyRes.data)) {
+      history = historyRes.data.reverse();
+    }
+
+    console.log(`[llm-handler-chatgpt] ⏱️  DB fetch complete (+${Date.now() - totalStartTime}ms) - Found ${history.length} history messages`);
+  } catch (e: any) {
+    console.warn("[llm-handler-chatgpt] fetch exception:", e?.message || String(e));
   }
-  
-  // Extract history (reverse to get chronological order)
-  if (historyRes.data && Array.isArray(historyRes.data)) {
-    history = historyRes.data.reverse();
+
+  // Build OpenAI request messages
+  type OpenAIMessage = {
+    role: "user" | "assistant" | "system";
+    content: string;
+  };
+
+  const messages: OpenAIMessage[] = [];
+
+  // Add system message with optional systemText
+  if (systemText) {
+    messages.push({ role: "system", content: `${systemPrompt}\n\n[System Data]\n${systemText}` });
+  } else {
+    messages.push({ role: "system", content: systemPrompt });
   }
-  
-  console.log(`[llm-handler-chatgpt] ⏱️  DB fetch complete (+${Date.now() - totalStartTime}ms) - Found ${history.length} history messages`);
-} catch (e: any) {
-  console.warn("[llm-handler-chatgpt] fetch exception:", e?.message || String(e));
-}
 
-// Build OpenAI request messages
-type OpenAIMessage = {
-  role: "user" | "assistant" | "system";
-  content: string;
-};
+  // Add history messages (oldest first)
+  for (let i = history.length - 1; i >= 0; i--) {
+    const m = history[i];
+    const t = typeof m.text === "string" ? m.text.trim() : "";
+    if (!t) continue;
+    const role = m.role === "assistant" ? "assistant" : "user";
+    messages.push({ role, content: t });
+  }
 
-const messages: OpenAIMessage[] = [];
+  // Add current user message
+  messages.push({ role: "user", content: String(text) });
 
-// Add system message with optional systemText
-if (systemText) {
-  messages.push({ role: "system", content: `${systemPrompt}\n\n[System Data]\n${systemText}` });
-} else {
-  messages.push({ role: "system", content: systemPrompt });
-}
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), OPENAI_TIMEOUT_MS);
 
-// Add history messages (oldest first)
-for (let i = history.length - 1; i >= 0; i--) {
-  const m = history[i];
-  const t = typeof m.text === "string" ? m.text.trim() : "";
-  if (!t) continue;
-  const role = m.role === "assistant" ? "assistant" : "user";
-  messages.push({ role, content: t });
-}
+  const openaiUrl = "https://api.openai.com/v1/chat/completions";
+  const requestBody = {
+    model: OPENAI_MODEL,
+    messages,
+    temperature: 0.7
+  };
 
-// Add current user message
-messages.push({ role: "user", content: String(text) });
+  let llmStartedAt = Date.now();
+  let data;
+  try {
+    console.log(`[llm-handler-chatgpt] ⏱️  Starting OpenAI API call (+${Date.now() - totalStartTime}ms)`, {
+      model: OPENAI_MODEL,
+      url: openaiUrl,
+      chat_id: chat_id
+    });
 
-const controller = new AbortController();
-const timeout = setTimeout(() => controller.abort(), OPENAI_TIMEOUT_MS);
+    const resp = await fetch(openaiUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${OPENAI_API_KEY}`
+      },
+      body: JSON.stringify(requestBody),
+      signal: controller.signal
+    });
+    clearTimeout(timeout);
 
-const openaiUrl = "https://api.openai.com/v1/chat/completions";
-const requestBody = {
-  model: OPENAI_MODEL,
-  messages,
-  temperature: 0.7
-};
+    const openaiLatency = Date.now() - llmStartedAt;
+    console.log(`[llm-handler-chatgpt] ⏱️  OpenAI API responded (+${Date.now() - totalStartTime}ms) - OpenAI took ${openaiLatency}ms - Status: ${resp.status}`);
 
-let llmStartedAt = Date.now();
-let data;
-try {
-console.log(`[llm-handler-chatgpt] ⏱️  Starting OpenAI API call (+${Date.now() - totalStartTime}ms)`, {
-  model: OPENAI_MODEL,
-  url: openaiUrl,
-  chat_id: chat_id
-});
+    if (!resp.ok) {
+      const errText = await resp.text().catch(() => "");
+      console.error("[llm-handler-chatgpt] ❌ OpenAI API error:", {
+        status: resp.status,
+        statusText: resp.statusText,
+        error: errText
+      });
+      return json(502, { error: `OpenAI API request failed: ${resp.status} - ${errText}` }, corsHeaders);
+    }
 
-const resp = await fetch(openaiUrl, {
-method: "POST",
-headers: { 
-  "Content-Type": "application/json", 
-  "Authorization": `Bearer ${OPENAI_API_KEY}` 
-},
-body: JSON.stringify(requestBody),
-signal: controller.signal
-});
-clearTimeout(timeout);
+    data = await resp.json();
+    console.log("[llm-handler-chatgpt] ✅ OpenAI API success, response time:", Date.now() - llmStartedAt, "ms");
+  } catch (e) {
+    clearTimeout(timeout);
+    console.error("[llm-handler-chatgpt] ❌ OpenAI request exception:", {
+      error: (e as any)?.message || String(e),
+      name: (e as any)?.name,
+      stack: (e as any)?.stack
+    });
+    return json(504, { error: `OpenAI request error: ${(e as any)?.message || String(e)}` }, corsHeaders);
+  }
 
-const openaiLatency = Date.now() - llmStartedAt;
-console.log(`[llm-handler-chatgpt] ⏱️  OpenAI API responded (+${Date.now() - totalStartTime}ms) - OpenAI took ${openaiLatency}ms - Status: ${resp.status}`);
+  const llmLatencyMs = Date.now() - llmStartedAt;
 
-if (!resp.ok) {
-  const errText = await resp.text().catch(() => "");
-  console.error("[llm-handler-chatgpt] ❌ OpenAI API error:", {
-    status: resp.status,
-    statusText: resp.statusText,
-    error: errText
-  });
-  return json(502, { error: `OpenAI API request failed: ${resp.status} - ${errText}` });
-}
+  // Extract assistant text
+  let assistantText = "";
+  try {
+    assistantText = data?.choices?.[0]?.message?.content?.trim() || "";
+  } catch {
+    // ignore
+  }
+  if (!assistantText) return json(502, { error: "No response text from OpenAI" }, corsHeaders);
 
-data = await resp.json();
-console.log("[llm-handler-chatgpt] ✅ OpenAI API success, response time:", Date.now() - llmStartedAt, "ms");
-} catch (e) {
-clearTimeout(timeout);
-console.error("[llm-handler-chatgpt] ❌ OpenAI request exception:", {
-  error: (e as any)?.message || String(e),
-  name: (e as any)?.name,
-  stack: (e as any)?.stack
-});
-return json(504, { error: `OpenAI request error: ${(e as any)?.message || String(e)}` });
-}
+  // Sanitize text for TTS only (strip markdown for voice)
+  const sanitizedTextForTTS = sanitizePlainText(assistantText) || assistantText;
 
-const llmLatencyMs = Date.now() - llmStartedAt;
+  // Usage metadata (if present)
+  const usage = {
+    total_tokens: data?.usage?.total_tokens ?? null,
+    input_tokens: data?.usage?.prompt_tokens ?? null,
+    output_tokens: data?.usage?.completion_tokens ?? null
+  };
 
-// Extract assistant text
-let assistantText = "";
-try {
-assistantText = data?.choices?.[0]?.message?.content?.trim() || "";
-} catch {
-// ignore
-}
-if (!assistantText) return json(502, { error: "No response text from OpenAI" });
+  // Fire-and-forget: TTS (voice only) and save assistant message via chat-send
+  const headers = {
+    "Content-Type": "application/json",
+    "Authorization": `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`
+  };
 
-// Sanitize text for TTS only (strip markdown for voice)
-const sanitizedTextForTTS = sanitizePlainText(assistantText) || assistantText;
+  const assistantClientId = crypto.randomUUID();
 
-// Usage metadata (if present)
-const usage = {
-total_tokens: data?.usage?.total_tokens ?? null,
-input_tokens: data?.usage?.prompt_tokens ?? null,
-output_tokens: data?.usage?.completion_tokens ?? null
-};
+  const tasks = [
+    fetch(`${SUPABASE_URL}/functions/v1/chat-send`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        chat_id,
+        text: assistantText, // Save raw markdown to DB for formatted display
+        client_msg_id: assistantClientId,
+        role: "assistant",
+        mode,
+        user_id,
+        user_name,
+        chattype
+      })
+    })
+  ];
 
-// Fire-and-forget: TTS (voice only) and save assistant message via chat-send
-const headers = {
-"Content-Type": "application/json",
-"Authorization": `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`
-};
+  if (chattype === "voice") {
+    const selectedVoice = typeof voice === "string" && voice.trim() ? voice : "Puck";
+    tasks.push(
+      fetch(`${SUPABASE_URL}/functions/v1/google-text-to-speech`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ text: sanitizedTextForTTS, voice: selectedVoice, chat_id, user_id }) // Sanitized for TTS
+      })
+    );
+  }
 
-const assistantClientId = crypto.randomUUID();
+  Promise.allSettled(tasks).catch(() => { });
 
-const tasks = [
-fetch(`${SUPABASE_URL}/functions/v1/chat-send`, {
-method: "POST",
-headers,
-body: JSON.stringify({
-chat_id,
-text: assistantText, // Save raw markdown to DB for formatted display
-client_msg_id: assistantClientId,
-role: "assistant",
-mode,
-user_id,
-user_name,
-chattype
-})
-})
-];
+  const totalLatencyMs = Date.now() - startedAt;
+  console.log(`[llm-handler-chatgpt] ⏱️  Returning response (+${Date.now() - totalStartTime}ms) TOTAL - LLM: ${llmLatencyMs}ms`);
 
-if (chattype === "voice") {
-const selectedVoice = typeof voice === "string" && voice.trim() ? voice : "Puck";
-tasks.push(
-fetch(`${SUPABASE_URL}/functions/v1/google-text-to-speech`, {
-method: "POST",
-headers,
-body: JSON.stringify({ text: sanitizedTextForTTS, voice: selectedVoice, chat_id, user_id }) // Sanitized for TTS
-})
-);
-}
-
-Promise.allSettled(tasks).catch(() => {});
-
-const totalLatencyMs = Date.now() - startedAt;
-console.log(`[llm-handler-chatgpt] ⏱️  Returning response (+${Date.now() - totalStartTime}ms) TOTAL - LLM: ${llmLatencyMs}ms`);
-
-return json(200, {
-text: assistantText, // Return raw markdown to client
-usage,
-llm_latency_ms: llmLatencyMs,
-total_latency_ms: totalLatencyMs
-});
+  return json(200, {
+    text: assistantText, // Return raw markdown to client
+    usage,
+    llm_latency_ms: llmLatencyMs,
+    total_latency_ms: totalLatencyMs
+  }, corsHeaders);
 });

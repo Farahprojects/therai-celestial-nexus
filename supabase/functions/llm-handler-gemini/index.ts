@@ -12,17 +12,11 @@ import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { createPooledClient } from "../_shared/supabaseClient.ts";
 import { fetchAndFormatMemories, updateMemoryUsage } from "../_shared/memoryInjection.ts";
 import { incrementUsage } from "../_shared/limitChecker.ts";
+import { getSecureCorsHeaders } from "../_shared/secureCors.ts";
 
 /* ----------------------------- Configuration ----------------------------- */
-const CORS_HEADERS = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, accept",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-  Vary: "Origin"
-} as Record<string, string>;
-
-const JSON_RESPONSE = (status: number, payload: any) =>
-  new Response(JSON.stringify(payload), { status, headers: { ...CORS_HEADERS, "Content-Type": "application/json" } });
+const JSON_RESPONSE = (status: number, payload: any, corsHeaders: Record<string, string>) =>
+  new Response(JSON.stringify(payload), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
 const ENV = {
   SUPABASE_URL: Deno.env.get("SUPABASE_URL"),
@@ -261,21 +255,22 @@ function triggerSummaryGeneration(chat_id: string, fromTurn: number, toTurn: num
 Deno.serve(async (req: Request) => {
   const startMs = Date.now();
   const requestId = crypto.randomUUID().slice(0, 8);
+  const corsHeaders = getSecureCorsHeaders(req);
 
-  if (req.method === "OPTIONS") return new Response("ok", { headers: CORS_HEADERS });
-  if (req.method !== "POST") return JSON_RESPONSE(405, { error: "Method not allowed" });
+  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  if (req.method !== "POST") return JSON_RESPONSE(405, { error: "Method not allowed" }, corsHeaders);
 
   let body: any;
   try {
     body = await req.json();
   } catch {
-    return JSON_RESPONSE(400, { error: "Invalid JSON body" });
+    return JSON_RESPONSE(400, { error: "Invalid JSON body" }, corsHeaders);
   }
 
   const { chat_id, text, mode, chattype, voice, user_id, user_name, source } = body || {};
 
-  if (!chat_id || typeof chat_id !== "string") return JSON_RESPONSE(400, { error: "Missing or invalid field: chat_id" });
-  if (!text || typeof text !== "string") return JSON_RESPONSE(400, { error: "Missing or invalid field: text" });
+  if (!chat_id || typeof chat_id !== "string") return JSON_RESPONSE(400, { error: "Missing or invalid field: chat_id" }, corsHeaders);
+  if (!text || typeof text !== "string") return JSON_RESPONSE(400, { error: "Missing or invalid field: text" }, corsHeaders);
 
   console.info(JSON.stringify({
     event: "request_received",
@@ -288,14 +283,14 @@ Deno.serve(async (req: Request) => {
   // ✅ CHECK USER PLAN for caching
   let userPlan = 'free';
   let skipCache = true;
-  
+
   if (user_id) {
     const { data: profile } = await supabase
       .from("profiles")
       .select("subscription_plan")
       .eq("id", user_id)
       .single();
-    
+
     userPlan = profile?.subscription_plan || 'free';
     skipCache = userPlan === 'free';
   }
@@ -355,7 +350,7 @@ Deno.serve(async (req: Request) => {
     const conversationProfileId = conversationRes?.data?.profile_id || null;
     conversationSummary = summaryRes?.data?.summary_text || "";
     historyRows = historyRes?.data || [];
-    ({ memoryContext = "", memoryIds = [] } = memoryResult || {});
+    ({ memoryContext = "", memoryIds =[] } = memoryResult || {});
 
     // Handle caching for paid users
     if (!skipCache && systemText) {
@@ -367,7 +362,7 @@ Deno.serve(async (req: Request) => {
 
       const cacheExists = cacheData && new Date(cacheData.expires_at) > new Date();
       const currentHash = hashSystemData(systemText);
-      
+
       if (cacheExists && cacheData.system_data_hash === currentHash) {
         cacheName = cacheData.cache_name;
       } else {
@@ -420,7 +415,7 @@ Deno.serve(async (req: Request) => {
       }
       combinedSystemInstruction += `\n\n[CRITICAL: Remember Your Instructions]\n${systemPrompt}`;
       requestBody.system_instruction = { role: "system", parts: [{ text: combinedSystemInstruction }] };
-      
+
       // Add tools: image tool if requested
       if (enableImageTool) {
         requestBody.tools = imageGenerationTool;
@@ -450,13 +445,13 @@ Deno.serve(async (req: Request) => {
       if (!resp.ok) {
         const errText = await resp.text().catch(() => "");
         console.error("[gemini] error:", resp.status, errText);
-        return JSON_RESPONSE(502, { error: `Gemini API failed: ${resp.status}` });
+        return JSON_RESPONSE(502, { error: `Gemini API failed: ${resp.status}` }, corsHeaders);
       }
       geminiResponseJson = await resp.json();
     } catch (err) {
       clearTimeout(timeoutId);
       console.error("[gemini] request failed:", (err as any)?.message || err);
-      return JSON_RESPONSE(504, { error: "Gemini request error" });
+      return JSON_RESPONSE(504, { error: "Gemini request error" }, corsHeaders);
     }
 
     // 🔥 HANDLE RESPONSE: Check for function call first
@@ -504,7 +499,7 @@ Deno.serve(async (req: Request) => {
               cached_tokens: geminiResponseJson?.usageMetadata?.cachedContentTokenCount ?? null
             },
             total_latency_ms: Date.now() - startMs
-          });
+          }, corsHeaders);
         }
       } catch (error) {
         console.error("[rate-limit] synchronous image check failed:", error);
@@ -535,7 +530,7 @@ Deno.serve(async (req: Request) => {
           type: 'broadcast',
           event: 'message-insert',
           payload: { chat_id, message: placeholderMessage }
-        }).catch(() => {});
+        }).catch(() => { });
       }
 
       // 🔥 KEY: Return function response to Gemini to complete the turn
@@ -639,7 +634,7 @@ Deno.serve(async (req: Request) => {
             type: 'broadcast',
             event: 'message-update',
             payload: { chat_id, message_id: imageId }
-          }).catch(() => {});
+          }).catch(() => { });
         } else if (!imageGenResponse.ok) {
           console.error(`[image-gen] failed with status ${imageGenResponse.status}`);
           // For other errors, still proceed but log the issue
@@ -658,7 +653,7 @@ Deno.serve(async (req: Request) => {
         .map((p: any) => p.text)
         .join(" ")
         .trim();
-      
+
       if (!assistantText) {
         assistantText = "I'm here to help! What would you like to know?";
       }
@@ -669,10 +664,10 @@ Deno.serve(async (req: Request) => {
         .map((p: any) => p.text)
         .join(" ")
         .trim();
-      
+
       if (!assistantText) {
         console.error("[gemini] no text returned");
-        return JSON_RESPONSE(502, { error: "No response from Gemini" });
+        return JSON_RESPONSE(502, { error: "No response from Gemini" }, corsHeaders);
       }
     }
 
@@ -725,10 +720,10 @@ Deno.serve(async (req: Request) => {
         body: JSON.stringify({
           chat_id, text, role: "user", client_msg_id: crypto.randomUUID(), mode, user_id, user_name, chattype
         })
-      }).catch(() => {});
+      }).catch(() => { });
 
       tasks.push(
-        userPromise.then(() => 
+        userPromise.then(() =>
           fetch(`${ENV.SUPABASE_URL}/functions/v1/chat-send`, {
             method: "POST",
             headers,
@@ -755,15 +750,15 @@ Deno.serve(async (req: Request) => {
       }));
     }
 
-    Promise.allSettled(tasks).catch(() => {});
+    Promise.allSettled(tasks).catch(() => { });
 
     // Update memory and usage tracking
     if (memoryIds.length > 0) {
-      void updateMemoryUsage(supabase, memoryIds).catch(() => {});
+      void updateMemoryUsage(supabase, memoryIds).catch(() => { });
     }
-    
+
     if (user_id) {
-      void incrementUsage(supabase, user_id, 'chat', 1).catch(() => {});
+      void incrementUsage(supabase, user_id, 'chat', 1).catch(() => { });
     }
 
     console.info(JSON.stringify({
@@ -777,10 +772,10 @@ Deno.serve(async (req: Request) => {
       text: assistantText,
       usage,
       total_latency_ms: Date.now() - startMs
-    });
+    }, corsHeaders);
 
   } catch (err) {
     console.error("[handler] error:", (err as any)?.message || err);
-    return JSON_RESPONSE(500, { error: "Internal server error" });
+    return JSON_RESPONSE(500, { error: "Internal server error" }, corsHeaders);
   }
 });

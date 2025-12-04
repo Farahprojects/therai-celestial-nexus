@@ -23,9 +23,9 @@ Deno.serve(async (req) => {
     const { token } = await req.json();
 
     if (!token) {
-      return respond({ 
-        success: false, 
-        error: 'Missing required parameter: token' 
+      return respond({
+        success: false,
+        error: 'Missing required parameter: token'
       }, 400);
     }
 
@@ -34,7 +34,7 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    console.log(`[verify-token] Verifying token: ${token}`);
+    console.log(`[verify-token] Verifying token: ${token.substring(0, 8)}...`);
 
     // Look up email from token_hash mapping (stored when link was generated)
     console.log(`[verify-token] Looking up email for token_hash...`);
@@ -46,35 +46,35 @@ Deno.serve(async (req) => {
 
     if (mappingError || !mappingData) {
       console.error(`[verify-token] Token not found in mapping:`, mappingError);
-      console.error(`[verify-token] Token received: ${token}`);
-      
+      console.error(`[verify-token] Token received (redacted): ${token.substring(0, 8)}...`);
+
       // Check if token exists but doesn't match exactly (for debugging)
       const { data: allTokens } = await supabase
         .from('password_reset_tokens')
         .select('token_hash, email, expires_at')
         .limit(5);
       console.error(`[verify-token] Sample tokens in DB:`, allTokens?.map(t => ({
-        token_hash: t.token_hash?.substring(0, 10) + '...',
-        email: t.email
+        token_hash: t.token_hash?.substring(0, 8) + '...',
+        email: t.email ? t.email.replace(/(.{2})(.*)(@.*)/, '$1***$3') : 'unknown'
       })));
-      
-      return respond({ 
-        success: false, 
-        error: 'Invalid or expired token' 
+
+      return respond({
+        success: false,
+        error: 'Invalid or expired token'
       }, 400);
     }
 
     // Check if token has expired
     if (new Date() > new Date(mappingData.expires_at)) {
       console.error(`[verify-token] Token has expired`);
-      return respond({ 
-        success: false, 
-        error: 'Token has expired' 
+      return respond({
+        success: false,
+        error: 'Token has expired'
       }, 400);
     }
 
     const email = mappingData.email;
-    console.log(`[verify-token] Found email for token: ${email}`);
+    console.log(`[verify-token] Found email for token: ${email.replace(/(.{2})(.*)(@.*)/, '$1***$3')}`);
 
     // Just return success - we'll verify the OTP later when user submits the form
     console.log(`[verify-token] ✓ Token lookup successful, ready for password form`);
@@ -87,9 +87,9 @@ Deno.serve(async (req) => {
 
   } catch (error) {
     console.error('[verify-token] Unexpected error:', error);
-    return respond({ 
-      success: false, 
-      error: 'Internal server error' 
+    return respond({
+      success: false,
+      error: 'Internal server error'
     }, 500);
   }
 });

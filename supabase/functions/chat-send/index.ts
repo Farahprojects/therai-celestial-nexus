@@ -10,6 +10,7 @@
 import { createPooledClient } from "../_shared/supabaseClient.ts";
 import { getConversationMetadata } from "../_shared/queryCache.ts";
 import { checkLimit } from "../_shared/limitChecker.ts";
+import { getSecureCorsHeaders } from "../_shared/secureCors.ts";
 import {
   AuthContext,
   HttpError,
@@ -660,12 +661,7 @@ async function handleSingleMessageWithMode(
   };
 }
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, accept",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Vary": "Origin"
-};
+// CORS headers are now dynamically generated per request using getSecureCorsHeaders(req)
 
 // Fail fast if env vars are missing
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
@@ -677,7 +673,7 @@ if (!SUPABASE_SERVICE_ROLE_KEY) throw new Error("Missing env: SUPABASE_SERVICE_R
 // Create Supabase client with connection pooling
 const supabase = createPooledClient();
 
-const json = (status: number, data: any) =>
+const json = (status: number, data: any, corsHeaders: Record<string, string>) =>
   new Response(JSON.stringify(data), {
     status,
     headers: { ...corsHeaders, "Content-Type": "application/json" }
@@ -690,6 +686,7 @@ const json = (status: number, data: any) =>
 Deno.serve(async (req) => {
   const startTime = Date.now();
   const requestId = crypto.randomUUID().substring(0, 8);
+  const corsHeaders = getSecureCorsHeaders(req);
 
   try {
     if (req.method === "OPTIONS") {
@@ -714,7 +711,7 @@ Deno.serve(async (req) => {
       }
 
       const result = await handleBatchMessages(payload, requestId, startTime);
-      return json(200, result);
+      return json(200, result, corsHeaders);
     } else {
       const payload = parseAndValidateSinglePayload(body);
       const role: Role = payload.role === "assistant" ? "assistant" : "user";
@@ -736,17 +733,17 @@ Deno.serve(async (req) => {
         requestId,
         startTime
       );
-      return json(200, result);
+      return json(200, result, corsHeaders);
     }
   } catch (err) {
     if (err instanceof HttpError) {
-      return json(err.status, { error: err.message });
+      return json(err.status, { error: err.message }, corsHeaders);
     }
     console.error(JSON.stringify({
       event: "unhandled_error",
       request_id: requestId,
       error: err instanceof Error ? err.message : String(err),
     }));
-    return json(500, { error: "Internal server error" });
+    return json(500, { error: "Internal server error" }, corsHeaders);
   }
 });

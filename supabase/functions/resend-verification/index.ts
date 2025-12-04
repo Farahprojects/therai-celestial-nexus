@@ -17,8 +17,8 @@ Deno.serve(async (req) => {
 
   try {
     const { email }: ResendVerificationRequest = await req.json();
-    
-    console.log('[resend-verification] Request for email:', email);
+
+    console.log('[resend-verification] Request for email:', email.replace(/(.{2})(.*)(@.*)/, '$1***$3'));
 
     if (!email) {
       return new Response(
@@ -47,13 +47,13 @@ Deno.serve(async (req) => {
     }
 
     const user = users.users.find(u => u.email === email && !u.email_confirmed_at);
-    
+
     if (!user) {
-      console.log('[resend-verification] User already verified for email:', email);
+      console.log('[resend-verification] User already verified for email:', email.replace(/(.{2})(.*)(@.*)/, '$1***$3'));
       return new Response(
-        JSON.stringify({ 
+        JSON.stringify({
           success: false,
-          error: 'This email address is already verified', 
+          error: 'This email address is already verified',
           code: 'already_verified',
           message: 'Your email is already verified. Please try logging in.',
           shouldRedirectToLogin: true
@@ -62,7 +62,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log('[resend-verification] Generating new verification link for existing unverified user:', email);
+    console.log('[resend-verification] Generating new verification link for existing unverified user:', email.replace(/(.{2})(.*)(@.*)/, '$1***$3'));
 
     // Generate email verification link for existing unverified user
     const { data, error } = await supabase.auth.admin.generateLink({
@@ -75,14 +75,14 @@ Deno.serve(async (req) => {
 
     if (error) {
       console.error('[resend-verification] Error generating verification link:', error);
-      
+
       // Handle specific error cases gracefully
       if (error.message?.includes('already been registered') || error.code === 'email_exists') {
         console.log('[resend-verification] User already registered, suggesting login instead');
         return new Response(
-          JSON.stringify({ 
+          JSON.stringify({
             success: false,
-            error: 'User already registered', 
+            error: 'User already registered',
             code: 'email_exists',
             message: 'This email is already registered. Please try logging in instead.',
             shouldRedirectToLogin: true
@@ -90,7 +90,7 @@ Deno.serve(async (req) => {
           { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
-      
+
       return new Response(
         JSON.stringify({ error: 'Failed to generate verification link' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -107,15 +107,15 @@ Deno.serve(async (req) => {
 
     const tokenLink = data.properties.action_link;
     const emailOtp = data.properties.email_otp || "";
-    
+
     console.log('[resend-verification] Generated verification link successfully');
 
     // Extract OTP from generateLink response (not magic link token)
     const emailOtp = linkData?.properties?.email_otp || "";
-    
+
     if (!emailOtp) {
       console.error('[resend-verification] No email_otp in generateLink response');
-      return new Response(JSON.stringify({ 
+      return new Response(JSON.stringify({
         error: 'Failed to generate verification OTP',
         code: 'OTP_GENERATION_FAILED'
       }), {
@@ -126,14 +126,8 @@ Deno.serve(async (req) => {
 
     // Build custom verification URL using OTP (not magic link token)
     const customVerificationLink = `https://auth.therai.co?token=${emailOtp}&type=signup&email=${encodeURIComponent(email)}`;
-    
-    console.log('[resend-verification] ✓ Custom verification URL created:', { 
-      originalUrl: tokenLink,
-      customUrl: customVerificationLink,
-      otp: emailOtp,
-      type: "signup",
-      email: email
-    });
+
+    console.log('[resend-verification] ✓ Custom verification URL created (redacted for security)');
 
     // Call email-verification Edge Function with the custom link (same as create-user-and-verify)
     const emailPayload = {
@@ -142,8 +136,7 @@ Deno.serve(async (req) => {
       template_type: "email_verification"
     };
 
-    console.log('[resend-verification] Token extracted:', extractedToken);
-    console.log('[resend-verification] Final payload:', JSON.stringify(emailPayload, null, 2));
+    console.log('[resend-verification] Final payload prepared for email service');
 
     const { error: emailError } = await supabase.functions.invoke('email-verification', {
       body: emailPayload
@@ -160,9 +153,9 @@ Deno.serve(async (req) => {
     console.log('[resend-verification] ✅ Email verification sent successfully');
 
     return new Response(
-      JSON.stringify({ 
-        success: true, 
-        message: 'Verification email has been resent. Please check your inbox.' 
+      JSON.stringify({
+        success: true,
+        message: 'Verification email has been resent. Please check your inbox.'
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
