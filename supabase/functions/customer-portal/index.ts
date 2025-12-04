@@ -66,6 +66,7 @@ Deno.serve(async (req) => {
         subscription_cancel: {
           enabled: true,
           mode: "at_period_end",
+          proration_behavior: "none",
         },
         subscription_pause: {
           enabled: false,

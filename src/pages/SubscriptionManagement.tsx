@@ -231,7 +231,7 @@ const SubscriptionManagementPage: React.FC = () => {
           </div>
           <h1 className="text-4xl font-light italic">Therai partners with Stripe for simplified billing.</h1>
           <div className="text-xs text-gray-400 mt-6">
-            <div>Therai.co is brand by Farah Projects PTY LTD</div>
+            <div>Therai.co is powered by Farah Projects PTY LTD</div>
             <div>ACN 676 280 229</div>
             <div>Australian registered company (fully legit as)</div>
           </div>
