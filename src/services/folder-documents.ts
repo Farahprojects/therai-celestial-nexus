@@ -166,10 +166,11 @@ async function validateFileForUpload(file: File): Promise<void> {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${session.access_token}`,
       },
+      // Send both fileName AND fileType, let server decide
       body: JSON.stringify({
         bucket: 'folder-documents',
         fileName: file.name,
-        fileType: file.type || 'application/octet-stream',
+        fileType: file.type,  // Send as-is, even if empty
         fileSize: file.size,
       }),
     });

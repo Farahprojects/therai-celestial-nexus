@@ -44,7 +44,54 @@ const ALLOWED_MIME_TYPES = [
   'image/svg+xml'
 ]
 
-const MAX_FILE_SIZE = 50 * 1024 * 1024 // 50MB limit
+// Add extension-to-MIME mapping for reliable inference
+const EXTENSION_TO_MIME: Record<string, string> = {
+  'txt': 'text/plain',
+  'md': 'text/markdown',
+  'csv': 'text/csv',
+  'json': 'application/json',
+  'pdf': 'application/pdf',
+  'doc': 'application/msword',
+  'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'xls': 'application/vnd.ms-excel',
+  'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'ppt': 'application/vnd.ms-powerpoint',
+  'pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+  'html': 'text/html',
+  'htm': 'text/html',
+  'xml': 'text/xml',
+  'js': 'application/javascript',
+  'ts': 'application/typescript',
+  'zip': 'application/zip',
+  'rar': 'application/x-rar-compressed',
+  '7z': 'application/x-7z-compressed',
+  'jpg': 'image/jpeg',
+  'jpeg': 'image/jpeg',
+  'png': 'image/png',
+  'gif': 'image/gif',
+  'webp': 'image/webp',
+  'svg': 'image/svg+xml'
+}
+
+const MAX_FILE_SIZE = 50 * 1024 * 1024 // 50MB
+
+// Add validation function
+function inferMimeType(fileName: string, providedMime: string): string {
+  const ext = fileName.toLowerCase().split('.').pop()
+  const inferredMime = ext ? EXTENSION_TO_MIME[ext] : null
+
+  // Trust inferred MIME from extension if provided MIME is unreliable
+  if (!providedMime || providedMime === 'application/octet-stream') {
+    return inferredMime || 'application/octet-stream'
+  }
+
+  // Validate provided MIME matches extension (prevent spoofing)
+  if (inferredMime && inferredMime !== providedMime) {
+    throw new Error(`MIME type mismatch: extension suggests ${inferredMime}, but ${providedMime} provided`)
+  }
+
+  return providedMime
+} limit
 
 Deno.serve(async (req) => {
   // Handle CORS
@@ -108,6 +155,7 @@ Deno.serve(async (req) => {
 
     const fileExtension = fileNameLower.split('.').pop()
     if (fileExtension && dangerousExtensions.includes(fileExtension)) {
+      console.warn(`[SECURITY] Blocked dangerous extension: ${fileName} (.${fileExtension})`)
       return new Response(
         JSON.stringify({
           valid: false,
@@ -124,6 +172,7 @@ Deno.serve(async (req) => {
     // Check for double extensions
     const extensionCount = (fileNameLower.match(/\./g) || []).length
     if (extensionCount > 1) {
+      console.warn(`[SECURITY] Blocked double extension: ${fileName}`)
       return new Response(
         JSON.stringify({
           valid: false,
@@ -152,13 +201,33 @@ Deno.serve(async (req) => {
       )
     }
 
-    // Validate MIME type
-    if (!ALLOWED_MIME_TYPES.includes(fileType)) {
+    // Infer and validate MIME type with anti-spoofing
+    let validatedMimeType: string
+    try {
+      validatedMimeType = inferMimeType(fileName, fileType)
+      console.log(`[VALIDATE] File: ${fileName}, Provided MIME: ${fileType}, Validated MIME: ${validatedMimeType}`)
+    } catch (mimeError) {
+      console.warn(`[VALIDATE] MIME spoofing detected: ${fileName} - ${mimeError.message}`)
+      return new Response(
+        JSON.stringify({
+          valid: false,
+          error: 'MIME type spoofing detected',
+          message: mimeError.message
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      )
+    }
+
+    // Validate MIME type against allowlist
+    if (!ALLOWED_MIME_TYPES.includes(validatedMimeType)) {
       return new Response(
         JSON.stringify({
           valid: false,
           error: 'Invalid file type',
-          message: `MIME type '${fileType}' is not allowed. Only safe document types are permitted.`
+          message: `File type not allowed. Only safe document types are permitted.`
         }),
         {
           status: 400,
@@ -168,12 +237,13 @@ Deno.serve(async (req) => {
     }
 
     // All validations passed
+    console.log(`[VALIDATE] File approved: ${fileName} (${validatedMimeType}, ${Math.round(fileSize/1024)}KB)`)
     return new Response(
       JSON.stringify({
         valid: true,
         message: 'File validation successful',
         metadata: {
-          mimetype: fileType,
+          mimetype: validatedMimeType,
           size: fileSize,
           extension: fileExtension
         }
