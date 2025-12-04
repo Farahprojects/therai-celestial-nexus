@@ -38,29 +38,29 @@ const Index = () => {
     return <Navigate to="/therai" replace />;
   }
   return <>
-      <SEO
-        title="Therai | AI‑Powered Psychological Insights from Rhythms"
-        description="Create momentum through insight. Therai blends archetypal rhythms with elegant AI to help you act in alignment."
-        keywords="AI webapp, psychological insights, astrology, momentum, self-discovery"
-        url="/"
-        structuredData={{
-          '@context': 'https://schema.org',
-          '@type': 'WebSite',
-          name: 'Therai',
-          url: 'https://therai.co',
-          potentialAction: {
-            '@type': 'SearchAction',
-            target: 'https://therai.co/blog?query={search_term_string}',
-            'query-input': 'required name=search_term_string'
-          },
-          publisher: {
-            '@type': 'Organization',
-            name: 'Therai'
-          }
-        }}
-      />
-      <div className="flex min-h-screen flex-col bg-white">
-        <UnifiedNavigation />
+    <SEO
+      title="Therai | AI‑Powered Psychological Insights from Rhythms"
+      description="Create momentum through insight. Therai blends archetypal rhythms with elegant AI to help you act in alignment."
+      keywords="AI webapp, psychological insights, astrology, momentum, self-discovery"
+      url="/"
+      structuredData={{
+        '@context': 'https://schema.org',
+        '@type': 'WebSite',
+        name: 'Therai',
+        url: 'https://therai.co',
+        potentialAction: {
+          '@type': 'SearchAction',
+          target: 'https://therai.co/blog?query={search_term_string}',
+          'query-input': 'required name=search_term_string'
+        },
+        publisher: {
+          '@type': 'Organization',
+          name: 'Therai'
+        }
+      }}
+    />
+    <div className="flex min-h-screen flex-col bg-white">
+      <UnifiedNavigation />
 
       <main className="flex-grow overflow-hidden">
         {/* Hero Section with Know Your [rotating words] */}
@@ -103,7 +103,7 @@ const Index = () => {
                   </AnimatePresence>
                 </span>
               </h1>
-              
+
               <motion.div initial={{
                 opacity: 0,
                 y: 20
@@ -172,10 +172,10 @@ const Index = () => {
             </motion.div>
           </div>
         </section>
-        </main>
+      </main>
 
-        <Footer />
-      </div>
-    </>;
+      <Footer />
+    </div>
+  </>;
 };
 export default Index;
