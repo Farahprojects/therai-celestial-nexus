@@ -286,8 +286,7 @@ class ChatController {
     // Payment flow stop icon toggled (removed noisy log)
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  public setTtsMode(enabled: boolean): void {
+  public setTtsMode(_enabled: boolean): void {
     unifiedWebSocketService.setTtsMode();
   }
 
