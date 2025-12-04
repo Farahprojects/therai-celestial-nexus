@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Copy, Check, Lock, Globe, ChevronDown, ChevronUp } from 'lucide-react';
 import { 
   shareFolderPublic, 
@@ -9,6 +9,7 @@ import {
   FULL_ACCESS_PERMISSIONS
 } from '@/services/folders';
 import { safeConsoleError } from '@/utils/safe-logging';
+import { supabase } from '@/integrations/supabase/client';
 
 interface ShareFolderModalProps {
   folderId: string;
@@ -48,6 +49,31 @@ export const ShareFolderModal: React.FC<ShareFolderModalProps> = ({
   const [showPermissions, setShowPermissions] = useState(true); // Default expanded
   const [selectedPreset, setSelectedPreset] = useState<PermissionPreset>('journals');
   const [customPermissions, setCustomPermissions] = useState<FolderPermissions>(DEFAULT_PERMISSIONS);
+  const [fetchedFolderName, setFetchedFolderName] = useState<string | null>(null);
+
+  // Fetch folder name if not provided
+  useEffect(() => {
+    if (folderName) {
+      setFetchedFolderName(folderName);
+      return;
+    }
+    
+    const fetchFolderName = async () => {
+      const { data } = await supabase
+        .from('chat_folders')
+        .select('name')
+        .eq('id', folderId)
+        .single();
+      
+      if (data?.name) {
+        setFetchedFolderName(data.name);
+      }
+    };
+    
+    fetchFolderName();
+  }, [folderId, folderName]);
+
+  const displayName = fetchedFolderName || folderName || 'Untitled';
 
   const getActivePermissions = (): FolderPermissions => {
     if (selectedPreset === 'custom') {
@@ -130,7 +156,7 @@ export const ShareFolderModal: React.FC<ShareFolderModalProps> = ({
         <div className="flex items-center justify-between px-8 pt-8 pb-6">
           <div>
             <h2 className="text-2xl font-light text-gray-900">Share Folder</h2>
-            <p className="text-sm font-light text-gray-500 mt-1">{folderName || 'Untitled'}</p>
+            <p className="text-sm font-light text-gray-500 mt-1">{displayName}</p>
           </div>
           <button
             onClick={onClose}
