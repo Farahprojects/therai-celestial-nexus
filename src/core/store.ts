@@ -261,9 +261,9 @@ export const useChatStore = create<ChatState>()((set, get) => ({
       const { listConversations } = await import('@/services/conversations');
       const conversations = await listConversations(userId);
       
-      // Sort by updated_at desc for proper ordering
+      // Sort by updated_at desc for proper ordering (handle null dates)
       const sortedConversations = conversations.sort(
-        (a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+        (a, b) => new Date(b.updated_at || 0).getTime() - new Date(a.updated_at || 0).getTime()
       );
       
       
