@@ -163,6 +163,12 @@ export type Database = {
       }
       chat_folder_participants: {
         Row: {
+          can_add_documents: boolean
+          can_add_journals: boolean
+          can_view_conversations: boolean
+          can_view_documents: boolean
+          can_view_insights: boolean
+          can_view_journals: boolean
           folder_id: string
           invited_by: string | null
           joined_at: string
@@ -170,6 +176,12 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          can_add_documents?: boolean
+          can_add_journals?: boolean
+          can_view_conversations?: boolean
+          can_view_documents?: boolean
+          can_view_insights?: boolean
+          can_view_journals?: boolean
           folder_id: string
           invited_by?: string | null
           joined_at?: string
@@ -177,6 +189,12 @@ export type Database = {
           user_id: string
         }
         Update: {
+          can_add_documents?: boolean
+          can_add_journals?: boolean
+          can_view_conversations?: boolean
+          can_view_documents?: boolean
+          can_view_insights?: boolean
+          can_view_journals?: boolean
           folder_id?: string
           invited_by?: string | null
           joined_at?: string
