@@ -166,11 +166,14 @@ export const ConversationOverlay: React.FC = () => {
       // Register voice event listeners
       const handleTTSReady = (payload: Record<string, unknown>) => {
         if (isShuttingDown.current) return;
-        const audioBase64 = payload.audioBase64 as string;
-        if (audioBase64) {
+        
+        // Server sends audioBytes (number array), not audioBase64
+        const audioBytes = payload.audioBytes as number[] | undefined;
+        
+        if (audioBytes && Array.isArray(audioBytes) && audioBytes.length > 0) {
           setState('replying');
-          // Try TTS service first, fallback to direct playback
-          ttsPlaybackService.playBase64(audioBase64, () => {
+          // Use play() method for binary array data
+          ttsPlaybackService.play(audioBytes, () => {
             setState('listening');
             if (!isShuttingDown.current) {
               setTimeout(() => {
@@ -178,7 +181,6 @@ export const ConversationOverlay: React.FC = () => {
                   try {
                     recorderRef.current?.resumeInput();
                     recorderRef.current?.startNewRecording();
-                    // eslint-disable-next-line no-empty
                   } catch {
                     // Silently ignore recording resume/start errors
                   }
@@ -186,9 +188,10 @@ export const ConversationOverlay: React.FC = () => {
               }, 200);
             }
           }).catch((e) => {
-            safeConsoleError('[ConversationOverlay] ❌ TTS base64 playback failed:', e);
-            // Fallback: just continue without audio playback for now
+            safeConsoleError('[ConversationOverlay] ❌ TTS playback failed:', e);
           });
+        } else {
+          console.warn('[ConversationOverlay] ⚠️ TTS payload missing audioBytes:', Object.keys(payload));
         }
       };
 
