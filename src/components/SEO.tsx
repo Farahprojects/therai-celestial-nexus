@@ -14,9 +14,9 @@ interface SEOProps {
 }
 
 export const SEO: React.FC<SEOProps> = ({
-  title = 'AI-Powered Psychological Insights | Astrology & Momentum',
-  description = 'An AI webapp that helps create psychological insights into momentum through astrology. Get personalized psychological insights based on your birth chart, transits, and compatibility analysis.',
-  keywords = 'AI webapp, psychological insights, astrology, momentum, birth chart, natal chart, AI astrology, horoscope, synastry, compatibility, transits, psychological analysis',
+  title = 'Therai — Your Context-Aware AI Workspace',
+  description = 'Therai is your intelligent AI workspace for psychological insights, astrology analysis, and personal growth. Get AI-powered psychological insights through astrology, birth charts, transits, and compatibility analysis in one unified platform.',
+  keywords = 'Therai, AI workspace, psychological insights, astrology AI, birth chart analysis, AI astrology, horoscope app, synastry compatibility, astrological transits, psychological analysis, AI personal growth, intelligent workspace',
   image = 'https://api.therai.co/storage/v1/object/public/therai-assets/logowhite.jpeg',
   url,
   type = 'website',
