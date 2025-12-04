@@ -124,7 +124,6 @@ const SubscriptionPaywall: React.FC = () => {
             .single();
           
           userAbTestGroup = profile?.ab_test_group;
-          setAbTestGroup(userAbTestGroup);
         }
 
         // Fetch all subscription plans
