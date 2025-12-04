@@ -283,6 +283,29 @@ function logAndSignalCompletion(logPrefix: string, reportData: any, report: stri
         }
       });
   }
+  
+  // Fire-and-forget context-injector call for insight mode reports
+  if (reportData.mode === 'insight' && reportData.chat_id && report) {
+    console.log(`${logPrefix} Calling context-injector to inject report text`);
+    supabase.functions.invoke('context-injector', {
+      body: {
+        chat_id: reportData.chat_id,
+        mode: reportData.mode,
+        report_text: report,
+        injection_type: 'report'
+      }
+    })
+    .then(({ data, error }) => {
+      if (error) {
+        console.error(`${logPrefix} Context-injector failed:`, error);
+      } else {
+        console.log(`${logPrefix} Context-injector completed successfully`);
+      }
+    })
+    .catch((err) => {
+      console.error(`${logPrefix} Context-injector error:`, err);
+    });
+  }
 }
 
 // Main handler function

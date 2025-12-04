@@ -4,6 +4,7 @@ import { AstroDataForm } from '@/components/chat/AstroDataForm';
 import { ReportFormData } from '@/types/report-form';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { getInsightTitle } from '@/utils/reportTitles';
 import { safeConsoleError, safeConsoleLog } from '@/utils/safe-logging';
 interface InsightsModalProps {
   isOpen: boolean;
@@ -56,8 +57,7 @@ export const InsightsModal: React.FC<InsightsModalProps> = ({
   folderId,
   profileData,
   onReportReady,
-  // onReportCreated is kept in props for backwards compatibility but no longer used
-  // since insights no longer create conversations
+  onReportCreated,
 }) => {
   const [showAstroForm, setShowAstroForm] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
@@ -139,12 +139,15 @@ export const InsightsModal: React.FC<InsightsModalProps> = ({
 
     // If single-person report AND profile exists, skip form and trigger report directly
     if (!isDualPerson && profileData && user) {
-      safeConsoleLog('[InsightsModal] Using folder profile, creating insight report directly (no chat page)', {
+      safeConsoleLog('[InsightsModal] Using folder profile, creating insight report directly', {
         folderId,
         profileId: profileData.id,
       });
 
       try {
+        // Import necessary hooks/utilities
+        const { getInsightTitle } = await import('@/utils/reportTitles');
+        
         // Build report payload using the same logic as AstroDataForm
         const reportData = {
           request: request,
@@ -159,38 +162,39 @@ export const InsightsModal: React.FC<InsightsModalProps> = ({
           }
         };
 
-        // Generate a UUID for the insight (no conversation created)
-        const insightId = crypto.randomUUID();
+        // Create title using same logic as AstroDataForm
+        const title = getInsightTitle(reportType);
 
-        // Call initiate-auth-report directly (skip conversation creation)
-        const { error } = await supabase.functions.invoke('initiate-auth-report', {
-          body: {
-            chat_id: insightId, // Used as insight ID
+        // Import conversation creation
+        const { createConversation } = await import('@/services/conversations');
+        
+        // Create conversation with insight mode (same as AstroDataForm does)
+        const conversationId = await createConversation(
+          user.id,
+          'insight',
+          title,
+          {
+            reportType: reportType,
             report_data: reportData,
             email: user.email || '',
-            name: profileData.name,
-            mode: 'insight'
-          }
+            name: profileData.name
+          },
+          folderId
+        );
+
+        console.log('[InsightsModal] Insight conversation created:', conversationId);
+
+        onReportCreated?.({
+          id: conversationId,
+          title,
+          mode: 'insight',
+          reportType,
         });
 
-        if (error) {
-          throw new Error(error.message || 'Failed to initiate insight report');
-        }
-
-        console.log('[InsightsModal] Insight report initiated (no chat page):', insightId);
-
-        // Update the insights table with folder_id
-        if (folderId) {
-          await supabase
-            .from('insights')
-            .update({ folder_id: folderId })
-            .eq('id', insightId);
-        }
-
-        // Show success screen and start polling (no onReportCreated - skip adding to conversations)
+        // Show success screen and start polling
         setShowAstroForm(false);
         setShowSuccess(true);
-        setPollingInsightId(insightId); // Start polling for this insight
+        setPollingInsightId(conversationId); // Start polling for this insight
 
       } catch (error) {
         safeConsoleError('[InsightsModal] Failed to create insight report:', error);
@@ -205,8 +209,15 @@ export const InsightsModal: React.FC<InsightsModalProps> = ({
   };
   
   const handleFormSubmit = (data: ReportFormData & { chat_id?: string }) => {
-    // Note: We no longer call onReportCreated since insights don't create conversations
-    // The insight will be visible in the insights list once ready
+    if (data.chat_id && selectedReportType) {
+      const fallbackTitle = getInsightTitle(selectedReportType);
+      onReportCreated?.({
+        id: data.chat_id,
+        title: fallbackTitle,
+        mode: 'insight',
+        reportType: selectedReportType,
+      });
+    }
 
     // Show success screen and start polling
     setShowAstroForm(false);

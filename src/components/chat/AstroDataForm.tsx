@@ -275,58 +275,6 @@ export const AstroDataForm: React.FC<AstroDataFormProps> = ({
         title = getAstroTitle(data.name, selectedAstroType, data.secondPersonName);
       }
       
-      // For insight mode, skip conversation creation - call initiate-auth-report directly
-      if (conversationMode === 'insight') {
-        const { supabase } = await import('@/integrations/supabase/client');
-        const insightId = crypto.randomUUID();
-        
-        const reportData = {
-          request: payload.report_data?.request || 'essence',
-          reportType: reportType || '',
-          person_a: {
-            birth_date: data.birthDate,
-            birth_time: data.birthTime,
-            location: data.birthLocation,
-            latitude: data.birthLatitude,
-            longitude: data.birthLongitude,
-            name: data.name,
-          },
-          // Add person_b for sync reports
-          ...(data.secondPersonName && {
-            person_b: {
-              birth_date: data.secondPersonBirthDate,
-              birth_time: data.secondPersonBirthTime,
-              location: data.secondPersonBirthLocation,
-              latitude: data.secondPersonLatitude,
-              longitude: data.secondPersonLongitude,
-              name: data.secondPersonName,
-            }
-          })
-        };
-
-        const { error } = await supabase.functions.invoke('initiate-auth-report', {
-          body: {
-            chat_id: insightId,
-            report_data: reportData,
-            email: user.email || '',
-            name: data.name,
-            mode: 'insight'
-          }
-        });
-
-        if (error) {
-          throw new Error(error.message || 'Failed to initiate insight report');
-        }
-
-        console.log('[AstroDataForm] Insight report initiated (no chat page):', insightId);
-        onSubmit({ ...data, chat_id: insightId });
-        
-        if (variant !== 'insights') {
-          onClose();
-        }
-        return;
-      }
-      
       // For Swiss mode and sync_score mode, explicitly set reportType to undefined to skip orchestrator
       const payloadToSend = (explicitMode === 'swiss' || explicitMode === 'sync_score')
         ? { 
