@@ -8,48 +8,37 @@ interface FileValidationRequest {
   fileSize: number
 }
 
+// PROFESSIONAL DOCUMENT TYPES ONLY - Whitelist approach for security
 const ALLOWED_MIME_TYPES = [
-  // Documents
+  // PDF Documents
   'application/pdf',
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-  'application/msword',
-  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-  'application/vnd.ms-excel',
-  'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-  'application/vnd.ms-powerpoint',
 
-  // Text files
-  'text/plain',
-  'text/markdown',
-  'text/csv',
-  'text/html',
-  'text/xml',
-  'application/json',
-  'application/javascript',
-  'text/javascript',
-  'application/typescript',
-  'text/typescript',
+  // Microsoft Office Documents
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // .docx
+  'application/msword', // .doc
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // .xlsx
+  'application/vnd.ms-excel', // .xls
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation', // .pptx
+  'application/vnd.ms-powerpoint', // .ppt
 
-  // Archives (for storage, not execution)
-  'application/zip',
-  'application/x-rar-compressed',
-  'application/x-7z-compressed',
+  // Plain Text Documents (professional use only)
+  'text/plain', // .txt
+  'text/markdown', // .md
 
-  // Images (for reference documents)
-  'image/jpeg',
-  'image/jpg',
-  'image/png',
-  'image/gif',
-  'image/webp',
-  'image/svg+xml'
+  // Data Files (limited to CSV for data analysis)
+  'text/csv', // .csv
+
+  // Professional Images (reference materials only)
+  'image/jpeg', // .jpg, .jpeg
+  'image/png', // .png
+  'image/gif', // .gif (limited animations ok)
+  'image/webp', // .webp
+  'image/svg+xml' // .svg (vector graphics for diagrams)
 ]
 
-// Add extension-to-MIME mapping for reliable inference
+// PROFESSIONAL DOCUMENT EXTENSIONS ONLY - Whitelist for security
 const EXTENSION_TO_MIME: Record<string, string> = {
-  'txt': 'text/plain',
-  'md': 'text/markdown',
-  'csv': 'text/csv',
-  'json': 'application/json',
+  // Document formats
   'pdf': 'application/pdf',
   'doc': 'application/msword',
   'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
@@ -57,14 +46,13 @@ const EXTENSION_TO_MIME: Record<string, string> = {
   'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
   'ppt': 'application/vnd.ms-powerpoint',
   'pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-  'html': 'text/html',
-  'htm': 'text/html',
-  'xml': 'text/xml',
-  'js': 'application/javascript',
-  'ts': 'application/typescript',
-  'zip': 'application/zip',
-  'rar': 'application/x-rar-compressed',
-  '7z': 'application/x-7z-compressed',
+
+  // Professional text formats
+  'txt': 'text/plain',
+  'md': 'text/markdown',
+  'csv': 'text/csv',
+
+  // Professional image formats
   'jpg': 'image/jpeg',
   'jpeg': 'image/jpeg',
   'png': 'image/png',
