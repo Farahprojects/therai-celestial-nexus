@@ -1,4 +1,6 @@
 
+import { safeConsoleLog, safeConsoleError } from '@/utils/safe-logging';
+
 export interface PlaceData {
   name: string;
   address?: string;
@@ -22,7 +24,7 @@ export const extractPlaceData = (place: {
       displayName: place.displayName,
       formattedAddress: place.formattedAddress,
       location: place.location ? 'present' : 'missing',
-      place_id: place.place_id
+      place_id: place.id
     });
 
     // Extract display name - prioritize formattedAddress for complete location context
@@ -41,8 +43,8 @@ export const extractPlaceData = (place: {
 
     // Extract coordinates
     if (place.location) {
-      placeData.latitude = place.location.lat();
-      placeData.longitude = place.location.lng();
+      placeData.latitude = place.location.latitude;
+      placeData.longitude = place.location.longitude;
       console.log('📍 Coordinates extracted:', {
         latitude: placeData.latitude,
         longitude: placeData.longitude
@@ -52,8 +54,8 @@ export const extractPlaceData = (place: {
     }
 
     // Extract place ID
-    if (place.place_id) {
-      placeData.placeId = place.place_id;
+    if (place.id) {
+      placeData.placeId = place.id;
     }
 
     console.log('📊 Final extracted place data:', placeData);

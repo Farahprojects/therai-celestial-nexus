@@ -26,7 +26,7 @@ export const FallbackInput: React.FC<FallbackInputProps> = ({
   isError,
   errorMessage,
   onRetry
-}) => {
+}: FallbackInputProps) => {
   return (
     <div className="space-y-2">
       <Input

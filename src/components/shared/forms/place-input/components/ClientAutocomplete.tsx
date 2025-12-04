@@ -31,7 +31,7 @@ export const ClientAutocomplete: React.FC<ClientAutocompleteProps> = ({
   spellCheck = false,
   'data-lpignore': dataLpIgnore = "true",
   'data-form-type': dataFormType = "other"
-}) => {
+}: ClientAutocompleteProps) => {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     onChange(e.target.value);
   };

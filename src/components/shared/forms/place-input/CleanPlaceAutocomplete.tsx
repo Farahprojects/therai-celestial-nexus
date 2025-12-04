@@ -5,7 +5,7 @@ import { Loader2, MapPin, ArrowLeft } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { PlaceData } from './utils/extractPlaceData';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { safeConsoleError } from '@/utils/safe-logging';
+import { safeConsoleError, safeConsoleWarn } from '@/utils/safe-logging';
 export interface CleanPlaceAutocompleteProps {
   label?: string;
   value?: string;
@@ -114,7 +114,7 @@ export const CleanPlaceAutocomplete = ({
       // Set new debounce
       debounceRef.current = setTimeout(() => {
         searchPlaces(newValue);
-      }, 300);
+      }, 300) as unknown as number;
     };
 
     const handlePlaceSelect = async (prediction: Prediction) => {

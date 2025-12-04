@@ -38,12 +38,12 @@ export const ServerAutocomplete: React.FC<ServerAutocompleteProps> = ({
   disabled,
   className = '',
   autoComplete = "off",
-  autoCorrect = "off", 
+  autoCorrect = "off",
   autoCapitalize = "off",
   spellCheck = false,
   'data-lpignore': dataLpIgnore = "true",
   'data-form-type': dataFormType = "other"
-}) => {
+}: ServerAutocompleteProps) => {
   const [predictions, setPredictions] = useState<Prediction[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
