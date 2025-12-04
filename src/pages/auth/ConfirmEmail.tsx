@@ -123,7 +123,7 @@ const ConfirmEmail: React.FC = () => {
         console.error(`[EMAIL-VERIFY:${requestId}] ✗ VERIFICATION FAILED:`, '[REDACTED ERROR OBJECT - Check for sensitive data]');
         
         setStatus('error');
-        const msg = err?.message ?? 'Verification failed – link may have expired.';
+        const msg = (err instanceof Error ? err.message : null) ?? 'Verification failed – link may have expired.';
         setMessage(msg);
         showToast({ variant: 'destructive', title: 'Verification failed', description: msg });
       }
