@@ -32,12 +32,6 @@ export const BillingPanel = () => {
   const [upgradeLoading, setUpgradeLoading] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
 
-  useEffect(() => {
-    if (user) {
-      fetchBillingData();
-    }
-  }, [user, fetchBillingData]);
-
   const fetchBillingData = useCallback(async () => {
     if (!user) return;
 
@@ -66,6 +60,12 @@ export const BillingPanel = () => {
       setLoading(false);
     }
   }, [user]);
+
+  useEffect(() => {
+    if (user) {
+      fetchBillingData();
+    }
+  }, [user, fetchBillingData]);
 
   const handleManageSubscription = async () => {
     if (manageLoading) return;

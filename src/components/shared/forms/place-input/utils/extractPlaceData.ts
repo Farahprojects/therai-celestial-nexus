@@ -31,9 +31,9 @@ export const extractPlaceData = (place: {
     if (place.formattedAddress) {
       placeData.name = place.formattedAddress;
       console.log('✅ Using formattedAddress as name:', place.formattedAddress);
-    } else if (place.displayName) {
-      placeData.name = place.displayName;
-      console.log('⚠️ Fallback to displayName as name:', place.displayName);
+    } else if (place.displayName?.text) {
+      placeData.name = place.displayName.text;
+      console.log('⚠️ Fallback to displayName as name:', place.displayName.text);
     }
 
     // Extract formatted address (for fallback purposes)

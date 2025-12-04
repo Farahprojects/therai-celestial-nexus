@@ -7,7 +7,6 @@ import { useChatStore } from '@/core/store';
 import { useMessageStore } from '@/stores/messageStore';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useUserData } from '@/hooks/useUserData';
-import { Conversation } from '@/core/types';
 import { Button } from '@/components/ui/button';
 import { safeConsoleError, safeConsoleWarn } from '@/utils/safe-logging';
 import {
@@ -95,7 +94,7 @@ const useFolders = (userId?: string, currentFolderId?: string) => {
             id: f.id,
             name: f.name,
             chatsCount: conversations.length,
-            chats: conversations.map((c: any) => ({
+            chats: conversations.map((c) => ({
               id: c.id,
               title: c.title || 'New Chat',
               mode: c.mode,
@@ -115,7 +114,7 @@ const useFolders = (userId?: string, currentFolderId?: string) => {
               id: shared.id,
               name: shared.name,
               chatsCount: conversations.length,
-              chats: conversations.map((c: any) => ({
+              chats: conversations.map((c) => ({
                 id: c.id,
                 title: c.title || 'New Chat',
                 mode: c.mode,
@@ -303,9 +302,9 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
   const loadMore = useCallback(() => setVisible(v => Math.min(v + 12, filteredThreads.length)), [filteredThreads.length]);
   const sentinelRef = useIntersection(() => { if (hasMore) loadMore(); });
 
-  const isSharedThread = (thread: Conversation) => {
-    const p = thread?.conversations_participants?.[0];
-    return (p?.role === 'member') || (p?.role === 'owner' && thread?.has_other_participants);
+  const isSharedThread = () => {
+    // TODO: Implement shared thread detection when participant data is available
+    return false;
   };
 
   const closeSidebar = useCallback(() => {
@@ -667,7 +666,7 @@ export const ChatThreadsSidebar: React.FC<ChatThreadsSidebarProps> = ({
                             {c.mode === 'together' && <Blend className="w-4 h-4 text-gray-600" />}
                             {(c.mode === 'chat' || !c.mode) && <MessageCircle className="w-4 h-4 text-gray-600" />}
                             <div className="text-sm font-medium text-gray-900 truncate" title={c.title || draftTitle}>{c.title || draftTitle}</div>
-                            {isSharedThread(c) && (
+                            {isSharedThread() && (
                               <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700 border border-blue-200">Shared</span>
                             )}
                             {c.mode === 'sync_score' && (

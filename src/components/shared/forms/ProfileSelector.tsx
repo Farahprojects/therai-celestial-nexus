@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Check, ChevronsUpDown, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
@@ -48,9 +48,9 @@ export const ProfileSelector: React.FC<ProfileSelectorProps> = ({
     if (user && open) {
       loadProfiles();
     }
-  }, [user, open]);
+  }, [user, open, loadProfiles]);
 
-  const loadProfiles = async () => {
+  const loadProfiles = useCallback(async () => {
     if (!user) return;
 
     setIsLoading(true);
@@ -64,14 +64,21 @@ export const ProfileSelector: React.FC<ProfileSelectorProps> = ({
       if (error) {
         safeConsoleError('[ProfileSelector] Failed to load profiles:', error);
       } else {
-        setProfiles(data || []);
+        // Transform null values to undefined for optional properties
+        const transformedData = (data || []).map(profile => ({
+          ...profile,
+          birth_latitude: profile.birth_latitude ?? undefined,
+          birth_longitude: profile.birth_longitude ?? undefined,
+          birth_place_id: profile.birth_place_id ?? undefined,
+        }));
+        setProfiles(transformedData);
       }
     } catch (err) {
       safeConsoleError('[ProfileSelector] Error loading profiles:', err);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [user]);
 
   const handleSelect = (profile: SavedProfile) => {
     onProfileSelect(profile);

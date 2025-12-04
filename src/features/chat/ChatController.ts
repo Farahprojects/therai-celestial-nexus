@@ -5,14 +5,10 @@ import { useMessageStore } from '@/stores/messageStore';
 import { unifiedWebSocketService } from '@/services/websocket/UnifiedWebSocketService';
 import { unifiedChannel } from '@/services/websocket/UnifiedChannelService';
 import { Message } from '@/core/types';
-import { safeConsoleError, safeConsoleWarn } from '@/utils/safe-logging';
+import { safeConsoleError } from '@/utils/safe-logging';
 class ChatController {
-  private conversationServiceInitialized = false;
-  private isResetting = false;
   private resetTimeout: NodeJS.Timeout | null = null;
   private lastFailedMessage: { text: string; mode?: string } | null = null;
-  private isUnlocked = false; // New flag to control microphone access
-  private isProcessingRef = false;
   private isInitializing = false; // Guard against concurrent initializations
   private networkRetryHandler: ((event: Event) => void) | null = null;
 
@@ -157,7 +153,6 @@ class ChatController {
 
 
   public unlock(): void {
-    this.isUnlocked = true;
   }
 
   // Audio pipeline methods removed - using universal mic system
@@ -184,7 +179,6 @@ class ChatController {
   }
 
   public resetConversationService() {
-    this.isResetting = true;
   
     // Clear any existing timeouts
     if (this.resetTimeout) {
@@ -193,14 +187,10 @@ class ChatController {
     }
     
     // Audio pipeline removed - using universal mic system
-    this.conversationServiceInitialized = false;
-    this.isUnlocked = false; // Lock on reset
-    this.isProcessingRef = false;
     this.isInitializing = false; // Reset initialization guard
     useChatStore.getState().setStatus('idle');
 
     this.resetTimeout = setTimeout(() => {
-      this.isResetting = false;
     }, 100);
   }
 
@@ -229,8 +219,6 @@ class ChatController {
     // 2. Full memory cleanup/page unload (handled in memoryCleanup.ts)
     // Cleaning it here would break text message receiving when voice mode resets.
 
-    this.isResetting = false;
-    this.isUnlocked = false; // Lock on cleanup
     this.isInitializing = false; // Reset initialization guard
     console.log('[ChatController] 🔥 CLEANUP: ChatController cleanup complete');
   }
@@ -241,7 +229,8 @@ class ChatController {
   private handleNetworkRetry = (): void => {
     if (this.lastFailedMessage) {
       console.log('[ChatController] Retrying failed message due to network retry');
-      const { text, mode } = this.lastFailedMessage;
+      // Extract message data for retry (variables not directly used but kept for future extension)
+      // const { text, mode } = this.lastFailedMessage;
       this.lastFailedMessage = null; // Clear the stored message
       
       // Retry sending the message
@@ -278,12 +267,12 @@ class ChatController {
     const { messages, updateMessage } = useMessageStore.getState();
     
     // Find and remove payment progress messages
-    const progressMessages = messages.filter((m: any) => {
+    const progressMessages = messages.filter((m: Message) => {
       const meta = m.meta as { type?: string };
       return meta?.type === 'payment-progress';
     });
     
-    progressMessages.forEach((msg: any) => {
+    progressMessages.forEach((msg: Message) => {
       // Mark as complete instead of actually removing
       updateMessage(msg.id, { status: 'complete' });
     });
@@ -297,6 +286,7 @@ class ChatController {
     // Payment flow stop icon toggled (removed noisy log)
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   public setTtsMode(enabled: boolean): void {
     unifiedWebSocketService.setTtsMode();
   }

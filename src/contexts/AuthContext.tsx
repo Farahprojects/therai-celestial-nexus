@@ -8,9 +8,9 @@ import { safeConsoleError, safeConsoleWarn, safeConsoleLog } from '@/utils/safe-
 /**
  * Utility – logs enabled in production for debugging.
  */
-const debug = (...args: unknown[]) => {
+const debug = (message: string, data?: Record<string, unknown>) => {
   // Console logs enabled in production for debugging
-  safeConsoleLog(...args);
+  safeConsoleLog(message, data);
 };
 
 // Lightweight trace object
@@ -201,7 +201,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           // Validate that the user still exists in the database
           validateUserExists(supaSession.user.id).catch(() => {
             // User doesn't exist anymore - clear auth state
-            safeConsoleWarn('[AuthContext] User no longer exists in database, clearing auth state');
+            safeConsoleWarn('[AuthContext] User no longer exists in database, clearing auth state', null);
             setUser(null);
             setSession(null);
           });

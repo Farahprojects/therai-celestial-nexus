@@ -2,17 +2,6 @@ import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { safeConsoleError } from '@/utils/safe-logging';
-interface ConversationSearchResult {
-  id: string;
-  title: string | null;
-  created_at: string;
-  messages: Array<{
-    id: string;
-    text: string;
-    role: string;
-    created_at: string;
-  }>;
-}
 
 export interface SearchResult {
   id: string;
@@ -90,15 +79,15 @@ export const useConversationSearch = () => {
       // Group results by conversation
       const groupedResults = new Map<string, ConversationGroup>();
 
-      data?.forEach((conv: ConversationSearchResult) => {
+      data?.forEach((conv) => {
         const chatId = conv.id;
 
-        conv.messages?.forEach((msg: ConversationSearchResult['messages'][0]) => {
-          if (msg.text.toLowerCase().includes(query.toLowerCase())) {
+        conv.messages?.forEach((msg) => {
+          if (msg.text && msg.text.toLowerCase().includes(query.toLowerCase())) {
             if (!groupedResults.has(chatId)) {
               groupedResults.set(chatId, {
                 chat_id: chatId,
-                title: conv.title,
+                title: conv.title || 'Untitled',
                 messages: [],
                 latest_message: conv.created_at
               });
@@ -110,9 +99,9 @@ export const useConversationSearch = () => {
             groupedResults.get(chatId)!.messages.push({
               id: msg.id,
               chat_id: chatId,
-              conversation_title: conv.title,
+              conversation_title: conv.title || 'Untitled',
               text: msg.text,
-              role: msg.role,
+              role: msg.role as 'user' | 'assistant' | 'system',
               created_at: msg.created_at,
               snippet: highlightedSnippet
             });

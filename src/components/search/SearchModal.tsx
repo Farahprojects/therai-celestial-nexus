@@ -155,20 +155,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
       const messageRows = Array.isArray(messages) ? messages.filter(hasMessageShape) : [];
 
       // Group results by conversation
-      const groupedResults = new Map<string, {
-        conversation_id: string;
-        conversation_title: string;
-        latest_message: string;
-        messages: Array<{
-          id: string;
-          chat_id: string;
-          conversation_title: string;
-          text: string;
-          role: 'user' | 'assistant' | 'system';
-          created_at: string;
-          snippet: string;
-        }>;
-      }>();
+      const groupedResults = new Map<string, ConversationGroup>();
 
       // Create conversation lookup
       const conversationLookup = new Map(

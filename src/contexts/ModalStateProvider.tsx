@@ -1,5 +1,5 @@
 
-import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
 import { safeConsoleError } from '@/utils/safe-logging';
 interface ModalState {
   showNewClientModal: boolean;

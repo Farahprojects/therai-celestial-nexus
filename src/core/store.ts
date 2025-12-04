@@ -252,7 +252,7 @@ export const useChatStore = create<ChatState>()((set, get) => ({
   // Thread actions
   loadThreads: async (userId?: string) => {
     if (!userId) {
-      safeConsoleWarn('[ChatStore] loadThreads called without userId');
+      safeConsoleWarn('[ChatStore] loadThreads called without userId', null);
       return;
     }
     

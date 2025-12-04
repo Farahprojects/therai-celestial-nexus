@@ -6,6 +6,7 @@ import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { MotionConfig } from 'framer-motion';
 import { SwissChartSelector } from './SwissChartSelector';
 import { AstroDataForm } from '@/components/chat/AstroDataForm';
+import { ReportFormData } from '@/types/report-form';
 import { useMessageStore } from '@/stores/messageStore';
 import { SwissDataModal } from '@/components/swiss/SwissDataModal';
 import { useSwissDataPolling } from '@/hooks/useSwissDataPolling';
@@ -45,7 +46,7 @@ export const SwissBox: React.FC<SwissBoxProps> = ({ onDelete }) => {
     setSelectedChartType(null);
   };
 
-  const handleFormSubmit = async (data: { chat_id: string }) => {
+  const handleFormSubmit = async (data: ReportFormData & { chat_id?: string }) => {
     if (!user) return;
 
     try {
@@ -194,9 +195,9 @@ export const SwissBox: React.FC<SwissBoxProps> = ({ onDelete }) => {
               />
 
               {/* Error Display */}
-              {error && (
+              {pollingError && (
                 <div className="p-3 text-sm font-medium text-red-700 bg-red-100 border-t border-red-200">
-                  {error}
+                  {pollingError}
                 </div>
               )}
 

@@ -207,7 +207,7 @@ export const ChatBox: React.FC<ChatBoxProps> = ({ onDelete }) => {
           const pollForData = async (attempts = 0): Promise<boolean> => {
             const MAX_ATTEMPTS = 50; // Max 50 attempts (10 seconds total)
             if (attempts >= MAX_ATTEMPTS) {
-              safeConsoleWarn(`[ChatBox] Swiss data not ready after ${MAX_ATTEMPTS} attempts (10 seconds)`);
+              safeConsoleWarn(`[ChatBox] Swiss data not ready after ${MAX_ATTEMPTS} attempts (10 seconds)`, null);
               return false;
             }
             
@@ -392,7 +392,7 @@ export const ChatBox: React.FC<ChatBoxProps> = ({ onDelete }) => {
               </div>
 
               {/* Main Content Area - Conditionally render FolderView or MessageList */}
-              <div className="flex-1 min-h-0 mobile-messages-area" style={{ overflowAnchor: 'none' as CSSStyleDeclaration['overflowAnchor'] }}>
+              <div className="flex-1 min-h-0 mobile-messages-area" style={{ overflowAnchor: 'none' }}>
                 {viewMode === 'folder' && selectedFolderId ? (
                   <Suspense fallback={<MessageListSkeleton />}>
                     <FolderView

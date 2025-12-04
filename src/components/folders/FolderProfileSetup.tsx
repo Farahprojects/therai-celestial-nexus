@@ -17,7 +17,6 @@ export const FolderProfileSetup: React.FC<FolderProfileSetupProps> = ({
   onProfileLinked,
 }) => {
   const [isDismissed, setIsDismissed] = useState(false);
-  const [isLinking, setIsLinking] = useState(false);
 
   const handleAstroFormSubmit = async (data: ReportFormData & { chat_id?: string }) => {
     try {
@@ -27,7 +26,6 @@ export const FolderProfileSetup: React.FC<FolderProfileSetupProps> = ({
         const profileName = data.name || null;
 
         // Immediately link profile to folder and update folder name
-        setIsLinking(true);
 
         try {
           // Link profile to folder
@@ -43,7 +41,7 @@ export const FolderProfileSetup: React.FC<FolderProfileSetupProps> = ({
         } catch (error) {
           safeConsoleError('[FolderProfileSetup] Failed to link profile', error);
         } finally {
-          setIsLinking(false);
+          // Linking process completed
         }
       } else {
         safeConsoleWarn('[FolderProfileSetup] Profile created but no profile_id returned', null);
@@ -82,7 +80,6 @@ export const FolderProfileSetup: React.FC<FolderProfileSetupProps> = ({
               preselectedType="essence"
               reportType="essence"
               isProfileFlow={true}
-              isLoading={isLinking}
             />
           </div>
         </div>

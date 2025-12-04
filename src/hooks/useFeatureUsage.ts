@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { safeConsoleError } from '@/utils/safe-logging';
+import { safeConsoleError, safeConsoleWarn } from '@/utils/safe-logging';
 interface VoiceUsageData {
   is_unlimited?: boolean;
   limit?: number | null;
@@ -41,7 +41,7 @@ export function useFeatureUsage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchUsage = async () => {
+  const fetchUsage = useCallback(async () => {
     if (!user) {
       setUsage(null);
       setLoading(false);
@@ -101,7 +101,7 @@ export function useFeatureUsage() {
       const voiceLimit = voiceIsUnlimited ? null : voiceDataTyped?.limit ?? null;
       const voiceRemaining = voiceIsUnlimited
         ? null
-        : voiceDataTyped?.remaining ?? Math.max(0, (voiceLimit ?? 0) - voiceUsed);
+        : Math.max(0, (voiceLimit ?? 0) - voiceUsed);
 
       const insightLimit = (limits?.insights ?? null) as number | null;
       const insightUsed = usage.insights_count || 0;
@@ -133,7 +133,7 @@ export function useFeatureUsage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
 
   useEffect(() => {
     fetchUsage();
@@ -142,7 +142,7 @@ export function useFeatureUsage() {
     const interval = setInterval(fetchUsage, 30000);
 
     return () => clearInterval(interval);
-  }, [user]);
+  }, [user, fetchUsage]);
 
   return {
     usage,

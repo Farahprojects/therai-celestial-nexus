@@ -6,7 +6,7 @@ import { useAudioStore } from '@/stores/audioStore';
 import { useMode } from '@/contexts/ModeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserData } from '@/hooks/useUserData';
-import { useMessageStore } from '@/stores/messageStore';
+import { useMessageStore, StoreMessage } from '@/stores/messageStore';
 // Old audio level hook removed - using AudioWorklet + WebWorker pipeline
 import { VoiceBubble } from './VoiceBubble';
 import { AudioRouteControls } from './AudioRouteControls';
@@ -45,7 +45,7 @@ export const ConversationOverlay: React.FC = () => {
 
   const hasStarted = useRef(false);
   const isShuttingDown = useRef(false);
-  const connectionRef = useRef<WebSocket | null>(null);
+  const connectionRef = useRef<WebSocket | { cleanup: () => void } | null>(null);
   const isProcessingRef = useRef<boolean>(false);
   const recorderRef = useRef<UniversalSTTRecorder | null>(null);
   const isStartingRef = useRef(false);
@@ -88,12 +88,16 @@ export const ConversationOverlay: React.FC = () => {
       safeConsoleWarn('[ConversationOverlay] Failed to dispose recorder:', error);
     }
 
-    // Cleanup WebSocket connection
+    // Cleanup connection
     if (connectionRef.current) {
       try {
-        connectionRef.current.close();
+        if ('close' in connectionRef.current) {
+          connectionRef.current.close();
+        } else if ('cleanup' in connectionRef.current) {
+          connectionRef.current.cleanup();
+        }
       } catch {
-        // Ignore WebSocket cleanup errors
+        // Ignore cleanup errors
       }
       connectionRef.current = null;
     }
@@ -125,7 +129,7 @@ export const ConversationOverlay: React.FC = () => {
       // Resume AudioContext
       const success = await resumeAudioContext();
       if (!success) {
-        safeConsoleError('[ConversationOverlay] ❌ Failed to unlock AudioContext');
+        safeConsoleError('[ConversationOverlay] ❌ Failed to unlock AudioContext', null);
       }
     };
 
@@ -144,7 +148,7 @@ export const ConversationOverlay: React.FC = () => {
   // WebSocket connection setup - now uses unified channel
   const establishConnection = useCallback(async () => {
     if (!chat_id || !user) {
-      safeConsoleError('[ConversationOverlay] ❌ No chat_id or user available for unified channel');
+      safeConsoleError('[ConversationOverlay] ❌ No chat_id or user available for unified channel', null);
       return false;
     }
 
@@ -157,12 +161,13 @@ export const ConversationOverlay: React.FC = () => {
       await unifiedChannel.subscribe(user.id);
 
       // Register voice event listeners
-      const handleTTSReady = (payload: { audioBase64: string }) => {
+      const handleTTSReady = (payload: Record<string, unknown>) => {
         if (isShuttingDown.current) return;
-        if (payload.audioBase64) {
+        const audioBase64 = payload.audioBase64 as string;
+        if (audioBase64) {
           setState('replying');
           // Try TTS service first, fallback to direct playback
-          ttsPlaybackService.playBase64(payload.audioBase64, () => {
+          ttsPlaybackService.playBase64(audioBase64, () => {
             setState('listening');
             if (!isShuttingDown.current) {
               setTimeout(() => {
@@ -194,7 +199,11 @@ export const ConversationOverlay: React.FC = () => {
         if (isShuttingDown.current) return;
         if (payload.message && payload.chat_id === chat_id) {
           console.log('[ConversationOverlay] Received message-insert, adding to store:', payload.message);
-          addMessage(payload.message);
+          // Validate that message has required properties before adding
+          const message = payload.message as StoreMessage;
+          if (message && typeof message === 'object' && message.id && message.chat_id) {
+            addMessage(message as StoreMessage);
+          }
         }
       };
 
@@ -221,47 +230,13 @@ export const ConversationOverlay: React.FC = () => {
     }
   }, [chat_id, user, addMessage]);
 
-  // TTS playback
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const playAudioImmediately = useCallback(async (audioBytes: number[]) => {
-    if (isShuttingDown.current) return;
-
-    try {
-      // Set state to 'replying' immediately when TTS starts
-      // Animation will be driven by actual audio output from TTS service
-      setState('replying');
-
-      await ttsPlaybackService.play(audioBytes, () => {
-        setState('listening');
-
-        // Resume mic for next turn
-        if (!isShuttingDown.current) {
-          setTimeout(() => {
-            if (!isShuttingDown.current) {
-              try {
-                // Ensure mic input is on and immediately start a fresh recording segment
-                recorderRef.current?.resumeInput();
-                recorderRef.current?.startNewRecording();
-                // eslint-disable-next-line no-empty
-              } catch {
-                // Silently ignore recording resume/start errors
-              }
-            }
-          }, 200);
-        }
-      });
-    } catch (error) {
-      safeConsoleError('[ConversationOverlay] ❌ TTS playback failed:', error);
-      resetToTapToStart();
-    }
-  }, [resetToTapToStart]);
 
   // Start conversation - ROBUST SEQUENCE with validation
   const handleStart = useCallback(async () => {
     // 1. IDEMPOTENT GUARD - Prevent multiple simultaneous starts
     if (isStartingRef.current || isActiveRef.current || !chat_id || !mode) {
       if (!mode) {
-        safeConsoleError('[ConversationOverlay] Cannot start: mode is not set');
+        safeConsoleError('[ConversationOverlay] Cannot start: mode is not set', null);
       }
       return;
     }
@@ -274,16 +249,14 @@ export const ConversationOverlay: React.FC = () => {
       if (Capacitor.isNativePlatform()) {
         try {
           console.log('[ConversationOverlay] 🔵 Starting Bluetooth SCO for conversation session...');
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
-          const result = await BluetoothAudio.startBluetoothAudio();
-          // Bluetooth audio session established (removed noisy log)
+          await BluetoothAudio.startBluetoothAudio();
+          // Bluetooth audio session established
 
           // Wait for routing to stabilize
           await new Promise(resolve => setTimeout(resolve, 500));
 
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
-          const status = await BluetoothAudio.isBluetoothConnected();
-          // Bluetooth connection status changed (removed noisy log)
+          await BluetoothAudio.isBluetoothConnected();
+          // Bluetooth connection checked
         } catch (error) {
           safeConsoleWarn('[ConversationOverlay] Bluetooth audio setup failed:', error);
           // Continue anyway - might not have Bluetooth connected
@@ -416,13 +389,17 @@ export const ConversationOverlay: React.FC = () => {
       }
     }
 
-    // Fire-and-forget WebSocket cleanup
+    // Fire-and-forget cleanup
     if (connectionRef.current) {
       try {
-        connectionRef.current.close();
+        if ('close' in connectionRef.current) {
+          connectionRef.current.close();
+        } else if ('cleanup' in connectionRef.current) {
+          connectionRef.current.cleanup();
+        }
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
       } catch (_e) {
-        // Ignore WebSocket cleanup errors
+        // Ignore cleanup errors
       }
       connectionRef.current = null;
     }
@@ -477,7 +454,11 @@ export const ConversationOverlay: React.FC = () => {
       // Idempotent cleanup when returning to tap-to-start
       if (connectionRef.current) {
         try {
-          connectionRef.current.close();
+          if ('close' in connectionRef.current) {
+            connectionRef.current.close();
+          } else if ('cleanup' in connectionRef.current) {
+            connectionRef.current.cleanup();
+          }
         } catch {
           // eslint-disable-next-line no-empty
         }

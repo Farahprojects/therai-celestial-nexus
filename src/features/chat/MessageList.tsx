@@ -1,5 +1,4 @@
 import React, { useState, useMemo, useRef } from 'react';
-import { useChatStore } from '@/core/store';
 import { useMessageStore } from '@/stores/messageStore';
 import { Message } from '@/core/types';
 import { RefreshCw, AlertTriangle, Sparkles, Share2, Download } from 'lucide-react';
@@ -98,7 +97,7 @@ AssistantMessage.displayName = 'AssistantMessage';
 // Image component with loading state - uses same structure for smooth transition
 const ImageWithLoading = React.memo(({ message }: { message: Message }) => {
   const metaData = message.meta as Record<string, unknown>;
-  const imageUrl = metaData?.image_url;
+  const imageUrl = typeof metaData?.image_url === 'string' ? metaData.image_url : undefined;
   const imagePrompt = metaData?.image_prompt;
   const imageVariants = metaData?.image_variants as {
     webp_small?: { url: string };
@@ -261,7 +260,7 @@ const ImageWithLoading = React.memo(({ message }: { message: Message }) => {
                 onLoad={() => setImageLoaded(true)}
                 loading={isInView ? "eager" : "lazy"}
                 decoding="async"
-                fetchpriority={isInView ? "high" : "low"}
+                fetchPriority={isInView ? "high" : "low"}
                 style={{
                   contentVisibility: isInView ? 'auto' : 'hidden',
                   containIntrinsicSize: '512px 512px'
@@ -302,7 +301,6 @@ const ImageWithLoading = React.memo(({ message }: { message: Message }) => {
               isOpen={showShareModal}
               onClose={() => setShowShareModal(false)}
               imageUrl={imageUrl}
-              imagePrompt={imagePrompt}
             />
           </>
         )}
@@ -408,7 +406,6 @@ const renderMessages = (messages: Message[], currentUserId?: string) => {
 };
 
 export const MessageList = () => {
-  const chat_id = useChatStore((state) => state.chat_id);
   
   // ⚡ OPTIMIZED: Use selective subscriptions to prevent unnecessary re-renders
   // Each selector only triggers re-render when its specific value changes
@@ -462,9 +459,9 @@ export const MessageList = () => {
   // Auto-scroll handled by messages.length changes
 
   // ⚡ OPTIMIZED: Memoize rendered messages - prevents recreating JSX for unchanged messages
-  const renderedMessages = useMemo(() => 
-    renderMessages(messages, user?.id, chat_id),
-    [messages, user?.id, chat_id]
+  const renderedMessages = useMemo(() =>
+    renderMessages(messages, user?.id),
+    [messages, user?.id]
   );
 
   // Render messages directly in message_number order - no complex turn grouping needed

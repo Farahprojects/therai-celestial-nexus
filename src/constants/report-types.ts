@@ -1,4 +1,4 @@
-import { ReportTypeOption } from '@/types/public-report';
+import { ReportTypeOption } from '@/types/report-form';
 import { User, Heart, Target, Briefcase, Users } from 'lucide-react';
 
 export const reportTypes: ReportTypeOption[] = [

@@ -1,6 +1,6 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { useMode } from '@/contexts/ModeContext';
-import { ReportFormData } from '@/types/public-report';
+import { ReportFormData } from '@/types/report-form';
 
 interface PersonData {
   birth_date: string;
@@ -67,9 +67,9 @@ export const useAstroReportPayload = () => {
     // Add person_b for compatibility requests
     if (selectedAstroType === 'sync' && data.secondPersonName) {
       const personB: PersonData = {
-        birth_date: validateDateFormat(data.secondPersonBirthDate, 'Second person birth date'),
-        birth_time: data.secondPersonBirthTime,
-        location: data.secondPersonBirthLocation,
+        birth_date: validateDateFormat(data.secondPersonBirthDate || '', 'Second person birth date'),
+        birth_time: data.secondPersonBirthTime || '',
+        location: data.secondPersonBirthLocation || '',
         latitude: data.secondPersonLatitude,
         longitude: data.secondPersonLongitude,
         name: data.secondPersonName,

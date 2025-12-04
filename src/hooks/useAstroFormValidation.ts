@@ -1,5 +1,5 @@
 import { UseFormSetError } from 'react-hook-form';
-import { ReportFormData } from '@/types/public-report';
+import { ReportFormData } from '@/types/report-form';
 import { toast } from 'sonner';
 
 export const useAstroFormValidation = () => {

@@ -54,7 +54,7 @@ const InlineTimeWheel = ({ value, onChange }: InlineTimeWheelProps) => {
     debounceTimer.current = setTimeout(() => {
       const time24 = convertTo24Hour(hour, minute, period);
       onChange(time24);
-    }, 100); // 100ms debounce
+    }, 100) as unknown as number; // 100ms debounce
   }, [onChange, convertTo24Hour]);
 
   useEffect(() => {

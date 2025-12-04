@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, ReactNode, useCallback } from 'react';
+import { createContext, useContext, useState, ReactNode, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { ReportSlideOver } from '@/components/report-viewer/ReportSlideOver';
 import { safeConsoleWarn } from '@/utils/safe-logging';
@@ -17,11 +17,11 @@ export const ReportModalProvider = ({ children }: { children: ReactNode }) => {
   // Get modal state from URL parameters - this automatically persists across refreshes
   const isOpen = searchParams.get('modal') === 'astro';
   const reportId = searchParams.get('report_id') || '';
-  const shouldFetch = isOpen && reportId && reportId !== 'new';
+  const shouldFetch = Boolean(isOpen && reportId && reportId !== 'new');
 
   const open = useCallback((reportId: string, onLoad?: (error?: string | null) => void) => {
     if (!reportId) {
-      safeConsoleWarn('[ReportModal] No report ID provided');
+      safeConsoleWarn('[ReportModal] No report ID provided', null);
       return;
     }
     
