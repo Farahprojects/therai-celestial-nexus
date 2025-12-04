@@ -158,7 +158,7 @@ export function useUserData() {
       try {
         const voice = (preferencesResult.data as { tts_voice?: string })?.tts_voice || getDefaultPreferences(user.id).tts_voice;
         if (voice) {
-        useChatStore.getState().setTtsVoice(voice);
+          useChatStore.getState().setTtsVoice(voice);
         }
       } catch {
         // Ignore errors when syncing TTS voice - use default
