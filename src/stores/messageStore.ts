@@ -4,9 +4,27 @@ import { useChatStore } from '@/core/store';
 import { unifiedChannel } from '@/services/websocket/UnifiedChannelService';
 import type { Message } from '@/core/types';
 import { safeConsoleError, safeConsoleWarn, safeConsoleLog } from '@/utils/safe-logging';
+
+// Define a loose DB message type for websocket payloads
+interface DbMessagePayload {
+  id: string;
+  chat_id: string;
+  role: string;
+  text: string | null;
+  user_id: string | null;
+  user_name: string | null;
+  created_at: string;
+  meta: Record<string, unknown> | null;
+  client_msg_id: string | null;
+  status: string | null;
+  context_injected: boolean | null;
+  message_number: number;
+  mode: string | null;
+}
+
 interface MessageInsertPayload {
   chat_id?: string;
-  message?: unknown;
+  message?: DbMessagePayload;
 }
 
 // Debug flag for production logging
@@ -60,20 +78,21 @@ interface MessageStore {
   selfClean: () => void;
 }
 
-const mapDbToMessage = (db: Message): StoreMessage => ({
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const mapDbToMessage = (db: any): StoreMessage => ({
   id: db.id,
   chat_id: db.chat_id,
   role: db.role,
-  text: db.text,
-  user_id: db.user_id,
-  user_name: db.user_name,
+  text: db.text || '',
+  user_id: db.user_id || undefined,
+  user_name: db.user_name || undefined,
   createdAt: db.created_at,
   meta: db.meta,
-  client_msg_id: db.client_msg_id,
-  status: db.status,
-  context_injected: db.context_injected,
+  client_msg_id: db.client_msg_id || undefined,
+  status: db.status || 'sent',
+  context_injected: db.context_injected || undefined,
   message_number: db.message_number,
-  mode: db.mode,
+  mode: db.mode || undefined,
   source: 'fetch', // All DB-fetched messages are explicitly 'fetch' - no animation
 });
 

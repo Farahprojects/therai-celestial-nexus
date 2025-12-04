@@ -61,6 +61,29 @@ export function useUserPreferences() {
     };
   }, []);
 
+  const createDefaultPreferences = useCallback(async (userId: string) => {
+    try {
+      const defaultPrefs = {
+        user_id: userId,
+        email_notifications_enabled: true,
+        client_view_mode: 'grid' as const,
+        tts_voice: 'Puck',
+      };
+
+      const { data, error } = await supabase
+        .from("user_preferences")
+        .insert(defaultPrefs)
+        .select()
+        .single();
+
+      if (error) throw error;
+      if (isMounted()) setPreferences(data as UserPreferences);
+
+    } catch (err: unknown) {
+      safeConsoleError("Failed to create default preferences:", err);
+    }
+  }, [isMounted]);
+
   useEffect(() => {
     let loadTimeout: NodeJS.Timeout;
 
@@ -147,29 +170,6 @@ export function useUserPreferences() {
       // No channel cleanup needed - realtime listener removed
     };
   }, [user, isMounted, retryCount, createDefaultPreferences]);
-
-  const createDefaultPreferences = useCallback(async (userId: string) => {
-    try {
-      const defaultPrefs = {
-        user_id: userId,
-        email_notifications_enabled: true,
-        client_view_mode: 'grid' as const,
-        tts_voice: 'Puck',
-      };
-
-      const { data, error } = await supabase
-        .from("user_preferences")
-        .insert(defaultPrefs)
-        .select()
-        .single();
-
-      if (error) throw error;
-      if (isMounted()) setPreferences(data as UserPreferences);
-
-    } catch (err: unknown) {
-      safeConsoleError("Failed to create default preferences:", err);
-    }
-  }, [isMounted]);
 
   const updateMainNotificationsToggle = async (
     enabled: boolean,

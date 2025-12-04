@@ -62,7 +62,7 @@ class UnifiedChannelService {
         if (status === 'SUBSCRIBED') {
           // Connected successfully (removed noisy log)
         } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-          if (DEBUG) safeConsoleWarn('[UnifiedChannel] ⚠️ Connection error:', status);
+          if (DEBUG) safeConsoleError('[UnifiedChannel] ⚠️ Connection error:', status);
           // Attempt reconnection
           setTimeout(() => this.reconnect(), 1000);
         }

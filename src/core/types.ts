@@ -40,8 +40,8 @@ export interface Conversation {
   // Required DB fields
   id: string;
   user_id: string;
-  created_at: string;
-  updated_at: string;
+  created_at: string | null;
+  updated_at: string | null;
   
   // Optional DB fields
   title?: string | null;

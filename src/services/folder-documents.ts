@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import { SUPABASE_URL } from '@/integrations/supabase/config';
 import { safeConsoleError } from '@/utils/safe-logging';
 export interface FolderDocument {
   id: string;
@@ -132,7 +133,7 @@ export async function deleteDocument(documentId: string): Promise<void> {
       .remove([document.file_path]);
     
     if (storageError) {
-      safeConsoleWarn('[FolderDocuments] Failed to delete file from storage:', storageError);
+      safeConsoleError('[FolderDocuments] Failed to delete file from storage:', storageError);
       // Continue with database deletion even if storage deletion fails
     }
   }
@@ -160,7 +161,7 @@ async function validateFileForUpload(file: File): Promise<void> {
       throw new Error('Please log in to upload files');
     }
 
-    const response = await fetch(`${supabase.supabaseUrl}/functions/v1/validate-file-upload`, {
+    const response = await fetch(`${SUPABASE_URL}/functions/v1/validate-file-upload`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -186,9 +187,10 @@ async function validateFileForUpload(file: File): Promise<void> {
     }
 
     // Validation passed
-  } catch (error) {
+  } catch (error: unknown) {
     // Network errors or validation failures
-    if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
+    const err = error as Error;
+    if (err.name === 'TypeError' && err.message?.includes('Failed to fetch')) {
       throw new Error('Unable to validate file. Please check your connection and try again.');
     }
 
@@ -244,7 +246,7 @@ export async function extractTextFromFile(file: File): Promise<string> {
   
   // For other formats (PDF, DOCX), would need server-side processing
   // Return empty for now - can be enhanced later
-  safeConsoleWarn('[FolderDocuments] Text extraction not implemented for', fileExtension);
+  safeConsoleError('[FolderDocuments] Text extraction not implemented for', fileExtension);
   return '';
 }
 
