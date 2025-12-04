@@ -1,10 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { X, Copy, Check, Lock, Globe, ChevronDown, ChevronUp } from 'lucide-react';
 import { 
   shareFolderPublic, 
   shareFolderPrivate, 
-  unshareFolder, 
-  getSharedFolder,
+  unshareFolder,
   FolderPermissions,
   DEFAULT_PERMISSIONS,
   FULL_ACCESS_PERMISSIONS
@@ -43,28 +42,12 @@ export const ShareFolderModal: React.FC<ShareFolderModalProps> = ({
   onClose,
 }) => {
   const [isLoading, setIsLoading] = useState(false);
-  const [isShared, setIsShared] = useState(false);
+  const [shareComplete, setShareComplete] = useState(false);
   const [isPublic, setIsPublic] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [showPermissions, setShowPermissions] = useState(false);
+  const [showPermissions, setShowPermissions] = useState(true); // Default expanded
   const [selectedPreset, setSelectedPreset] = useState<PermissionPreset>('journals');
   const [customPermissions, setCustomPermissions] = useState<FolderPermissions>(DEFAULT_PERMISSIONS);
-
-  useEffect(() => {
-    const checkFolderStatus = async () => {
-      try {
-        const folder = await getSharedFolder(folderId);
-        if (folder) {
-          setIsShared(!!folder.is_public || false);
-          setIsPublic(folder.is_public || false);
-        }
-      } catch (error) {
-        safeConsoleError('Error checking folder status:', error);
-      }
-    };
-
-    checkFolderStatus();
-  }, [folderId]);
 
   const getActivePermissions = (): FolderPermissions => {
     if (selectedPreset === 'custom') {
@@ -77,7 +60,7 @@ export const ShareFolderModal: React.FC<ShareFolderModalProps> = ({
     setIsLoading(true);
     try {
       await shareFolderPublic(folderId);
-      setIsShared(true);
+      setShareComplete(true);
       setIsPublic(true);
     } catch (error) {
       safeConsoleError('Error sharing folder publicly:', error);
@@ -90,7 +73,7 @@ export const ShareFolderModal: React.FC<ShareFolderModalProps> = ({
     setIsLoading(true);
     try {
       await shareFolderPrivate(folderId, getActivePermissions());
-      setIsShared(true);
+      setShareComplete(true);
       setIsPublic(false);
     } catch (error) {
       safeConsoleError('Error sharing folder privately:', error);
@@ -103,7 +86,7 @@ export const ShareFolderModal: React.FC<ShareFolderModalProps> = ({
     setIsLoading(true);
     try {
       await unshareFolder(folderId);
-      setIsShared(false);
+      setShareComplete(false);
       setIsPublic(false);
     } catch (error) {
       safeConsoleError('Error unsharing folder:', error);
@@ -160,7 +143,7 @@ export const ShareFolderModal: React.FC<ShareFolderModalProps> = ({
 
         {/* Content */}
         <div className="px-8 pb-8 space-y-6">
-          {!isShared ? (
+          {!shareComplete ? (
             /* Share Options Selection */
             <div className="space-y-3">
               <p className="text-sm font-light text-gray-600 mb-6">
