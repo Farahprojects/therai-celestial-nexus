@@ -1,8 +1,9 @@
 // Professional Service Worker for Image Optimization
 // Implements advanced caching strategies for generated images
+// Version bumped to v2: Fixed CSP issues with Stripe JS interception
 
-const CACHE_NAME = 'therai-images-v1';
-const STATIC_CACHE = 'therai-static-v1';
+const CACHE_NAME = 'therai-images-v2';
+const STATIC_CACHE = 'therai-static-v2';
 
 // Resources to cache immediately
 const STATIC_ASSETS = [
