@@ -89,7 +89,7 @@ export const useConversationSearch = () => {
                 chat_id: chatId,
                 title: conv.title || 'Untitled',
                 messages: [],
-                latest_message: conv.created_at
+                latest_message: conv.created_at || new Date().toISOString()
               });
             }
 

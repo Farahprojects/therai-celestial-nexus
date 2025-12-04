@@ -96,9 +96,9 @@ export function useUserPreferences() {
         } else if (data && isMounted()) {
           setPreferences(data as UserPreferences);
         }
-      } catch (err: unknown) {
+        } catch (err: unknown) {
         clearTimeout(loadTimeout);
-        const errorMessage = err.message || "Failed to load preferences";
+        const errorMessage = err instanceof Error ? err.message : "Failed to load preferences";
 
         if (isMounted()) {
           setError(errorMessage);

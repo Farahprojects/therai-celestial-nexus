@@ -44,12 +44,6 @@ export const ProfileSelector: React.FC<ProfileSelectorProps> = ({
   const [profiles, setProfiles] = useState<SavedProfile[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  useEffect(() => {
-    if (user && open) {
-      loadProfiles();
-    }
-  }, [user, open, loadProfiles]);
-
   const loadProfiles = useCallback(async () => {
     if (!user) return;
 
@@ -79,6 +73,12 @@ export const ProfileSelector: React.FC<ProfileSelectorProps> = ({
       setIsLoading(false);
     }
   }, [user]);
+
+  useEffect(() => {
+    if (user && open) {
+      loadProfiles();
+    }
+  }, [user, open, loadProfiles]);
 
   const handleSelect = (profile: SavedProfile) => {
     onProfileSelect(profile);

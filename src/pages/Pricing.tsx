@@ -10,9 +10,9 @@ import { safeConsoleError } from '@/utils/safe-logging';
 interface PricingData {
   id: string;
   name: string;
-  description: string;
+  description: string | null;
   unit_price_usd: number;
-  product_code: string;
+  product_code: string | null;
 }
 
 const Pricing: React.FC = () => {
@@ -156,13 +156,13 @@ const Pricing: React.FC = () => {
 
           let plusOrGrowthPlan: PricingData | null = null;
           if (shouldShowPlus) {
-            plusOrGrowthPlan = planMap.get('8_monthly');
+            plusOrGrowthPlan = planMap.get('8_monthly') ?? null;
             if (!plusOrGrowthPlan) {
               console.error('Missing plus plan in price_list response');
               throw new Error('Missing plus plan');
             }
           } else if (shouldShowGrowth) {
-            plusOrGrowthPlan = planMap.get('10_monthly');
+            plusOrGrowthPlan = planMap.get('10_monthly') ?? null;
             if (!plusOrGrowthPlan) {
               console.error('Missing growth plan in price_list response');
               throw new Error('Missing growth plan');

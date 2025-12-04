@@ -12,14 +12,14 @@ interface BlogPost {
   id: string;
   title: string;
   slug: string;
-  cover_image_url?: string;
-  author_name?: string;
-  created_at: string;
-  like_count: number;
-  share_count: number;
-  tags?: string[];
+  cover_image_url?: string | null;
+  author_name?: string | null;
+  created_at: string | null;
+  like_count: number | null;
+  share_count: number | null;
+  tags?: string[] | null;
   content_type?: string | null;
-  featured?: boolean;
+  featured?: boolean | null;
 }
 
 interface BlogCardProps {
@@ -28,7 +28,7 @@ interface BlogCardProps {
 }
 
 export const BlogCard: React.FC<BlogCardProps> = ({ post, index }) => {
-  const timeAgo = formatDistanceToNow(new Date(post.created_at), { addSuffix: true });
+  const timeAgo = post.created_at ? formatDistanceToNow(new Date(post.created_at), { addSuffix: true }) : 'Recently';
   const defaultImage = "https://images.unsplash.com/photo-1499750310107-5fef28a66643?w=800&h=600&fit=crop";
 
   return (

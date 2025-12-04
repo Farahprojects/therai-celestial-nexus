@@ -92,15 +92,35 @@ export function useSettingsData() {
       ])
 
       setData({
-        profile: profileResult.data,
+        profile: profileResult.data ? {
+          id: profileResult.data.id,
+          email: profileResult.data.email || '',
+          email_verified: profileResult.data.email_verified || false,
+          subscription_active: profileResult.data.subscription_active || false,
+          subscription_plan: profileResult.data.subscription_plan || 'free',
+          subscription_status: profileResult.data.subscription_status || '',
+          stripe_customer_id: profileResult.data.stripe_customer_id || undefined,
+          created_at: profileResult.data.created_at,
+          last_seen_at: profileResult.data.last_seen_at || ''
+        } : null,
         paymentMethod: paymentResult.data ? {
-          ...paymentResult.data,
-          id: String(paymentResult.data.id), // Convert number to string
+          id: String(paymentResult.data.id),
+          card_brand: paymentResult.data.card_brand || '',
+          card_last4: paymentResult.data.card_last4 || '',
+          exp_month: paymentResult.data.exp_month || 0,
+          exp_year: paymentResult.data.exp_year || 0,
+          active: paymentResult.data.active || false,
+          last_charge_at: paymentResult.data.last_charge_at || undefined,
+          last_charge_status: paymentResult.data.last_charge_status || undefined,
+          last_invoice_amount_cents: paymentResult.data.last_invoice_amount_cents || undefined,
+          last_invoice_currency: paymentResult.data.last_invoice_currency || undefined,
+          last_receipt_url: paymentResult.data.last_receipt_url || undefined,
+          next_billing_at: paymentResult.data.next_billing_at || undefined,
           invoice_history: Array.isArray(paymentResult.data.invoice_history) ? 
             paymentResult.data.invoice_history as PaymentMethod['invoice_history'] : 
             []
         } : null,
-        credits: null, // No longer using user credits
+        credits: null,
         loading: false,
         error: null
       })

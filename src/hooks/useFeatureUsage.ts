@@ -103,8 +103,8 @@ export function useFeatureUsage() {
         ? null
         : Math.max(0, (voiceLimit ?? 0) - voiceUsed);
 
-      const insightLimit = (limits?.insights ?? null) as number | null;
-      const insightUsed = usage.insights_count || 0;
+      const insightLimit = ((limits as Record<string, unknown>)?.insights ?? null) as number | null;
+      const insightUsed = ((usage as Record<string, unknown>)?.insights_count as number) || 0;
       const insightRemaining = insightLimit === null
         ? null
         : Math.max(0, insightLimit - insightUsed);
@@ -112,14 +112,14 @@ export function useFeatureUsage() {
       const transformedData: FeatureUsage = {
         period: currentPeriod,
         subscription_active: profileData?.subscription_active || false,
-        subscription_plan: profileData?.subscription_plan || limits.plan_id || 'free',
+        subscription_plan: profileData?.subscription_plan || ((limits as Record<string, unknown>)?.plan_id as string) || 'free',
         voice_seconds: {
           used: voiceUsed,
           limit: voiceLimit,
           remaining: voiceRemaining
         },
         insights_count: {
-          used: insightUsed,
+          used: insightUsed as number,
           limit: insightLimit,
           remaining: insightRemaining
         }

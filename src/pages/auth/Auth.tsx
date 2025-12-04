@@ -144,7 +144,7 @@ const Auth: React.FC = () => {
         console.error(`[AUTH-VERIFY:${requestId}] ✗ VERIFICATION FAILED:`, '[REDACTED ERROR OBJECT - Check for sensitive data]');
         
         setStatus('error');
-        const msg = err?.message ?? 'Verification failed – link may have expired.';
+        const msg = (err as { message?: string })?.message ?? 'Verification failed – link may have expired.';
         setMessage(msg);
         showToast({ variant: 'destructive', title: 'Verification failed', description: msg });
       }
