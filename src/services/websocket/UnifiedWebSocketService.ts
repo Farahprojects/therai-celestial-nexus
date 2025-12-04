@@ -21,7 +21,6 @@ const DEBUG = import.meta.env.DEV;
  */
 
 class UnifiedWebSocketService {
-  private currentChatId: string | null = null;
   private wakeListenersAttached: boolean = false;
   
   // Track event listeners for cleanup
@@ -41,8 +40,7 @@ class UnifiedWebSocketService {
    * Subscribe to a specific chat - now a no-op for compatibility
    * Messages are handled via unified channel in messageStore
    */
-  async subscribe(chat_id: string) {
-    this.currentChatId = chat_id;
+  async subscribe(_chat_id: string) {
     // No realtime subscription needed - messageStore handles everything via unified channel
   }
 
@@ -80,7 +78,6 @@ class UnifiedWebSocketService {
    * Cleanup - minimal cleanup needed since no subscriptions
    */
   cleanup() {
-    this.currentChatId = null;
     
     // 🔥 CLEANUP: Remove all global event listeners
     if (this.visibilityListener) {

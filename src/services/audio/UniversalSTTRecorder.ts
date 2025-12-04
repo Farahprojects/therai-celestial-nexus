@@ -57,7 +57,6 @@ export class UniversalSTTRecorder {
   private spectralFlatness: number = 1; // 1=noise-like, 0=tonal
   private highPassFilter: BiquadFilterNode | null = null;
   private lowPassFilter: BiquadFilterNode | null = null;
-  private bandpassFilter: BiquadFilterNode | null = null; // kept for compat
   private adaptiveGain: GainNode | null = null;
   private audioWorkletNode: AudioWorkletNode | null = null;
   private silentGain: GainNode | null = null;
@@ -84,7 +83,6 @@ export class UniversalSTTRecorder {
   // Baseline adaptation
   private ambientEma = 0;
   private ambientStableSince = 0;
-  private baselineLastUpdated = 0;
   private readonly desktopBaselineTrigger = 0.18;
   private readonly mobileBaselineTrigger = 0.22;
   private readonly desktopAmbientStableMs = 600;
@@ -99,7 +97,6 @@ export class UniversalSTTRecorder {
   private segmentStartTs = 0;
   private startCandidateSinceTs: number | null = null; // hold-start logic
   private rmsEma = 0; // for slope gating
-  private lastRms = 0;
 
   // Mic pause state
   private isInputPaused = false;
@@ -364,7 +361,6 @@ export class UniversalSTTRecorder {
 
     // Reset VAD smoothers
     this.rmsEma = 0;
-    this.lastRms = 0;
     this.startCandidateSinceTs = null;
 
     this.startEnergyMonitoring();
@@ -636,7 +632,6 @@ export class UniversalSTTRecorder {
               const ceil = this.isMobileDevice() ? this.mobileBaselineCeiling : this.desktopBaselineCeiling;
               newBaseline = Math.min(Math.max(newBaseline, floor), ceil);
               this.baselineEnergy = newBaseline;
-              this.baselineLastUpdated = now;
               this.vadArmUntilTs = now + 200;
               this.ambientStableSince = 0;
             }
@@ -648,7 +643,6 @@ export class UniversalSTTRecorder {
         }
       }
 
-      this.lastRms = rms;
 
       this.animationFrame = requestAnimationFrame(updateAnimation);
     };
@@ -780,7 +774,7 @@ export class UniversalSTTRecorder {
     }
   }
 
-  private processRecording(): void { }
+  // Reserved for future use
 
   private async sendToSTT(audioBlob: Blob): Promise<void> {
     try {
@@ -831,7 +825,7 @@ export class UniversalSTTRecorder {
     }
   }
 
-  private getSupportedMimeType(): string { return 'audio/wav'; }
+  // Reserved for future use - returns WAV format
 
   // Resample Float32 mono to 16kHz PCM16
   private resampleTo16k(input: Float32Array, inputSampleRate: number): Int16Array {
@@ -941,7 +935,6 @@ export class UniversalSTTRecorder {
       }
       this.lowPassFilter = null;
     }
-    this.bandpassFilter = null;
 
     if (this.mediaStream) {
       this.mediaStream.getTracks().forEach(track => track.stop());

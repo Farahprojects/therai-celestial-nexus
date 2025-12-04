@@ -83,7 +83,7 @@ class UnifiedChannelService {
     // Call all registered listeners for this event type
     listeners.forEach(callback => {
       try {
-        callback(payload);
+        callback(payload as unknown as Record<string, unknown>);
       } catch (error) {
         safeConsoleError('[UnifiedChannel] Error in event callback:', error);
       }
@@ -140,7 +140,7 @@ class UnifiedChannelService {
   private pause() {
     if (this.channel) {
       if (DEBUG) console.log('[UnifiedChannel] ⏸️  Pausing connection');
-      supabase.removeChannel(this.channel);
+      supabase.removeChannel(this.channel as ReturnType<typeof supabase.channel>);
       this.channel = null;
       this.isActive = false;
     }
@@ -160,7 +160,7 @@ class UnifiedChannelService {
     
     // Clean up old channel
     if (this.channel) {
-      supabase.removeChannel(this.channel);
+      supabase.removeChannel(this.channel as ReturnType<typeof supabase.channel>);
       this.channel = null;
     }
     
@@ -172,7 +172,7 @@ class UnifiedChannelService {
     if (DEBUG) console.log('[UnifiedChannel] 🧹 Cleaning up');
     
     if (this.channel) {
-      supabase.removeChannel(this.channel);
+      supabase.removeChannel(this.channel as ReturnType<typeof supabase.channel>);
       this.channel = null;
     }
     
