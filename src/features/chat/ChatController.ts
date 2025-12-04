@@ -286,7 +286,7 @@ class ChatController {
     // Payment flow stop icon toggled (removed noisy log)
   }
 
-  public setTtsMode(_enabled: boolean): void {
+  public setTtsMode(): void {
     unifiedWebSocketService.setTtsMode();
   }
 

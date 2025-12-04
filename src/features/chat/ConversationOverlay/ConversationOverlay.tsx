@@ -66,7 +66,7 @@ export const ConversationOverlay: React.FC = () => {
     // 2. DISABLE TTS MODE - Flush buffered messages back to text mode
     try {
       const { chatController } = await import('@/features/chat/ChatController');
-      chatController.setTtsMode(false);
+      chatController.setTtsMode();
 
       // 🔄 CRITICAL: Refetch messages after conversation mode to ensure UI consistency
       if (chat_id) {
@@ -294,7 +294,7 @@ export const ConversationOverlay: React.FC = () => {
 
       // 5. STEP 3: Enable TTS mode with validation (pauses DB realtime)
       const { chatController } = await import('@/features/chat/ChatController');
-      chatController.setTtsMode(true);
+      chatController.setTtsMode();
 
       // 6. STEP 4: Initialize Universal Recorder
       recorderRef.current = new UniversalSTTRecorder({
@@ -408,7 +408,7 @@ export const ConversationOverlay: React.FC = () => {
     // 🔥 FIX: Wait for TTS mode to disable, then refetch messages to ensure consistency
     try {
       const { chatController } = await import('@/features/chat/ChatController');
-      chatController.setTtsMode(false);
+      chatController.setTtsMode();
 
       // 🔄 CRITICAL: Refetch messages after conversation mode to ensure UI consistency
       // This handles any race conditions or missed messages during voice mode
@@ -443,7 +443,7 @@ export const ConversationOverlay: React.FC = () => {
 
       // Disable TTS mode proactively
       import('@/features/chat/ChatController').then(({ chatController }) => {
-        try { chatController.setTtsMode(false); } catch (error) {
+        try { chatController.setTtsMode(); } catch (error) {
           safeConsoleWarn('[ConversationOverlay] Failed to disable TTS mode:', error);
         }
       }).catch((error) => {
