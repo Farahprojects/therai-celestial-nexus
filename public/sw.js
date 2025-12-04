@@ -54,6 +54,11 @@ self.addEventListener('fetch', (event) => {
   // Only handle GET requests
   if (event.request.method !== 'GET') return;
 
+  // Skip Stripe JS requests - let browser handle them directly to avoid CSP issues
+  if (url.hostname === 'js.stripe.com') {
+    return; // Don't intercept Stripe requests
+  }
+
   // Skip service worker, manifest, and favicon requests
   if (url.pathname === '/sw.js' ||
       url.pathname === '/manifest.webmanifest' ||
