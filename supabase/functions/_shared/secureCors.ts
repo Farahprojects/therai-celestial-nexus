@@ -12,7 +12,9 @@ const ALLOWED_ORIGINS = [
   'http://localhost:5173',
   'http://localhost:3000',
   'http://localhost:8080',
-  'https://loveable.dev'
+  'https://loveable.dev',
+  // Additional loveable.dev patterns for different deployments
+  'https://app.loveable.dev'
 ];
 
 /**
