@@ -85,13 +85,13 @@ const Pricing: React.FC = () => {
       'Early access to new features'
     ];
 
-    if (planId === 'free' || planId.includes('free')) {
+    if (plan.id === 'free' || plan.id.includes('free')) {
       return freeFeatures;
     }
-    if (planId === '8_monthly' || planId.includes('plus')) {
+    if (plan.id === '8_monthly' || plan.id.includes('plus')) {
       return plusFeatures;
     }
-    if (planId === '18_monthly' || planId === '25_monthly' || planId === 'subscription_professional' || planName.toLowerCase().includes('premium')) {
+    if (plan.id === '18_monthly' || plan.id === '25_monthly' || plan.id === 'subscription_professional' || planName.toLowerCase().includes('premium')) {
       return premiumFeatures;
     }
     
