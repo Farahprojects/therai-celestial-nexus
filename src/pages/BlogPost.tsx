@@ -96,9 +96,9 @@ const BlogPost = () => {
         image={postImage}
         url={`/blog/${post.slug}`}
         type="article"
-        author={post.author_name || 'Therai'}
-        publishedTime={post.created_at}
-        modifiedTime={post.created_at}
+        author={post.author_name ?? 'Therai'}
+        publishedTime={post.created_at ?? undefined}
+        modifiedTime={post.created_at ?? undefined}
         structuredData={articleStructuredData}
       />
       <div className="flex min-h-screen flex-col bg-white">
@@ -106,7 +106,18 @@ const BlogPost = () => {
 
         <main className="flex-grow py-16">
           <div className="max-w-7xl mx-auto px-4">
-            <BlogPostComponent post={post} />
+            <BlogPostComponent post={{
+              id: post.id,
+              title: post.title,
+              slug: post.slug,
+              content: post.content,
+              cover_image_url: post.cover_image_url ?? undefined,
+              author_name: post.author_name ?? undefined,
+              created_at: post.created_at ?? new Date().toISOString(),
+              like_count: post.like_count ?? 0,
+              share_count: post.share_count ?? 0,
+              tags: post.tags ?? undefined,
+            }} />
           </div>
         </main>
 
