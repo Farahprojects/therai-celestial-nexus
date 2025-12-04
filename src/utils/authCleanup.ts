@@ -1,3 +1,5 @@
+import { safeConsoleWarn } from '@/utils/safe-logging';
+
 /**
  * Utility for cleaning up authentication state to prevent limbo states
  */
