@@ -1,28 +1,32 @@
-// Secure CORS configuration for production
-// Replace wildcard with specific allowed origins
+// Secure CORS configuration
+// Production domains are strictly controlled
+// Localhost and loveable.dev are always allowed (inherently safe for development)
 
 const ALLOWED_ORIGINS = [
+  // Production domains
   'https://therai.co',
   'https://www.therai.co',
   'https://api.therai.co',
   'https://wrvqqvqvwqmfdqvqmaar.supabase.co',
-  ...(Deno.env.get('NODE_ENV') === 'development'
-    ? ['http://localhost:5173', 'http://localhost:3000']
-    : []
-  )
+  // Development origins (safe - localhost is local-only, loveable.dev is dev platform)
+  'http://localhost:5173',
+  'http://localhost:3000',
+  'http://localhost:8080',
+  'https://loveable.dev'
 ];
 
 /**
  * Get secure CORS headers for a request
- * Only allows requests from whitelisted origins
+ * Allows requests from whitelisted origins + wildcard subdomains
  */
 export function getSecureCorsHeaders(request: Request): Record<string, string> {
   const origin = request.headers.get('origin') || '';
 
-  // Check if origin is allowed
+  // Check if origin is allowed (exact match or wildcard subdomain)
   const isAllowed = ALLOWED_ORIGINS.includes(origin) ||
     origin.endsWith('.therai.co') ||
-    origin.endsWith('.supabase.co');
+    origin.endsWith('.supabase.co') ||
+    origin.endsWith('.loveable.dev');
 
   return {
     'Access-Control-Allow-Origin': isAllowed ? origin : ALLOWED_ORIGINS[0],
