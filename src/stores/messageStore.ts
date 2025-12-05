@@ -441,12 +441,6 @@ if (typeof window !== 'undefined' && !(window as typeof window & { __msgStoreLis
   unifiedChannel.on('message-insert', (payload: MessageInsertPayload) => {
     const { chat_id, message: messageData } = payload;
     
-    if (DEBUG) {
-      safeConsoleLog('[MessageStore] 🔔 Message event received from unified channel:', { 
-        chat_id,
-        hasMessageData: !!messageData
-      });
-    }
     
     const { addMessage, chat_id: currentChatId, messages } = useMessageStore.getState();
     
