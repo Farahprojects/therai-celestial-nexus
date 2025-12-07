@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 // ── Supabase Setup ──
 const supabase = createClient(
-  Deno.env.get("SUPABASE_URL") ?? "", 
+  Deno.env.get("SUPABASE_URL") ?? "",
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
 );
 
@@ -17,13 +17,13 @@ const sanitizeString = (input: string, maxLength = 10000): string => {
 const extractEmail = (formattedEmail: string): string => {
   // Remove any leading/trailing whitespace
   const trimmed = formattedEmail.trim();
-  
+
   // Look for email in angle brackets: "Name <email@domain.com>"
   const angleBracketMatch = trimmed.match(/<([^>]+)>/);
   if (angleBracketMatch) {
     return angleBracketMatch[1].trim();
   }
-  
+
   // If no angle brackets, return as-is (should be plain email)
   return trimmed;
 };
@@ -46,17 +46,17 @@ const sanitizeHeaders = (headers: any): string => {
 // ── Domain Slug Validation Function ──
 const isValidDomainSlug = async (domain: string, slug: string): Promise<boolean> => {
   console.log(`[inboundMessenger] 🔍 DOMAIN/SLUG LOOKUP: domain=${domain}, slug=${slug}`);
-  
+
   const { data, error } = await supabase
     .from("domain_slugs")
     .select(slug)
     .eq("domain", domain)
     .single();
 
-  console.log(`[inboundMessenger] 📋 DOMAIN/SLUG LOOKUP RESULT:`, { 
-    domain, 
-    slug, 
-    data, 
+  console.log(`[inboundMessenger] 📋 DOMAIN/SLUG LOOKUP RESULT:`, {
+    domain,
+    slug,
+    data,
     error: error ? {
       code: error.code,
       message: error.message,
@@ -89,17 +89,36 @@ const logMessage = (message: string, data: any = {}) => {
 // ── Main ──
 Deno.serve(async (req) => {
   const requestId = crypto.randomUUID();
-  logMessage("🚀 INBOUND MESSENGER REQUEST STARTED", { 
-    requestId, 
+  logMessage("🚀 INBOUND MESSENGER REQUEST STARTED", {
+    requestId,
     method: req.method,
     userAgent: req.headers.get('user-agent') || 'unknown'
   });
 
+  // ── Authentication ──
+  const webhookSecret = Deno.env.get("INBOUND_WEBHOOK_SECRET");
+  if (webhookSecret) {
+    const signature = req.headers.get("x-webhook-secret");
+    if (!signature || signature !== webhookSecret) {
+      logMessage("❌ UNAUTHORIZED WEBHOOK ATTEMPT", {
+        requestId,
+        hasSecret: !!signature
+      });
+      return new Response("Unauthorized", {
+        status: 401
+      });
+    }
+  } else {
+    // Fail closed if secret is not configured
+    logMessage("❌ WEBHOOK SECRET NOT CONFIGURED", { requestId });
+    return new Response("Server configuration error", { status: 500 });
+  }
+
   if (req.method !== "POST") {
-    logMessage("❌ METHOD NOT ALLOWED", { 
-      requestId, 
-      method: req.method, 
-      allowedMethods: ['POST'] 
+    logMessage("❌ METHOD NOT ALLOWED", {
+      requestId,
+      method: req.method,
+      allowedMethods: ['POST']
     });
     return new Response("Method not allowed", {
       status: 405
@@ -109,14 +128,14 @@ Deno.serve(async (req) => {
   let payload;
   try {
     payload = await req.json();
-    logMessage("📥 PAYLOAD RECEIVED", { 
-      requestId, 
+    logMessage("📥 PAYLOAD RECEIVED", {
+      requestId,
       payloadKeys: Object.keys(payload),
       payloadSize: JSON.stringify(payload).length
     });
   } catch (error) {
-    logMessage("❌ INVALID JSON PAYLOAD", { 
-      requestId, 
+    logMessage("❌ INVALID JSON PAYLOAD", {
+      requestId,
       error: error instanceof Error ? error.message : String(error)
     });
     return new Response("Invalid JSON payload", {
@@ -127,8 +146,8 @@ Deno.serve(async (req) => {
   const { from_email, to_email, subject, body, raw_headers, direction, attachments, attachment_count, has_attachments } = payload;
 
   // Input validation and sanitization
-  logMessage("🔍 STARTING INPUT VALIDATION", { 
-    requestId, 
+  logMessage("🔍 STARTING INPUT VALIDATION", {
+    requestId,
     from_email: from_email ? 'present' : 'missing',
     to_email: to_email ? 'present' : 'missing',
     subject: subject ? 'present' : 'missing',
@@ -141,8 +160,8 @@ Deno.serve(async (req) => {
   });
 
   if (!from_email || !to_email || !body || !direction) {
-    logMessage("❌ MISSING REQUIRED FIELDS", { 
-      requestId, 
+    logMessage("❌ MISSING REQUIRED FIELDS", {
+      requestId,
       missingFields: {
         from_email: !from_email,
         to_email: !to_email,
@@ -158,13 +177,13 @@ Deno.serve(async (req) => {
   // Extract clean email addresses from formatted strings
   const cleanFromEmail = extractEmail(from_email);
   const cleanToEmail = extractEmail(to_email);
-  
+
   // Validate email formats
   const fromEmailValid = isValidEmail(cleanFromEmail);
   const toEmailValid = isValidEmail(cleanToEmail);
-  
-  logMessage("📧 EMAIL FORMAT VALIDATION", { 
-    requestId, 
+
+  logMessage("📧 EMAIL FORMAT VALIDATION", {
+    requestId,
     original_from: from_email.substring(0, 50) + '...',
     original_to: to_email.substring(0, 50) + '...',
     clean_from: cleanFromEmail,
@@ -174,8 +193,8 @@ Deno.serve(async (req) => {
   });
 
   if (!fromEmailValid || !toEmailValid) {
-    logMessage("❌ INVALID EMAIL FORMAT", { 
-      requestId, 
+    logMessage("❌ INVALID EMAIL FORMAT", {
+      requestId,
       fromEmailValid,
       toEmailValid,
       original_from: from_email.substring(0, 100),
@@ -189,15 +208,15 @@ Deno.serve(async (req) => {
   }
 
   // Validate direction
-  logMessage("🧭 DIRECTION VALIDATION", { 
-    requestId, 
+  logMessage("🧭 DIRECTION VALIDATION", {
+    requestId,
     direction,
     validDirections: ['inbound', 'outgoing']
   });
 
   if (!['inbound', 'outgoing'].includes(direction)) {
-    logMessage("❌ INVALID DIRECTION", { 
-      requestId, 
+    logMessage("❌ INVALID DIRECTION", {
+      requestId,
       direction,
       expectedDirections: ['inbound', 'outgoing']
     });
@@ -207,7 +226,7 @@ Deno.serve(async (req) => {
   }
 
   // Sanitize all inputs
-  logMessage("🧹 STARTING INPUT SANITIZATION", { 
+  logMessage("🧹 STARTING INPUT SANITIZATION", {
     requestId,
     originalSizes: {
       from_email: from_email.length,
@@ -225,12 +244,12 @@ Deno.serve(async (req) => {
   const sanitizedSubject = sanitizeString(subject || '', 998); // RFC 5322 limit
   const sanitizedBody = sanitizeString(body, 1000000); // 1MB limit
   const sanitizedHeaders = sanitizeHeaders(raw_headers);
-  
+
   // Sanitize and validate attachments
   let sanitizedAttachments: any[] = [];
   let sanitizedAttachmentCount = 0;
   let sanitizedHasAttachments = false;
-  
+
   if (attachments && Array.isArray(attachments)) {
     sanitizedAttachments = attachments
       .filter(att => att && typeof att === 'object' && att.filename && att.content)
@@ -242,12 +261,12 @@ Deno.serve(async (req) => {
         encoding: sanitizeString(att.encoding || 'base64', 20)
       }))
       .slice(0, 10); // Max 10 attachments
-    
+
     sanitizedAttachmentCount = sanitizedAttachments.length;
     sanitizedHasAttachments = sanitizedAttachmentCount > 0;
   }
 
-  logMessage("✅ INPUT SANITIZATION COMPLETE", { 
+  logMessage("✅ INPUT SANITIZATION COMPLETE", {
     requestId,
     sanitizedSizes: {
       from_email: sanitizedFromEmail.length,
@@ -263,8 +282,8 @@ Deno.serve(async (req) => {
 
   // Parse slug and domain from recipient
   const [slug, domain] = sanitizedToEmail.toLowerCase().split("@");
-  
-  logMessage("🔍 PARSING EMAIL ADDRESS", { 
+
+  logMessage("🔍 PARSING EMAIL ADDRESS", {
     requestId,
     to_email: sanitizedToEmail,
     parsedSlug: slug,
@@ -272,10 +291,10 @@ Deno.serve(async (req) => {
     slugLength: slug?.length || 0,
     domainLength: domain?.length || 0
   });
-  
+
   // Additional validation for slug and domain
   if (!slug || !domain || slug.length > 64 || domain.length > 253) {
-    logMessage("❌ INVALID SLUG/DOMAIN FORMAT", { 
+    logMessage("❌ INVALID SLUG/DOMAIN FORMAT", {
       requestId,
       slug,
       domain,
@@ -288,9 +307,9 @@ Deno.serve(async (req) => {
       status: 400
     });
   }
-  
+
   // Validate domain and slug combination
-  logMessage("🔍 VALIDATING DOMAIN/SLUG COMBINATION", { 
+  logMessage("🔍 VALIDATING DOMAIN/SLUG COMBINATION", {
     requestId,
     domain,
     slug,
@@ -298,17 +317,17 @@ Deno.serve(async (req) => {
   });
 
   const isValid = await isValidDomainSlug(domain, slug);
-  
-  logMessage("📋 DOMAIN/SLUG VALIDATION RESULT", { 
+
+  logMessage("📋 DOMAIN/SLUG VALIDATION RESULT", {
     requestId,
     domain,
     slug,
     isValid,
     validationMethod: 'domain_slugs table lookup'
   });
-  
+
   if (!isValid) {
-    logMessage("❌ INVALID DOMAIN/SLUG COMBINATION", { 
+    logMessage("❌ INVALID DOMAIN/SLUG COMBINATION", {
       requestId,
       domain,
       slug,
@@ -320,7 +339,7 @@ Deno.serve(async (req) => {
   }
 
   // Log message (admin-only table now)
-  logMessage("💾 ATTEMPTING DATABASE SAVE", { 
+  logMessage("💾 ATTEMPTING DATABASE SAVE", {
     requestId,
     table: 'email_messages',
     recordData: {
@@ -353,7 +372,7 @@ Deno.serve(async (req) => {
     .select();
 
   if (insertError) {
-    logMessage("❌ DATABASE SAVE FAILED", { 
+    logMessage("❌ DATABASE SAVE FAILED", {
       requestId,
       error: insertError,
       errorCode: insertError.code,
@@ -366,7 +385,7 @@ Deno.serve(async (req) => {
     });
   }
 
-  logMessage("✅ EMAIL MESSAGE SAVED SUCCESSFULLY", { 
+  logMessage("✅ EMAIL MESSAGE SAVED SUCCESSFULLY", {
     requestId,
     insertData,
     recordId: insertData?.[0]?.id,
@@ -378,7 +397,7 @@ Deno.serve(async (req) => {
     hasAttachments: sanitizedHasAttachments
   });
 
-  logMessage("🎉 INBOUND MESSENGER REQUEST COMPLETED", { 
+  logMessage("🎉 INBOUND MESSENGER REQUEST COMPLETED", {
     requestId,
     status: 'success',
     totalProcessingTime: 'completed',

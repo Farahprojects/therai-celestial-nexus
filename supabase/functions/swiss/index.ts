@@ -45,7 +45,7 @@ async function translateViaEdge(payload: any): Promise<{ status: number; text: s
 // Log helper function that writes to swissdebuglogs table (lowercase)
 async function logSwissDebug(request: any, responseStatus: number, responseText: string) {
   try {
-    
+
     const logData = {
       api_key: request.apiKey,
       user_id: request.userId,
@@ -54,7 +54,7 @@ async function logSwissDebug(request: any, responseStatus: number, responseText:
       request_payload: request.payload,
       response_status: responseStatus
     };
-    
+
     // Insert log data into swissdebuglogs table (lowercase)
     await sb.from("swissdebuglogs").insert([logData]);
   } catch (err) {
@@ -80,31 +80,6 @@ function extractApiKey(headers: Headers, url: URL, body?: Record<string, unknown
   if (body?.api_key && String(body.api_key).length > 16) return String(body.api_key);
 
   return null;
-}
-
-// Updated function to retrieve API key by email using direct query
-async function getApiKeyByEmail(email: string): Promise<string | null> {
-  if (!email || typeof email !== 'string' || !email.includes('@')) {
-    return null;
-  }
-
-  try {
-    const { data, error } = await sb
-      .from("api_keys")
-      .select("api_key")
-      .eq("email", email)
-      .eq("is_active", true)
-      .maybeSingle();
-
-    if (error || !data) {
-      return null;
-    }
-
-    return data.api_key;
-  } catch (err) {
-    console.error("[swiss] Error during API key lookup:", err);
-    return null;
-  }
 }
 
 Deno.serve(async (req) => {
@@ -134,22 +109,14 @@ Deno.serve(async (req) => {
   }
 
   // Try to extract API key using standard methods
-  let apiKey = extractApiKey(req.headers, urlObj, bodyJson);
-  let authMethod = "api_key";
-  
-  // If no API key found but email is provided, try to look up API key by email
-  if (!apiKey && bodyJson?.email) {
-    apiKey = await getApiKeyByEmail(String(bodyJson.email));
-    if (apiKey) {
-      authMethod = "email";
-    }
-  }
+  const apiKey = extractApiKey(req.headers, urlObj, bodyJson);
+  const authMethod = "api_key";
 
   // If still no API key, return unauthorized
   if (!apiKey) {
-    return json({ 
-      success: false, 
-      message: "Authentication required. Please provide an API key or valid email." 
+    return json({
+      success: false,
+      message: "Authentication required. Please provide a valid API key or Bearer token."
     }, 401);
   }
 
@@ -187,11 +154,11 @@ Deno.serve(async (req) => {
   }
 
   urlObj.searchParams.delete("api_key");
-  
+
   // Sanitize and validate URL parameters to prevent injection
   const sanitizedUrlParams: Record<string, string> = {};
   const allowedParams = ['request', 'date', 'time', 'location', 'name', 'latitude', 'longitude', 'tz', 'house_system', 'year', 'return_date'];
-  
+
   for (const [key, value] of urlObj.searchParams.entries()) {
     if (allowedParams.includes(key) && typeof value === 'string') {
       // Sanitize parameter values
@@ -201,36 +168,16 @@ Deno.serve(async (req) => {
       }
     }
   }
-  
+
   // Create the merged payload from URL parameters and body
   const mergedPayload = {
     ...(bodyJson ?? {}),
     ...sanitizedUrlParams,
     user_id: row.user_id,
     api_key: apiKey,
-    auth_method: authMethod, 
+    auth_method: authMethod,
   };
 
-
-  // Special handling for email-based requests - FIXED LOGIC
-  if (authMethod === "email" && bodyJson?.body) {
-    try {
-      // Try to parse the email body as JSON
-      const parsedEmailBody = JSON.parse(String(bodyJson.body));
-
-      // Replace the entire payload with the parsed JSON (except for system fields)
-      Object.assign(mergedPayload, parsedEmailBody);
-
-      // Remove the original body field as we've now extracted its content
-      (mergedPayload as any).body = undefined;
-      delete (mergedPayload as any).body;
-    } catch (parseError) {
-      // Fall back to current behavior if not valid JSON
-      (mergedPayload as any).request = String(bodyJson.body);
-      (mergedPayload as any).body = undefined;
-      delete (mergedPayload as any).body;
-    }
-  }
 
   // Use the new translator-edge function instead of the old translate function
   const { status, text } = await translateViaEdge(mergedPayload);

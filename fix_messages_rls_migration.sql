@@ -44,3 +44,6 @@ BEGIN
     RAISE NOTICE '';
     RAISE NOTICE 'The messages table is now properly secured against unauthorized access.';
 END $$;
+
+
+

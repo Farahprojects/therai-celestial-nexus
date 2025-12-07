@@ -84,3 +84,6 @@ SELECT
 FROM chat_folder_participants fp
 JOIN chat_folders cf ON fp.folder_id = cf.id
 LIMIT 10;
+
+
+

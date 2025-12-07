@@ -43,3 +43,6 @@ console.log('Invalid https://evil.com:', decodeRedirectPath(encodeURIComponent('
 console.log('Invalid //evil.com:', decodeRedirectPath(encodeURIComponent('//evil.com')));
 console.log('Invalid javascript:alert(1):', decodeRedirectPath(encodeURIComponent('javascript:alert(1)')));
 console.log('Invalid data:text/html:', decodeRedirectPath(encodeURIComponent('data:text/html,<script>alert(1)</script>')));
+
+
+

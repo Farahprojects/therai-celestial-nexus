@@ -23,7 +23,7 @@ const ResetPassword: React.FC = () => {
 
   const navigate = useNavigate();
   const location = useLocation();
-  
+
   const processedRef = useRef(false);
 
   const finishSuccess = async (token: string) => {
@@ -33,9 +33,9 @@ const ResetPassword: React.FC = () => {
 
     try {
       // Call secure edge function to verify token and get session
-      safeConsoleLog('[PASSWORD-VERIFY] Calling verify-token edge function...');
+      safeConsoleLog('[PASSWORD-VERIFY] Calling verify-password-reset-token edge function...');
 
-      const { data, error } = await supabase.functions.invoke('verify-token', {
+      const { data, error } = await supabase.functions.invoke('verify-password-reset-token', {
         body: {
           token
           // Let the edge function determine the type from the token itself
@@ -44,7 +44,7 @@ const ResetPassword: React.FC = () => {
 
       if (error) {
         safeConsoleError('[PASSWORD-VERIFY] Edge function error:', error);
-        
+
         // Handle different types of edge function errors
         if (error.message?.includes('non-2xx status code')) {
           throw new Error('Token verification failed. Please try again or request a new reset link.');
@@ -89,13 +89,13 @@ const ResetPassword: React.FC = () => {
   const handlePasswordUpdateSuccess = () => {
     setStatus('success');
     setMessage('Your password has been updated successfully!');
-    
-    showToast({ 
-      variant: 'success', 
-      title: 'Password Updated Successfully!', 
-      description: 'Please sign in with your new password.' 
+
+    showToast({
+      variant: 'success',
+      title: 'Password Updated Successfully!',
+      description: 'Please sign in with your new password.'
     });
-    
+
     // Redirect to login after a short delay
     setTimeout(() => {
       navigate('/login');
@@ -147,9 +147,9 @@ const ResetPassword: React.FC = () => {
   }, [location.hash, location.search]);
 
   const heading =
-    status === 'loading' ? 'Password Reset' : 
-    status === 'update-password' ? 'Set New Password' :
-    status === 'success' ? 'All Set!' : 'Uh‑oh…';
+    status === 'loading' ? 'Password Reset' :
+      status === 'update-password' ? 'Set New Password' :
+        status === 'success' ? 'All Set!' : 'Uh‑oh…';
 
   const iconVariants = {
     loading: {
@@ -170,8 +170,8 @@ const ResetPassword: React.FC = () => {
     status === 'loading'
       ? 'bg-gray-100 text-gray-700'
       : status === 'success'
-      ? 'bg-gray-900 text-white'
-      : 'bg-red-50 text-red-600';
+        ? 'bg-gray-900 text-white'
+        : 'bg-red-50 text-red-600';
 
   // Show password update form when status is 'update-password'
   if (status === 'update-password') {
@@ -221,8 +221,8 @@ const ResetPassword: React.FC = () => {
                 {status === 'loading'
                   ? 'Verifying your password reset link'
                   : status === 'success'
-                  ? 'Your password has been reset'
-                  : 'Password reset failed'}
+                    ? 'Your password has been reset'
+                    : 'Password reset failed'}
               </CardDescription>
             </CardHeader>
 
@@ -249,16 +249,16 @@ const ResetPassword: React.FC = () => {
                 </Button>
               ) : (
                 <div className="flex flex-col gap-3 w-full">
-                  <Button 
-                    onClick={() => navigate('/login')} 
+                  <Button
+                    onClick={() => navigate('/login')}
                     className="w-full bg-gray-900 hover:bg-gray-800 text-white font-light py-4 rounded-xl"
                   >
                     Return to Login
                   </Button>
                   {status === 'error' && (
-                    <Button 
-                      asChild 
-                      variant="outline" 
+                    <Button
+                      asChild
+                      variant="outline"
                       className="w-full border-gray-300 text-gray-700 hover:bg-gray-50 font-light py-4 rounded-xl"
                     >
                       <Link to="/signup">Create New Account</Link>

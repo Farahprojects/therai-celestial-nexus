@@ -11,6 +11,7 @@ This document outlines the complete email system configuration for Therai email 
 - **Domains**: 
   - therai.co (Mail Domain: mail.therai.co)
   - vbase.co (Mail Domain: mail.vbase.co)
+  - scai.co (Mail Domain: mail.scai.co)
 
 ### DNS Records
 
@@ -34,6 +35,17 @@ MX    vbase.co            → mail.vbase.co (priority 10)
 TXT   vbase.co            → "v=spf1 ip4:5.161.20.187 ip6:2a01:4ff:f0:4b95::1 -all"
 TXT   default._domainkey.vbase.co   → [DKIM public key - see setup instructions]
 TXT   _dmarc.vbase.co      → "v=DMARC1; p=quarantine; rua=mailto:postmaster@vbase.co; fo=1; adkim=s; aspf=s; pct=100"
+```
+
+#### scai.co
+```
+A     mail.scai.co         → 5.161.20.187
+A     scai.co             → 5.161.20.187
+AAAA  mail.scai.co        → 2a01:4ff:f0:4b95::1
+MX    scai.co             → mail.scai.co (priority 10)
+TXT   scai.co             → "v=spf1 ip4:5.161.20.187 ip6:2a01:4ff:f0:4b95::1 -all"
+TXT   default._domainkey.scai.co    → "v=DKIM1; h=sha256; k=rsa; p=MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAtTGZPyesHybKrtragZaRlDbFruz/SvMTMfHioy+YGvcSXvfhdrZObYYHwMEo6lSfRT+ehkUepRGmgHW5UNqTgmUZNuCnpS1rozVJ8Wugy19iEVKSoR1O4ZUIev3cW5y3GUYrTWBCI58Se4N8XMwecD3NtkKr243zd5UpYWKCnSwToRBkA5fHG22jtven2N9sqHVkhrS22DdJVpajLrcNYoNSAMcGFiEMEiad5sojKnAlLTklQ0kklmVJz7AQUzd7AAPbc051YSxUChA6ijwPkKO4icHxy8Ev5QxWFxAreb4FyMWVNFBKfssmP1yn7pr51eLi+GamIA9dtHfebw8sjwIDAQAB"
+TXT   _dmarc.scai.co      → "v=DMARC1; p=quarantine; rua=mailto:postmaster@scai.co; fo=1; adkim=s; aspf=s; pct=100"
 ```
 
 ## Postfix Configuration
@@ -125,6 +137,14 @@ dev@therai.co                default._domainkey.therai.co
 @vbase.co                    default._domainkey.vbase.co
 noreply@vbase.co            default._domainkey.vbase.co
 support@vbase.co            default._domainkey.vbase.co
+
+# scai.co domain
+@scai.co                    default._domainkey.scai.co
+noreply@scai.co            default._domainkey.scai.co
+support@scai.co            default._domainkey.scai.co
+hello@scai.co              default._domainkey.scai.co
+contact@scai.co            default._domainkey.scai.co
+info@scai.co               default._domainkey.scai.co
 ```
 
 ### Key Table
@@ -134,6 +154,7 @@ support@vbase.co            default._domainkey.vbase.co
 ```
 default._domainkey.therai.co therai.co:default:/etc/opendkim/keys/therai.co/default.private
 default._domainkey.vbase.co vbase.co:default:/etc/opendkim/keys/vbase.co/default.private
+default._domainkey.scai.co scai.co:default:/etc/opendkim/keys/scai.co/default.private
 ```
 
 ### DKIM Keys
@@ -145,6 +166,11 @@ default._domainkey.vbase.co vbase.co:default:/etc/opendkim/keys/vbase.co/default
 
 #### vbase.co
 **Location**: `/etc/opendkim/keys/vbase.co/`
+- `default.private` - Private key for signing
+- `default.txt` - Public key for DNS
+
+#### scai.co
+**Location**: `/etc/opendkim/keys/scai.co/`
 - `default.private` - Private key for signing
 - `default.txt` - Public key for DNS
 
@@ -581,6 +607,16 @@ WHERE domain = 'therai.co';
 
 ---
 
-**Last Updated**: 2025-09-17
-**Version**: 1.0
+**Last Updated**: 2025-12-06
+**Version**: 1.1
 **Maintainer**: Therai Development Team
+
+## Changelog
+
+### Version 1.1 (2025-12-06)
+- Added scai.co domain configuration
+- Added DKIM keys for scai.co
+- Added email addresses: noreply@scai.co, support@scai.co, hello@scai.co, contact@scai.co, info@scai.co
+
+### Version 1.0 (2025-09-17)
+- Initial documentation for therai.co and vbase.co
