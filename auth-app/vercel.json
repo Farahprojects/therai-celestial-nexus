@@ -11,7 +11,7 @@
       "headers": [
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https:; connect-src 'self' https://*.supabase.co https://*.supabase.io https://api.therai.co https://5.161.196.180:8081; font-src 'self' https://fonts.gstatic.com;"
+          "value": "default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; img-src 'self' data: https:; connect-src 'self' https://*.supabase.co https://*.supabase.io https://api.therai.co https://5.161.196.180:8081; font-src 'self' https://fonts.gstatic.com;"
         },
         {
           "key": "X-Frame-Options",
