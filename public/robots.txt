@@ -1,5 +1,21 @@
-
 User-agent: *
 Allow: /
 
+# Block access to sensitive areas
+Disallow: /admin/
+Disallow: /api/
+Disallow: /_next/
+Disallow: /functions/
+
+# Allow all major search engines
+User-agent: Googlebot
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+User-agent: Slurp
+Allow: /
+
+# Sitemap
 Sitemap: https://therai.co/sitemap.xml

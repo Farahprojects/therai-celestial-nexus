@@ -1,33 +1,51 @@
 {
-  "name": "Therai - AI-Powered Psychological Insights",
+  "name": "Therai — Context-Aware AI Workspace",
   "short_name": "Therai",
-  "description": "An AI webapp that helps create psychological insights into momentum through astrology. Get personalized psychological insights based on your birth chart, transits, and compatibility analysis.",
+  "description": "Organize your life into smart folders that remember everything. Each folder has its own AI context, memory, and intelligence.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#000000",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "lang": "en",
+  "categories": ["productivity", "utilities", "lifestyle"],
   "icons": [
     {
-      "src": "/theraiiconset/favicon-192x192.png",
-      "sizes": "192x192",
-      "type": "image/webp",
-      "purpose": "any maskable"
+      "src": "/theraiiconset/android-icon-36x36.png",
+      "sizes": "36x36",
+      "type": "image/png",
+      "density": "0.75"
+    },
+    {
+      "src": "/theraiiconset/android-icon-48x48.png",
+      "sizes": "48x48",
+      "type": "image/png",
+      "density": "1.0"
+    },
+    {
+      "src": "/theraiiconset/android-icon-72x72.png",
+      "sizes": "72x72",
+      "type": "image/png",
+      "density": "1.5"
+    },
+    {
+      "src": "/theraiiconset/android-icon-96x96.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "density": "2.0"
+    },
+    {
+      "src": "/theraiiconset/android-icon-144x144.png",
+      "sizes": "144x144",
+      "type": "image/png",
+      "density": "3.0"
     },
     {
       "src": "/theraiiconset/android-icon-192x192.png",
       "sizes": "192x192",
-      "type": "image/webp",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "/theraiiconset/apple-icon-152x152.png",
-      "sizes": "152x152",
-      "type": "image/webp"
-    },
-    {
-      "src": "/theraiiconset/apple-icon-180x180.png",
-      "sizes": "180x180",
-      "type": "image/webp"
+      "type": "image/png",
+      "density": "4.0"
     }
   ]
 }

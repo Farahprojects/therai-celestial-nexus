@@ -1,6 +1,9 @@
+# Therai Security Policy
+# Contact information for security researchers and responsible disclosure
 
-Contact: mailto:security@example.com
+Contact: mailto:security@therai.co
+Contact: https://therai.co/contact
 Expires: 2025-12-31T23:59:59.000Z
 Preferred-Languages: en
-Canonical: https://example.com/.well-known/security.txt
-Policy: https://example.com/security-policy
+Canonical: https://therai.co/.well-known/security.txt
+Policy: https://therai.co/legal
