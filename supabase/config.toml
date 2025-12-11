@@ -5,3 +5,24 @@ verify_jwt = false
 
 [functions.update-password]
 verify_jwt = false
+
+[functions.create-user-and-verify]
+verify_jwt = false
+
+[functions.email-verification]
+verify_jwt = false
+
+[functions.resend-verification]
+verify_jwt = false
+
+[functions.verify-email-token]
+verify_jwt = false
+
+[functions.verify-password-reset-token]
+verify_jwt = false
+
+[functions.password_token]
+verify_jwt = false
+
+[functions.delete-account]
+verify_jwt = false
