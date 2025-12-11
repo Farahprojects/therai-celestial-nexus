@@ -96,8 +96,6 @@ Deno.serve(async (req) => {
 
   try {
     const { conversation_id, message_id, user_id } = await req.json();
-      user_id
-    });
 
     if (!conversation_id || !message_id || !user_id) {
       console.error("[extract-user-memory] Missing required fields");
@@ -116,7 +114,7 @@ Deno.serve(async (req) => {
       return json(400, { error: "Message not found" });
     }
     if (msg.role !== "assistant" || msg.status !== "complete") {
-      });
+      debugLog("ineligible-message", { message_id, role: msg.role, status: msg.status });
       return json(200, { message: "Not an eligible assistant message", skipped: true });
     }
 
@@ -139,6 +137,9 @@ Deno.serve(async (req) => {
       .select("id, profile_id, mode, user_id")
       .eq("id", conversation_id)
       .single();
+
+    debugLog("conversation-lookup", {
+      conversation_id,
       mode: conv?.mode,
       found: !!conv,
       error: convErr?.message
@@ -160,7 +161,7 @@ Deno.serve(async (req) => {
     // Only extract memories for 'chat' mode conversations
     // Other modes (astro, swiss, profile, together, etc.) are not about the user
     if (conv.mode !== 'chat') {
-      });
+      debugLog("non-chat-mode", { conversation_id, mode: conv.mode });
       return json(200, { message: "Not chat mode", skipped: true });
     }
 
@@ -189,6 +190,9 @@ Deno.serve(async (req) => {
         .select("id, is_primary, user_id")
         .eq("id", profileId)
         .single();
+
+      debugLog("profile-validation", {
+        profile_id: profileId,
         is_primary: profile?.is_primary,
         error: profileErr?.message
       });
@@ -199,11 +203,16 @@ Deno.serve(async (req) => {
       }
       
       if (!profile.is_primary || profile.user_id !== user_id) {
+        debugLog("profile-mismatch", {
+          profile_id: profileId,
+          profile_user_id: profile.user_id,
           request_user_id: user_id
         });
         return json(200, { message: "Not primary profile or user mismatch", skipped: true });
       }
     }
+
+    debugLog("profile-resolved", {
       profile_id: profileId,
       mode: conv.mode
     });
@@ -331,6 +340,8 @@ Deno.serve(async (req) => {
 
     const insertRes = await supabase.from("user_memory_buffer").insert([bufferRow]);
     if (insertRes.error) throw insertRes.error;
+
+    debugLog("memory-buffered", {
       profile_id: profileId,
       type: mem.type,
       confidence: mem.confidence,
