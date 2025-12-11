@@ -56,7 +56,8 @@ const ScoreBadge = ({ score }: { score: number }) => {
 
 export const MonthlyAstroFormatter: React.FC<MonthlyAstroFormatterProps> = ({
   swissData,
-  reportData: _reportData,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  reportData,
   className = ''
 }) => {
   const parsed = parseAstroData(swissData);

@@ -146,7 +146,8 @@ const groupTimeBlocks = (scores: number[], notes: string[], bands: Band[] = []):
 
 export const FocusAstroFormatter: React.FC<FocusAstroFormatterProps> = ({
   swissData,
-  reportData: _reportData,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  reportData,
   className = ''
 }) => {
   const components = swissData?.components;
