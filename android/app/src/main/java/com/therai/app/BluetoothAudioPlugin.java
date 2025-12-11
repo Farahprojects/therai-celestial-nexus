@@ -129,28 +129,38 @@ public class BluetoothAudioPlugin extends Plugin {
                 // On API 31+, explicitly pick BT SCO as communication device
                 maybeSetCommunicationDevice();
                 
-                // CRITICAL: Wait for SCO to actually connect
-                // startBluetoothSco() is asynchronous - takes 200-500ms
-                int maxWaitMs = 1000;
-                int waitedMs = 0;
-                int checkIntervalMs = 50;
-                
-                while (waitedMs < maxWaitMs) {
+                // Wait for SCO to connect - use event-driven approach with timeout
+                // The scoReceiver is already registered and will handle ongoing SCO state monitoring
+                final int maxWaitMs = 2000; // Reasonable timeout for SCO connection
+                final long startTime = System.currentTimeMillis();
+
+                Log.d(TAG, "Waiting for Bluetooth SCO connection (max " + maxWaitMs + "ms)...");
+
+                // Poll with increasing intervals to avoid busy-waiting
+                boolean scoConnected = false;
+                int[] checkIntervals = {50, 100, 200, 500}; // Progressive backoff
+                int intervalIndex = 0;
+
+                while (System.currentTimeMillis() - startTime < maxWaitMs) {
                     if (audioManager.isBluetoothScoOn()) {
-                        Log.d(TAG, "Bluetooth SCO connected after " + waitedMs + "ms");
+                        scoConnected = true;
+                        long connectTime = System.currentTimeMillis() - startTime;
+                        Log.d(TAG, "Bluetooth SCO connected after " + connectTime + "ms");
                         break;
                     }
+
                     try {
-                        Thread.sleep(checkIntervalMs);
-                        waitedMs += checkIntervalMs;
+                        int currentInterval = checkIntervals[Math.min(intervalIndex, checkIntervals.length - 1)];
+                        Thread.sleep(currentInterval);
+                        intervalIndex++;
                     } catch (InterruptedException e) {
-                        Log.w(TAG, "Wait interrupted", e);
+                        Log.w(TAG, "SCO connection wait interrupted", e);
                         break;
                     }
                 }
-                
-                if (!audioManager.isBluetoothScoOn()) {
-                    Log.w(TAG, "Bluetooth SCO did not connect after " + waitedMs + "ms, continuing anyway");
+
+                if (!scoConnected) {
+                    Log.w(TAG, "Bluetooth SCO did not connect within timeout, but SCO start was initiated. The scoReceiver will monitor connection status asynchronously.");
                 } else {
                     Log.d(TAG, "Bluetooth SCO ready for recording");
                 }
@@ -360,13 +370,18 @@ public class BluetoothAudioPlugin extends Plugin {
         try {
             getContext().unregisterReceiver(scoReceiver);
         } catch (Exception e) {
-            // ignore
+            Log.w(TAG, "Failed to unregister SCO receiver, may not have been registered", e);
+        } finally {
+            // Clear reference to prevent memory leaks
+            scoReceiver = null;
         }
         // Unregister device callback
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && deviceCallback != null) {
             try {
                 audioManager.unregisterAudioDeviceCallback(deviceCallback);
-            } catch (Exception ignored) {}
+            } catch (Exception e) {
+                Log.w(TAG, "Failed to unregister audio device callback", e);
+            }
             deviceCallback = null;
         }
     }
@@ -415,6 +430,8 @@ public class BluetoothAudioPlugin extends Plugin {
             Log.w(TAG, "Abandon audio focus failed", e);
         } finally {
             hasAudioFocus = false;
+            focusChangeListener = null;
+            audioFocusRequest = null;
         }
     }
 
