@@ -371,10 +371,8 @@ public class BluetoothAudioPlugin extends Plugin {
             getContext().unregisterReceiver(scoReceiver);
         } catch (Exception e) {
             Log.w(TAG, "Failed to unregister SCO receiver, may not have been registered", e);
-        } finally {
-            // Clear reference to prevent memory leaks
-            scoReceiver = null;
         }
+        // Note: scoReceiver is final, cannot be nulled. Unregistering is sufficient cleanup.
         // Unregister device callback
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && deviceCallback != null) {
             try {
