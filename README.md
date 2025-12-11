@@ -182,6 +182,10 @@ therai-celestial-nexus/
 - Restart the development server after adding new environment variables
 - Use `.env.local` for local development (not committed to git)
 
+**Sitemap Generation Issues:**
+- Ensure both `VITE_SUPABASE_*` and `SUPABASE_*` environment variables are set in Vercel
+- The sitemap generation script runs during build and needs access to Supabase credentials
+
 **Stripe Payment Issues:**
 - Ensure `VITE_STRIPE_PUBLISHABLE_KEY` is set correctly
 - Verify the key matches your Stripe account mode (test/live)
@@ -203,10 +207,14 @@ therai-celestial-nexus/
 
 1. Connect your GitHub repository to Vercel
 2. Set environment variables in Vercel dashboard:
-   - `VITE_SUPABASE_URL`
-   - `VITE_SUPABASE_ANON_KEY`
-   - `VITE_STRIPE_PUBLISHABLE_KEY`
+   - `VITE_SUPABASE_URL` (for frontend)
+   - `VITE_SUPABASE_ANON_KEY` (for frontend)
+   - `SUPABASE_URL` (for build scripts like sitemap generation)
+   - `SUPABASE_ANON_KEY` (for build scripts like sitemap generation)
+   - `VITE_STRIPE_PUBLISHABLE_KEY` (for payments)
 3. Deploy automatically on push to main branch
+
+**Note**: Both `VITE_SUPABASE_*` and `SUPABASE_*` variables are needed because the frontend uses `VITE_` prefixed variables while build scripts (like sitemap generation) use regular environment variables.
 
 ### Manual Deployment
 

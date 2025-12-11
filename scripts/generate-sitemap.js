@@ -15,18 +15,17 @@ import path from 'path';
 // Note: The anon key is safe to expose - it's protected by RLS and required for Lovable IDE
 // This allows the script to work in both local dev (with env vars) and Vercel builds (with fallbacks)
 
-// Fallback values (same as in src/integrations/supabase/config.ts for Lovable IDE compatibility)
-const DEFAULT_SUPABASE_URL = 'https://api.therai.co';
-const DEFAULT_SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndydnFxdnF2d3FtZmRxdnFtYWFyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU1ODA0NjIsImV4cCI6MjA2MTE1NjQ2Mn0.u9P-SY4kSo7e16I29TXXSOJou5tErfYuldrr_CITWX0';
-
-const SUPABASE_URL = process.env.VITE_SUPABASE_URL || DEFAULT_SUPABASE_URL;
-const SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_ANON_KEY || DEFAULT_SUPABASE_ANON_KEY;
+// Environment variables for build-time sitemap generation
+// Note: These are different from VITE_SUPABASE_* which are for frontend builds
+// In Vercel, SUPABASE_* variables should be available to build scripts
+const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || 'https://api.therai.co';
+const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndydnFxdnF2d3FtZmRxdnFtYWFyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU1ODA0NjIsImV4cCI6MjA2MTE1NjQ2Mn0.u9P-SY4kSo7e16I29TXXSOJou5tErfYuldrr_CITWX0';
 
 // Log which source is being used (for debugging)
-if (process.env.VITE_SUPABASE_URL && process.env.VITE_SUPABASE_ANON_KEY) {
+if (process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL) {
   console.log('Using environment variables for Supabase configuration');
 } else {
-  console.log('Using fallback values for Supabase configuration (Lovable IDE compatible)');
+  console.log('Using fallback values for Supabase configuration (build environment)');
 }
 
 const BASE_URL = 'https://therai.co';
