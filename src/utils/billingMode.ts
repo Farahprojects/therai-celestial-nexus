@@ -39,8 +39,8 @@ export const checkUserAccess = async (userId: string): Promise<UserAccessResult>
       };
     }
 
-    const isActive = data?.subscription_active && 
-                    ['active', 'trialing'].includes(data?.subscription_status || '');
+    const isActive = Boolean(data?.subscription_active &&
+                    ['active', 'trialing'].includes(data?.subscription_status || ''));
 
     return {
       hasAccess: isActive,

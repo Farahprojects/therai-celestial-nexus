@@ -1,6 +1,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { SUPABASE_URL } from '@/integrations/supabase/config';
 import { safeConsoleError } from '@/utils/safe-logging';
+import type { Database } from '@/integrations/supabase/types';
 export interface FolderDocument {
   id: string;
   user_id: string;
@@ -32,18 +33,20 @@ export async function uploadDocument(
   const fileExtension = file.name.split('.').pop()?.toLowerCase() || '';
   
   // Create database record
+  const insertData: Database['public']['Tables']['folder_documents']['Insert'] = {
+    user_id: userId,
+    folder_id: folderId,
+    file_name: file.name,
+    file_type: file.type,
+    file_size: file.size,
+    file_extension: fileExtension,
+    upload_status: 'pending',
+    metadata: (metadata || {}) as any,
+  };
+
   const { data, error } = await supabase
     .from('folder_documents')
-    .insert({
-      user_id: userId,
-      folder_id: folderId,
-      file_name: file.name,
-      file_type: file.type,
-      file_size: file.size,
-      file_extension: fileExtension,
-      upload_status: 'pending',
-      metadata: metadata || {},
-    })
+    .insert(insertData)
     .select()
     .single();
 

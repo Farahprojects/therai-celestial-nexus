@@ -972,7 +972,9 @@ ${folderMap.reports.map((r, i) =>
     await saveMessage(supabase, folder_id, user_id, 'assistant', assistantText);
 
     // Increment usage (fire-and-forget)
-    incrementFolderAIUsage(supabase, user_id).catch(() => {});
+    incrementFolderAIUsage(supabase, user_id).catch((error) => {
+      console.error('[folder-ai-handler] Failed to increment usage:', error);
+    });
 
     const totalLatency = Date.now() - startTime;
     console.log(JSON.stringify({

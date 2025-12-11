@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { CalendarSession } from "@/types/calendar";
 import { mapRowToCalendarSession } from "@/utils/calendarHelpers";
 import { safeConsoleError } from '@/utils/safe-logging';
+import type { Database } from '@/integrations/supabase/types';
 // Helper to get current user ID
 const getCurrentUserId = () => supabase.auth.getUser().then(res => res.data.user?.id || null);
 
@@ -29,7 +30,7 @@ export const calendarSessionsService = {
       throw new Error("User not authenticated (coach_id missing)");
     }
     // Convert Date to ISO strings for insert
-    const payload: Record<string, unknown> = {
+    const payload: Database['public']['Tables']['calendar_sessions']['Insert'] = {
       ...session,
       start_time: session.start_time.toISOString(),
       end_time: session.end_time.toISOString(),

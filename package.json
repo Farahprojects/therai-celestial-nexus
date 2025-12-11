@@ -14,7 +14,7 @@
     "type-check:watch": "tsc --noEmit --watch",
     "preview": "vite preview",
     "generate-sitemap": "node scripts/generate-sitemap.js",
-    "prebuild": "npm run type-check && npm run generate-sitemap",
+    "prebuild": "npm run type-check",
     "postbuild": "npm run generate-sitemap",
     "prepare": "husky"
   },

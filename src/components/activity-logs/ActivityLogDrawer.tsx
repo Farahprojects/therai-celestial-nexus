@@ -172,8 +172,7 @@ const ActivityLogDrawer = ({ isOpen, onClose, logData }: ActivityLogDrawerProps)
       return responsePayload;
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { report: reportIgnored, ...filteredPayload } = responsePayload;
+    const { report: _reportIgnored, ...filteredPayload } = responsePayload;
     return filteredPayload;
   };
 

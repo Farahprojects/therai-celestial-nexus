@@ -40,7 +40,6 @@ class UnifiedWebSocketService {
    * Subscribe to a specific chat - now a no-op for compatibility
    * Messages are handled via unified channel in messageStore
    */
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async subscribe(_chat_id: string) {
     // No realtime subscription needed - messageStore handles everything via unified channel
   }

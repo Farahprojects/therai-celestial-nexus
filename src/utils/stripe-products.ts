@@ -8,11 +8,11 @@ export interface StripeProduct {
   name: string;
   description: string | null;
   amount_usd: number;
-  currency: string;
-  type: string;
-  active: boolean;
-  created_at: string;
-  updated_at: string;
+  currency: string | null;
+  type: string | null;
+  active: boolean | null;
+  created_at: string | null;
+  updated_at: string | null;
 }
 
 export const fetchStripeProducts = async (): Promise<StripeProduct[]> => {

@@ -15,7 +15,5 @@
     "skipLibCheck": true,
     "allowJs": true
   },
-  "exclude": [
-    "supabase/functions/**/*"
-  ]
+  "exclude": []
 }

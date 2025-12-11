@@ -12,8 +12,8 @@ import { safeConsoleError } from '@/utils/safe-logging';
 
 interface Conversation {
   id: string;
-  title: string;
-  updated_at: string;
+  title: string | null;
+  updated_at: string | null;
   mode: string | null;
 }
 
@@ -91,7 +91,7 @@ export const useFolderActions = ({
     onChatClick(conversation.id);
   };
 
-  const handleEditChat = (conversationId: string, currentTitle: string) => {
+  const handleEditChat = (conversationId: string, currentTitle: string | null) => {
     setEditingConversationId(conversationId);
     setEditTitle(currentTitle);
     setShowEditDialog(true);

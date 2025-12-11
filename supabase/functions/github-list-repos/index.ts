@@ -1,4 +1,3 @@
-// @ts-nocheck - Deno runtime
 // List GitHub repositories for the currently authenticated user
 // Uses the stored github_accounts access token and returns a lightweight repo list
 

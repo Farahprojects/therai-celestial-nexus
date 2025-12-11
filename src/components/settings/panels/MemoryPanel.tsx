@@ -25,8 +25,7 @@ export function MemoryPanel() {
   // Clean up deletedIds when memories are refetched (remove IDs that are no longer in memories)
   useEffect(() => {
     if (deletedIds.size > 0) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const memoryIds = new Set(memories.map((m: any) => m.id)); // Memory type from useUserMemory
+      const memoryIds = new Set(memories.map((m) => m.id));
       setDeletedIds(prev => {
         const next = new Set<string>();
         for (const id of Array.from(prev)) {
@@ -42,11 +41,9 @@ export function MemoryPanel() {
   }, [memories, deletedIds.size]);
 
   // Filter out optimistically deleted memories
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const visibleMemories = memories.filter((m: any) => !deletedIds.has(m.id)); // Memory type from useUserMemory
+  const visibleMemories = memories.filter((m) => !deletedIds.has(m.id));
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const filteredMemories = visibleMemories.filter((m: any) => { // Memory type from useUserMemory
+  const filteredMemories = visibleMemories.filter((m) => {
     const matchesSearch = m.memory_text.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesType = filterType === 'all' || m.memory_type === filterType;
     return matchesSearch && matchesType;
@@ -85,8 +82,7 @@ export function MemoryPanel() {
 
   const handleExport = async () => {
     const exportData = {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      memories: memories.map((m: any) => ({ // Memory type from useUserMemory
+      memories: memories.map((m) => ({
         text: m.memory_text,
         type: m.memory_type,
         created: m.created_at
@@ -172,8 +168,7 @@ export function MemoryPanel() {
         </div>
       ) : (
         <div className="space-y-3">
-          {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-          {filteredMemories.map((mem: any) => ( // Memory type from useUserMemory
+          {filteredMemories.map((mem) => (
             <div
               key={mem.id}
               className="bg-white border border-gray-200 rounded-xl p-4 hover:border-gray-300 transition-colors"
@@ -218,8 +213,7 @@ export function MemoryPanel() {
             </p>
           </div>
           <div className="space-y-3">
-            {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-            {summaries.map((summary: any) => ( // MonthlySummary type from useUserMemory
+            {summaries.map((summary) => (
               <div
                 key={summary.id}
                 className="bg-white border border-gray-200 rounded-xl p-5 hover:border-gray-300 transition-colors"

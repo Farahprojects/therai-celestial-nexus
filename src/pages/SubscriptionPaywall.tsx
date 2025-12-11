@@ -10,9 +10,9 @@ import { safeConsoleError } from '@/utils/safe-logging';
 interface PricingData {
   id: string;
   name: string;
-  description: string;
+  description: string | null;
   unit_price_usd: number;
-  product_code: string;
+  product_code: string | null;
 }
 
 const SubscriptionPaywall: React.FC = () => {
@@ -154,7 +154,7 @@ const SubscriptionPaywall: React.FC = () => {
             throw new Error('Missing free plan');
           }
 
-          let plusOrGrowthPlan: PricingData | null = null;
+          let plusOrGrowthPlan: PricingData | undefined = undefined;
           if (shouldShowPlus) {
             plusOrGrowthPlan = planMap.get('8_monthly');
             if (!plusOrGrowthPlan) {

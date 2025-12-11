@@ -5,8 +5,8 @@ import { ConversationActionsMenuContent } from '@/components/chat/ConversationAc
 
 interface Conversation {
   id: string;
-  title: string;
-  updated_at: string;
+  title: string | null;
+  updated_at: string | null;
   mode: string | null;
 }
 
@@ -15,7 +15,7 @@ interface ConversationsSectionProps {
   folders: Array<{ id: string; name: string }>;
   currentFolderId: string;
   onChatClick: (conversation: Conversation) => void;
-  onEditChat: (conversationId: string, currentTitle: string) => void;
+  onEditChat: (conversationId: string, currentTitle: string | null) => void;
   onDeleteChat: (conversationId: string) => void;
   onShareChat: (conversationId: string) => void;
   onMoveToFolder: (conversationId: string, targetFolderId: string | null) => void;

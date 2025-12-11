@@ -306,7 +306,9 @@ Deno.serve(async (req) => {
     );
   }
 
-  Promise.allSettled(tasks).catch(() => { });
+  Promise.allSettled(tasks).catch((error) => {
+    console.error('[llm-handler-chatgpt] Promise.allSettled failed:', error);
+  });
 
   const totalLatencyMs = Date.now() - startedAt;
   console.log(`[llm-handler-chatgpt] ⏱️  Returning response (+${Date.now() - totalStartTime}ms) TOTAL - LLM: ${llmLatencyMs}ms`);

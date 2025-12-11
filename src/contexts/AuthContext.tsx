@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import type { User, Session } from '@supabase/supabase-js';
+import type { User, Session, AuthResponse } from '@supabase/supabase-js';
 import { useNavigationState } from '@/contexts/NavigationStateContext';
 import { log } from '@/utils/logUtils';
 import { getAuthManager } from '@/services/authManager';
@@ -36,8 +36,8 @@ export type AuthContextType = {
   pendingEmailAddress?: string;
   isPendingEmailCheck?: boolean;
   isAuthenticated: boolean; // Single source of truth
-  signIn: (email: string, password: string) => Promise<{ error: Error | null; data: any }>; // eslint-disable-line @typescript-eslint/no-explicit-any
-  signUp: (email: string, password: string) => Promise<{ error: Error | null; user?: User | null }>; // eslint-disable-line @typescript-eslint/no-explicit-any
+  signIn: (email: string, password: string) => Promise<{ error: Error | null; data: AuthResponse['data'] | null }>;
+  signUp: (email: string, password: string) => Promise<{ error: Error | null; user?: User | null; data?: { message: string } }>;
   signInWithGoogle: () => Promise<{ error: Error | null }>;
   signInWithApple: () => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;

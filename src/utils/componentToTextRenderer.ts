@@ -45,6 +45,7 @@ export const renderAstroDataAsText = (reportData: ReportData): string => {
 };
 
 const renderIndividualAsText = (reportData: ReportData): string => {
+  if (!reportData.swiss_data) return 'No astro data available';
   const parsed = parseAstroData(reportData.swiss_data);
   const natal = parsed.natal;
 
@@ -56,7 +57,7 @@ const renderIndividualAsText = (reportData: ReportData): string => {
 
   // Birth info removed as guest reports are no longer supported
   text += '\n';
-  if (natal?.angles?.length > 0) {
+  if (natal?.angles && natal.angles.length > 0) {
     text += 'CHART ANGLES\n------------\n';
     natal.angles.forEach((angle: unknown) => {
       const angleObj = angle as { deg?: number; name?: string; sign?: string };
@@ -66,21 +67,21 @@ const renderIndividualAsText = (reportData: ReportData): string => {
     text += '\n';
   }
 
-  if (natal?.planets?.length > 0) {
+  if (natal?.planets && natal.planets.length > 0) {
     text += 'NATAL PLANETARY POSITIONS\n-------------------------\n';
     natal.planets.forEach((planet: unknown) => {
-      const planetObj = planet as { deg?: number; sign?: string; name?: string };
+      const planetObj = planet as { deg?: number; sign?: string; name?: string; house?: number; retrograde?: boolean };
       const degInt = Math.floor(planetObj.deg || 0);
       const sign = String(planetObj.sign || '').padEnd(10);
       let line = `${(planetObj.name || '').padEnd(10)}: ${String(degInt).padStart(2, '0')}° ${sign}`;
-      if (planet.house) line += ` (H${planet.house})`;
-      if (planet.retrograde) line += ' R';
+      if (planetObj.house) line += ` (H${planetObj.house})`;
+      if (planetObj.retrograde) line += ' R';
       text += line + '\n';
     });
     text += '\n';
   }
 
-  if (natal?.aspects?.length > 0) {
+  if (natal?.aspects && natal.aspects.length > 0) {
     text += 'NATAL ASPECTS\n-------------\n';
     natal.aspects.forEach((aspect: unknown) => {
       const aspectObj = aspect as { orb?: number; a?: string; type?: string; b?: string };
@@ -94,6 +95,7 @@ const renderIndividualAsText = (reportData: ReportData): string => {
 };
 
 const renderSynastryAsText = (reportData: ReportData): string => {
+  if (!reportData.swiss_data) return 'No astro data available';
   const data = parseAstroData(reportData.swiss_data);
   const { natal_set, synastry_aspects } = data;
 
@@ -104,6 +106,10 @@ const renderSynastryAsText = (reportData: ReportData): string => {
   const personA = natal_set.personA;
   const personB = natal_set.personB;
 
+  if (!personA || !personB) {
+    return 'Synastry data is missing person information.';
+  }
+
   let text = 'Synastry Chart Analysis\n';
   text += '======================\n\n';
 
@@ -113,12 +119,12 @@ const renderSynastryAsText = (reportData: ReportData): string => {
     const personObj = person as { name?: string; planets?: unknown[] };
     let personText = `${(personObj.name || 'Unknown').toUpperCase()}'S NATAL DATA\n`;
     personText += '-'.repeat((personObj.name || 'Unknown').length + 12) + '\n\n';
-    if (personObj.planets?.length > 0) {
+    if (personObj.planets && personObj.planets.length > 0) {
       personObj.planets.forEach((planet: unknown) => {
-        const planetObj = planet as { name?: string; deg?: number; sign?: string; house?: number };
+        const planetObj = planet as { name?: string; deg?: number; sign?: string; house?: number; retrograde?: boolean };
         let line = `${(planetObj.name || '').padEnd(10)}: ${String(Math.floor(planetObj.deg || 0)).padStart(2, '0')}° ${(planetObj.sign || '').padEnd(10)}`;
         if (planetObj.house) line += ` (H${planetObj.house})`;
-        if (planet.retrograde) line += ' R';
+        if (planetObj.retrograde) line += ' R';
         personText += line + '\n';
       });
       personText += '\n';
@@ -131,7 +137,7 @@ const renderSynastryAsText = (reportData: ReportData): string => {
     text += renderPerson(personB);
   }
 
-  if (synastry_aspects?.aspects?.length > 0) {
+  if (synastry_aspects?.aspects && synastry_aspects.aspects.length > 0) {
     text += 'SYNASTRY ASPECTS\n';
     text += '----------------\n';
     synastry_aspects.aspects.forEach((aspect: unknown) => {

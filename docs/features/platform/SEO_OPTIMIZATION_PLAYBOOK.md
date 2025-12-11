@@ -26,7 +26,7 @@ Use this playbook for future audits, deployments, and Search Console operations.
 - Script `scripts/generate-sitemap.js`:
   - Generates valid XML (namespace, escaping, `lastmod`, `priority`, `changefreq`).
   - Includes 7 static pages + dynamic blog posts from Supabase.
-  - Runs on `prebuild` and `postbuild` npm scripts to keep `public/sitemap.xml` fresh.
+  - Runs on `postbuild` npm script to keep `public/sitemap.xml` fresh after build completion.
 - `public/robots.txt` points to `https://therai.co/sitemap.xml` and allows all bots.
 
 ### 4. Vercel Configuration

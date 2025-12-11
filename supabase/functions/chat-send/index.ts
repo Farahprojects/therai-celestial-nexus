@@ -157,7 +157,9 @@ async function broadcastMessageInsert(
           error: err instanceof Error ? err.message : String(err),
         }));
       } finally {
-        supabase.removeChannel(broadcastChannel).catch(() => { });
+        supabase.removeChannel(broadcastChannel).catch((error) => {
+          console.error('[chat-send] Failed to remove broadcast channel:', error);
+        });
       }
     })
   );
@@ -184,7 +186,9 @@ async function broadcastAssistantThinking(
           payload: { chat_id: chatId, status: "thinking" },
         });
       } finally {
-        supabase.removeChannel(channel).catch(() => { });
+        supabase.removeChannel(channel).catch((error) => {
+          console.error('[chat-send] Failed to remove channel:', error);
+        });
       }
     })
   );

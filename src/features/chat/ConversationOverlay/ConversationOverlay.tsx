@@ -304,7 +304,6 @@ export const ConversationOverlay: React.FC = () => {
         user_id: user?.id,
         user_name: displayName || 'User',
         audioContextProvider: () => audioContext,
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         onTranscriptReady: (_transcript: string) => {
           if (isShuttingDown.current || isProcessingRef.current) {
             return;
@@ -397,7 +396,6 @@ export const ConversationOverlay: React.FC = () => {
         } else if ('cleanup' in connectionRef.current) {
           connectionRef.current.cleanup();
         }
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
       } catch (_e) {
         // Ignore cleanup errors
       }
@@ -478,7 +476,9 @@ export const ConversationOverlay: React.FC = () => {
       try { recorderRef.current?.dispose(); } catch {
         // eslint-disable-next-line no-empty
       }
-      ttsPlaybackService.destroy().catch(() => { });
+      ttsPlaybackService.destroy().catch((error) => {
+        safeConsoleError('[ConversationOverlay] Failed to destroy TTS playback service:', error);
+      });
     }
   }, [state]);
 

@@ -27,14 +27,15 @@ export function sortByTime(a: CalendarSession, b: CalendarSession) {
  * Safely map a DB row to a CalendarSession object.
  */
 export function mapRowToCalendarSession(s: unknown): CalendarSession {
+  const row = s as Record<string, unknown>;
   return {
-    id: s.id,
-    title: s.title,
-    description: s.description ?? "",
-    start_time: new Date(s.start_time),
-    end_time: new Date(s.end_time),
-    client_id: s.client_id ?? undefined,
-    event_type: (s.event_type ?? "session") as EventType,
-    color_tag: s.color_tag ?? undefined,
+    id: row.id as string,
+    title: row.title as string,
+    description: (row.description as string) ?? "",
+    start_time: new Date(row.start_time as string),
+    end_time: new Date(row.end_time as string),
+    client_id: (row.client_id as string) ?? undefined,
+    event_type: (row.event_type as string ?? "session") as EventType,
+    color_tag: (row.color_tag as string) ?? undefined,
   };
 }

@@ -20,20 +20,21 @@ export interface FolderMap {
   }[];
   journals: {
     id: string;
-    title: string;
+    title: string | null;
     created_at: string;
   }[];
   conversations: {
     id: string;
-    title: string;
-    mode: string;
-    created_at: string;
+    title: string | null;
+    mode: string | null;
+    created_at: string | null;
   }[];
   reports: {
     id: string;
-    chat_id: string;
-    report_type: string;
-    created_at: string;
+    chat_id: string | null;
+    report_type: string | null;
+    created_at: string | null;
+    status: string | null;
   }[];
   folderName: string;
 }
@@ -159,7 +160,7 @@ export async function getFolderContext(folderId: string): Promise<FolderMap> {
 
     // Get reports associated with conversations in this folder
     const conversationIds = (conversations || []).map(c => c.id);
-    let reports: Array<{ id: string; chat_id: string; report_type: string; created_at: string; status: string }> = [];
+    let reports: Array<{ id: string; chat_id: string | null; report_type: string | null; created_at: string | null; status: string | null }> = [];
     
     if (conversationIds.length > 0) {
       const { data: reportsData, error: reportsError } = await supabase

@@ -2,7 +2,8 @@ import { create } from 'zustand';
 import { supabase } from '@/integrations/supabase/client';
 import { useChatStore } from '@/core/store';
 import { unifiedChannel } from '@/services/websocket/UnifiedChannelService';
-import type { Message } from '@/core/types';
+import type { Message, Conversation } from '@/core/types';
+import type { Database } from '@/integrations/supabase/types';
 import { safeConsoleError, safeConsoleWarn, safeConsoleLog } from '@/utils/safe-logging';
 
 // Define a loose DB message type for websocket payloads
@@ -78,8 +79,7 @@ interface MessageStore {
   selfClean: () => void;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const mapDbToMessage = (db: any): StoreMessage => ({
+const mapDbToMessage = (db: Database['public']['Tables']['messages']['Row']): StoreMessage => ({
   id: db.id,
   chat_id: db.chat_id,
   role: db.role,
@@ -352,7 +352,7 @@ export const useMessageStore = create<MessageStore>()((set, get) => ({
       
     } catch (e: unknown) {
       const errorMessage = e instanceof Error ? e.message : 'Failed to fetch messages';
-      if (DEBUG) safeConsoleError('[MessageStore] Failed to fetch messages:', errorMessage, e);
+      if (DEBUG) safeConsoleError('[MessageStore] Failed to fetch messages:', errorMessage);
       set({ error: errorMessage, loading: false });
     }
   },
@@ -493,7 +493,7 @@ if (typeof window !== 'undefined' && !(window as typeof window & { __msgStoreLis
     if (DEBUG) {
       safeConsoleLog('[MessageStore] 🔄 Message update received from unified channel:', {
         chat_id,
-        message_id: messageData?.id
+        message_id: (messageData as { id?: string })?.id
       });
     }
     
@@ -514,7 +514,7 @@ if (typeof window !== 'undefined' && !(window as typeof window & { __msgStoreLis
     if (DEBUG) {
       safeConsoleLog('[MessageStore] 🔄 Conversation update received:', {
         eventType,
-        conversation_id: data?.id
+        conversation_id: (data as { id?: string })?.id
       });
     }
     
@@ -523,13 +523,13 @@ if (typeof window !== 'undefined' && !(window as typeof window & { __msgStoreLis
     
     switch (eventType) {
       case 'INSERT':
-        chatStore.addConversation(data);
+        chatStore.addConversation(data as Conversation);
         break;
       case 'UPDATE':
-        chatStore.updateConversation(data);
+        chatStore.updateConversation(data as Conversation);
         break;
       case 'DELETE':
-        chatStore.removeConversation(data.id);
+        chatStore.removeConversation((data as { id: string }).id);
         break;
     }
   });
