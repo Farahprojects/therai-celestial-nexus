@@ -113,15 +113,23 @@ async function generateSitemap() {
   sitemap += `</urlset>`;
 
   // Write to public directory (for dev and prebuild)
-  const publicPath = path.join(process.cwd(), 'public', 'sitemap.xml');
-  fs.writeFileSync(publicPath, sitemap, 'utf8');
-  console.log(`✅ Sitemap generated at ${publicPath}`);
+  const publicPath = path.join(process.cwd(), '..', 'public', 'sitemap.xml');
+  try {
+    fs.writeFileSync(publicPath, sitemap, 'utf8');
+    console.log(`✅ Sitemap generated at ${publicPath}`);
+  } catch (error) {
+    throw new Error(`Failed to write sitemap to ${publicPath}: ${error.message}`);
+  }
 
   // Also write to dist directory if it exists (for postbuild)
-  const distPath = path.join(process.cwd(), 'dist', 'sitemap.xml');
-  if (fs.existsSync(path.join(process.cwd(), 'dist'))) {
-    fs.writeFileSync(distPath, sitemap, 'utf8');
-    console.log(`✅ Sitemap also written to ${distPath}`);
+  const distPath = path.join(process.cwd(), '..', 'dist', 'sitemap.xml');
+  if (fs.existsSync(path.join(process.cwd(), '..', 'dist'))) {
+    try {
+      fs.writeFileSync(distPath, sitemap, 'utf8');
+      console.log(`✅ Sitemap also written to ${distPath}`);
+    } catch (error) {
+      throw new Error(`Failed to write sitemap to ${distPath}: ${error.message}`);
+    }
   }
 
   console.log(`   - ${staticPages.length} static pages`);
@@ -129,4 +137,7 @@ async function generateSitemap() {
   console.log(`   - Total: ${staticPages.length + blogPosts.length} URLs`);
 }
 
-generateSitemap().catch(console.error);
+generateSitemap().catch((error) => {
+  console.error('❌ Sitemap generation failed:', error);
+  process.exit(1);
+});
