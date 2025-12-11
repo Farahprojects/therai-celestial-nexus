@@ -34,6 +34,15 @@ interface ErrorEvent {
   environment: string;
 }
 
+// Strategic performance analysis
+interface RequestAnalysis {
+  category: string;
+  displayUrl: string;
+  insight: string;
+  strategy: string;
+  actionItems: string[];
+}
+
 class EnvironmentMonitor {
   private startTime: number;
   private errors: ErrorEvent[] = [];
@@ -202,7 +211,7 @@ class EnvironmentMonitor {
   }
 
   /**
-   * Setup development-specific monitoring
+   * Setup development-specific monitoring with strategic performance insights
    */
   private setupDevelopmentMonitoring(): void {
     // Monitor performance
@@ -215,18 +224,14 @@ class EnvironmentMonitor {
       }, 300000); // Check every 5 minutes - much less frequent
     }
 
-    // Monitor network requests in development
+    // Monitor network requests in development with strategic insights
     if ('PerformanceObserver' in window) {
       try {
         const observer = new PerformanceObserver((list) => {
           const entries = list.getEntries();
           entries.forEach((entry) => {
-            if (entry.duration > 3000) { // Slow requests > 3 seconds (more reasonable with optimizations)
-              log('warn', '🐌 Slow network request detected', {
-                url: entry.name,
-                duration: `${entry.duration.toFixed(2)}ms`,
-                type: entry.entryType
-              });
+            if (entry.duration > 3000) { // Slow requests > 3 seconds
+              this.analyzeSlowRequest(entry);
             }
           });
         });
@@ -234,6 +239,245 @@ class EnvironmentMonitor {
         observer.observe({ entryTypes: ['navigation', 'resource'] });
       } catch (error) {
         log('debug', 'Performance observer not supported', error);
+      }
+    }
+  }
+
+  /**
+   * Analyze slow network requests and provide strategic insights
+   */
+  private analyzeSlowRequest(entry: PerformanceEntry): void {
+    const requestAnalysis = this.categorizeAndAnalyzeRequest(entry);
+
+    // Log strategic insights instead of just raw data
+    log('warn', `🐌 ${requestAnalysis.category}: ${requestAnalysis.insight}`, {
+      duration: `${entry.duration.toFixed(2)}ms`,
+      url: requestAnalysis.displayUrl,
+      strategy: requestAnalysis.strategy,
+      actionItems: requestAnalysis.actionItems
+    });
+
+    // Track patterns for potential optimizations
+    this.trackPerformancePattern(requestAnalysis);
+  }
+
+  /**
+   * Categorize requests and provide strategic analysis
+   */
+  private categorizeAndAnalyzeRequest(entry: PerformanceEntry): RequestAnalysis {
+    const url = entry.name;
+    const duration = entry.duration;
+
+    // Supabase Edge Functions
+    if (url.includes('supabase.co/functions/v1/')) {
+      const functionName = url.split('/functions/v1/')[1]?.split('?')[0] || 'unknown';
+      return this.analyzeSupabaseFunction(functionName, duration, url);
+    }
+
+    // Supabase Database/API
+    if (url.includes('supabase.co/rest/v1/') || url.includes('supabase.co/storage/v1/')) {
+      return this.analyzeSupabaseAPI(duration, url);
+    }
+
+    // External APIs
+    if (url.includes('googleapis.com') || url.includes('openai.com') || url.includes('anthropic.com')) {
+      return this.analyzeExternalAPI(url, duration);
+    }
+
+    // Static assets
+    if (url.match(/\.(js|css|png|jpg|jpeg|gif|svg|woff|woff2|ttf|eot)$/i)) {
+      return this.analyzeAssetRequest(url, duration);
+    }
+
+    // Navigation requests
+    if (entry.entryType === 'navigation') {
+      return this.analyzeNavigationRequest(url, duration);
+    }
+
+    // Generic analysis
+    return {
+      category: 'Network Request',
+      displayUrl: url.length > 60 ? url.substring(0, 57) + '...' : url,
+      insight: `Slow ${entry.entryType} request detected`,
+      strategy: 'Monitor for patterns',
+      actionItems: ['Check network connectivity', 'Consider caching if appropriate']
+    };
+  }
+
+  /**
+   * Analyze Supabase Edge Function performance
+   */
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  private analyzeSupabaseFunction(functionName: string, _duration: number, _url: string): RequestAnalysis {
+    const insights = {
+      'chat-send': {
+        insight: 'AI chat processing taking longer than expected',
+        strategy: 'Potential cold start or complex AI operation',
+        actionItems: ['Consider function warming', 'Optimize AI prompt complexity', 'Check OpenAI API latency']
+      },
+      'generate-conversation-title': {
+        insight: 'AI title generation is slow',
+        strategy: 'Non-blocking operation, but still impacts UX',
+        actionItems: ['Consider simpler title generation', 'Cache common titles', 'Use faster AI model']
+      },
+      'llm-handler-gemini': {
+        insight: 'Primary AI handler experiencing delays',
+        strategy: 'Critical path performance issue',
+        actionItems: ['Check Gemini API quotas', 'Consider response streaming', 'Implement request queuing']
+      },
+      'report-orchestrator': {
+        insight: 'Report generation orchestration is slow',
+        strategy: 'Complex multi-step process',
+        actionItems: ['Optimize database queries', 'Consider async processing', 'Add progress indicators']
+      },
+      'create-conversation-with-title': {
+        insight: 'Conversation creation with AI title is slow',
+        strategy: 'Blocking user interaction',
+        actionItems: ['Separate title generation from creation', 'Use optimistic updates', 'Cache conversation templates']
+      }
+    };
+
+    const analysis = insights[functionName as keyof typeof insights] || {
+      insight: `Edge function '${functionName}' taking longer than expected`,
+      strategy: 'Check function logs and cold start patterns',
+      actionItems: ['Review function code for optimizations', 'Consider function warming', 'Check Supabase function limits']
+    };
+
+    return {
+      category: 'Supabase Function',
+      displayUrl: `functions/${functionName}`,
+      ...analysis
+    };
+  }
+
+  /**
+   * Analyze Supabase API/database performance
+   */
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  private analyzeSupabaseAPI(_duration: number, _url: string): RequestAnalysis {
+    const isStorage = url.includes('/storage/v1/');
+    const isRest = url.includes('/rest/v1/');
+
+    let insight = 'Database operation taking longer than expected';
+    let strategy = 'Check query complexity and indexing';
+    const actionItems = ['Review database indexes', 'Consider query optimization'];
+
+    if (isStorage) {
+      insight = 'File storage operation is slow';
+      strategy = 'Potential large file or network congestion';
+      actionItems.push('Check file sizes', 'Consider compression', 'Verify upload/download logic');
+    } else if (isRest) {
+      insight = 'REST API call is slow';
+      strategy = 'Check query complexity and RLS policies';
+      actionItems.push('Review Row Level Security rules', 'Check for N+1 query patterns');
+    }
+
+    return {
+      category: 'Supabase API',
+      displayUrl: isStorage ? 'storage/v1/*' : 'rest/v1/*',
+      insight,
+      strategy,
+      actionItems
+    };
+  }
+
+  /**
+   * Analyze external API performance
+   */
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  private analyzeExternalAPI(_url: string, _duration: number): RequestAnalysis {
+    let insight = 'External API call is slow';
+    let strategy = 'Third-party service latency';
+    const actionItems = ['Check API rate limits', 'Consider response caching'];
+
+    if (url.includes('googleapis.com')) {
+      insight = 'Google API experiencing delays';
+      strategy = 'Maps/places API latency or quota issues';
+      actionItems.push('Check Google API quotas', 'Consider fallback providers');
+    } else if (url.includes('openai.com') || url.includes('anthropic.com')) {
+      insight = 'AI service API is slow';
+      strategy = 'Model inference time or API congestion';
+      actionItems.push('Consider model optimization', 'Implement retry logic', 'Check API tiers');
+    }
+
+    return {
+      category: 'External API',
+      displayUrl: url.split('/')[2], // Just the domain
+      insight,
+      strategy,
+      actionItems
+    };
+  }
+
+  /**
+   * Analyze static asset performance
+   */
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  private analyzeAssetRequest(_url: string, _duration: number): RequestAnalysis {
+    const fileType = url.split('.').pop()?.toLowerCase();
+    const insight = `Large ${fileType?.toUpperCase()} asset taking time to load`;
+    const strategy = 'Asset optimization opportunity';
+    const actionItems = ['Consider compression', 'Check CDN configuration'];
+
+    if (fileType === 'js' || fileType === 'css') {
+      actionItems.push('Consider code splitting', 'Minify assets', 'Use modern formats (WebP, AVIF)');
+    } else if (['png', 'jpg', 'jpeg'].includes(fileType || '')) {
+      actionItems.push('Optimize image sizes', 'Use WebP format', 'Implement lazy loading');
+    }
+
+    return {
+      category: 'Static Asset',
+      displayUrl: url.split('/').pop() || 'unknown',
+      insight,
+      strategy,
+      actionItems
+    };
+  }
+
+  /**
+   * Analyze navigation performance
+   */
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  private analyzeNavigationRequest(_url: string, _duration: number): RequestAnalysis {
+    const insight = 'Page navigation taking longer than expected';
+    const strategy = 'Check initial page load performance';
+    const actionItems = [
+      'Review bundle sizes',
+      'Optimize critical rendering path',
+      'Consider code splitting',
+      'Check for blocking resources'
+    ];
+
+    return {
+      category: 'Page Navigation',
+      displayUrl: url.split('/').pop() || 'page',
+      insight,
+      strategy,
+      actionItems
+    };
+  }
+
+  /**
+   * Track performance patterns for trend analysis
+   */
+  private trackPerformancePattern(analysis: RequestAnalysis): void {
+    // Simple pattern tracking - could be expanded with localStorage persistence
+    const patternKey = `${analysis.category}:${analysis.displayUrl}`;
+    const currentTime = Date.now();
+
+    // Store pattern data for potential future analysis
+    if (typeof window !== 'undefined') {
+      try {
+        const patterns = JSON.parse(localStorage.getItem('performancePatterns') || '{}');
+        if (!patterns[patternKey]) {
+          patterns[patternKey] = { count: 0, firstSeen: currentTime, lastSeen: currentTime };
+        }
+        patterns[patternKey].count++;
+        patterns[patternKey].lastSeen = currentTime;
+
+        localStorage.setItem('performancePatterns', JSON.stringify(patterns));
+      } catch {
+        // Silently fail if localStorage is not available
       }
     }
   }
