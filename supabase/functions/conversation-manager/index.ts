@@ -226,7 +226,7 @@ if (isProfileMode) {
       is_generating_report: false,
       reportType: (report_data as any)?.reportType ?? null,
     }
-  });
+  }, req);
 }
 
 // Fire-and-forget report generation if report_data provided
@@ -297,7 +297,7 @@ return jsonResponse({
     is_generating_report,
     reportType: (report_data as any)?.reportType ?? null,
   }
-});
+}, req);
 },
 
 // Return existing or create a new conversation
