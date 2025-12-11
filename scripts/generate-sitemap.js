@@ -111,23 +111,23 @@ async function generateSitemap() {
 
   sitemap += `</urlset>`;
 
-  // Write to public directory (for dev and prebuild)
-  const publicPath = path.join(process.cwd(), '..', 'public', 'sitemap.xml');
+  // Write to dist directory (Vercel serves from dist/)
+  const distPath = path.join(process.cwd(), 'dist', 'sitemap.xml');
   try {
-    fs.writeFileSync(publicPath, sitemap, 'utf8');
-    console.log(`✅ Sitemap generated at ${publicPath}`);
+    fs.writeFileSync(distPath, sitemap, 'utf8');
+    console.log(`✅ Sitemap generated at ${distPath}`);
   } catch (error) {
-    throw new Error(`Failed to write sitemap to ${publicPath}: ${error.message}`);
+    throw new Error(`Failed to write sitemap to ${distPath}: ${error.message}`);
   }
 
-  // Also write to dist directory if it exists (for postbuild)
-  const distPath = path.join(process.cwd(), '..', 'dist', 'sitemap.xml');
-  if (fs.existsSync(path.join(process.cwd(), '..', 'dist'))) {
+  // Also write to public directory if it exists (for local development)
+  const publicPath = path.join(process.cwd(), 'public', 'sitemap.xml');
+  if (fs.existsSync(path.join(process.cwd(), 'public'))) {
     try {
-      fs.writeFileSync(distPath, sitemap, 'utf8');
-      console.log(`✅ Sitemap also written to ${distPath}`);
+      fs.writeFileSync(publicPath, sitemap, 'utf8');
+      console.log(`✅ Sitemap also written to ${publicPath}`);
     } catch (error) {
-      throw new Error(`Failed to write sitemap to ${distPath}: ${error.message}`);
+      console.log(`⚠️ Could not write to public directory: ${error.message}`);
     }
   }
 
