@@ -562,7 +562,7 @@ return new Response(null, { headers: corsHeaders });
 }
 
 if (req.method !== 'POST') {
-return errorJson('Method not allowed', 405);
+return errorJson('Method not allowed', req, 405);
 }
 
 const params = new URL(req.url).searchParams;
