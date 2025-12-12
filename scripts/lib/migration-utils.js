@@ -61,43 +61,128 @@ export function parseOperations(content) {
   const operations = [];
   const lines = content.split('\n');
 
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i].trim();
-    if (!line || line.startsWith('--')) continue;
+  // Track table context throughout the migration
+  let currentTableContext = null;
+  let statementBuffer = [];
+  let inMultiLineStatement = false;
 
-    // Extract CREATE/DROP/ALTER operations
-    const createMatch = line.match(/(CREATE|DROP|ALTER)\s+(POLICY|INDEX|TABLE|FUNCTION|TRIGGER)\s+(?:IF\s+(?:NOT\s+)?EXISTS\s+)?["`]?(\w+)["`]?/i);
-    if (createMatch) {
-      operations.push({
-        type: createMatch[1].toUpperCase(),
-        objectType: createMatch[2].toUpperCase(),
-        name: createMatch[3],
-        line: i + 1,
-        content: line
-      });
-      continue;
+  for (let i = 0; i < lines.length; i++) {
+    let line = lines[i].trim();
+
+    // Skip comments
+    if (line.startsWith('--')) continue;
+    if (!line) continue;
+
+    // Handle multi-line statements (statements ending with semicolons)
+    if (!inMultiLineStatement && !line.includes(';')) {
+      // Single line statement
+      processLine(line, i);
+    } else {
+      // Multi-line statement handling
+      statementBuffer.push(line);
+      if (line.includes(';')) {
+        // End of multi-line statement
+        const fullStatement = statementBuffer.join(' ').replace(/;$/, '');
+        processLine(fullStatement, i - statementBuffer.length + 1);
+        statementBuffer = [];
+        inMultiLineStatement = false;
+      } else {
+        inMultiLineStatement = true;
+      }
+    }
+  }
+
+  function processLine(line, lineNumber) {
+    // Update table context for ALTER TABLE statements
+    const alterTableMatch = line.match(/ALTER\s+TABLE\s+(?:ONLY\s+)?["`]?(\w+)["`]?/i);
+    if (alterTableMatch) {
+      currentTableContext = alterTableMatch[1];
     }
 
-    // Column operations
+    // Update table context for CREATE TABLE statements
+    const createTableMatch = line.match(/CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?["`]?(\w+)["`]?/i);
+    if (createTableMatch) {
+      currentTableContext = createTableMatch[1];
+    }
+
+    // Parse different types of operations
+
+    // Policy operations
+    const policyMatch = line.match(/(CREATE|DROP)\s+POLICY\s+(?:IF\s+(?:NOT\s+)?EXISTS\s+)?["`]?(\w+)["`]?/i);
+    if (policyMatch) {
+      operations.push({
+        type: policyMatch[1].toUpperCase(),
+        objectType: 'POLICY',
+        name: policyMatch[2],
+        line: lineNumber + 1,
+        content: line
+      });
+      return;
+    }
+
+    // Index operations
+    const indexMatch = line.match(/(CREATE|DROP)\s+INDEX\s+(?:IF\s+(?:NOT\s+)?EXISTS\s+)?["`]?(\w+)["`]?/i);
+    if (indexMatch) {
+      operations.push({
+        type: indexMatch[1].toUpperCase(),
+        objectType: 'INDEX',
+        name: indexMatch[2],
+        line: lineNumber + 1,
+        content: line
+      });
+      return;
+    }
+
+    // Table operations
+    const tableMatch = line.match(/(CREATE|DROP|ALTER)\s+TABLE\s+(?:IF\s+(?:NOT\s+)?EXISTS\s+)?["`]?(\w+)["`]?/i);
+    if (tableMatch) {
+      operations.push({
+        type: tableMatch[1].toUpperCase(),
+        objectType: 'TABLE',
+        name: tableMatch[2],
+        line: lineNumber + 1,
+        content: line
+      });
+      return;
+    }
+
+    // Function operations
+    const functionMatch = line.match(/(CREATE|DROP)\s+(?:OR\s+REPLACE\s+)?FUNCTION\s+["`]?(\w+)["`]?/i);
+    if (functionMatch) {
+      operations.push({
+        type: functionMatch[1].toUpperCase(),
+        objectType: 'FUNCTION',
+        name: functionMatch[2],
+        line: lineNumber + 1,
+        content: line
+      });
+      return;
+    }
+
+    // Trigger operations
+    const triggerMatch = line.match(/(CREATE|DROP)\s+TRIGGER\s+["`]?(\w+)["`]?/i);
+    if (triggerMatch) {
+      operations.push({
+        type: triggerMatch[1].toUpperCase(),
+        objectType: 'TRIGGER',
+        name: triggerMatch[2],
+        line: lineNumber + 1,
+        content: line
+      });
+      return;
+    }
+
+    // Column operations within ALTER TABLE context
     const columnMatch = line.match(/(ADD|DROP)\s+COLUMN\s+(?:IF\s+(?:NOT\s+)?EXISTS\s+)?["`]?(\w+)["`]?/i);
-    if (columnMatch) {
-      // Try to find table name from context
-      let tableName = 'unknown';
-      for (let j = i; j >= Math.max(0, i - 5); j--) {
-        const prevLine = lines[j].trim();
-        const tableMatch = prevLine.match(/ALTER\s+TABLE\s+(?:ONLY\s+)?["`]?(\w+)["`]?/i);
-        if (tableMatch) {
-          tableName = tableMatch[1];
-          break;
-        }
-      }
+    if (columnMatch && currentTableContext) {
       operations.push({
         type: columnMatch[1].toUpperCase(),
         objectType: 'COLUMN',
-        name: `${tableName}.${columnMatch[2]}`,
-        line: i + 1,
+        name: `${currentTableContext}.${columnMatch[2]}`,
+        line: lineNumber + 1,
         content: line
       });
+      return;
     }
   }
 
