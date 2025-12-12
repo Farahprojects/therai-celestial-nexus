@@ -11,6 +11,9 @@ import android.media.AudioFocusRequest;
 import android.os.Build;
 import android.util.Log;
 
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
@@ -129,40 +132,57 @@ public class BluetoothAudioPlugin extends Plugin {
                 // On API 31+, explicitly pick BT SCO as communication device
                 maybeSetCommunicationDevice();
                 
-                // Wait for SCO to connect - use event-driven approach with timeout
-                // The scoReceiver is already registered and will handle ongoing SCO state monitoring
+                // Wait for SCO to connect using event-driven approach
+                // Create a temporary receiver to wait for SCO_AUDIO_STATE_CONNECTED
                 final int maxWaitMs = 2000; // Reasonable timeout for SCO connection
                 final long startTime = System.currentTimeMillis();
+                final CountDownLatch scoLatch = new CountDownLatch(1);
+                final boolean[] scoConnected = {false};
 
                 Log.d(TAG, "Waiting for Bluetooth SCO connection (max " + maxWaitMs + "ms)...");
 
-                // Poll with increasing intervals to avoid busy-waiting
-                boolean scoConnected = false;
-                int[] checkIntervals = {50, 100, 200, 500}; // Progressive backoff
-                int intervalIndex = 0;
+                // Create temporary receiver for this connection attempt
+                final android.content.BroadcastReceiver connectionReceiver = new android.content.BroadcastReceiver() {
+                    @Override
+                    public void onReceive(Context context, Intent intent) {
+                        if (!AudioManager.ACTION_SCO_AUDIO_STATE_UPDATED.equals(intent.getAction())) return;
 
-                while (System.currentTimeMillis() - startTime < maxWaitMs) {
-                    if (audioManager.isBluetoothScoOn()) {
-                        scoConnected = true;
-                        long connectTime = System.currentTimeMillis() - startTime;
-                        Log.d(TAG, "Bluetooth SCO connected after " + connectTime + "ms");
-                        break;
+                        final int state = intent.getIntExtra(AudioManager.EXTRA_SCO_AUDIO_STATE, AudioManager.SCO_AUDIO_STATE_ERROR);
+                        if (state == AudioManager.SCO_AUDIO_STATE_CONNECTED) {
+                            scoConnected[0] = true;
+                            long connectTime = System.currentTimeMillis() - startTime;
+                            Log.d(TAG, "Bluetooth SCO connected after " + connectTime + "ms");
+                            scoLatch.countDown(); // Signal that SCO is connected
+                        } else if (state == AudioManager.SCO_AUDIO_STATE_ERROR) {
+                            Log.w(TAG, "Bluetooth SCO connection failed with error state");
+                            scoLatch.countDown(); // Don't wait anymore
+                        }
+                    }
+                };
+
+                // Register the temporary receiver
+                try {
+                    IntentFilter filter = new IntentFilter(AudioManager.ACTION_SCO_AUDIO_STATE_UPDATED);
+                    getContext().registerReceiver(connectionReceiver, filter);
+
+                    // Wait for either connection or timeout
+                    boolean connected = scoLatch.await(maxWaitMs, TimeUnit.MILLISECONDS);
+
+                    if (!connected) {
+                        Log.w(TAG, "Bluetooth SCO did not connect within " + maxWaitMs + "ms timeout, but SCO start was initiated. The scoReceiver will monitor connection status asynchronously.");
+                    } else if (scoConnected[0]) {
+                        Log.d(TAG, "Bluetooth SCO ready for recording");
                     }
 
+                } catch (InterruptedException e) {
+                    Log.w(TAG, "SCO connection wait interrupted", e);
+                } finally {
+                    // Always unregister the temporary receiver
                     try {
-                        int currentInterval = checkIntervals[Math.min(intervalIndex, checkIntervals.length - 1)];
-                        Thread.sleep(currentInterval);
-                        intervalIndex++;
-                    } catch (InterruptedException e) {
-                        Log.w(TAG, "SCO connection wait interrupted", e);
-                        break;
+                        getContext().unregisterReceiver(connectionReceiver);
+                    } catch (Exception e) {
+                        Log.w(TAG, "Failed to unregister temporary SCO connection receiver", e);
                     }
-                }
-
-                if (!scoConnected) {
-                    Log.w(TAG, "Bluetooth SCO did not connect within timeout, but SCO start was initiated. The scoReceiver will monitor connection status asynchronously.");
-                } else {
-                    Log.d(TAG, "Bluetooth SCO ready for recording");
                 }
                 // Lock routing so receiver can re-assert SCO if dropped
                 keepRoutingLocked = true;
