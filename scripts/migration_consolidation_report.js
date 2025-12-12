@@ -1,11 +1,6 @@
 #!/usr/bin/env node
 
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+import { loadMigrations, inferFeature } from './lib/migration-utils.js';
 
 /**
  * Simple Migration Consolidation Report
@@ -18,25 +13,7 @@ class ConsolidationReporter {
   }
 
   loadMigrations() {
-    const migrationDir = path.join(__dirname, '..', 'supabase', 'migrations');
-    const files = fs.readdirSync(migrationDir)
-      .filter(f => f.endsWith('.sql'))
-      .sort();
-
-    console.log(`📊 Analyzing ${files.length} migration files...\n`);
-
-    for (const file of files) {
-      const filePath = path.join(migrationDir, file);
-      const content = fs.readFileSync(filePath, 'utf8');
-      const lines = content.split('\n').length;
-
-      this.migrations.push({
-        file,
-        content,
-        lines,
-        size: content.length
-      });
-    }
+    this.migrations = loadMigrations({ includeMetadata: true });
   }
 
   analyzePatterns() {
@@ -93,26 +70,13 @@ class ConsolidationReporter {
   groupByFeature() {
     const features = {};
     this.migrations.forEach(migration => {
-      const feature = this.inferFeature(migration.file);
+      const feature = inferFeature(migration.file);
       if (!features[feature]) features[feature] = [];
       features[feature].push(migration);
     });
     return features;
   }
 
-  inferFeature(filename) {
-    const lower = filename.toLowerCase();
-    if (lower.includes('folder') || lower.includes('chat')) return 'chat_folders';
-    if (lower.includes('message') || lower.includes('conversation')) return 'messaging';
-    if (lower.includes('feature') || lower.includes('usage') || lower.includes('limit')) return 'billing_limits';
-    if (lower.includes('voice') || lower.includes('audio')) return 'voice_audio';
-    if (lower.includes('image') || lower.includes('generation')) return 'image_generation';
-    if (lower.includes('profile') || lower.includes('user')) return 'user_profiles';
-    if (lower.includes('rls') || lower.includes('policy') || lower.includes('security')) return 'security_rls';
-    if (lower.includes('memory') || lower.includes('insight')) return 'memory_insights';
-    if (lower.includes('payment') || lower.includes('stripe') || lower.includes('credit')) return 'payments';
-    return 'other';
-  }
 
   generateRecommendations() {
     console.log('\n💡 CONSOLIDATION RECOMMENDATIONS:\n');
